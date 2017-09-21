@@ -12,13 +12,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/circonus-labs/circonus-agent/internal/agent"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
-	"github.com/circonus-labs/circonus-agent/internal/plugins"
 	"github.com/circonus-labs/circonus-agent/internal/release"
-	"github.com/circonus-labs/circonus-agent/internal/reverse"
-	"github.com/circonus-labs/circonus-agent/internal/server"
-	"github.com/circonus-labs/circonus-agent/internal/statsd"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -106,7 +103,10 @@ in JSON format.`,
 			os.Exit(0)
 		}
 
-		log.Info().Str("name", release.NAME).Str("ver", release.VERSION).Msg("Starting")
+		log.Info().
+			Int("pid", os.Getpid()).
+			Str("name", release.NAME).
+			Str("ver", release.VERSION).Msg("Starting")
 
 		//
 		// validate the configuration
@@ -118,35 +118,23 @@ in JSON format.`,
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := plugins.Initialize(); err != nil {
-			log.Fatal().Err(err).Msg("Initializing plugins")
+		defer log.Info().
+			Int("pid", os.Getpid()).
+			Str("name", release.NAME).
+			Str("ver", release.VERSION).Msg("Stopping")
+
+		a, err := agent.New()
+		if err != nil {
+			log.Fatal().Err(err).Msg("Initializing")
 			return
 		}
 
-		ec := make(chan error)
+		a.Start()
+		defer a.Stop()
 
-		go func() {
-			err := statsd.Start()
-			if err != nil {
-				ec <- errors.Wrap(err, "Starting StatsD listener")
-			}
-		}()
-
-		go func() {
-			err := reverse.Start()
-			if err != nil {
-				ec <- errors.Wrap(err, "Unable to start reverse connection")
-			}
-		}()
-
-		go func() {
-			err := server.Start()
-			if err != nil {
-				ec <- errors.Wrap(err, "Starting server")
-			}
-		}()
-
-		log.Fatal().Err(<-ec).Msg("Startup")
+		if err := a.Wait(); err != nil {
+			log.Fatal().Err(err).Msg("Startup")
+		}
 
 		return
 	},
