@@ -1,0 +1,39 @@
+# MacOS
+.DS_Store
+
+# Vagrant
+.vagrant*/
+
+# Binaries for programs and plugins
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binary, build with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# vendored packages
+vendor*/
+
+# plugin testing
+plugin_test/test*.sh
+
+# for permissions testing - must be created locally
+# see note internal/config/plugin_test.go
+no_access_dir/
+
+internal/plugins/testdata/testsym.sh
+internal/plugins/testdata/invalid.sh
+internal/plugins/testdata/noaccesscfg.json
+
+# test configs
+circonus-agent.toml
+circonus-agent.yaml
+circonus-agent.json
+
+# goreleaser files
+dist/

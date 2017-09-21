@@ -1,0 +1,34 @@
+{
+    "write_put_int32": {
+        "_type": "i",
+        "_value": 1
+    },
+    "write_put_uint32": {
+        "_type": "I",
+        "_value": 1
+    },
+    "write_put_int64": {
+        "_type": "l",
+        "_value": 1
+    },
+    "write_put_uint64": {
+        "_type": "L",
+        "_value": 1
+    },
+    "write_put_dbl": {
+        "_type": "n",
+        "_value": 1.1
+    },
+    "write_put_str": {
+        "_type": "s",
+        "_value": "foobar"
+    },
+    "write_put_hist1": {
+        "_type": "n",
+        "_value": [1.3,5.2,10.8,30]
+    },
+    "write_put_hist2": {
+        "_type": "n",
+        "_value": ["H[0.1]=3","H[11]=7"]
+    }
+}

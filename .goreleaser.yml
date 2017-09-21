@@ -1,0 +1,58 @@
+project_name: circonus-agent
+
+builds:
+    -
+        main: main.go
+
+        binary: circonus-agentd
+
+        env:
+            - CGO_ENABLED=0
+
+        flags: -tags dev
+
+        goos:
+            - linux
+            - darwin
+            - windows
+
+        goarch:
+            - amd64
+
+        ignore:
+            -
+                goarch: 386
+
+        ldflags: -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.tag={{.Tag}}
+
+archive:
+    name_template: "{{.ProjectName}}_{{.Version}}_{{.Os}}_{{.Arch}}"
+
+    format: tar.gz
+
+    replacements:
+        amd64: 64-bit
+        darwin: macOS
+
+    format_overrides:
+        -
+            goos: windows
+            format: zip
+
+    files:
+        - LICENSE
+        - README.md
+        - CHANGELOG.md
+
+release:
+    github:
+        owner: circonus-labs
+        name: circonus-agent
+
+    draft: true
+
+snapshot:
+    name_template: SNAPSHOT-{{.Commit}}
+
+checksum:
+    name_template: "{{.ProjectName}}_checksums.txt"

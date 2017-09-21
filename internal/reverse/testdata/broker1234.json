@@ -1,0 +1,25 @@
+{
+    "_cid": "/broker/1234",
+    "_details": [
+        {
+            "status": "active",
+            "cn": "foo.bar.baz",
+            "version": 1,
+            "skew": "-0.356",
+            "port": null,
+            "minimum_version_required": 1,
+            "external_host": null,
+            "modules": [
+                "httptrap",
+                "json"
+            ],
+            "ipaddress": "127.0.0.1",
+            "external_port": 1234
+        }
+    ],
+    "_latitude": "0",
+    "_longitude": "0",
+    "_name": "foo",
+    "_tags": [],
+    "_type": "enterprise"
+}
