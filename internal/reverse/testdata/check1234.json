@@ -1,0 +1,36 @@
+{
+    "_check_uuids": [
+        "abc123-a1b2-c3d4-e5f6-123abc"
+    ],
+    "_checks": [
+        "/check/1234"
+    ],
+    "_cid": "/check_bundle/1234",
+    "_created": 1503417749,
+    "_last_modified": 1505417926,
+    "_last_modified_by": "/user/1234",
+    "_reverse_connection_urls": [
+        "mtev_reverse://127.0.0.1:1234/check/abc123-a1b2-c3d4-e5f6-123abc"
+    ],
+    "brokers": [
+        "/broker/1234"
+    ],
+    "config": {
+        "http_version": "1.1",
+        "method": "GET",
+        "payload": "",
+        "port": "2609",
+        "read_limit": "0",
+        "reverse:secret_key": "foobar",
+        "url": "http://127.0.0.1/"
+    },
+    "display_name": "foo bar baz",
+    "metrics": [],
+    "notes": "",
+    "period": 60,
+    "status": "active",
+    "tags": [],
+    "target": "127.0.0.1",
+    "timeout": 10,
+    "type": "json:nad"
+}
