@@ -11,28 +11,30 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/server"
 	"github.com/circonus-labs/circonus-agent/internal/statsd"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 )
 
 // Agent holds the main circonus-agent process
 type Agent struct {
 	errChan chan error
+	plugins *plugins.Plugins
 }
 
 // New returns a new agent instance
 func New() (*Agent, error) {
-	a := Agent{}
-	a.errChan = make(chan error)
+	a := Agent{
+		errChan: make(chan error),
+		plugins: plugins.New(),
+	}
+
+	if err := a.plugins.Scan(); err != nil {
+		return nil, err
+	}
+
 	return &a, nil
 }
 
 // Start the agent
 func (a *Agent) Start() {
-	if err := plugins.Initialize(); err != nil {
-		log.Fatal().Err(err).Msg("Initializing plugins")
-		return
-	}
-
 	go func() {
 		err := statsd.Start()
 		if err != nil {

@@ -14,49 +14,12 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog"
 )
-
-const (
-	metricDelimiter = "`"
-	fieldDelimiter  = "\t"
-	nullMetricValue = "[[null]]"
-)
-
-var (
-	metricTypes = regexp.MustCompile("^[iIlLnOs]$")
-)
-
-// Metric defines an individual metric sample or array of samples (histogram)
-type Metric struct {
-	Type  string      `json:"_type"`
-	Value interface{} `json:"_value"`
-}
-
-// Metrics defines the list of metrics for a given plugin
-type Metrics map[string]Metric
-
-// Plugin defines a specific plugin
-type Plugin struct {
-	sync.RWMutex
-	cmd          *exec.Cmd
-	metrics      *Metrics
-	prevMetrics  *Metrics
-	logger       zerolog.Logger
-	ID           string
-	InstanceID   string
-	Name         string
-	InstanceArgs []string
-	Command      string
-	Generation   uint64
-	Running      bool
-}
 
 // drain returns and resets plugin's current metrics
-func (p *Plugin) drain() *Metrics {
+func (p *plugin) drain() *Metrics {
 	p.Lock()
 	defer p.Unlock()
 
@@ -77,7 +40,7 @@ func (p *Plugin) drain() *Metrics {
 }
 
 // parsePluginOutput handles json and tab delimited output from plugins.
-func (p *Plugin) parsePluginOutput(output []string) error {
+func (p *plugin) parsePluginOutput(output []string) error {
 	p.Lock()
 	defer p.Unlock()
 
@@ -112,6 +75,7 @@ func (p *Plugin) parsePluginOutput(output []string) error {
 	//  metric_name<TAB>metric_type[<TAB>metric_value]
 	//  foo\ti\t10  - int32 foo w/value 10
 	//  bar\tL      - uint64 bar w/o value (null, metric is present but has no value)
+	metricTypes := regexp.MustCompile("^[iIlLnOs]$")
 	for _, line := range output {
 		delimCount := strings.Count(line, fieldDelimiter)
 		if delimCount == 0 {
@@ -244,7 +208,7 @@ func (p *Plugin) parsePluginOutput(output []string) error {
 }
 
 // exec runs a specific plugin and saves plugin output
-func (p *Plugin) exec() error {
+func (p *plugin) exec() error {
 	// NOTE: !! IMPORTANT !!
 	//       locks are handled manually so that long running plugins
 	//       do not block access to plugin meta data and metrics
@@ -264,7 +228,7 @@ func (p *Plugin) exec() error {
 	p.Running = true
 
 	p.cmd = exec.Command(p.Command)
-	p.cmd.Dir = pluginDir
+	p.cmd.Dir = p.RunDir
 	if p.InstanceArgs != nil {
 		p.cmd.Args = append(p.cmd.Args, p.InstanceArgs...)
 	}

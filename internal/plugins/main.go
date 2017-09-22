@@ -7,6 +7,7 @@ package plugins
 
 import (
 	"encoding/json"
+	"os/exec"
 	"strings"
 	"sync"
 
@@ -19,94 +20,120 @@ import (
 	"github.com/spf13/viper"
 )
 
-// PluginList all active plugins
-type PluginList struct {
-	sync.RWMutex
-	generation uint64
-	active     map[string]*Plugin
-	running    bool
+// Metric defines an individual metric sample or array of samples (histogram)
+type Metric struct {
+	Type  string      `json:"_type"`
+	Value interface{} `json:"_value"`
 }
 
-var (
-	pluginList    *PluginList
+// Metrics defines the list of metrics for a given plugin
+type Metrics map[string]Metric
+
+// Plugin defines a specific plugin
+type plugin struct {
+	sync.RWMutex
+	cmd          *exec.Cmd
+	metrics      *Metrics
+	prevMetrics  *Metrics
+	logger       zerolog.Logger
+	ID           string
+	InstanceID   string
+	Name         string
+	InstanceArgs []string
+	Command      string
+	Generation   uint64
+	Running      bool
+	RunDir       string
+}
+
+// Plugins defines plugin manager
+type Plugins struct {
+	sync.RWMutex
+	generation    uint64
+	active        map[string]*plugin
+	running       bool
 	pluginDir     string
 	logger        zerolog.Logger
-	reservedNames = map[string]bool{"write": true, "statsd": true}
+	reservedNames map[string]bool
+}
+
+const (
+	metricDelimiter = "`"
+	fieldDelimiter  = "\t"
+	nullMetricValue = "[[null]]"
 )
 
-// Initialize the plugin manager
-func Initialize() error {
-	logger = log.With().Str("pkg", "plugins").Logger()
-
-	pluginDir = viper.GetString(config.KeyPluginDir)
-	pluginList = &PluginList{
-		generation: 0,
-		active:     make(map[string]*Plugin),
+// New returns a new instance of the plugins manager
+func New() *Plugins {
+	p := Plugins{
+		generation:    0,
+		running:       false,
+		pluginDir:     viper.GetString(config.KeyPluginDir),
+		logger:        log.With().Str("pkg", "plugins").Logger(),
+		reservedNames: map[string]bool{"write": true, "statsd": true},
+		active:        make(map[string]*plugin),
 	}
 
-	return Scan()
-
-	// start plugin directory watcher
-	// go pluginWatcher()
+	return &p
 }
 
 // Flush plugin metrics
-func Flush(plugin string) map[string]interface{} {
-	pluginList.RLock()
-	defer pluginList.RUnlock()
+func (p *Plugins) Flush(pluginName string) *map[string]interface{} {
+	p.RLock()
+	defer p.RUnlock()
 
 	metrics := map[string]interface{}{}
 
-	for pluginID, plug := range pluginList.active {
-		if plugin == "" || // all plugins
-			pluginID == plugin || // specific plugin
-			strings.HasPrefix(pluginID, plugin+"`") { // specific plugin with instances
+	for pluginID, plug := range p.active {
+		if pluginName == "" || // all plugins
+			pluginID == pluginName || // specific plugin
+			strings.HasPrefix(pluginID, pluginName+"`") { // specific plugin with instances
 			metrics[pluginID] = plug.drain()
 		}
 	}
 
-	return metrics
+	return &metrics
 }
 
 // Run one or all plugins
-func Run(plugin string) error {
-	pluginList.Lock()
-	defer pluginList.Unlock()
+func (p *Plugins) Run(pluginName string) error {
+	p.Lock()
+	defer p.Unlock()
 
-	if pluginList.running {
+	if p.running {
 		msg := "plugin run already in progress"
-		logger.Info().Msg(msg)
+		p.logger.Info().Msg(msg)
 		return errors.Errorf(msg)
 	}
 
-	pluginList.running = true
+	p.running = true
 
 	var wg sync.WaitGroup
 
-	if plugin != "" {
+	if pluginName != "" {
 		numFound := 0
-		for pluginID, plug := range pluginList.active {
-			if pluginID == plugin || // specific plugin
-				strings.HasPrefix(pluginID, plugin+"`") { // specific plugin with instances
+		for pluginID, plug := range p.active {
+			if pluginID == pluginName || // specific plugin
+				strings.HasPrefix(pluginID, pluginName+"`") { // specific plugin with instances
 				numFound++
 				wg.Add(1)
-				go func(id string, plug *Plugin) {
+				go func(id string, plug *plugin) {
 					plug.exec()
 					wg.Done()
 				}(pluginID, plug)
 			}
 		}
 		if numFound == 0 {
-			logger.Error().
-				Str("plugin", plugin).
+			p.logger.Error().
+				Str("plugin", pluginName).
 				Msg("Invalid/Unknown")
-			pluginList.running = false
-			return errors.Errorf("invalid plugin (%s)", plugin)
+			p.running = false
+			return errors.Errorf("invalid plugin (%s)", pluginName)
 		}
 	} else {
-		wg.Add(len(pluginList.active))
-		for pluginID, pluginRef := range pluginList.active {
-			go func(id string, plug *Plugin) {
+		wg.Add(len(p.active))
+		for pluginID, pluginRef := range p.active {
+			go func(id string, plug *plugin) {
 				plug.exec()
 				wg.Done()
 			}(pluginID, pluginRef)
@@ -114,25 +141,25 @@ func Run(plugin string) error {
 	}
 
 	wg.Wait()
-	logger.Debug().Msg("all plugins done")
+	p.logger.Debug().Msg("all plugins done")
 
-	pluginList.running = false
+	p.running = false
 
 	return nil
 }
 
 // IsValid determines if a specific plugin is valid
-func IsValid(plugin string) bool {
-	if plugin == "" {
+func (p *Plugins) IsValid(pluginName string) bool {
+	if pluginName == "" {
 		return false
 	}
 
-	pluginList.RLock()
-	defer pluginList.RUnlock()
+	p.RLock()
+	defer p.RUnlock()
 
-	for pluginID := range pluginList.active {
+	for pluginID := range p.active {
 		// specific plugin       plugin with instances
-		if pluginID == plugin || strings.HasPrefix(pluginID, plugin+"`") {
+		if pluginID == pluginName || strings.HasPrefix(pluginID, pluginName+"`") {
 			return true
 		}
 	}
@@ -141,20 +168,20 @@ func IsValid(plugin string) bool {
 }
 
 // IsInternal checks to see if the plugin is one of the internal plugins (write|statsd)
-func IsInternal(plugin string) bool {
-	if plugin == "" {
+func (p *Plugins) IsInternal(pluginName string) bool {
+	if pluginName == "" {
 		return false
 	}
-	_, reserved := reservedNames[plugin]
+	_, reserved := p.reservedNames[pluginName]
 
 	return reserved
 }
 
 // Inventory returns list of active plugins
-func Inventory() ([]byte, error) {
-	pluginList.RLock()
-	defer pluginList.RUnlock()
-	return json.Marshal(pluginList.active)
+func (p *Plugins) Inventory() ([]byte, error) {
+	p.RLock()
+	defer p.RUnlock()
+	return json.Marshal(p.active)
 }
 
 // func pluginWatcher() {
