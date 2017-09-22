@@ -6,6 +6,7 @@
 package plugins
 
 import (
+	"context"
 	"testing"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
@@ -27,7 +28,7 @@ import (
 func TestScanPluginDirectory(t *testing.T) {
 	t.Log("Testing scanPluginDirectory")
 
-	p := New()
+	p := New(context.Background())
 	p.active["purge_inactive"] = &plugin{
 		ID:         "purge_inactive",
 		Generation: 0,

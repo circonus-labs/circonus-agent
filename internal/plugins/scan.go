@@ -185,6 +185,7 @@ func (p *Plugins) scanPluginDirectory() error {
 			plug, ok := p.active[fileBase]
 			if !ok {
 				p.active[fileBase] = &plugin{
+					ctx:    p.ctx,
 					ID:     fileBase,
 					Name:   fileBase,
 					logger: p.logger.With().Str("plugin", fileBase).Logger(),
@@ -207,6 +208,7 @@ func (p *Plugins) scanPluginDirectory() error {
 				plug, ok := p.active[pluginName]
 				if !ok {
 					p.active[pluginName] = &plugin{
+						ctx:          p.ctx,
 						ID:           fileBase,
 						InstanceID:   inst,
 						InstanceArgs: args,

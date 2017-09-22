@@ -7,6 +7,7 @@ package plugins
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"path"
 	"testing"
@@ -28,7 +29,7 @@ func TestScan(t *testing.T) {
 		viper.Set(config.KeyPluginDir, "")
 
 		expectErr := errors.Errorf("plugin directory scan: invalid plugin directory (none)")
-		p := New()
+		p := New(context.Background())
 		err := p.Scan()
 		if err == nil {
 			t.Fatal("expected error")
@@ -42,7 +43,7 @@ func TestScan(t *testing.T) {
 	{
 		viper.Set(config.KeyPluginDir, "testdata/")
 
-		p := New()
+		p := New(context.Background())
 		err := p.Scan()
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
@@ -61,7 +62,7 @@ func TestRun(t *testing.T) {
 		t.Fatalf("unable to get cwd (%s)", err)
 	}
 	viper.Set(config.KeyPluginDir, path.Join(dir, "testdata"))
-	p := New()
+	p := New(context.Background())
 
 	if err := p.Scan(); err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
@@ -119,7 +120,7 @@ func TestFlush(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	p := New()
+	p := New(context.Background())
 	if err := p.Scan(); err != nil {
 		t.Fatalf("expected no error, got %s", err)
 	}
@@ -169,7 +170,7 @@ func TestIsValid(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	viper.Set(config.KeyPluginDir, "testdata/")
-	p := New()
+	p := New(context.Background())
 
 	err := p.Scan()
 	if err != nil {
@@ -209,7 +210,7 @@ func TestIsInternal(t *testing.T) {
 
 	viper.Set(config.KeyPluginDir, "testdata/")
 
-	p := New()
+	p := New(context.Background())
 	err := p.Scan()
 	if err != nil {
 		t.Fatalf("expected no error, got %s", err)
@@ -256,7 +257,7 @@ func TestInventory(t *testing.T) {
 
 	viper.Set(config.KeyPluginDir, "testdata/")
 
-	p := New()
+	p := New(context.Background())
 	err := p.Scan()
 	if err != nil {
 		t.Fatalf("expected no error, got %s", err)

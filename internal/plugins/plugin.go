@@ -227,7 +227,7 @@ func (p *plugin) exec() error {
 
 	p.Running = true
 
-	p.cmd = exec.Command(p.Command)
+	p.cmd = exec.CommandContext(p.ctx, p.Command)
 	p.cmd.Dir = p.RunDir
 	if p.InstanceArgs != nil {
 		p.cmd.Args = append(p.cmd.Args, p.InstanceArgs...)

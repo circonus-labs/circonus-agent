@@ -6,6 +6,7 @@
 package plugins
 
 import (
+	"context"
 	"encoding/json"
 	"os/exec"
 	"strings"
@@ -32,6 +33,7 @@ type Metrics map[string]Metric
 // Plugin defines a specific plugin
 type plugin struct {
 	sync.RWMutex
+	ctx          context.Context
 	cmd          *exec.Cmd
 	metrics      *Metrics
 	prevMetrics  *Metrics
@@ -49,6 +51,7 @@ type plugin struct {
 // Plugins defines plugin manager
 type Plugins struct {
 	sync.RWMutex
+	ctx           context.Context
 	generation    uint64
 	active        map[string]*plugin
 	running       bool
@@ -64,8 +67,9 @@ const (
 )
 
 // New returns a new instance of the plugins manager
-func New() *Plugins {
+func New(ctx context.Context) *Plugins {
 	p := Plugins{
+		ctx:           ctx,
 		generation:    0,
 		running:       false,
 		pluginDir:     viper.GetString(config.KeyPluginDir),
