@@ -18,8 +18,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-func TestInitialize(t *testing.T) {
-	t.Log("Testing Initialize")
+func TestScan(t *testing.T) {
+	t.Log("Testing Scan")
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
@@ -28,7 +28,8 @@ func TestInitialize(t *testing.T) {
 		viper.Set(config.KeyPluginDir, "")
 
 		expectErr := errors.Errorf("plugin directory scan: invalid plugin directory (none)")
-		err := Initialize()
+		p := New()
+		err := p.Scan()
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -41,7 +42,8 @@ func TestInitialize(t *testing.T) {
 	{
 		viper.Set(config.KeyPluginDir, "testdata/")
 
-		err := Initialize()
+		p := New()
+		err := p.Scan()
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -59,8 +61,9 @@ func TestRun(t *testing.T) {
 		t.Fatalf("unable to get cwd (%s)", err)
 	}
 	viper.Set(config.KeyPluginDir, path.Join(dir, "testdata"))
+	p := New()
 
-	if err := Initialize(); err != nil {
+	if err := p.Scan(); err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
 
@@ -70,22 +73,22 @@ func TestRun(t *testing.T) {
 
 	t.Log("Invalid (already running)")
 	{
-		pluginList.running = true
+		p.running = true
 		expectedErr := errors.New("plugin run already in progress")
-		err := Run("invalid")
+		err := p.Run("invalid")
 		if err == nil {
 			t.Fatal("expected error")
 		}
 		if err.Error() != expectedErr.Error() {
 			t.Fatalf("expected (%s) got (%s)", expectedErr, err)
 		}
-		pluginList.running = false
+		p.running = false
 	}
 
 	t.Log("Invalid (unknown plugin)")
 	{
 		expectedErr := errors.New("invalid plugin (invalid)")
-		err := Run("invalid")
+		err := p.Run("invalid")
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -96,7 +99,7 @@ func TestRun(t *testing.T) {
 
 	t.Log("Valid (all)")
 	{
-		err := Run("")
+		err := p.Run("")
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -104,7 +107,7 @@ func TestRun(t *testing.T) {
 
 	t.Log("Valid (one)")
 	{
-		err := Run("test")
+		err := p.Run("test")
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -114,28 +117,36 @@ func TestRun(t *testing.T) {
 func TestFlush(t *testing.T) {
 	t.Log("Testing Flush")
 
-	// NOTE this test depends on Run above adding the metric from running 'testdata/test.sh'
-
 	zerolog.SetGlobalLevel(zerolog.Disabled)
+
+	p := New()
+	if err := p.Scan(); err != nil {
+		t.Fatalf("expected no error, got %s", err)
+	}
+	time.Sleep(2 * time.Second)
+	if err := p.Run("test"); err != nil {
+		t.Fatalf("expected NO error, got (%s)", err)
+	}
+	time.Sleep(2 * time.Second)
 
 	t.Log("Invalid")
 	{
-		data := Flush("invalid")
+		data := p.Flush("invalid")
 		if data == nil {
 			t.Fatal("expected data")
 		}
-		if len(data) != 0 {
+		if len(*data) != 0 {
 			t.Fatalf("expected no metrics, got (%#v)", data)
 		}
 	}
 
 	t.Log("Valid")
 	{
-		data := Flush("test")
-		if len(data) == 0 {
+		data := p.Flush("test")
+		if len(*data) == 0 {
 			t.Fatalf("expected metrics got (%#v)", data)
 		}
-		metrics := data["test"].(*Metrics)
+		metrics := (*data)["test"].(*Metrics)
 		if len(*metrics) == 0 {
 			t.Fatalf("expected metrics, got (%#v)", metrics)
 		}
@@ -158,15 +169,16 @@ func TestIsValid(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	viper.Set(config.KeyPluginDir, "testdata/")
+	p := New()
 
-	err := Initialize()
+	err := p.Scan()
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
 
 	t.Log("Invalid []")
 	{
-		ok := IsValid("")
+		ok := p.IsValid("")
 		if ok {
 			t.Fatal("expected false")
 		}
@@ -174,7 +186,7 @@ func TestIsValid(t *testing.T) {
 
 	t.Log("Invalid [invalid]")
 	{
-		ok := IsValid("invalid")
+		ok := p.IsValid("invalid")
 		if ok {
 			t.Fatal("expected false")
 		}
@@ -182,7 +194,7 @@ func TestIsValid(t *testing.T) {
 
 	t.Log("Valid")
 	{
-		ok := IsValid("test")
+		ok := p.IsValid("test")
 		if !ok {
 			t.Fatal("expected true")
 		}
@@ -197,14 +209,15 @@ func TestIsInternal(t *testing.T) {
 
 	viper.Set(config.KeyPluginDir, "testdata/")
 
-	err := Initialize()
+	p := New()
+	err := p.Scan()
 	if err != nil {
-		t.Fatalf("expected NO error, got (%s)", err)
+		t.Fatalf("expected no error, got %s", err)
 	}
 
 	t.Log("Internal - statsd")
 	{
-		internal := IsInternal("statsd")
+		internal := p.IsInternal("statsd")
 		if !internal {
 			t.Fatal("expected true")
 		}
@@ -212,7 +225,7 @@ func TestIsInternal(t *testing.T) {
 
 	t.Log("Internal - write")
 	{
-		internal := IsInternal("write")
+		internal := p.IsInternal("write")
 		if !internal {
 			t.Fatal("expected true")
 		}
@@ -220,7 +233,7 @@ func TestIsInternal(t *testing.T) {
 
 	t.Log("Not internal - blank")
 	{
-		internal := IsInternal("")
+		internal := p.IsInternal("")
 		if internal {
 			t.Fatal("expected false")
 		}
@@ -228,7 +241,7 @@ func TestIsInternal(t *testing.T) {
 
 	t.Log("Not internal - foo")
 	{
-		internal := IsInternal("foo")
+		internal := p.IsInternal("foo")
 		if internal {
 			t.Fatal("expected false")
 		}
@@ -243,14 +256,15 @@ func TestInventory(t *testing.T) {
 
 	viper.Set(config.KeyPluginDir, "testdata/")
 
-	err := Initialize()
+	p := New()
+	err := p.Scan()
 	if err != nil {
-		t.Fatalf("expected NO error, got (%s)", err)
+		t.Fatalf("expected no error, got %s", err)
 	}
 
 	t.Log("Valid")
 	{
-		data, err := Inventory()
+		data, err := p.Inventory()
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}

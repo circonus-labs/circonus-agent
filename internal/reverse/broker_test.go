@@ -30,9 +30,12 @@ func TestGetTLSConfig(t *testing.T) {
 		t.Fatalf("parsing test url (%s)", err)
 	}
 
+	viper.Set(config.KeyReverse, true)
+	c := New()
+
 	t.Log("No broker cid")
 	{
-		_, err := getTLSConfig("", rurl)
+		_, err := c.getTLSConfig("", rurl)
 
 		expectedErr := errors.New("No broker CID supplied")
 		if err == nil {
@@ -45,7 +48,7 @@ func TestGetTLSConfig(t *testing.T) {
 
 	t.Log("Invalid broker cid")
 	{
-		_, err := getTLSConfig("1234", rurl)
+		_, err := c.getTLSConfig("1234", rurl)
 
 		expectedErr := errors.New("Invalid broker CID (1234)")
 		if err == nil {
@@ -58,7 +61,7 @@ func TestGetTLSConfig(t *testing.T) {
 
 	t.Log("No API token")
 	{
-		_, err := getTLSConfig("/broker/1234", rurl)
+		_, err := c.getTLSConfig("/broker/1234", rurl)
 
 		expectedErr := errors.New("Initializing cgm API: API Token is required")
 		if err == nil {
@@ -74,10 +77,8 @@ func TestGetTLSConfig(t *testing.T) {
 		viper.Set(config.KeyAPIURL, apiSim.URL)
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
-		_, err := getTLSConfig("/broker/404", rurl)
-		viper.Set(config.KeyAPIURL, "")
-		viper.Set(config.KeyAPITokenKey, "")
-		viper.Set(config.KeyAPITokenApp, "")
+		_, err := c.getTLSConfig("/broker/404", rurl)
+		viper.Reset()
 
 		expectedErr := errors.New("Fetching broker (/broker/404) from API: [ERROR] API response code 404: not found")
 		if err == nil {
@@ -93,10 +94,8 @@ func TestGetTLSConfig(t *testing.T) {
 		viper.Set(config.KeyAPIURL, apiSim.URL)
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
-		_, err := getTLSConfig("/broker/1234", badrurl)
-		viper.Set(config.KeyAPIURL, "")
-		viper.Set(config.KeyAPITokenKey, "")
-		viper.Set(config.KeyAPITokenApp, "")
+		_, err := c.getTLSConfig("/broker/1234", badrurl)
+		viper.Reset()
 
 		expectedErr := errors.New("Unable to match reverse URL host (127.0.0.2) to broker")
 		if err == nil {
@@ -113,11 +112,8 @@ func TestGetTLSConfig(t *testing.T) {
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
 		viper.Set(config.KeyReverseBrokerCAFile, "testdata/missingca.crt")
-		_, err := getTLSConfig("/broker/1234", rurl)
-		viper.Set(config.KeyAPIURL, "")
-		viper.Set(config.KeyAPITokenKey, "")
-		viper.Set(config.KeyAPITokenApp, "")
-		viper.Set(config.KeyReverseBrokerCAFile, "")
+		_, err := c.getTLSConfig("/broker/1234", rurl)
+		viper.Reset()
 
 		expectedErr := errors.New("Reading specified broker-ca-file (testdata/missingca.crt): open testdata/missingca.crt: no such file or directory")
 		if err == nil {
@@ -134,11 +130,8 @@ func TestGetTLSConfig(t *testing.T) {
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
 		viper.Set(config.KeyReverseBrokerCAFile, "testdata/ca.crt")
-		_, err := getTLSConfig("/broker/1234", rurl)
-		viper.Set(config.KeyAPIURL, "")
-		viper.Set(config.KeyAPITokenKey, "")
-		viper.Set(config.KeyAPITokenApp, "")
-		viper.Set(config.KeyReverseBrokerCAFile, "")
+		_, err := c.getTLSConfig("/broker/1234", rurl)
+		viper.Reset()
 
 		if err != nil {
 			t.Fatalf("expected NO error got (%s)", err)
@@ -150,10 +143,8 @@ func TestGetTLSConfig(t *testing.T) {
 		viper.Set(config.KeyAPIURL, apiSim.URL)
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
-		_, err := getTLSConfig("/broker/1234", rurl)
-		viper.Set(config.KeyAPIURL, "")
-		viper.Set(config.KeyAPITokenKey, "")
-		viper.Set(config.KeyAPITokenApp, "")
+		_, err := c.getTLSConfig("/broker/1234", rurl)
+		viper.Reset()
 
 		if err != nil {
 			t.Fatalf("expected NO error got (%s)", err)

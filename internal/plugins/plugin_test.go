@@ -20,7 +20,7 @@ func TestDrain(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	p := &Plugin{
+	p := &plugin{
 		ID:         "test",
 		InstanceID: "",
 		Name:       "test",
@@ -53,7 +53,7 @@ func TestParsePluginOutput(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	p := &Plugin{
+	p := &plugin{
 		ID:         "test",
 		InstanceID: "",
 		Name:       "test",
@@ -147,7 +147,7 @@ func TestExec(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	p := &Plugin{
+	p := &plugin{
 		ID:         "test",
 		InstanceID: "",
 		Name:       "test",

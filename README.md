@@ -19,7 +19,7 @@ mkdir -p circonus-agent/{sbin,etc}
 cd circonus-agent
 ln -s /opt/circonus/nad/etc/node-agent.d plugins
 curl "https://github.com/circonus-labs/circonus-agent/releases/download/v0.1.0/circonus-agent_0.0.1_linux_64-bit.tar.gz" -o circonus-agent.tgz
-tar zxf circonus-agent.tgz -C sbin
+tar zxf circonus-agent.tgz
 ```
 To leverage the existing COSI/NAD installation, create a configuration file `/opt/circonus/circonus-agent/etc/circonus-agent.toml` (or use the corresponding command line options.)
 

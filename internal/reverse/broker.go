@@ -20,7 +20,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func getTLSConfig(cid string, reverseURL *url.URL) (*tls.Config, error) {
+func (c *Connection) getTLSConfig(cid string, reverseURL *url.URL) (*tls.Config, error) {
 	if cid == "" {
 		return nil, errors.New("No broker CID supplied")
 	}
@@ -32,7 +32,7 @@ func getTLSConfig(cid string, reverseURL *url.URL) (*tls.Config, error) {
 		TokenKey: viper.GetString(config.KeyAPITokenKey),
 		TokenApp: viper.GetString(config.KeyAPITokenApp),
 		URL:      viper.GetString(config.KeyAPIURL),
-		Log:      stdlog.New(logger.With().Str("pkg", "circonus-gometrics.api").Logger(), "", 0),
+		Log:      stdlog.New(c.logger.With().Str("pkg", "circonus-gometrics.api").Logger(), "", 0),
 		Debug:    viper.GetBool(config.KeyDebugCGM),
 	}
 
@@ -46,11 +46,11 @@ func getTLSConfig(cid string, reverseURL *url.URL) (*tls.Config, error) {
 		return nil, errors.Wrapf(err, "Fetching broker (%s) from API", cid)
 	}
 
-	cn, err := getBrokerCN(broker, reverseURL)
+	cn, err := c.getBrokerCN(broker, reverseURL)
 	if err != nil {
 		return nil, err
 	}
-	cert, err := fetchBrokerCA(client)
+	cert, err := c.fetchBrokerCA(client)
 	if err != nil {
 		return nil, err
 	}
@@ -64,12 +64,12 @@ func getTLSConfig(cid string, reverseURL *url.URL) (*tls.Config, error) {
 		ServerName: cn,
 	}
 
-	logger.Debug().Str("CN", cn).Msg("setting tls CN")
+	c.logger.Debug().Str("CN", cn).Msg("setting tls CN")
 
 	return tlsConfig, nil
 }
 
-func getBrokerCN(broker *api.Broker, reverseURL *url.URL) (string, error) {
+func (c *Connection) getBrokerCN(broker *api.Broker, reverseURL *url.URL) (string, error) {
 	host := reverseURL.Hostname()
 
 	// OK...
@@ -102,7 +102,7 @@ func getBrokerCN(broker *api.Broker, reverseURL *url.URL) (string, error) {
 	return cn, nil
 }
 
-func fetchBrokerCA(client *api.API) ([]byte, error) {
+func (c *Connection) fetchBrokerCA(client *api.API) ([]byte, error) {
 	// use local file if specified
 	file := viper.GetString(config.KeyReverseBrokerCAFile)
 	if file != "" {

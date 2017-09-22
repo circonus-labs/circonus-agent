@@ -152,18 +152,19 @@ func TestStart(t *testing.T) {
 	t.Log("Reverse disabled")
 	{
 		viper.Set(config.KeyReverse, false)
-		err := Start()
+		c := New()
 		viper.Reset()
 
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
+		if c != nil {
+			t.Fatal("expected nil")
 		}
 	}
 
 	t.Log("No config")
 	{
 		viper.Set(config.KeyReverse, true)
-		err := Start()
+		c := New()
+		err := c.Start()
 		viper.Reset()
 
 		expectedErr := errors.New("reverse configuration (check): Initializing cgm API: API Token is required")
@@ -192,7 +193,8 @@ func TestStart(t *testing.T) {
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
 		viper.Set(config.KeyAPIURL, apiSim.URL)
-		err := Start()
+		c := New()
+		err := c.Start()
 		viper.Reset()
 
 		expectedErr := errors.New("establishing reverse connection: dial tcp 127.0.0.1:1234: getsockopt: connection refused")

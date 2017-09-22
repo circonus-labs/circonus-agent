@@ -20,9 +20,12 @@ func TestGetCheckConfig(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
+	viper.Set(config.KeyReverse, true)
+	c := New()
+
 	t.Log("No config")
 	{
-		_, _, err := getCheckConfig()
+		_, _, err := c.getCheckConfig()
 
 		expectedErr := errors.New("Initializing cgm API: API Token is required")
 		if err == nil {
@@ -38,11 +41,8 @@ func TestGetCheckConfig(t *testing.T) {
 		viper.Set(config.KeyAPIURL, apiSim.URL)
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
-		_, _, err := getCheckConfig()
+		_, _, err := c.getCheckConfig()
 		viper.Reset()
-		// viper.Set(config.KeyAPIURL, "")
-		// viper.Set(config.KeyAPITokenKey, "")
-		// viper.Set(config.KeyAPITokenApp, "")
 
 		expectedErr := `No check bundles matched criteria ((active:1)(type:"json:nad")(target:"`
 		if err == nil {
@@ -59,11 +59,8 @@ func TestGetCheckConfig(t *testing.T) {
 		viper.Set(config.KeyAPIURL, apiSim.URL)
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
-		_, _, err := getCheckConfig()
-		viper.Set(config.KeyReverseTarget, "")
-		viper.Set(config.KeyAPIURL, "")
-		viper.Set(config.KeyAPITokenKey, "")
-		viper.Set(config.KeyAPITokenApp, "")
+		_, _, err := c.getCheckConfig()
+		viper.Reset()
 
 		expectedErr := errors.New(`More than one (2) check bundle matched criteria ((active:1)(type:"json:nad")(target:"multiple"))`)
 		if err == nil {
@@ -80,11 +77,8 @@ func TestGetCheckConfig(t *testing.T) {
 		viper.Set(config.KeyAPIURL, apiSim.URL)
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
-		_, _, err := getCheckConfig()
-		viper.Set(config.KeyReverseCID, "")
-		viper.Set(config.KeyAPIURL, "")
-		viper.Set(config.KeyAPITokenKey, "")
-		viper.Set(config.KeyAPITokenApp, "")
+		_, _, err := c.getCheckConfig()
+		viper.Reset()
 
 		expectedErr := errors.New("Invalid check bundle CID [foo]")
 		if err == nil {
@@ -101,11 +95,8 @@ func TestGetCheckConfig(t *testing.T) {
 		viper.Set(config.KeyAPIURL, apiSim.URL)
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
-		_, _, err := getCheckConfig()
-		viper.Set(config.KeyReverseCID, "")
-		viper.Set(config.KeyAPIURL, "")
-		viper.Set(config.KeyAPITokenKey, "")
-		viper.Set(config.KeyAPITokenApp, "")
+		_, _, err := c.getCheckConfig()
+		viper.Reset()
 
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
@@ -118,11 +109,8 @@ func TestGetCheckConfig(t *testing.T) {
 		viper.Set(config.KeyAPIURL, apiSim.URL)
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
-		_, _, err := getCheckConfig()
-		viper.Set(config.KeyReverseTarget, "")
-		viper.Set(config.KeyAPIURL, "")
-		viper.Set(config.KeyAPITokenKey, "")
-		viper.Set(config.KeyAPITokenApp, "")
+		_, _, err := c.getCheckConfig()
+		viper.Reset()
 
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)

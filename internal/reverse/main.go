@@ -24,6 +24,14 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Connection defines a reverse connection
+type Connection struct {
+	commTimeout   time.Duration
+	dialerTimeout time.Duration
+	metricTimeout time.Duration
+	logger        zerolog.Logger
+}
+
 type header struct {
 	channelID  uint16
 	isCommand  bool
@@ -40,22 +48,34 @@ const (
 	configRetryLimit     = 5     // if failed attempts > threshold, force reconfig
 )
 
-var (
-	commTimeout   = commTimeoutSeconds * time.Second
-	dialerTimeout = dialerTimeoutSeconds * time.Second
-	metricTimeout = metricTimeoutSeconds * time.Second
-	logger        zerolog.Logger
-)
+// var (
+// 	commTimeout   = commTimeoutSeconds * time.Second
+// 	dialerTimeout = dialerTimeoutSeconds * time.Second
+// 	metricTimeout = metricTimeoutSeconds * time.Second
+// 	logger        zerolog.Logger
+// )
 
-// Start reverse connection to the broker
-func Start() error {
+// New creates a new connection
+func New() *Connection {
 	if !viper.GetBool(config.KeyReverse) {
 		log.Info().Msg("Reverse disabled, not starting")
 		return nil
 	}
 
-	logger = log.With().Str("pkg", "reverse").Logger()
-	logger.Info().Msg("Setting up reverse connections")
+	c := Connection{
+		commTimeout:   commTimeoutSeconds * time.Second,
+		dialerTimeout: dialerTimeoutSeconds * time.Second,
+		metricTimeout: metricTimeoutSeconds * time.Second,
+		logger:        log.With().Str("pkg", "reverse").Logger(),
+	}
+
+	return &c
+}
+
+// Start reverse connection to the broker
+func (c *Connection) Start() error {
+
+	c.logger.Info().Msg("Setting up reverse connections")
 
 	attempt := 1
 	backoffs := []time.Duration{
@@ -77,12 +97,12 @@ func Start() error {
 		reverseURL *url.URL
 		tlsConfig  *tls.Config
 	)
-	reverseURL, tlsConfig, err = configure()
+	reverseURL, tlsConfig, err = c.configure()
 	if err != nil {
 		return err
 	}
 
-	logger.Info().
+	c.logger.Info().
 		Str("check_bundle", viper.GetString(config.KeyReverseCID)).
 		Str("rev_host", reverseURL.Hostname()).
 		Str("rev_port", reverseURL.Port()).
@@ -95,7 +115,7 @@ func Start() error {
 	go func() {
 		for { // allow for restarts
 			if reverseURL == nil || attempt%configRetryLimit == 0 {
-				logger.Info().
+				c.logger.Info().
 					Int("attempts", attempt).
 					Msg("reconfig triggered")
 				// Under normal circumstances the configuration for reverse is
@@ -104,7 +124,7 @@ func Start() error {
 				// check changed to use a different broker, broker certificate
 				// changes, etc.) The majority of configuration based errors are
 				// fatal, no attempt is made to resolve.
-				reverseURL, tlsConfig, err = configure()
+				reverseURL, tlsConfig, err = c.configure()
 				if err != nil {
 					ec <- errors.Wrap(err, "configuring reverse connection")
 					return
@@ -112,25 +132,25 @@ func Start() error {
 			}
 
 			var conn *tls.Conn
-			conn, err = connect(reverseURL, tlsConfig)
+			conn, err = c.connect(reverseURL, tlsConfig)
 			if err != nil {
 				if attempt >= maxConnRetry { // retry n times on connection attempt failures
 					ec <- errors.Wrapf(err, "%d failed attempts", attempt)
 					return
 				}
-				logger.Error().
+				c.logger.Error().
 					Err(err).
 					Int("attempt", attempt).
 					Msg("failed")
 			} else {
-				attempt = 1                             // reset on successful connection
-				reverse(conn, reverseURL, agentAddress) // reconnect
+				attempt = 1                               // reset on successful connection
+				c.reverse(conn, reverseURL, agentAddress) // reconnect
 			}
 
 			// backoff retry on each consecutive failure
 			delay := backoffs[uint8(math.Min(float64(attempt-1), float64(maxAttempts)))]
 			attempt++
-			logger.Info().
+			c.logger.Info().
 				Str("delay", delay.String()).
 				Int("attempt", attempt).
 				Msg("connect retry")
@@ -142,26 +162,26 @@ func Start() error {
 	return <-ec
 }
 
-func connect(reverseURL *url.URL, tlsConfig *tls.Config) (*tls.Conn, error) {
-	logger.Info().
+func (c *Connection) connect(reverseURL *url.URL, tlsConfig *tls.Config) (*tls.Conn, error) {
+	c.logger.Info().
 		Str("host", reverseURL.Host).
 		Msg("Connecting")
 
-	dialer := &net.Dialer{Timeout: dialerTimeout}
+	dialer := &net.Dialer{Timeout: c.dialerTimeout}
 	conn, err := tls.DialWithDialer(dialer, "tcp", reverseURL.Host, tlsConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	conn.SetDeadline(time.Now().Add(commTimeout))
+	conn.SetDeadline(time.Now().Add(c.commTimeout))
 	introReq := "REVERSE " + reverseURL.Path
 	if reverseURL.Fragment != "" {
 		introReq += "#" + reverseURL.Fragment // reverse secret is placed here when reverse url is parsed
 	}
-	logger.Debug().Msg(fmt.Sprintf("Sending intro '%s'", introReq))
+	c.logger.Debug().Msg(fmt.Sprintf("Sending intro '%s'", introReq))
 	if _, err := fmt.Fprintf(conn, "%s HTTP/1.1\r\n\r\n", introReq); err != nil {
 		if err != nil {
-			logger.Error().
+			c.logger.Error().
 				Err(err).
 				Str("host", reverseURL.Host).
 				Msg("Unable to write intro")
@@ -172,7 +192,7 @@ func connect(reverseURL *url.URL, tlsConfig *tls.Config) (*tls.Conn, error) {
 	return conn, nil
 }
 
-func reverse(conn *tls.Conn, reverseURL *url.URL, agentAddress string) {
+func (c *Connection) reverse(conn *tls.Conn, reverseURL *url.URL, agentAddress string) {
 	defer conn.Close()
 
 	cmd := []byte{}
@@ -180,26 +200,26 @@ func reverse(conn *tls.Conn, reverseURL *url.URL, agentAddress string) {
 	for {
 
 		// set deadline for comms with broker before each read/write
-		conn.SetDeadline(time.Now().Add(commTimeout))
+		conn.SetDeadline(time.Now().Add(c.commTimeout))
 
-		hdr, err := readHeader(conn)
+		hdr, err := c.readHeader(conn)
 		if err != nil {
-			logger.Error().
+			c.logger.Error().
 				Err(err).
 				Msg("reading header")
 			return // restart the connection
 		}
 
 		if hdr.payloadLen > maxPayloadLen {
-			logger.Warn().
+			c.logger.Warn().
 				Uint32("payload_len", hdr.payloadLen).
 				Msg("Oversized frame, resetting connection")
 			return // restart the connection
 		}
 
-		msg, err := readMessage(conn, hdr.payloadLen)
+		msg, err := c.readMessage(conn, hdr.payloadLen)
 		if err != nil {
-			logger.Error().
+			c.logger.Error().
 				Err(err).
 				Msg("reading message")
 			return // restart the connection
@@ -207,12 +227,12 @@ func reverse(conn *tls.Conn, reverseURL *url.URL, agentAddress string) {
 
 		if hdr.isCommand {
 			cmd = msg
-			logger.Debug().
+			c.logger.Debug().
 				Str("cmd", string(cmd)).
 				Msg("received command")
 		} else {
 			arg = msg
-			logger.Debug().
+			c.logger.Debug().
 				Str("arg", string(arg)).
 				Msg("received request")
 		}
@@ -226,21 +246,21 @@ func reverse(conn *tls.Conn, reverseURL *url.URL, agentAddress string) {
 			// ignore the first time through, there is an argument coming
 			/// next (the request to send to the agent, e.g. 'GET / ...')
 			if len(arg) > 0 {
-				logger.Debug().
+				c.logger.Debug().
 					Str("cmd", string(cmd)).
 					Str("arg", string(arg)).
 					Msg("processing command")
-				data, err := fetchMetricData(agentAddress, arg)
+				data, err := c.fetchMetricData(agentAddress, arg)
 				if err != nil {
 					// log the error and respond with no metrics
-					logger.Error().
+					c.logger.Error().
 						Err(err).
 						Msg("fetching metric data")
 					data = []byte("{}")
 				}
-				if err := sendMetricData(data, conn, hdr.channelID, arg); err != nil {
+				if err := c.sendMetricData(data, conn, hdr.channelID, arg); err != nil {
 					if err != nil {
-						logger.Error().
+						c.logger.Error().
 							Err(err).
 							Msg("sending metric data")
 						return // restart the connection
@@ -260,7 +280,7 @@ func reverse(conn *tls.Conn, reverseURL *url.URL, agentAddress string) {
 			// 	Msg("ignoring command")
 			cmd = []byte{}
 		default:
-			logger.Warn().
+			c.logger.Warn().
 				Str("cmd", string(cmd)).
 				Uint16("channel_id", hdr.channelID).
 				Msg("unknown command")
@@ -269,18 +289,18 @@ func reverse(conn *tls.Conn, reverseURL *url.URL, agentAddress string) {
 }
 
 // sendMetricData frames and sends data (in chunks <= maxPayloadLen) to broker
-func sendMetricData(data []byte, conn *tls.Conn, channelID uint16, request []byte) error {
+func (c *Connection) sendMetricData(data []byte, conn *tls.Conn, channelID uint16, request []byte) error {
 	for offset := 0; offset < len(data); {
 		buff := make([]byte, int(math.Min(float64(len(data[offset:])), float64(maxPayloadLen))))
 		copy(buff, data[offset:])
-		sentBytes, err := conn.Write(buildFrame(channelID, buff))
+		sentBytes, err := conn.Write(c.buildFrame(channelID, buff))
 		if err != nil {
 			return errors.Wrap(err, "writing metric data")
 		}
 		offset += sentBytes
 	}
 
-	logger.Debug().
+	c.logger.Debug().
 		Int("bytes", len(data)).
 		Msg("metric data sent")
 
@@ -293,14 +313,14 @@ func sendMetricData(data []byte, conn *tls.Conn, channelID uint16, request []byt
 //      2 bytes command
 //      4 bytes length of data
 // bytes 7-n are data, where 0 < n <= maxPayloadLen
-func buildFrame(channelID uint16, data []byte) []byte {
+func (c *Connection) buildFrame(channelID uint16, data []byte) []byte {
 	frame := make([]byte, len(data)+6)
 
 	copy(frame[6:], data)
 	binary.BigEndian.PutUint16(frame[0:], channelID&0x7fff)
 	binary.BigEndian.PutUint32(frame[2:], uint32(len(data)))
 
-	logger.Debug().
+	c.logger.Debug().
 		Str("frame_hdr", fmt.Sprintf("%#v", frame[0:6])).
 		Int("frame_size", len(frame)).
 		Int("payload_len", len(data)).
@@ -309,8 +329,8 @@ func buildFrame(channelID uint16, data []byte) []byte {
 }
 
 // fetchMetricData sends the command arguments to the local agent
-func fetchMetricData(agentAddress string, request []byte) ([]byte, error) {
-	conn, err := net.DialTimeout("tcp", agentAddress, dialerTimeout)
+func (c *Connection) fetchMetricData(agentAddress string, request []byte) ([]byte, error) {
+	conn, err := net.DialTimeout("tcp", agentAddress, c.dialerTimeout)
 	if err != nil {
 		return nil, errors.Wrap(err, "connecting to agent for metrics")
 	}
@@ -322,14 +342,14 @@ func fetchMetricData(agentAddress string, request []byte) ([]byte, error) {
 	// with graph/dashboard _play_, metrics will go
 	// back to broker as fast as possible, gated by
 	// plugin execution speed
-	conn.SetDeadline(time.Now().Add(metricTimeout))
+	conn.SetDeadline(time.Now().Add(c.metricTimeout))
 
 	numBytes, err := conn.Write(request)
 	if err != nil {
 		return nil, errors.Wrap(err, "writing metric request")
 	}
 	if numBytes != len(request) {
-		logger.Warn().
+		c.logger.Warn().
 			Int("written_bytes", numBytes).
 			Int("request_len", len(request)).
 			Msg("Mismatch")
@@ -344,9 +364,9 @@ func fetchMetricData(agentAddress string, request []byte) ([]byte, error) {
 }
 
 // readHeader reads 6 bytes from the broker connection
-func readHeader(conn *tls.Conn) (header, error) {
+func (c *Connection) readHeader(conn *tls.Conn) (header, error) {
 	var hdr header
-	data, err := readMessage(conn, 6)
+	data, err := c.readMessage(conn, 6)
 	if err != nil {
 		return hdr, err
 	}
@@ -356,7 +376,7 @@ func readHeader(conn *tls.Conn) (header, error) {
 	hdr.isCommand = encodedChannelID&0x8000 > 0
 	hdr.payloadLen = binary.BigEndian.Uint32(data[2:])
 
-	logger.Debug().
+	c.logger.Debug().
 		Str("frame", fmt.Sprintf("%#v", data)).
 		Uint16("channel", hdr.channelID).
 		Bool("is_command", hdr.isCommand).
@@ -367,8 +387,8 @@ func readHeader(conn *tls.Conn) (header, error) {
 }
 
 // readMessage reads n bytes from the broker connection
-func readMessage(conn *tls.Conn, size uint32) ([]byte, error) {
-	data, err := readBytes(conn, int64(size))
+func (c *Connection) readMessage(conn *tls.Conn, size uint32) ([]byte, error) {
+	data, err := c.readBytes(conn, int64(size))
 	if err != nil {
 		return nil, err
 	}
@@ -379,7 +399,7 @@ func readMessage(conn *tls.Conn, size uint32) ([]byte, error) {
 }
 
 // readBytes attempts to reads <size> bytes from broker connection.
-func readBytes(conn *tls.Conn, size int64) ([]byte, error) {
+func (c *Connection) readBytes(conn *tls.Conn, size int64) ([]byte, error) {
 	buff := make([]byte, size)
 	lr := io.LimitReader(conn, size)
 
@@ -388,7 +408,7 @@ func readBytes(conn *tls.Conn, size int64) ([]byte, error) {
 		return nil, err
 	}
 
-	log.Debug().Int("bytes", n).Err(err).Msg("read")
+	c.logger.Debug().Int("bytes", n).Err(err).Msg("read")
 
 	return buff, nil
 }

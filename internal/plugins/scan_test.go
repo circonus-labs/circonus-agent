@@ -27,10 +27,8 @@ import (
 func TestScanPluginDirectory(t *testing.T) {
 	t.Log("Testing scanPluginDirectory")
 
-	pluginList = &PluginList{}
-	pluginList.active = make(map[string]*Plugin)
-
-	pluginList.active["purge_inactive"] = &Plugin{
+	p := New()
+	p.active["purge_inactive"] = &plugin{
 		ID:         "purge_inactive",
 		Generation: 0,
 	}
@@ -42,7 +40,7 @@ func TestScanPluginDirectory(t *testing.T) {
 		viper.Set(config.KeyPluginDir, "")
 
 		expectErr := errors.Errorf("invalid plugin directory (none)")
-		err := pluginList.scanPluginDirectory()
+		err := p.scanPluginDirectory()
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -57,7 +55,7 @@ func TestScanPluginDirectory(t *testing.T) {
 		viper.Set(config.KeyPluginDir, dir)
 
 		expectErr := errors.Errorf("open plugin directory: open %s: permission denied", dir)
-		err := pluginList.scanPluginDirectory()
+		err := p.scanPluginDirectory()
 		if err == nil {
 			t.Fatalf("expected error (verify %s owned by root and mode 0700)", dir)
 		}
@@ -70,10 +68,9 @@ func TestScanPluginDirectory(t *testing.T) {
 	{
 		viper.Set(config.KeyPluginDir, "testdata/")
 
-		err := pluginList.scanPluginDirectory()
+		err := p.scanPluginDirectory()
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 	}
-
 }

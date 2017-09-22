@@ -22,14 +22,14 @@ import (
         ii. broker cn
         iii. tls.Config
 */
-func configure() (*url.URL, *tls.Config, error) {
+func (c *Connection) configure() (*url.URL, *tls.Config, error) {
 
-	bid, reverseURL, err := getCheckConfig()
+	bid, reverseURL, err := c.getCheckConfig()
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "reverse configuration (check)")
 	}
 
-	tlsConfig, err := getTLSConfig(bid, reverseURL)
+	tlsConfig, err := c.getTLSConfig(bid, reverseURL)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "reverse configuration (tls)")
 	}

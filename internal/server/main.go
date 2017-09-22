@@ -9,6 +9,8 @@ import (
 	"net/http"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/plugins"
+	"github.com/circonus-labs/circonus-agent/internal/statsd"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -16,19 +18,43 @@ import (
 	"xi2.org/x/httpgzip"
 )
 
-var logger zerolog.Logger
-
-// Start main listening server(s)
-func Start() error {
-	logger = log.With().Str("pkg", "server").Logger()
-	return runServers(serverHTTP(), serverHTTPS())
+// Server defines the listening servers
+type Server struct {
+	logger    zerolog.Logger
+	plugins   *plugins.Plugins
+	svrHTTP   *http.Server
+	svrHTTPS  *http.Server
+	statsdSvr *statsd.Server
 }
 
-func runServers(svrHTTP *http.Server, svrHTTPS *http.Server) error {
-	if svrHTTP == nil && svrHTTPS == nil {
-		return errors.New("No servers defined")
+// New creates a new instance of the listening servers
+func New(p *plugins.Plugins, ss *statsd.Server) *Server {
+	s := Server{
+		logger:    log.With().Str("pkg", "server").Logger(),
+		plugins:   p,
+		statsdSvr: ss,
 	}
 
+	gzipHandler := httpgzip.NewHandler(http.HandlerFunc(s.router), []string{"application/json"})
+
+	if addr := viper.GetString(config.KeyListen); addr != "" {
+		s.svrHTTP = &http.Server{Addr: addr, Handler: gzipHandler}
+		s.svrHTTP.SetKeepAlivesEnabled(false)
+	}
+
+	if addr := viper.GetString(config.KeySSLListen); addr != "" {
+		s.svrHTTPS = &http.Server{Addr: addr, Handler: gzipHandler}
+		s.svrHTTPS.SetKeepAlivesEnabled(false)
+	}
+
+	return &s
+}
+
+// Start main listening server(s)
+func (s *Server) Start() error {
+	if s.svrHTTP == nil && s.svrHTTPS == nil {
+		return errors.New("No servers defined")
+	}
 	// Manual waitgroup for the situation where both servers are started;
 	// one fails and the other doesn't - wg.Wait() would block.
 	// The desired behavior is for an error in *either* to abort the process.
@@ -38,14 +64,14 @@ func runServers(svrHTTP *http.Server, svrHTTPS *http.Server) error {
 	ec := make(chan error)
 	done := make(chan int)
 
-	if svrHTTP == nil {
-		logger.Debug().Msg("No listen configured, skipping server")
+	if s.svrHTTP == nil {
+		s.logger.Debug().Msg("No listen configured, skipping server")
 	} else {
 		expected++
 		go func() {
-			defer svrHTTP.Close()
-			logger.Info().Str("listen", svrHTTP.Addr).Msg("Starting")
-			if err := svrHTTP.ListenAndServe(); err != nil {
+			defer s.svrHTTP.Close()
+			s.logger.Info().Str("listen", s.svrHTTP.Addr).Msg("Starting")
+			if err := s.svrHTTP.ListenAndServe(); err != nil {
 				if err.Error() != "http: Server closed" {
 					ec <- err
 				}
@@ -54,16 +80,16 @@ func runServers(svrHTTP *http.Server, svrHTTPS *http.Server) error {
 		}()
 	}
 
-	if svrHTTPS == nil {
-		logger.Debug().Msg("No SSL listen configured, skipping server")
+	if s.svrHTTPS == nil {
+		s.logger.Debug().Msg("No SSL listen configured, skipping server")
 	} else {
 		expected++
 		go func() {
-			defer svrHTTPS.Close()
+			defer s.svrHTTPS.Close()
 			certFile := viper.GetString(config.KeySSLCertFile)
 			keyFile := viper.GetString(config.KeySSLKeyFile)
-			logger.Info().Str("listen", svrHTTPS.Addr).Msg("SSL starting")
-			if err := svrHTTPS.ListenAndServeTLS(certFile, keyFile); err != nil {
+			s.logger.Info().Str("listen", s.svrHTTPS.Addr).Msg("SSL starting")
+			if err := s.svrHTTPS.ListenAndServeTLS(certFile, keyFile); err != nil {
 				ec <- errors.Wrap(err, "SSL server")
 			}
 			done <- 1
@@ -76,7 +102,7 @@ func runServers(svrHTTP *http.Server, svrHTTPS *http.Server) error {
 			return err
 		case <-done:
 			numDone++
-			logger.Debug().Int("done", numDone).Msg("completed")
+			s.logger.Debug().Int("done", numDone).Msg("completed")
 			if numDone == expected {
 				break
 			}
@@ -84,29 +110,4 @@ func runServers(svrHTTP *http.Server, svrHTTPS *http.Server) error {
 	}
 
 	return nil
-}
-
-func serverHTTP() *http.Server {
-	addr := viper.GetString(config.KeyListen)
-	if addr == "" {
-		return nil
-	}
-
-	gzipHandler := httpgzip.NewHandler(http.HandlerFunc(router), []string{"application/json"})
-	server := &http.Server{Addr: addr, Handler: gzipHandler}
-	server.SetKeepAlivesEnabled(false)
-	return server
-}
-
-func serverHTTPS() *http.Server {
-	addr := viper.GetString(config.KeySSLListen)
-	if addr == "" {
-		return nil
-	}
-
-	gzipHandler := httpgzip.NewHandler(http.HandlerFunc(router), []string{"application/json"})
-	server := &http.Server{Addr: addr, Handler: gzipHandler}
-	server.SetKeepAlivesEnabled(false)
-
-	return server
 }

@@ -22,18 +22,19 @@ func TestFlush(t *testing.T) {
 	t.Log("Disabled")
 	{
 		viper.Set(config.KeyStatsdDisabled, true)
-		err := Start()
+		s := New()
 		viper.Reset()
 
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
+		if s != nil {
+			t.Fatalf("expected nil")
 		}
 	}
 
 	t.Log("Flush (disabled)")
 	{
 		viper.Set(config.KeyStatsdDisabled, true)
-		metrics := Flush()
+		s := New()
+		metrics := s.Flush()
 		viper.Reset()
 
 		if metrics != nil {
@@ -43,7 +44,8 @@ func TestFlush(t *testing.T) {
 
 	t.Log("Flush (no stats)")
 	{
-		metrics := Flush()
+		s := New()
+		metrics := s.Flush()
 
 		if metrics == nil {
 			t.Fatal("expected not nil")
@@ -71,10 +73,10 @@ func TestGetMetricDest(t *testing.T) {
 			{"group.foo", "host", "group.foo"},
 			{"foo", "host", "foo"},
 		}
-		cfg := initSettings()
+		s := New()
 		for _, d := range dtest {
 			t.Logf("%s -> %s", d.metricName, d.expectedDest)
-			dest, metric := getMetricDestination(cfg, d.metricName)
+			dest, metric := s.getMetricDestination(d.metricName)
 			if dest != d.expectedDest {
 				t.Fatalf("dest expected '%s' got '%s'", d.expectedDest, dest)
 			}
@@ -99,10 +101,11 @@ func TestGetMetricDest(t *testing.T) {
 		}
 		viper.Set(config.KeyStatsdHostPrefix, "host.")
 		viper.Set(config.KeyStatsdGroupPrefix, "group.")
-		cfg := initSettings()
+		s := New()
+		viper.Reset()
 		for _, d := range dtest {
 			t.Logf("%s -> %s", d.metricName, d.expectedDest)
-			dest, metric := getMetricDestination(cfg, d.metricName)
+			dest, metric := s.getMetricDestination(d.metricName)
 			if dest != d.expectedDest {
 				t.Fatalf("dest expected '%s' got '%s'", d.expectedDest, dest)
 			}
@@ -110,7 +113,6 @@ func TestGetMetricDest(t *testing.T) {
 				t.Fatalf("name expected '%s' got '%s'", d.expectedName, metric)
 			}
 		}
-		viper.Reset()
 	}
 
 	t.Log("Default to host")
@@ -127,10 +129,11 @@ func TestGetMetricDest(t *testing.T) {
 			{"foo", "host", "foo"},
 		}
 		viper.Set(config.KeyStatsdGroupPrefix, "group.")
-		cfg := initSettings()
+		s := New()
+		viper.Reset()
 		for _, d := range dtest {
 			t.Logf("%s -> %s", d.metricName, d.expectedDest)
-			dest, metric := getMetricDestination(cfg, d.metricName)
+			dest, metric := s.getMetricDestination(d.metricName)
 			if dest != d.expectedDest {
 				t.Fatalf("dest expected '%s' got '%s'", d.expectedDest, dest)
 			}
@@ -138,7 +141,6 @@ func TestGetMetricDest(t *testing.T) {
 				t.Fatalf("name expected '%s' got '%s'", d.expectedName, metric)
 			}
 		}
-		viper.Reset()
 	}
 
 	t.Log("Default to group")
@@ -155,10 +157,11 @@ func TestGetMetricDest(t *testing.T) {
 			{"foo", "group", "foo"},
 		}
 		viper.Set(config.KeyStatsdHostPrefix, "host.")
-		cfg := initSettings()
+		s := New()
+		viper.Reset()
 		for _, d := range dtest {
 			t.Logf("%s -> %s", d.metricName, d.expectedDest)
-			dest, metric := getMetricDestination(cfg, d.metricName)
+			dest, metric := s.getMetricDestination(d.metricName)
 			if dest != d.expectedDest {
 				t.Fatalf("dest expected '%s' got '%s'", d.expectedDest, dest)
 			}
@@ -166,7 +169,6 @@ func TestGetMetricDest(t *testing.T) {
 				t.Fatalf("name expected '%s' got '%s'", d.expectedName, metric)
 			}
 		}
-		viper.Reset()
 	}
 }
 
@@ -175,17 +177,17 @@ func TestParseMetric(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	cfg := initSettings()
+	s := New()
 
 	t.Log("Blank")
 	{
-		err := parseMetric(cfg, "")
+		err := s.parseMetric("")
 		if err != nil {
 			t.Fatalf("expected nil, got %s", err)
 		}
 	}
 
-	if err := initHostMetrics(); err != nil {
+	if err := s.initHostMetrics(); err != nil {
 		t.Fatalf("initHostMetrics %s", err)
 	}
 
@@ -230,7 +232,7 @@ func TestParseMetric(t *testing.T) {
 
 	for _, mt := range mtests {
 		t.Logf("Testing '%s' expect %v", mt.metric, mt.expect)
-		err := parseMetric(cfg, mt.metric)
+		err := s.parseMetric(mt.metric)
 		if mt.expect == nil {
 			if err != nil {
 				t.Fatalf("expected nil, got (%s)", err)

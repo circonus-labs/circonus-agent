@@ -19,12 +19,12 @@ import (
 	"github.com/spf13/viper"
 )
 
-func getCheckConfig() (string, *url.URL, error) {
+func (c *Connection) getCheckConfig() (string, *url.URL, error) {
 	cfg := &api.Config{
 		TokenKey: viper.GetString(config.KeyAPITokenKey),
 		TokenApp: viper.GetString(config.KeyAPITokenApp),
 		URL:      viper.GetString(config.KeyAPIURL),
-		Log:      stdlog.New(logger.With().Str("pkg", "circonus-gometrics.api").Logger(), "", 0),
+		Log:      stdlog.New(c.logger.With().Str("pkg", "circonus-gometrics.api").Logger(), "", 0),
 		Debug:    viper.GetBool(config.KeyDebugCGM),
 	}
 
@@ -33,7 +33,7 @@ func getCheckConfig() (string, *url.URL, error) {
 		return "", nil, errors.Wrap(err, "Initializing cgm API")
 	}
 
-	bundle, err := getCheckBundle(client)
+	bundle, err := c.getCheckBundle(client)
 	if err != nil {
 		return "", nil, err
 	}
@@ -64,7 +64,7 @@ func getCheckConfig() (string, *url.URL, error) {
 	return brokerID, reverseURL, nil
 }
 
-func getCheckBundle(client *api.API) (*api.CheckBundle, error) {
+func (c *Connection) getCheckBundle(client *api.API) (*api.CheckBundle, error) {
 	var (
 		bundle *api.CheckBundle
 		err    error
@@ -84,7 +84,7 @@ func getCheckBundle(client *api.API) (*api.CheckBundle, error) {
 		}
 	} else {
 		// Otherwise, search for a check bundle
-		bundle, err = searchForCheckBundle(client)
+		bundle, err = c.searchForCheckBundle(client)
 		if err != nil {
 			return nil, err
 		}
@@ -101,14 +101,14 @@ func getCheckBundle(client *api.API) (*api.CheckBundle, error) {
 	return bundle, nil
 }
 
-func searchForCheckBundle(client *api.API) (*api.CheckBundle, error) {
+func (c *Connection) searchForCheckBundle(client *api.API) (*api.CheckBundle, error) {
 	target := viper.GetString(config.KeyReverseTarget)
 	if target == "" {
 		host, err := os.Hostname()
 		if err != nil {
 			return nil, errors.Wrap(err, "Target not set, unable to derive valid hostname")
 		}
-		logger.Info().
+		c.logger.Info().
 			Str("hostname", host).
 			Msg("Target not set, using hostname")
 		target = host

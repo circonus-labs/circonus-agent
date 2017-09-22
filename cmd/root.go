@@ -12,13 +12,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/circonus-labs/circonus-agent/internal/agent"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
-	"github.com/circonus-labs/circonus-agent/internal/plugins"
 	"github.com/circonus-labs/circonus-agent/internal/release"
-	"github.com/circonus-labs/circonus-agent/internal/reverse"
-	"github.com/circonus-labs/circonus-agent/internal/server"
-	"github.com/circonus-labs/circonus-agent/internal/statsd"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -37,37 +34,107 @@ to expose systems and application metrics to Circonus.
 It inventories all executable programs in its plugin directory
 and executes them upon external request, returning results
 in JSON format.`,
-	PreRunE: bootstrap,
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		//
+		// Enable formatted output
+		//
+		if viper.GetBool(config.KeyLogPretty) {
+			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
+		}
+
+		//
+		// Enable debug logging, if requested
+		// otherwise, default to info level and set custom level, if specified
+		//
+		if viper.GetBool(config.KeyDebug) {
+			viper.Set(config.KeyLogLevel, "debug")
+			zerolog.SetGlobalLevel(zerolog.DebugLevel)
+			log.Debug().Msg("--debug flag, forcing debug log level")
+		} else {
+			if viper.IsSet(config.KeyLogLevel) {
+				level := viper.GetString(config.KeyLogLevel)
+
+				switch level {
+				case "panic":
+					zerolog.SetGlobalLevel(zerolog.PanicLevel)
+					break
+				case "fatal":
+					zerolog.SetGlobalLevel(zerolog.FatalLevel)
+					break
+				case "error":
+					zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+					break
+				case "warn":
+					zerolog.SetGlobalLevel(zerolog.WarnLevel)
+					break
+				case "info":
+					zerolog.SetGlobalLevel(zerolog.InfoLevel)
+					break
+				case "debug":
+					zerolog.SetGlobalLevel(zerolog.DebugLevel)
+					break
+				case "disabled":
+					zerolog.SetGlobalLevel(zerolog.Disabled)
+					break
+				default:
+					return errors.Errorf("Unknown log level (%s)", level)
+				}
+
+				log.Debug().Str("log-level", level).Msg("Logging level")
+			}
+		}
+
+		return nil
+	},
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		//
+		// show version and exit
+		//
+		if viper.GetBool(config.KeyShowVersion) {
+			fmt.Printf("%s v%s - commit: %s, date: %s, tag: %s\n", release.NAME, release.VERSION, release.COMMIT, release.DATE, release.TAG)
+			os.Exit(0)
+		}
+
+		//
+		// show configuration and exit
+		//
+		if viper.GetBool(config.KeyShowConfig) {
+			showConfig()
+			os.Exit(0)
+		}
+
+		log.Info().
+			Int("pid", os.Getpid()).
+			Str("name", release.NAME).
+			Str("ver", release.VERSION).Msg("Starting")
+
+		//
+		// validate the configuration
+		//
+		if err := config.Validate(); err != nil {
+			return err
+		}
+
+		return nil
+	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := plugins.Initialize(); err != nil {
-			log.Fatal().Err(err).Msg("Initializing plugins")
+		defer log.Info().
+			Int("pid", os.Getpid()).
+			Str("name", release.NAME).
+			Str("ver", release.VERSION).Msg("Stopping")
+
+		a, err := agent.New()
+		if err != nil {
+			log.Fatal().Err(err).Msg("Initializing")
 			return
 		}
 
-		ec := make(chan error)
+		a.Start()
+		defer a.Stop()
 
-		go func() {
-			err := statsd.Start()
-			if err != nil {
-				ec <- errors.Wrap(err, "Starting StatsD listener")
-			}
-		}()
-
-		go func() {
-			err := reverse.Start()
-			if err != nil {
-				ec <- errors.Wrap(err, "Unable to start reverse connection")
-			}
-		}()
-
-		go func() {
-			err := server.Start()
-			if err != nil {
-				ec <- errors.Wrap(err, "Starting server")
-			}
-		}()
-
-		log.Fatal().Err(<-ec).Msg("Startup")
+		if err := a.Wait(); err != nil {
+			log.Fatal().Err(err).Msg("Startup")
+		}
 
 		return
 	},
@@ -549,81 +616,6 @@ func Execute() {
 			Err(err).
 			Msg("Unable to start")
 	}
-}
-
-func bootstrap(cmd *cobra.Command, args []string) error {
-	//
-	// show version and exit
-	//
-	if viper.GetBool(config.KeyShowVersion) {
-		fmt.Printf("%s v%s - commit: %s, date: %s, tag: %s\n", release.NAME, release.VERSION, release.COMMIT, release.DATE, release.TAG)
-		os.Exit(0)
-	}
-
-	//
-	// show configuration and exit
-	//
-	if viper.GetBool(config.KeyShowConfig) {
-		showConfig()
-		os.Exit(0)
-	}
-
-	//
-	// Enable formatted output
-	//
-	if viper.GetBool(config.KeyLogPretty) {
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
-	}
-
-	//
-	// Enable debug logging, if requested
-	// otherwise, default to info level and set custom level, if specified
-	//
-	if viper.GetBool(config.KeyDebug) {
-		viper.Set(config.KeyLogLevel, "debug")
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-		log.Debug().Msg("--debug flag, forcing debug log level")
-	} else {
-		if viper.IsSet(config.KeyLogLevel) {
-			level := viper.GetString(config.KeyLogLevel)
-
-			switch level {
-			case "panic":
-				zerolog.SetGlobalLevel(zerolog.PanicLevel)
-				break
-			case "fatal":
-				zerolog.SetGlobalLevel(zerolog.FatalLevel)
-				break
-			case "error":
-				zerolog.SetGlobalLevel(zerolog.ErrorLevel)
-				break
-			case "warn":
-				zerolog.SetGlobalLevel(zerolog.WarnLevel)
-				break
-			case "info":
-				zerolog.SetGlobalLevel(zerolog.InfoLevel)
-				break
-			case "debug":
-				zerolog.SetGlobalLevel(zerolog.DebugLevel)
-				break
-			case "disabled":
-				zerolog.SetGlobalLevel(zerolog.Disabled)
-				break
-			default:
-				return errors.Errorf("Unknown log level (%s)", level)
-			}
-
-			log.Debug().Str("log-level", level).Msg("Logging level")
-		}
-	}
-
-	log.Info().Str("name", release.NAME).Str("ver", release.VERSION).Msg("Starting")
-
-	if err := config.Validate(); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func showConfig() error {
