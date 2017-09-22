@@ -33,9 +33,10 @@ func New() (*Agent, error) {
 		return nil, err
 	}
 
-	a.listenServer = server.New(a.plugins)
 	a.reverseConn = reverse.New()
 	a.statsdServer = statsd.New()
+
+	a.listenServer = server.New(a.plugins, a.statsdServer)
 
 	return &a, nil
 }
@@ -43,7 +44,7 @@ func New() (*Agent, error) {
 // Start the agent
 func (a *Agent) Start() {
 	go func() {
-		err := statsdServer.Start()
+		err := a.statsdServer.Start()
 		if err != nil {
 			a.errChan <- errors.Wrap(err, "Starting StatsD listener")
 		}
