@@ -13,7 +13,6 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/server/receiver"
-	"github.com/circonus-labs/circonus-agent/internal/statsd"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
@@ -54,9 +53,11 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if plugin == "" || plugin == "statsd" {
-		statsdMetrics := statsd.Flush()
-		if statsdMetrics != nil {
-			(*metrics)[viper.GetString(config.KeyStatsdHostCategory)] = *statsdMetrics
+		if s.statsdSvr != nil {
+			statsdMetrics := s.statsdSvr.Flush()
+			if statsdMetrics != nil {
+				(*metrics)[viper.GetString(config.KeyStatsdHostCategory)] = *statsdMetrics
+			}
 		}
 	}
 

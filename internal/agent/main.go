@@ -19,6 +19,7 @@ type Agent struct {
 	plugins      *plugins.Plugins
 	listenServer *server.Server
 	reverseConn  *reverse.Connection
+	statsdServer *statsd.Server
 }
 
 // New returns a new agent instance
@@ -34,6 +35,7 @@ func New() (*Agent, error) {
 
 	a.listenServer = server.New(a.plugins)
 	a.reverseConn = reverse.New()
+	a.statsdServer = statsd.New()
 
 	return &a, nil
 }
@@ -41,7 +43,7 @@ func New() (*Agent, error) {
 // Start the agent
 func (a *Agent) Start() {
 	go func() {
-		err := statsd.Start()
+		err := statsdServer.Start()
 		if err != nil {
 			a.errChan <- errors.Wrap(err, "Starting StatsD listener")
 		}

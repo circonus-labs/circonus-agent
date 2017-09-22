@@ -10,6 +10,7 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
+	"github.com/circonus-labs/circonus-agent/internal/statsd"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -19,17 +20,19 @@ import (
 
 // Server defines the listening servers
 type Server struct {
-	logger   zerolog.Logger
-	plugins  *plugins.Plugins
-	svrHTTP  *http.Server
-	svrHTTPS *http.Server
+	logger    zerolog.Logger
+	plugins   *plugins.Plugins
+	svrHTTP   *http.Server
+	svrHTTPS  *http.Server
+	statsdSvr *statsd.Server
 }
 
 // New creates a new instance of the listening servers
-func New(p *plugins.Plugins) *Server {
+func New(p *plugins.Plugins, ss *statsd.Server) *Server {
 	s := Server{
-		logger:  log.With().Str("pkg", "server").Logger(),
-		plugins: p,
+		logger:    log.With().Str("pkg", "server").Logger(),
+		plugins:   p,
+		statsdSvr: ss,
 	}
 
 	gzipHandler := httpgzip.NewHandler(http.HandlerFunc(s.router), []string{"application/json"})
