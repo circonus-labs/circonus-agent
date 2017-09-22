@@ -6,6 +6,7 @@
 package plugins
 
 import (
+	"context"
 	"os"
 	"path"
 	"strings"
@@ -21,6 +22,7 @@ func TestDrain(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	p := &plugin{
+		ctx:        context.Background(),
 		ID:         "test",
 		InstanceID: "",
 		Name:       "test",
@@ -54,6 +56,7 @@ func TestParsePluginOutput(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	p := &plugin{
+		ctx:        context.Background(),
 		ID:         "test",
 		InstanceID: "",
 		Name:       "test",
@@ -148,6 +151,7 @@ func TestExec(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	p := &plugin{
+		ctx:        context.Background(),
 		ID:         "test",
 		InstanceID: "",
 		Name:       "test",

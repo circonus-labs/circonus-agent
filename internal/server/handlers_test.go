@@ -7,6 +7,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -44,11 +45,11 @@ func TestRun(t *testing.T) {
 	testDir := path.Join(dir, "testdata")
 
 	viper.Set(config.KeyPluginDir, testDir)
-	p := plugins.New()
+	p := plugins.New(context.Background())
 	if err := p.Scan(); err != nil {
 		t.Fatalf("expected no error, got (%s)", err)
 	}
-	s := New(p, nil)
+	s := New(context.Background(), p, nil)
 
 	for _, runReq := range runTests {
 		time.Sleep(1 * time.Second)
@@ -79,8 +80,8 @@ func TestInventory(t *testing.T) {
 	testDir := path.Join(dir, "testdata")
 
 	viper.Set(config.KeyPluginDir, testDir)
-	p := plugins.New()
-	s := New(p, nil)
+	p := plugins.New(context.Background())
+	s := New(context.Background(), p, nil)
 	time.Sleep(1 * time.Second)
 
 	t.Log("GET /inventory -> 200")
@@ -100,7 +101,7 @@ func TestWrite(t *testing.T) {
 	t.Log("Testing write")
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
-	s := New(nil, nil)
+	s := New(context.Background(), nil, nil)
 
 	t.Log("PUT /write/ -> 404")
 	{

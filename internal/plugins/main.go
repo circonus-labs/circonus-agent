@@ -6,6 +6,7 @@
 package plugins
 
 import (
+	"context"
 	"encoding/json"
 	"os/exec"
 	"strings"
@@ -32,6 +33,7 @@ type Metrics map[string]Metric
 // Plugin defines a specific plugin
 type plugin struct {
 	sync.RWMutex
+	ctx          context.Context
 	cmd          *exec.Cmd
 	metrics      *Metrics
 	prevMetrics  *Metrics
@@ -49,6 +51,7 @@ type plugin struct {
 // Plugins defines plugin manager
 type Plugins struct {
 	sync.RWMutex
+	ctx           context.Context
 	generation    uint64
 	active        map[string]*plugin
 	running       bool
@@ -64,8 +67,9 @@ const (
 )
 
 // New returns a new instance of the plugins manager
-func New() *Plugins {
+func New(ctx context.Context) *Plugins {
 	p := Plugins{
+		ctx:           ctx,
 		generation:    0,
 		running:       false,
 		pluginDir:     viper.GetString(config.KeyPluginDir),
@@ -93,6 +97,45 @@ func (p *Plugins) Flush(pluginName string) *map[string]interface{} {
 	}
 
 	return &metrics
+}
+
+// Stop any long running plugins
+func (p *Plugins) Stop() error {
+	p.logger.Debug().Msg("Stopping plugins")
+	for id, plug := range p.active {
+		plug.Lock()
+		if !plug.Running {
+			plug.Unlock()
+			continue
+		}
+		if plug.cmd == nil {
+			plug.Unlock()
+			continue
+		}
+		if plug.cmd.Process != nil {
+			var stop bool
+			if plug.cmd.ProcessState == nil {
+				stop = true
+			} else {
+				stop = !plug.cmd.ProcessState.Exited()
+			}
+
+			if stop {
+				p.logger.Debug().
+					Str("plugin", id).
+					Msg("Stopping running plugin")
+				err := plug.cmd.Process.Kill()
+				if err != nil {
+					p.logger.Error().
+						Err(err).
+						Str("plugin", id).
+						Msg("Stopping plugin")
+				}
+			}
+		}
+		plug.Unlock()
+	}
+	return nil
 }
 
 // Run one or all plugins
