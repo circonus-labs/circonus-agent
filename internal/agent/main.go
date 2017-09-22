@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"syscall"
 
 	"github.com/alecthomas/units"
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
@@ -20,7 +21,6 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/statsd"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
-	"golang.org/x/sys/unix"
 )
 
 // Agent holds the main circonus-agent process
@@ -43,7 +43,7 @@ func New() (*Agent, error) {
 	}
 
 	// Handle shutdown via a.shutdownCtx
-	signal.Notify(a.signalCh, os.Interrupt, unix.SIGTERM, unix.SIGHUP, unix.SIGPIPE, unix.SIGINFO)
+	signal.Notify(a.signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE, syscall.SIGTRAP)
 
 	a.shutdownCtx, a.shutdown = context.WithCancel(context.Background())
 
@@ -132,11 +132,11 @@ func (a *Agent) handleSignals() {
 		case sig := <-a.signalCh:
 			log.Info().Str("signal", sig.String()).Msg("Received signal")
 			switch sig {
-			case os.Interrupt, unix.SIGTERM:
+			case os.Interrupt, syscall.SIGTERM:
 				a.shutdown()
-			case unix.SIGPIPE, unix.SIGHUP:
+			case syscall.SIGPIPE, syscall.SIGHUP:
 				// Noop
-			case unix.SIGINFO:
+			case syscall.SIGTRAP:
 				stacklen := runtime.Stack(buf, true)
 				fmt.Printf("=== received SIGINFO ===\n*** goroutine dump...\n%s\n*** end\n", buf[:stacklen])
 			default:
