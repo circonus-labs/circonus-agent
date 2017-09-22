@@ -19,9 +19,12 @@ func TestConfigure(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
+	viper.Set(config.KeyReverse, true)
+	c := New()
+
 	t.Log("No settings")
 	{
-		_, _, err := configure()
+		_, _, err := c.configure()
 
 		expectedErr := errors.New("reverse configuration (check): Initializing cgm API: API Token is required")
 		if err == nil {
@@ -38,11 +41,8 @@ func TestConfigure(t *testing.T) {
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
 		viper.Set(config.KeyAPIURL, apiSim.URL)
-		_, _, err := configure()
-		viper.Set(config.KeyReverseCID, "")
-		viper.Set(config.KeyAPITokenKey, "")
-		viper.Set(config.KeyAPITokenApp, "")
-		viper.Set(config.KeyAPIURL, "")
+		_, _, err := c.configure()
+		viper.Reset()
 
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)

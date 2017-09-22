@@ -15,9 +15,10 @@ import (
 
 // Agent holds the main circonus-agent process
 type Agent struct {
-	errChan chan error
-	plugins *plugins.Plugins
-	server  *server.Server
+	errChan      chan error
+	plugins      *plugins.Plugins
+	listenServer *server.Server
+	reverseConn  *reverse.Connection
 }
 
 // New returns a new agent instance
@@ -31,7 +32,8 @@ func New() (*Agent, error) {
 		return nil, err
 	}
 
-	a.server = server.New(a.plugins)
+	a.listenServer = server.New(a.plugins)
+	a.reverseConn = reverse.New()
 
 	return &a, nil
 }
@@ -46,14 +48,14 @@ func (a *Agent) Start() {
 	}()
 
 	go func() {
-		err := reverse.Start()
+		err := a.reverseConn.Start()
 		if err != nil {
 			a.errChan <- errors.Wrap(err, "Unable to start reverse connection")
 		}
 	}()
 
 	go func() {
-		err := a.server.Start()
+		err := a.listenServer.Start()
 		if err != nil {
 			a.errChan <- errors.Wrap(err, "Starting server")
 		}
