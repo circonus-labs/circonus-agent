@@ -6,6 +6,7 @@
 package server
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
@@ -20,6 +21,7 @@ import (
 
 // Server defines the listening servers
 type Server struct {
+	ctx       context.Context
 	logger    zerolog.Logger
 	plugins   *plugins.Plugins
 	svrHTTP   *http.Server
@@ -28,8 +30,9 @@ type Server struct {
 }
 
 // New creates a new instance of the listening servers
-func New(p *plugins.Plugins, ss *statsd.Server) *Server {
+func New(ctx context.Context, p *plugins.Plugins, ss *statsd.Server) *Server {
 	s := Server{
+		ctx:       ctx,
 		logger:    log.With().Str("pkg", "server").Logger(),
 		plugins:   p,
 		statsdSvr: ss,
@@ -98,16 +101,15 @@ func (s *Server) Start() error {
 		}()
 	}
 
-	if expected > 0 {
+	for numDone < expected {
 		select {
+		case <-s.ctx.Done():
+			return nil
 		case err := <-ec:
 			return err
 		case <-done:
 			numDone++
 			s.logger.Debug().Int("done", numDone).Msg("completed")
-			if numDone == expected {
-				break
-			}
 		}
 	}
 

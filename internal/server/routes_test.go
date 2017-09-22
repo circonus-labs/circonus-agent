@@ -7,6 +7,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -35,7 +36,7 @@ func TestRouter(t *testing.T) {
 			req := httptest.NewRequest(method, "/", nil)
 			w := httptest.NewRecorder()
 
-			s := New(nil, nil)
+			s := New(context.Background(), nil, nil)
 			s.router(w, req)
 
 			resp := w.Result()
@@ -48,7 +49,7 @@ func TestRouter(t *testing.T) {
 
 	{
 		viper.Set(config.KeyPluginDir, "testdata/")
-		p := plugins.New()
+		p := plugins.New(context.Background())
 		reqtests := []struct {
 			method string
 			path   string
@@ -60,7 +61,7 @@ func TestRouter(t *testing.T) {
 			{"PUT", "/invalid"},
 			{"PUT", "/write/"}, // /write/ must be followed by an id/name to use as "plugin namespace"
 		}
-		s := New(p, nil)
+		s := New(context.Background(), p, nil)
 		for _, reqtest := range reqtests {
 			t.Logf("Invalid path (%s %s)", reqtest.method, reqtest.path)
 			req := httptest.NewRequest(reqtest.method, reqtest.path, nil)
@@ -79,8 +80,8 @@ func TestRouter(t *testing.T) {
 	{
 		viper.Set(config.KeyStatsdDisabled, true)
 		viper.Set(config.KeyPluginDir, "testdata/")
-		p := plugins.New()
-		s := New(p, nil)
+		p := plugins.New(context.Background())
+		s := New(context.Background(), p, nil)
 		reqtests := []struct {
 			method string
 			path   string
@@ -110,8 +111,8 @@ func TestRouter(t *testing.T) {
 	{
 		viper.Set(config.KeyStatsdDisabled, true)
 		viper.Set(config.KeyPluginDir, "testdata/")
-		p := plugins.New()
-		s := New(p, nil)
+		p := plugins.New(context.Background())
+		s := New(context.Background(), p, nil)
 
 		req := httptest.NewRequest("PUT", "/write/foo", nil)
 		w := httptest.NewRecorder()
@@ -128,7 +129,7 @@ func TestRouter(t *testing.T) {
 	t.Log("OK (PUT /write/foo) w/data")
 	{
 
-		s := New(nil, nil)
+		s := New(context.Background(), nil, nil)
 
 		reqBody := bytes.NewReader([]byte(`{"test":1}`))
 
