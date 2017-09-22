@@ -35,7 +35,8 @@ func TestRouter(t *testing.T) {
 			req := httptest.NewRequest(method, "/", nil)
 			w := httptest.NewRecorder()
 
-			router(w, req)
+			s := New(nil)
+			s.router(w, req)
 
 			resp := w.Result()
 
@@ -47,7 +48,7 @@ func TestRouter(t *testing.T) {
 
 	{
 		viper.Set(config.KeyPluginDir, "testdata/")
-		plugins.Initialize()
+		p := plugins.New()
 		reqtests := []struct {
 			method string
 			path   string
@@ -59,12 +60,13 @@ func TestRouter(t *testing.T) {
 			{"PUT", "/invalid"},
 			{"PUT", "/write/"}, // /write/ must be followed by an id/name to use as "plugin namespace"
 		}
+		s := New(p)
 		for _, reqtest := range reqtests {
 			t.Logf("Invalid path (%s %s)", reqtest.method, reqtest.path)
 			req := httptest.NewRequest(reqtest.method, reqtest.path, nil)
 			w := httptest.NewRecorder()
 
-			router(w, req)
+			s.router(w, req)
 
 			resp := w.Result()
 
@@ -77,7 +79,8 @@ func TestRouter(t *testing.T) {
 	{
 		viper.Set(config.KeyStatsdDisabled, true)
 		viper.Set(config.KeyPluginDir, "testdata/")
-		plugins.Initialize()
+		p := plugins.New()
+		s := New(p)
 		reqtests := []struct {
 			method string
 			path   string
@@ -93,7 +96,7 @@ func TestRouter(t *testing.T) {
 			req := httptest.NewRequest(reqtest.method, reqtest.path, nil)
 			w := httptest.NewRecorder()
 
-			router(w, req)
+			s.router(w, req)
 
 			resp := w.Result()
 
@@ -107,12 +110,13 @@ func TestRouter(t *testing.T) {
 	{
 		viper.Set(config.KeyStatsdDisabled, true)
 		viper.Set(config.KeyPluginDir, "testdata/")
-		plugins.Initialize()
+		p := plugins.New()
+		s := New(p)
 
 		req := httptest.NewRequest("PUT", "/write/foo", nil)
 		w := httptest.NewRecorder()
 
-		router(w, req)
+		s.router(w, req)
 
 		resp := w.Result()
 
@@ -124,12 +128,14 @@ func TestRouter(t *testing.T) {
 	t.Log("OK (PUT /write/foo) w/data")
 	{
 
+		s := New(nil)
+
 		reqBody := bytes.NewReader([]byte(`{"test":1}`))
 
 		req := httptest.NewRequest("PUT", "/write/foo", reqBody)
 		w := httptest.NewRecorder()
 
-		router(w, req)
+		s.router(w, req)
 
 		resp := w.Result()
 

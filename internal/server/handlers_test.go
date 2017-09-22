@@ -44,7 +44,11 @@ func TestRun(t *testing.T) {
 	testDir := path.Join(dir, "testdata")
 
 	viper.Set(config.KeyPluginDir, testDir)
-	plugins.Initialize()
+	p := plugins.New()
+	if err := p.Scan(); err != nil {
+		t.Fatalf("expected no error, got (%s)", err)
+	}
+	s := New(p)
 
 	for _, runReq := range runTests {
 		time.Sleep(1 * time.Second)
@@ -52,7 +56,7 @@ func TestRun(t *testing.T) {
 		req := httptest.NewRequest("GET", runReq.path, nil)
 		w := httptest.NewRecorder()
 
-		run(w, req)
+		s.run(w, req)
 
 		resp := w.Result()
 
@@ -75,14 +79,15 @@ func TestInventory(t *testing.T) {
 	testDir := path.Join(dir, "testdata")
 
 	viper.Set(config.KeyPluginDir, testDir)
-	plugins.Initialize()
+	p := plugins.New()
+	s := New(p)
 	time.Sleep(1 * time.Second)
 
 	t.Log("GET /inventory -> 200")
 	req := httptest.NewRequest("GET", "/inventory", nil)
 	w := httptest.NewRecorder()
 
-	inventory(w, req)
+	s.inventory(w, req)
 
 	resp := w.Result()
 
@@ -95,13 +100,14 @@ func TestWrite(t *testing.T) {
 	t.Log("Testing write")
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
+	s := New(nil)
 
 	t.Log("PUT /write/ -> 404")
 	{
 		req := httptest.NewRequest("GET", "/write/", nil)
 		w := httptest.NewRecorder()
 
-		write(w, req)
+		s.write(w, req)
 
 		resp := w.Result()
 
@@ -115,7 +121,7 @@ func TestWrite(t *testing.T) {
 		req := httptest.NewRequest("PUT", "/write/foo", nil)
 		w := httptest.NewRecorder()
 
-		router(w, req)
+		s.router(w, req)
 
 		resp := w.Result()
 
@@ -131,7 +137,7 @@ func TestWrite(t *testing.T) {
 		req := httptest.NewRequest("PUT", "/write/foo", reqBody)
 		w := httptest.NewRecorder()
 
-		router(w, req)
+		s.router(w, req)
 
 		resp := w.Result()
 
@@ -147,7 +153,7 @@ func TestWrite(t *testing.T) {
 		req := httptest.NewRequest("PUT", "/write/foo", reqBody)
 		w := httptest.NewRecorder()
 
-		router(w, req)
+		s.router(w, req)
 
 		resp := w.Result()
 

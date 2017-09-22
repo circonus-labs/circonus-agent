@@ -16,9 +16,9 @@ var (
 	writePathRx     = regexp.MustCompile("^/write/.+$")
 )
 
-func router(w http.ResponseWriter, r *http.Request) {
+func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 
-	logger.Info().
+	s.logger.Info().
 		Str("method", r.Method).
 		Str("url", r.URL.String()).
 		Msg("Request")
@@ -26,11 +26,11 @@ func router(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		if pluginPathRx.MatchString(r.URL.Path) { // run plugin(s)
-			run(w, r)
+			s.run(w, r)
 		} else if inventoryPathRx.MatchString(r.URL.Path) { // plugin inventory
-			inventory(w, r)
+			s.inventory(w, r)
 		} else {
-			logger.Warn().
+			s.logger.Warn().
 				Str("method", r.Method).
 				Str("url", r.URL.String()).
 				Msg("Not found")
@@ -40,9 +40,9 @@ func router(w http.ResponseWriter, r *http.Request) {
 		fallthrough
 	case "PUT":
 		if writePathRx.MatchString(r.URL.Path) {
-			write(w, r)
+			s.write(w, r)
 		} else {
-			logger.Warn().
+			s.logger.Warn().
 				Str("method", r.Method).
 				Str("url", r.URL.String()).
 				Msg("Not found")

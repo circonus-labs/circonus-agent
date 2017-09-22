@@ -22,9 +22,8 @@ func TestServerHTTP(t *testing.T) {
 
 	t.Log("No config")
 	{
-		server := serverHTTP()
-
-		if server != nil {
+		s := New(nil)
+		if s.svrHTTP != nil {
 			t.Fatal("expected nil")
 		}
 	}
@@ -32,8 +31,8 @@ func TestServerHTTP(t *testing.T) {
 	t.Log("With config")
 	{
 		viper.Set(config.KeyListen, ":2609")
-		server := serverHTTP()
-		if server == nil {
+		s := New(nil)
+		if s.svrHTTP == nil {
 			t.Fatal("expected NOT nil")
 		}
 	}
@@ -46,9 +45,8 @@ func TestServerHTTPS(t *testing.T) {
 
 	t.Log("No config")
 	{
-		server := serverHTTPS()
-
-		if server != nil {
+		s := New(nil)
+		if s.svrHTTPS != nil {
 			t.Fatal("expected nil")
 		}
 	}
@@ -56,8 +54,9 @@ func TestServerHTTPS(t *testing.T) {
 	t.Log("With config")
 	{
 		viper.Set(config.KeySSLListen, ":2610")
-		server := serverHTTPS()
-		if server == nil {
+		s := New(nil)
+		viper.Reset()
+		if s.svrHTTPS == nil {
 			t.Fatal("expected NOT nil")
 		}
 	}
@@ -71,13 +70,11 @@ func TestRunServers(t *testing.T) {
 	t.Log("HTTP")
 	{
 		viper.Set(config.KeyListen, ":65111")
-		httpServer := serverHTTP()
-
+		s := New(nil)
 		time.AfterFunc(2*time.Second, func() {
-			httpServer.Close()
+			s.svrHTTP.Close()
 		})
-
-		if err := runServers(httpServer, nil); err != nil {
+		if err := s.Start(); err != nil {
 			t.Fatalf("expected NO error, got (%v)", err)
 		}
 		viper.Reset()
@@ -86,9 +83,9 @@ func TestRunServers(t *testing.T) {
 	t.Log("HTTPS (no cert/key config)")
 	{
 		viper.Set(config.KeySSLListen, ":65222")
-		httpsServer := serverHTTPS()
+		s := New(nil)
 		expectedErr := errors.New("SSL server: open : no such file or directory")
-		err := runServers(nil, httpsServer)
+		err := s.Start()
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -96,7 +93,7 @@ func TestRunServers(t *testing.T) {
 		if err.Error() != expectedErr.Error() {
 			t.Fatalf("expected (%s) got (%v)", expectedErr, err)
 		}
-		httpsServer.Close()
+		s.svrHTTPS.Close()
 		viper.Reset()
 	}
 
@@ -104,9 +101,9 @@ func TestRunServers(t *testing.T) {
 	{
 		viper.Set(config.KeySSLListen, ":65223")
 		viper.Set(config.KeySSLCertFile, "testdata/missing.crt")
-		httpsServer := serverHTTPS()
+		s := New(nil)
 		expectedErr := errors.New("SSL server: open testdata/missing.crt: no such file or directory")
-		err := runServers(nil, httpsServer)
+		err := s.Start()
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -114,7 +111,7 @@ func TestRunServers(t *testing.T) {
 		if err.Error() != expectedErr.Error() {
 			t.Fatalf("expected (%s) got (%v)", expectedErr, err)
 		}
-		httpsServer.Close()
+		s.svrHTTPS.Close()
 		viper.Reset()
 	}
 
@@ -123,9 +120,9 @@ func TestRunServers(t *testing.T) {
 		viper.Set(config.KeySSLListen, ":65224")
 		viper.Set(config.KeySSLCertFile, "testdata/cert.crt")
 		viper.Set(config.KeySSLKeyFile, "testdata/missing.key")
-		httpsServer := serverHTTPS()
+		s := New(nil)
 		expectedErr := errors.New("SSL server: open testdata/missing.key: no such file or directory")
-		err := runServers(nil, httpsServer)
+		err := s.Start()
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -133,7 +130,7 @@ func TestRunServers(t *testing.T) {
 		if err.Error() != expectedErr.Error() {
 			t.Fatalf("expected (%s) got (%v)", expectedErr, err)
 		}
-		httpsServer.Close()
+		s.svrHTTPS.Close()
 		viper.Reset()
 	}
 
@@ -142,9 +139,9 @@ func TestRunServers(t *testing.T) {
 		viper.Set(config.KeySSLListen, ":65225")
 		viper.Set(config.KeySSLCertFile, "testdata/cert.crt")
 		viper.Set(config.KeySSLKeyFile, "testdata/key.key")
-		httpsServer := serverHTTPS()
+		s := New(nil)
 		expectedErr := errors.New("SSL server: tls: failed to find any PEM data in certificate input")
-		err := runServers(nil, httpsServer)
+		err := s.Start()
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -152,7 +149,7 @@ func TestRunServers(t *testing.T) {
 		if err.Error() != expectedErr.Error() {
 			t.Fatalf("expected (%s) got (%v)", expectedErr, err)
 		}
-		httpsServer.Close()
+		s.svrHTTPS.Close()
 		viper.Reset()
 	}
 }

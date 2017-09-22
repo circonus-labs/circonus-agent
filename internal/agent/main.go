@@ -17,6 +17,7 @@ import (
 type Agent struct {
 	errChan chan error
 	plugins *plugins.Plugins
+	servers *server.Server
 }
 
 // New returns a new agent instance
@@ -29,6 +30,8 @@ func New() (*Agent, error) {
 	if err := a.plugins.Scan(); err != nil {
 		return nil, err
 	}
+
+	a.servers = server.New(a.plugins)
 
 	return &a, nil
 }
@@ -50,7 +53,7 @@ func (a *Agent) Start() {
 	}()
 
 	go func() {
-		err := server.Start()
+		err := a.servers.Start()
 		if err != nil {
 			a.errChan <- errors.Wrap(err, "Starting server")
 		}
