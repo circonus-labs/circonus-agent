@@ -98,6 +98,7 @@ func (a *Agent) Stop() {
 	a.statsdServer.Stop()
 	a.reverseConn.Stop()
 	a.listenServer.Stop()
+	a.shutdown()
 
 	log.Debug().Msg("Stopped " + release.NAME + " agent")
 	os.Exit(0)
