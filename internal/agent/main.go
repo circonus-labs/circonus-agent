@@ -93,19 +93,10 @@ func (a *Agent) Start() {
 
 // Stop cleans up and shuts down the Agent
 func (a *Agent) Stop() {
-	log.Debug().Msg("Stopping signal handler")
 	a.stopSignalHandler()
-
-	log.Debug().Msg("Stopping plugins")
 	a.plugins.Stop()
-
-	log.Debug().Msg("Stopping statsd")
 	a.statsdServer.Stop()
-
-	log.Debug().Msg("Stopping reverse")
 	a.reverseConn.Stop()
-
-	log.Debug().Msg("Stopping listener")
 	a.listenServer.Stop()
 
 	log.Debug().Msg("Stopped " + release.NAME + " agent")
