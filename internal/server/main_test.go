@@ -72,7 +72,7 @@ func TestRunServers(t *testing.T) {
 		viper.Set(config.KeyListen, ":65111")
 		s := New(nil, nil)
 		time.AfterFunc(2*time.Second, func() {
-			s.svrHTTP.Close()
+			s.Stop()
 		})
 		if err := s.Start(); err != nil {
 			t.Fatalf("expected NO error, got (%v)", err)
@@ -93,7 +93,7 @@ func TestRunServers(t *testing.T) {
 		if err.Error() != expectedErr.Error() {
 			t.Fatalf("expected (%s) got (%v)", expectedErr, err)
 		}
-		s.svrHTTPS.Close()
+		s.Stop()
 		viper.Reset()
 	}
 
@@ -111,7 +111,7 @@ func TestRunServers(t *testing.T) {
 		if err.Error() != expectedErr.Error() {
 			t.Fatalf("expected (%s) got (%v)", expectedErr, err)
 		}
-		s.svrHTTPS.Close()
+		s.Stop()
 		viper.Reset()
 	}
 
@@ -130,7 +130,7 @@ func TestRunServers(t *testing.T) {
 		if err.Error() != expectedErr.Error() {
 			t.Fatalf("expected (%s) got (%v)", expectedErr, err)
 		}
-		s.svrHTTPS.Close()
+		s.Stop()
 		viper.Reset()
 	}
 
@@ -149,7 +149,7 @@ func TestRunServers(t *testing.T) {
 		if err.Error() != expectedErr.Error() {
 			t.Fatalf("expected (%s) got (%v)", expectedErr, err)
 		}
-		s.svrHTTPS.Close()
+		s.Stop()
 		viper.Reset()
 	}
 }

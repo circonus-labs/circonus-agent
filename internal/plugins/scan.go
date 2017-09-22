@@ -23,27 +23,6 @@ func (p *Plugins) Scan() error {
 	p.Lock()
 	defer p.Unlock()
 
-	// stop will kill any long running plugins in preparation
-	// for rescanning the plugin directory. IF watching for
-	// changes is added (TBD - restarting is preferred, cleaner).
-	stop := func() error {
-		for id, plug := range p.active {
-			if plug.cmd != nil && !plug.cmd.ProcessState.Exited() {
-				p.logger.Debug().
-					Str("plugin", id).
-					Msg("Stopping long running plugin")
-				err := plug.cmd.Process.Kill()
-				if err != nil {
-					p.logger.Error().
-						Err(err).
-						Str("plugin", id).
-						Msg("Stopping plugin")
-				}
-			}
-		}
-		return nil
-	}
-
 	// initialRun fires each plugin one time. Unlike 'Run' it does
 	// not wait for plugins to finish this will provides:
 	//
@@ -60,7 +39,7 @@ func (p *Plugins) Scan() error {
 		return nil
 	}
 
-	if err := stop(); err != nil {
+	if err := p.Stop(); err != nil {
 		return errors.Wrap(err, "stopping plugin(s)")
 	}
 

@@ -24,6 +24,9 @@ import (
 
 // Server defines a statsd server
 type Server struct {
+	disabled              bool
+	address               *net.UDPAddr
+	listener              *net.UDPConn
 	hostMetrics           *cgm.CirconusMetrics
 	hostMetricsmu         sync.Mutex
 	groupMetrics          *cgm.CirconusMetrics
@@ -48,13 +51,9 @@ const (
 )
 
 // New returns a statsd server definition
-func New() *Server {
-	if viper.GetBool(config.KeyStatsdDisabled) {
-		log.Info().Msg("StatsD disabled, not starting listener")
-		return nil
-	}
-
+func New() (*Server, error) {
 	s := Server{
+		disabled:       viper.GetBool(config.KeyStatsdDisabled),
 		logger:         log.With().Str("pkg", "statsd").Logger(),
 		hostPrefix:     viper.GetString(config.KeyStatsdHostPrefix),
 		hostCategory:   viper.GetString(config.KeyStatsdHostCategory),
@@ -64,14 +63,25 @@ func New() *Server {
 		groupSetOp:     viper.GetString(config.KeyStatsdGroupSets),
 	}
 
+	address := net.JoinHostPort("localhost", viper.GetString(config.KeyStatsdPort))
+	addr, err := net.ResolveUDPAddr("udp", address)
+	if err != nil {
+		return nil, errors.Wrapf(err, "resolving address '%s'", address)
+	}
+
+	s.address = addr
 	s.metricRegex = regexp.MustCompile("^(?P<name>[^:\\s]+):(?P<value>[^|\\s]+)\\|(?P<type>[a-z]+)(?:@(?P<sample>[0-9.]+))?$")
 	s.metricRegexGroupNames = s.metricRegex.SubexpNames()
 
-	return &s
+	return &s, nil
 }
 
 // Start the StatsD listener
 func (s *Server) Start() error {
+	if s.disabled {
+		s.logger.Info().Msg("StatsD disabled, not starting listener")
+		return nil
+	}
 
 	if err := s.initHostMetrics(); err != nil {
 		return errors.Wrap(err, "Initializing host metrics for StatsD")
@@ -84,26 +94,22 @@ func (s *Server) Start() error {
 	packetQueue := make(chan []byte, packetQueueSize)
 	ec := make(chan error)
 
-	address := net.JoinHostPort("localhost", viper.GetString(config.KeyStatsdPort))
-	addr, err := net.ResolveUDPAddr("udp", address)
-	if err != nil {
-		return errors.Wrapf(err, "resolving address '%s'", address)
-	}
-
-	s.logger.Info().Str("addr", addr.String()).Msg("StatsD listener")
-
-	listener, err := net.ListenUDP("udp", addr)
-	if err != nil {
-		return err
+	s.logger.Info().Str("addr", s.address.String()).Msg("StatsD listener")
+	{
+		var err error
+		s.listener, err = net.ListenUDP("udp", s.address)
+		if err != nil {
+			return err
+		}
 	}
 
 	// run the listener
 	go func() {
-		defer listener.Close()
+		defer s.listener.Close()
 
 		for {
 			buff := make([]byte, maxPacketSize)
-			n, err := listener.Read(buff)
+			n, err := s.listener.Read(buff)
 			if err != nil {
 				ec <- err
 				return
@@ -135,15 +141,39 @@ func (s *Server) Start() error {
 	return <-ec
 }
 
+// Stop the server
+func (s *Server) Stop() {
+	if s.disabled {
+		return
+	}
+
+	if s.listener != nil {
+		s.logger.Debug().Msg("Stopping StatsD server")
+		err := s.listener.Close()
+		if err != nil {
+			s.logger.Warn().Err(err).Msg("Closing StatsD Server")
+		}
+	}
+
+	// flush any outstanding group metrics (since they are sent directly to circonus)
+	if s.groupMetrics != nil {
+		s.groupMetricsmu.Lock()
+		s.groupMetrics.Flush()
+		s.groupMetricsmu.Unlock()
+	}
+}
+
 // Flush *host* metrics only
 // NOTE: group metrics flush independently via cgm
 func (s *Server) Flush() *cgm.Metrics {
-	if viper.GetBool(config.KeyStatsdDisabled) {
+	if s.disabled {
 		return nil
 	}
+
 	if s.hostMetrics == nil {
 		return &cgm.Metrics{}
 	}
+
 	s.hostMetricsmu.Lock()
 	defer s.hostMetricsmu.Unlock()
 	return s.hostMetrics.FlushMetrics()

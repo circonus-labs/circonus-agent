@@ -95,6 +95,44 @@ func (p *Plugins) Flush(pluginName string) *map[string]interface{} {
 	return &metrics
 }
 
+// Stop any long running plugins
+func (p *Plugins) Stop() error {
+	for id, plug := range p.active {
+		plug.Lock()
+		if !plug.Running {
+			plug.Unlock()
+			continue
+		}
+		if plug.cmd == nil {
+			plug.Unlock()
+			continue
+		}
+		if plug.cmd.Process != nil {
+			var stop bool
+			if plug.cmd.ProcessState == nil {
+				stop = true
+			} else {
+				stop = !plug.cmd.ProcessState.Exited()
+			}
+
+			if stop {
+				p.logger.Debug().
+					Str("plugin", id).
+					Msg("Stopping running plugin")
+				err := plug.cmd.Process.Kill()
+				if err != nil {
+					p.logger.Error().
+						Err(err).
+						Str("plugin", id).
+						Msg("Stopping plugin")
+				}
+			}
+		}
+		plug.Unlock()
+	}
+	return nil
+}
+
 // Run one or all plugins
 func (p *Plugins) Run(pluginName string) error {
 	p.Lock()
