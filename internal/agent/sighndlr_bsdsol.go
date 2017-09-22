@@ -5,6 +5,9 @@
 
 // +build freebsd openbsd solaris darwin
 
+// Signal handling for FreeBSD, OpenBSD, Darwin, and Solaris
+// systems that have SIGINFO
+
 package agent
 
 import (

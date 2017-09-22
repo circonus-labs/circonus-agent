@@ -5,6 +5,9 @@
 
 // +build linux
 
+// Signal handling for Linux
+// system that doesn't have SIGINFO, using SIGUSR1 instead
+
 package agent
 
 import (

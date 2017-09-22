@@ -5,6 +5,9 @@
 
 // +build windows
 
+// Signal handling for Windows
+// system that doesn't have SIGINFO, attempt to use SIGTRAP instead...
+
 package agent
 
 import (
