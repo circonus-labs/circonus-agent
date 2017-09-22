@@ -40,7 +40,6 @@ func New() (*Agent, error) {
 	a := Agent{
 		errCh:    make(chan error),
 		signalCh: make(chan os.Signal, 10),
-		plugins:  plugins.New(),
 	}
 
 	// Handle shutdown via a.shutdownCtx
@@ -48,13 +47,14 @@ func New() (*Agent, error) {
 
 	a.shutdownCtx, a.shutdown = context.WithCancel(context.Background())
 
+	a.plugins = plugins.New(a.shutdownCtx)
 	if err := a.plugins.Scan(); err != nil {
 		return nil, err
 	}
 
 	{
 		var err error
-		a.statsdServer, err = statsd.New()
+		a.statsdServer, err = statsd.New(a.shutdownCtx)
 		if err != nil {
 			return nil, err
 		}
@@ -62,7 +62,7 @@ func New() (*Agent, error) {
 
 	a.reverseConn = reverse.New()
 
-	a.listenServer = server.New(a.plugins, a.statsdServer)
+	a.listenServer = server.New(a.shutdownCtx, a.plugins, a.statsdServer)
 
 	return &a, nil
 }
