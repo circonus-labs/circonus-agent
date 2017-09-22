@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  branch = "master"
+  name = "github.com/alecthomas/units"
+  packages = ["."]
+  revision = "2efee857e7cfd4f3d0138cc3cbb1b4966962b93a"
+
+[[projects]]
   name = "github.com/circonus-labs/circonus-gometrics"
   packages = [".","api","api/config","checkmgr"]
   revision = "efbf5b0bb26c98837afb6b3ec17f1a69f5be861f"
@@ -160,6 +166,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b63216c379aae2ca8eca0fe4602c0336735d53b425cc5ad5eb3c70e817f9f286"
+  inputs-digest = "c66d3db9245335ad9495a0f9606c11d50b7c4fe0525abfe733ecff0fa19ce842"
   solver-name = "gps-cdcl"
   solver-version = 1
