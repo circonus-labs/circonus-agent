@@ -7,6 +7,7 @@ package statsd
 
 import (
 	"bytes"
+	"context"
 	stdlog "log"
 	"net"
 	"regexp"
@@ -24,6 +25,7 @@ import (
 
 // Server defines a statsd server
 type Server struct {
+	ctx                   context.Context
 	disabled              bool
 	address               *net.UDPAddr
 	listener              *net.UDPConn
@@ -51,8 +53,9 @@ const (
 )
 
 // New returns a statsd server definition
-func New() (*Server, error) {
+func New(ctx context.Context) (*Server, error) {
 	s := Server{
+		ctx:            ctx,
 		disabled:       viper.GetBool(config.KeyStatsdDisabled),
 		logger:         log.With().Str("pkg", "statsd").Logger(),
 		hostPrefix:     viper.GetString(config.KeyStatsdHostPrefix),
@@ -125,6 +128,9 @@ func (s *Server) Start() error {
 	go func() {
 		for {
 			select {
+			case <-s.ctx.Done():
+				ec <- nil
+				return
 			case pkt := <-packetQueue:
 				s.logger.Debug().Str("packet", string(pkt)).Msg("received")
 				metrics := bytes.Split(pkt, []byte("\n"))

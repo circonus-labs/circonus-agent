@@ -6,6 +6,7 @@
 package statsd
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -22,7 +23,7 @@ func TestFlush(t *testing.T) {
 	t.Log("Disabled")
 	{
 		viper.Set(config.KeyStatsdDisabled, true)
-		s, err := New()
+		s, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -37,7 +38,7 @@ func TestFlush(t *testing.T) {
 	t.Log("Flush (disabled)")
 	{
 		viper.Set(config.KeyStatsdDisabled, true)
-		s, err := New()
+		s, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -51,7 +52,7 @@ func TestFlush(t *testing.T) {
 
 	t.Log("Flush (no stats)")
 	{
-		s, err := New()
+		s, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -83,7 +84,7 @@ func TestGetMetricDest(t *testing.T) {
 			{"group.foo", "host", "group.foo"},
 			{"foo", "host", "foo"},
 		}
-		s, err := New()
+		s, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -114,7 +115,7 @@ func TestGetMetricDest(t *testing.T) {
 		}
 		viper.Set(config.KeyStatsdHostPrefix, "host.")
 		viper.Set(config.KeyStatsdGroupPrefix, "group.")
-		s, err := New()
+		s, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -145,7 +146,7 @@ func TestGetMetricDest(t *testing.T) {
 			{"foo", "host", "foo"},
 		}
 		viper.Set(config.KeyStatsdGroupPrefix, "group.")
-		s, err := New()
+		s, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -176,7 +177,7 @@ func TestGetMetricDest(t *testing.T) {
 			{"foo", "group", "foo"},
 		}
 		viper.Set(config.KeyStatsdHostPrefix, "host.")
-		s, err := New()
+		s, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -199,7 +200,7 @@ func TestParseMetric(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	s, err := New()
+	s, err := New(context.Background())
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
