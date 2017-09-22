@@ -3,11 +3,11 @@
 >NOTE: This is an "in development" project. As such, there are a few things to be aware of at this time...
 >
 > Caveats:
-> * No target specific packages
-> * No service configurations provided
-> * Native plugins (.js) do not work
+> * No target specific packages. (e.g. rpm|deb|pkg)
+> * No service configurations provided. (e.g. systemd, upstart, init, svc)
+> * Native plugins (.js) do not work. Unless modified to run `node` independently and follow [plugin output guidelines](#output).
 
-## v0.0.1 development working release
+## v0.0.3 development working release
 
 Download from repo [releases](https://github.com/circonus-labs/circonus-agent/releases).
 
@@ -18,7 +18,7 @@ cd /opt/circonus
 mkdir -p circonus-agent/{sbin,etc}
 cd circonus-agent
 ln -s /opt/circonus/nad/etc/node-agent.d plugins
-curl "https://github.com/circonus-labs/circonus-agent/releases/download/v0.1.0/circonus-agent_0.0.1_linux_64-bit.tar.gz" -o circonus-agent.tgz
+curl "https://github.com/circonus-labs/circonus-agent/releases/download/v0.0.3/circonus-agent_0.0.3_linux_64-bit.tar.gz" -o circonus-agent.tgz
 tar zxf circonus-agent.tgz
 ```
 To leverage the existing COSI/NAD installation, create a configuration file `/opt/circonus/circonus-agent/etc/circonus-agent.toml` (or use the corresponding command line options.)
@@ -34,7 +34,7 @@ key = "cosi"
 
 Ensure that NAD is not currently running (e.g. `systemctl stop nad`) and start circonus-agent `sbin/circonus-agent`.
 
-## development testing notes 2017-09-06
+## development testing notes
 
 > NOTE: See `Vagrantfile` for an example which bootstraps a centos7 vm.
 
@@ -50,13 +50,22 @@ Ensure that NAD is not currently running (e.g. `systemctl stop nad`) and start c
     1. `go get -u github.com/golang/dep/cmd/dep`
 1. Clone repo and run dep
     1. `cd $GOPATH/src/github.com/circonus-labs`
-    1. `git clone https://github.com/maier/circonus-agent.git`
+    1. `git clone https://github.com/circonus-labs/circonus-agent.git`
     1. `cd circonus-agent && dep ensure`
 1. Build
     1. `go build`
 1. Run
     1. `./circonus-agent -h` for help
-    1. example - if cosi had already been run, stop nad first, then: `./circonus-agent -p /opt/circonus/nad/etc/node-agent.d -r -cid cosi -api-key cosi --log-pretty` it _should_ start, load the api credentials and check information from the existing cosi config for reverse mode and use the existing nad plugins.
+    1. example - on a system where cosi has *already* been run
+       1. stop nad, if it is running
+       1. run: `./circonus-agent -p /opt/circonus/nad/etc/node-agent.d -r -cid cosi -api-key cosi --log-pretty`
+        * `-p` use the existing nad plugins
+        * `--api-key cosi` load api credentials from cosi installation
+        * `--cid cosi` load check information from cosi installation
+        * `-r` establish a reverse connection
+        * `--log-prety` print formatted logging output to the terminal
+
+# Options
 
 ```
 $ /opt/circonus/circonus-agent/sbin/circonus-agent -h
@@ -104,7 +113,7 @@ Flags:
 ```
 
 
-## Plugins
+# Plugins
 
 * Go in the `--plugin-dir`.
 * Must be regular files or symlinks.
@@ -121,15 +130,15 @@ Flags:
     * A `.conf` file is assumed to be a shell configuration file which is loaded by the plugin itself.
 * All other directory entries are ignored.
 
-### Output
+## Output
 
 Output from plugins is expected on `stdout` either tab-delimited or json.
 
-#### Tab delimited
+### Tab delimited
 
 `metric_name<TAB>metric_type<TAB>metric_value`
 
-#### JSON
+### JSON
 
 ```json
 {
@@ -140,7 +149,7 @@ Output from plugins is expected on `stdout` either tab-delimited or json.
 }
 ```
 
-#### Metric types
+### Metric types
 
 | Type | Description             |
 | ---- | ----------------------- |
@@ -151,6 +160,6 @@ Output from plugins is expected on `stdout` either tab-delimited or json.
 | `n`  | double/float            |
 | `s`  | string/text             |
 
-### Running
+## Running
 
-When plugins are executed, the _current working directory_ will be set to the `--plugin-dir`, if needed for relative path references to find configs or data files. Scripts may safely reference `$PWD`. See `plugin_test/write_test/wtest1.sh` for example. In `plugin_test`, run `ln -s write_test/wtest1.sh`, start the agent (e.g. `go run main.go -p plugin_test`), then `curl localhost:2609/` to see it in action.
+When plugins are executed, the _current working directory_ will be set to the `--plugin-dir`, for relative path references to find configs or data files. Scripts may safely reference `$PWD`. See `plugin_test/write_test/wtest1.sh` for example. In `plugin_test`, run `ln -s write_test/wtest1.sh`, start the agent (e.g. `go run main.go -p plugin_test`), then `curl localhost:2609/` to see it in action.
