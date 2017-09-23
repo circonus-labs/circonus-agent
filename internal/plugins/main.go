@@ -7,7 +7,6 @@ package plugins
 
 import (
 	"context"
-	"encoding/json"
 	"os/exec"
 	"strings"
 	"sync"
@@ -32,7 +31,7 @@ type Metrics map[string]Metric
 
 // Plugin defines a specific plugin
 type plugin struct {
-	sync.RWMutex
+	sync.Mutex
 	ctx          context.Context
 	cmd          *exec.Cmd
 	metrics      *Metrics
@@ -58,6 +57,7 @@ type Plugins struct {
 	pluginDir     string
 	logger        zerolog.Logger
 	reservedNames map[string]bool
+	inventory     []byte
 }
 
 const (
@@ -221,10 +221,10 @@ func (p *Plugins) IsInternal(pluginName string) bool {
 }
 
 // Inventory returns list of active plugins
-func (p *Plugins) Inventory() ([]byte, error) {
-	p.RLock()
-	defer p.RUnlock()
-	return json.Marshal(p.active)
+func (p *Plugins) Inventory() []byte {
+	p.Lock()
+	defer p.Unlock()
+	return p.inventory
 }
 
 // func pluginWatcher() {

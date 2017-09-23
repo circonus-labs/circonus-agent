@@ -265,9 +265,9 @@ func TestInventory(t *testing.T) {
 
 	t.Log("Valid")
 	{
-		data, err := p.Inventory()
-		if err != nil {
-			t.Fatalf("expected no error, got (%s)", err)
+		data := p.Inventory()
+		if data == nil {
+			t.Fatalf("expected not nil")
 		}
 
 		expect := []byte(`"test":{"ID":"test","InstanceID":"","Name":"test","InstanceArgs":null,"Command":"testdata/test.sh","Generation":1`)

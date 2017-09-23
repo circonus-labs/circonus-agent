@@ -47,6 +47,12 @@ func (p *Plugins) Scan() error {
 		return errors.Wrap(err, "plugin directory scan")
 	}
 
+	data, err := json.Marshal(p.active)
+	if err != nil {
+		return errors.Wrap(err, "generating inventory")
+	}
+	p.inventory = data
+
 	if err := initialRun(); err != nil {
 		return errors.Wrap(err, "initializing plugin(s)")
 	}

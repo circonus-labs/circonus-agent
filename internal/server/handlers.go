@@ -7,7 +7,6 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -71,14 +70,10 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 
 // inventory returns the current, active plugin inventory
 func (s *Server) inventory(w http.ResponseWriter, r *http.Request) {
-	inventory, err := s.plugins.Inventory()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Unable to retrieve inventory")
-		s.logger.Error().
-			Err(err).
-			Msg("Plugin inventory")
-		return
+	inventory := s.plugins.Inventory()
+	if inventory == nil {
+		inventory = []byte(`{"error": "empty inventory"}`)
+		s.logger.Error().Msg("inventory is nil/empty...")
 	}
 
 	w.Header().Set("Content-Type", "application/json")
