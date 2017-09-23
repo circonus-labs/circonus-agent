@@ -12,4 +12,13 @@ for d in $(go list ./... | grep -v vendor); do
 done
 
 # upload the report
-[[ -s coverage.txt ]] && bash <(curl -s https://codecov.io/bash)
+[[ -s coverage.txt ]] || {
+    echo "No 'coverage.txt' report found, not sending report"
+    exit 1
+}
+[[ -s .codecov ]] || {
+    echo "No codecov.io token found in .codecov, NOT sending report"
+    exit 1
+}
+
+bash <(curl -s https://codecov.io/bash) -t $(cat .codecov)

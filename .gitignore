@@ -38,5 +38,6 @@ circonus-agent.json
 # goreleaser files
 dist/
 
-# codecov.io report
+# codecov.io repo token and report
+.codecov
 coverage.txt
