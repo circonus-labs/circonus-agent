@@ -7,9 +7,11 @@ package plugins
 
 import (
 	"context"
+	"encoding/json"
 	"os/exec"
 	"strings"
 	"sync"
+	"time"
 
 	// "github.com/rjeczalik/notify"
 
@@ -32,19 +34,22 @@ type Metrics map[string]Metric
 // Plugin defines a specific plugin
 type plugin struct {
 	sync.Mutex
-	ctx          context.Context
-	cmd          *exec.Cmd
-	metrics      *Metrics
-	prevMetrics  *Metrics
-	logger       zerolog.Logger
-	ID           string
-	InstanceID   string
-	Name         string
-	InstanceArgs []string
-	Command      string
-	Generation   uint64
-	Running      bool
-	RunDir       string
+	ctx             context.Context
+	cmd             *exec.Cmd
+	metrics         *Metrics
+	prevMetrics     *Metrics
+	logger          zerolog.Logger
+	ID              string
+	InstanceID      string
+	Name            string
+	InstanceArgs    []string
+	Command         string
+	LastStart       time.Time
+	LastRunDuration time.Duration
+	LastError       error
+	Generation      uint64
+	Running         bool
+	RunDir          string
 }
 
 // Plugins defines plugin manager
@@ -57,7 +62,6 @@ type Plugins struct {
 	pluginDir     string
 	logger        zerolog.Logger
 	reservedNames map[string]bool
-	inventory     []byte
 }
 
 const (
@@ -220,11 +224,48 @@ func (p *Plugins) IsInternal(pluginName string) bool {
 	return reserved
 }
 
+type lastRunError struct {
+	Code int    `json:"code"`
+	Msg  string `json:"message"`
+}
+
+type pluginDetails struct {
+	Name            string   `json:"name"`
+	Instance        string   `json:"instance"`
+	Command         string   `json:"command"`
+	Args            []string `json:"args"`
+	LastRunStart    string   `json:"last_run_start"`
+	LastRunDuration string   `json:"last_run_duration"`
+	LastError       string   `json:"last_error"`
+}
+
 // Inventory returns list of active plugins
 func (p *Plugins) Inventory() []byte {
 	p.Lock()
 	defer p.Unlock()
-	return p.inventory
+	inventory := make(map[string]*pluginDetails, len(p.active))
+	for id, plug := range p.active {
+		plug.Lock()
+		inventory[id] = &pluginDetails{
+			Name:            plug.ID,
+			Instance:        plug.InstanceID,
+			Command:         plug.Command,
+			Args:            plug.InstanceArgs,
+			LastRunStart:    plug.LastStart.Format(time.RFC3339Nano),
+			LastRunDuration: plug.LastRunDuration.String(),
+		}
+
+		if plug.LastError != nil {
+			inventory[id].LastError = plug.LastError.Error()
+		}
+
+		plug.Unlock()
+	}
+	data, err := json.Marshal(inventory)
+	if err != nil {
+		p.logger.Fatal().Err(err).Msg("inventory -> json")
+	}
+	return data
 }
 
 // func pluginWatcher() {

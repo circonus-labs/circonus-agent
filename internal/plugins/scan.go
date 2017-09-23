@@ -47,12 +47,6 @@ func (p *Plugins) Scan() error {
 		return errors.Wrap(err, "plugin directory scan")
 	}
 
-	data, err := json.Marshal(p.active)
-	if err != nil {
-		return errors.Wrap(err, "generating inventory")
-	}
-	p.inventory = data
-
 	if err := initialRun(); err != nil {
 		return errors.Wrap(err, "initializing plugin(s)")
 	}
@@ -237,14 +231,19 @@ func (p *Plugins) scanPluginDirectory() error {
 		}
 	}
 
-	// purge inactive plugins (plugins removed from plugin directory)
-	for id, plug := range p.active {
-		if plug.Generation != p.generation {
-			p.logger.Debug().
-				Str("plugin", id).
-				Msg("purging inactive plugin")
-			delete(p.active, id)
-		}
+	// only relevant if *watching* is implemented
+	// // purge inactive plugins (plugins removed from plugin directory)
+	// for id, plug := range p.active {
+	// 	if plug.Generation != p.generation {
+	// 		p.logger.Debug().
+	// 			Str("plugin", id).
+	// 			Msg("purging inactive plugin")
+	// 		delete(p.active, id)
+	// 	}
+	// }
+
+	if len(p.active) == 0 {
+		return errors.New("No active plugins found")
 	}
 
 	return nil
