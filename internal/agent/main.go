@@ -113,6 +113,7 @@ func (a *Agent) Wait() error {
 	select {
 	case <-a.shutdownCtx.Done():
 	case err := <-a.errCh:
+		log.Error().Err(err).Msg("Shutting down agent due to errors")
 		a.Stop()
 		return err
 	}
