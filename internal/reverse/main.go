@@ -6,12 +6,15 @@
 package reverse
 
 import (
+	crand "crypto/rand"
 	"crypto/tls"
 	"encoding/binary"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"math"
+	"math/big"
+	"math/rand"
 	"net"
 	"net/url"
 	"strings"
@@ -32,6 +35,9 @@ type Connection struct {
 	logger        zerolog.Logger
 	shutdown      bool
 	conn          *tls.Conn
+	connAttempts  int
+	delay         time.Duration
+	maxDelay      time.Duration
 }
 
 type header struct {
@@ -48,14 +54,19 @@ const (
 	maxPayloadLen        = 65529 // max unsigned short - 6 (for header)
 	maxConnRetry         = 10    // max times to retry a persistently failing connection
 	configRetryLimit     = 5     // if failed attempts > threshold, force reconfig
+	maxDelaySeconds      = 60    // maximum amount of delay between attempts
+	minDelayStep         = 1     // minimum seconds to add on retry
+	maxDelayStep         = 20    // maximum seconds to add on retry
 )
 
-// var (
-// 	commTimeout   = commTimeoutSeconds * time.Second
-// 	dialerTimeout = dialerTimeoutSeconds * time.Second
-// 	metricTimeout = metricTimeoutSeconds * time.Second
-// 	logger        zerolog.Logger
-// )
+func init() {
+	n, err := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
+	if err != nil {
+		rand.Seed(time.Now().UTC().UnixNano())
+		return
+	}
+	rand.Seed(n.Int64())
+}
 
 // New creates a new connection
 func New() *Connection {
@@ -70,6 +81,9 @@ func New() *Connection {
 		metricTimeout: metricTimeoutSeconds * time.Second,
 		logger:        log.With().Str("pkg", "reverse").Logger(),
 		shutdown:      true,
+		connAttempts:  0,
+		delay:         1 * time.Second,
+		maxDelay:      maxDelaySeconds * time.Second,
 	}
 
 	return &c
@@ -79,18 +93,6 @@ func New() *Connection {
 func (c *Connection) Start() error {
 
 	c.logger.Info().Msg("Setting up reverse connections")
-
-	attempt := 1
-	backoffs := []time.Duration{
-		2 * time.Second,
-		4 * time.Second,
-		6 * time.Second,
-		8 * time.Second,
-		16 * time.Second,
-		32 * time.Second,
-		60 * time.Second,
-	}
-	maxAttempts := len(backoffs) - 1
 
 	agentAddress := strings.Replace(viper.GetString(config.KeyListen), "0.0.0.0", "localhost", -1)
 
@@ -117,9 +119,9 @@ func (c *Connection) Start() error {
 
 	go func() {
 		for { // allow for restarts
-			if reverseURL == nil || attempt%configRetryLimit == 0 {
+			if reverseURL == nil || c.connAttempts%configRetryLimit == 0 {
 				c.logger.Info().
-					Int("attempts", attempt).
+					Int("attempts", c.connAttempts).
 					Msg("reconfig triggered")
 				// Under normal circumstances the configuration for reverse is
 				// non-volatile. There are, however, some situations where the
@@ -134,41 +136,70 @@ func (c *Connection) Start() error {
 				}
 			}
 
+			c.connAttempts++
 			c.conn, err = c.connect(reverseURL, tlsConfig)
 			if err != nil {
-				if attempt >= maxConnRetry { // retry n times on connection attempt failures
-					ec <- errors.Wrapf(err, "%d failed attempts", attempt)
-					return
-				}
 				c.logger.Error().
 					Err(err).
-					Int("attempt", attempt).
+					Int("attempt", c.connAttempts).
 					Msg("failed")
 			} else {
-				c.shutdown = false                  // indicate reverse connection is open
-				attempt = 1                         // reset on successful connection
-				c.reverse(reverseURL, agentAddress) // reconnect
+				c.shutdown = false // indicate reverse connection is open
+				err = c.reverse(reverseURL, agentAddress)
+				if err != nil {
+					c.logger.Error().Err(err).Msg("connection")
+				}
 			}
 
+			// retry n times on connection attempt failures
+			if c.connAttempts >= maxConnRetry {
+				ec <- errors.Wrapf(err, "after %d failed attempts, last error", c.connAttempts)
+				break
+			}
 			// shutting down
 			if c.shutdown {
 				ec <- nil
 				break
 			}
 
-			// backoff retry on each consecutive failure
-			delay := backoffs[uint8(math.Min(float64(attempt-1), float64(maxAttempts)))]
-			attempt++
 			c.logger.Info().
-				Str("delay", delay.String()).
-				Int("attempt", attempt).
+				Str("delay", c.delay.String()).
+				Int("attempt", c.connAttempts).
 				Msg("connect retry")
-			time.Sleep(delay)
+			time.Sleep(c.delay)
+			c.setNextDelay()
 		}
 	}()
 
 	// block until an error is recieved or some other component exits
 	return <-ec
+}
+
+// setNextDelay for failed connection attempts
+func (c *Connection) setNextDelay() {
+	if c.delay == c.maxDelay {
+		return
+	}
+
+	drift := rand.Intn(maxDelayStep-minDelayStep) + minDelayStep
+
+	if c.delay < c.maxDelay {
+		c.delay += time.Duration(drift) * time.Second
+	}
+
+	if c.delay > c.maxDelay {
+		c.delay = c.maxDelay
+	}
+
+	return
+}
+
+// resetConnectionAttempts on successful send/receive
+func (c *Connection) resetConnectionAttempts() {
+	if c.connAttempts > 0 {
+		c.delay = 1 * time.Second
+		c.connAttempts = 0
+	}
 }
 
 // Stop the reverse connection
@@ -213,7 +244,7 @@ func (c *Connection) connect(reverseURL *url.URL, tlsConfig *tls.Config) (*tls.C
 	return conn, nil
 }
 
-func (c *Connection) reverse(reverseURL *url.URL, agentAddress string) {
+func (c *Connection) reverse(reverseURL *url.URL, agentAddress string) error {
 	defer c.conn.Close()
 
 	cmd := []byte{}
@@ -225,25 +256,16 @@ func (c *Connection) reverse(reverseURL *url.URL, agentAddress string) {
 
 		hdr, err := c.readHeader()
 		if err != nil {
-			c.logger.Error().
-				Err(err).
-				Msg("reading header")
-			return // restart the connection
+			return errors.Wrap(err, "reading header") // restart the connection
 		}
 
 		if hdr.payloadLen > maxPayloadLen {
-			c.logger.Warn().
-				Uint32("payload_len", hdr.payloadLen).
-				Msg("Oversized frame, resetting connection")
-			return // restart the connection
+			return errors.Errorf("received oversized frame (%d len)", hdr.payloadLen) // restart the connection
 		}
 
-		msg, err := c.readMessage(hdr.payloadLen)
+		msg, err := c.readPayload(hdr.payloadLen)
 		if err != nil {
-			c.logger.Error().
-				Err(err).
-				Msg("reading message")
-			return // restart the connection
+			return errors.Wrap(err, "reading payload") // restart the connection
 		}
 
 		if hdr.isCommand {
@@ -264,6 +286,7 @@ func (c *Connection) reverse(reverseURL *url.URL, agentAddress string) {
 		// the noit connection itself (remote).
 		switch string(cmd) {
 		case "CONNECT":
+			c.resetConnectionAttempts()
 			// ignore the first time through, there is an argument coming
 			/// next (the request to send to the agent, e.g. 'GET / ...')
 			if len(arg) > 0 {
@@ -280,12 +303,7 @@ func (c *Connection) reverse(reverseURL *url.URL, agentAddress string) {
 					data = []byte("{}")
 				}
 				if err := c.sendMetricData(data, hdr.channelID, arg); err != nil {
-					if err != nil {
-						c.logger.Error().
-							Err(err).
-							Msg("sending metric data")
-						return // restart the connection
-					}
+					return errors.Wrap(err, "sending metric data") // restart the connection
 				}
 				cmd = []byte{}
 				arg = []byte{}
@@ -387,7 +405,7 @@ func (c *Connection) fetchMetricData(agentAddress string, request []byte) ([]byt
 // readHeader reads 6 bytes from the broker connection
 func (c *Connection) readHeader() (header, error) {
 	var hdr header
-	data, err := c.readMessage(6)
+	data, err := c.readPayload(6)
 	if err != nil {
 		return hdr, err
 	}
@@ -407,8 +425,8 @@ func (c *Connection) readHeader() (header, error) {
 	return hdr, nil
 }
 
-// readMessage reads n bytes from the broker connection
-func (c *Connection) readMessage(size uint32) ([]byte, error) {
+// readPayload reads n bytes from the broker connection
+func (c *Connection) readPayload(size uint32) ([]byte, error) {
 	data, err := c.readBytes(int64(size))
 	if err != nil {
 		return nil, err
