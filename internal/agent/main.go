@@ -96,13 +96,20 @@ func (a *Agent) Stop() {
 	a.listenServer.Stop()
 	a.shutdown()
 
-	log.Debug().Msg("Stopped " + release.NAME + " agent")
+	log.Debug().
+		Int("pid", os.Getpid()).
+		Str("name", release.NAME).
+		Str("ver", release.VERSION).Msg("Stopped")
+
 	os.Exit(0)
 }
 
 // Wait blocks until shutdown
 func (a *Agent) Wait() error {
-	log.Debug().Msg("Starting wait")
+	log.Debug().
+		Int("pid", os.Getpid()).
+		Str("name", release.NAME).
+		Str("ver", release.VERSION).Msg("Starting wait")
 	select {
 	case <-a.shutdownCtx.Done():
 	case err := <-a.errCh:
