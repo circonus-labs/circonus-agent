@@ -30,7 +30,7 @@ type Server struct {
 }
 
 // New creates a new instance of the listening servers
-func New(ctx context.Context, p *plugins.Plugins, ss *statsd.Server) *Server {
+func New(ctx context.Context, p *plugins.Plugins, ss *statsd.Server) (*Server, error) {
 	s := Server{
 		ctx:       ctx,
 		logger:    log.With().Str("pkg", "server").Logger(),
@@ -50,7 +50,7 @@ func New(ctx context.Context, p *plugins.Plugins, ss *statsd.Server) *Server {
 		s.svrHTTPS.SetKeepAlivesEnabled(false)
 	}
 
-	return &s
+	return &s, nil
 }
 
 // Start main listening server(s)
