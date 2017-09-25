@@ -6,6 +6,7 @@
 package reverse
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -149,22 +150,46 @@ func TestStart(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	t.Log("Reverse disabled")
+	t.Log("Reverse disabled (no start)")
 	{
 		viper.Set(config.KeyReverse, false)
-		c := New()
+		c, err := New(context.Background())
 		viper.Reset()
 
-		if c != nil {
-			t.Fatal("expected nil")
+		if err != nil {
+			t.Fatalf("expected no error, got (%s)", err)
+		}
+
+		if c == nil {
+			t.Fatal("expected not nil")
+		}
+	}
+
+	t.Log("Reverse disabled (start)")
+	{
+		viper.Set(config.KeyReverse, false)
+		c, err := New(context.Background())
+		viper.Reset()
+
+		if err != nil {
+			t.Fatalf("expected no error, got (%s)", err)
+		}
+
+		if c == nil {
+			t.Fatal("expected not nil")
+		}
+
+		err = c.Start()
+
+		if err != nil {
+			t.Fatalf("expected no error, got (%s)", err)
 		}
 	}
 
 	t.Log("No config")
 	{
 		viper.Set(config.KeyReverse, true)
-		c := New()
-		err := c.Start()
+		_, err := New(context.Background())
 		viper.Reset()
 
 		expectedErr := errors.New("reverse configuration (check): Initializing cgm API: API Token is required")
@@ -193,8 +218,11 @@ func TestStart(t *testing.T) {
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
 		viper.Set(config.KeyAPIURL, apiSim.URL)
-		c := New()
-		err := c.Start()
+		c, err := New(context.Background())
+		if err != nil {
+			t.Fatalf("expected no error, got (%s)", err)
+		}
+		err = c.Start()
 		viper.Reset()
 
 		expectedErr := errors.New("establishing reverse connection: dial tcp 127.0.0.1:1234: getsockopt: connection refused")
@@ -205,4 +233,34 @@ func TestStart(t *testing.T) {
 			t.Fatalf("expected (%s) got (%s)", expectedErr, err)
 		}
 	}
+}
+
+func TestStop(t *testing.T) {
+	t.Log("Testing Stop")
+
+	t.Log("disabled")
+	{
+		viper.Set(config.KeyReverse, false)
+		c, err := New(context.Background())
+		if err != nil {
+			t.Fatalf("expected no error, got (%s)", err)
+		}
+
+		c.Stop()
+	}
+
+	t.Log("nil conn")
+	{
+		viper.Set(config.KeyReverse, false)
+		c, err := New(context.Background())
+		if err != nil {
+			t.Fatalf("expected no error, got (%s)", err)
+		}
+
+		c.enabled = true
+		c.conn = nil
+
+		c.Stop()
+	}
+
 }

@@ -43,22 +43,28 @@ func New() (*Agent, error) {
 
 	a.shutdownCtx, a.shutdown = context.WithCancel(context.Background())
 
+	var err error
+
 	a.plugins = plugins.New(a.shutdownCtx)
-	if err := a.plugins.Scan(); err != nil {
+	err = a.plugins.Scan()
+	if err != nil {
 		return nil, err
 	}
 
-	{
-		var err error
-		a.statsdServer, err = statsd.New(a.shutdownCtx)
-		if err != nil {
-			return nil, err
-		}
+	a.statsdServer, err = statsd.New(a.shutdownCtx)
+	if err != nil {
+		return nil, err
 	}
 
-	a.reverseConn = reverse.New()
+	a.reverseConn, err = reverse.New(a.shutdownCtx)
+	if err != nil {
+		return nil, err
+	}
 
-	a.listenServer = server.New(a.shutdownCtx, a.plugins, a.statsdServer)
+	a.listenServer, err = server.New(a.shutdownCtx, a.plugins, a.statsdServer)
+	if err != nil {
+		return nil, err
+	}
 
 	return &a, nil
 }
