@@ -34,10 +34,7 @@ func (c *Connection) connectWithRetry() error {
 			return nil
 		}
 
-		c.logger.Error().
-			Err(err).
-			Int("attempt", c.connAttempts).
-			Msg("failed")
+		c.logger.Warn().Err(err).Int("attempt", c.connAttempts).Msg("failed")
 
 		// retry n times on connection attempt failures
 		if c.connAttempts >= maxConnRetry {
@@ -71,9 +68,7 @@ func (c *Connection) connectWithRetry() error {
 // connect to broker via w/tls and send initial introduction to start reverse
 // NOTE: all reverse connections require tls
 func (c *Connection) connect() error {
-	c.logger.Info().
-		Str("host", c.reverseURL.Host).
-		Msg("Connecting")
+	c.logger.Info().Str("host", c.reverseURL.Host).Msg("Connecting")
 
 	c.connAttempts++
 	dialer := &net.Dialer{Timeout: c.dialerTimeout}
@@ -90,11 +85,7 @@ func (c *Connection) connect() error {
 	c.logger.Debug().Msg(fmt.Sprintf("Sending intro '%s'", introReq))
 	if _, err := fmt.Fprintf(conn, "%s HTTP/1.1\r\n\r\n", introReq); err != nil {
 		if err != nil {
-			c.logger.Error().
-				Err(err).
-				Str("host", c.reverseURL.Host).
-				Msg("Unable to write intro")
-			return err
+			return errors.Wrapf(err, "unable to write intro to %s", c.reverseURL.Host)
 		}
 	}
 
@@ -144,7 +135,7 @@ func (c *Connection) processCommands() error {
 		// send the request from the broker to the local agent
 		data, err := c.fetchMetricData(&nc.request)
 		if err != nil {
-			c.logger.Error().Err(err).Msg("fetching metric data")
+			c.logger.Warn().Err(err).Msg("fetching metric data")
 		}
 
 		// send the metrics received from the local agent back to the broker

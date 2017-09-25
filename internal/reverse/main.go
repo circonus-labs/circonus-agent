@@ -134,7 +134,7 @@ func (c *Connection) Start() error {
 
 			err = c.processCommands()
 			if err != nil {
-				c.logger.Error().Err(err).Msg("connection")
+				c.logger.Warn().Err(err).Msg("processing reverse connection")
 			}
 
 			// shutting down
@@ -164,6 +164,7 @@ func (c *Connection) Stop() {
 	}
 }
 
+// isShuttingDown signifies when the main agent is stopping
 func (c *Connection) isShuttingDown() bool {
 	select {
 	case <-c.ctx.Done():
