@@ -9,6 +9,7 @@ import (
 	"context"
 	crand "crypto/rand"
 	"crypto/tls"
+	"fmt"
 	"math"
 	"math/big"
 	"math/rand"
@@ -17,6 +18,7 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
@@ -126,21 +128,48 @@ func (c *Connection) Start() error {
 
 	go func() {
 		for { // allow for restarts
-			err := c.connectWithRetry()
+			err := c.connect()
 			if err != nil {
 				c.errCh <- err
 				break
 			}
 
 			err = c.processCommands()
-			if err != nil {
-				c.logger.Warn().Err(err).Msg("processing reverse connection")
-			}
 
-			// shutting down
 			if c.isShuttingDown() {
 				c.errCh <- nil
 				break
+			}
+
+			c.logger.Warn().Err(err).Int("attempt", c.connAttempts).Msg("failed")
+
+			// retry n times on connection attempt failures
+			if c.connAttempts >= maxConnRetry {
+				c.errCh <- errors.Wrapf(err, "after %d failed attempts, last error", c.connAttempts)
+				return
+			}
+
+			c.logger.Info().
+				Str("delay", c.delay.String()).
+				Int("attempt", c.connAttempts).
+				Msg("connect retry")
+
+			time.Sleep(c.delay)
+
+			c.setNextDelay()
+
+			if c.connAttempts%configRetryLimit == 0 {
+				// Under normal circumstances the configuration for reverse is
+				// non-volatile. There are, however, some situations where the
+				// configuration must be rebuilt. (e.g. ip of broker changed,
+				// check changed to use a different broker, broker certificate
+				// changes, etc.) The majority of configuration based errors are
+				// fatal, no attempt is made to resolve.
+				c.logger.Info().Int("attempts", c.connAttempts).Msg("reconfig triggered")
+				if err := c.setCheckConfig(); err != nil {
+					c.errCh <- errors.Wrap(err, "reconfiguring reverse connection")
+					return
+				}
 			}
 		}
 	}()
@@ -161,6 +190,7 @@ func (c *Connection) Stop() {
 	err := c.conn.Close()
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("Closing reverse connection")
+		c.logger.Debug().Str("state", fmt.Sprintf("%+v", c.conn.ConnectionState())).Msg("conn state")
 	}
 }
 

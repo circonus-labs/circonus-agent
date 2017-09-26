@@ -21,50 +21,6 @@ const (
 	noitCmdConnect = "CONNECT"
 )
 
-// connect to broker w/retries on failure
-func (c *Connection) connectWithRetry() error {
-	for {
-		err := c.connect()
-		if err == nil {
-			return nil
-		}
-
-		// shutting down
-		if c.isShuttingDown() {
-			return nil
-		}
-
-		c.logger.Warn().Err(err).Int("attempt", c.connAttempts).Msg("failed")
-
-		// retry n times on connection attempt failures
-		if c.connAttempts >= maxConnRetry {
-			return errors.Wrapf(err, "after %d failed attempts, last error", c.connAttempts)
-		}
-
-		c.logger.Info().
-			Str("delay", c.delay.String()).
-			Int("attempt", c.connAttempts).
-			Msg("connect retry")
-
-		time.Sleep(c.delay)
-
-		c.setNextDelay()
-
-		if c.connAttempts%configRetryLimit == 0 {
-			// Under normal circumstances the configuration for reverse is
-			// non-volatile. There are, however, some situations where the
-			// configuration must be rebuilt. (e.g. ip of broker changed,
-			// check changed to use a different broker, broker certificate
-			// changes, etc.) The majority of configuration based errors are
-			// fatal, no attempt is made to resolve.
-			c.logger.Info().Int("attempts", c.connAttempts).Msg("reconfig triggered")
-			if err := c.setCheckConfig(); err != nil {
-				return errors.Wrap(err, "reconfiguring reverse connection")
-			}
-		}
-	}
-}
-
 // connect to broker via w/tls and send initial introduction to start reverse
 // NOTE: all reverse connections require tls
 func (c *Connection) connect() error {
@@ -82,7 +38,7 @@ func (c *Connection) connect() error {
 	if c.reverseURL.Fragment != "" {
 		introReq += "#" + c.reverseURL.Fragment // reverse secret is placed here when reverse url is parsed
 	}
-	c.logger.Debug().Msg(fmt.Sprintf("Sending intro '%s'", introReq))
+	c.logger.Debug().Msg(fmt.Sprintf("sending intro '%s'", introReq))
 	if _, err := fmt.Fprintf(conn, "%s HTTP/1.1\r\n\r\n", introReq); err != nil {
 		if err != nil {
 			return errors.Wrapf(err, "unable to write intro to %s", c.reverseURL.Host)
@@ -105,7 +61,7 @@ func (c *Connection) processCommands() error {
 
 		nc, err := c.getCommandFromBroker()
 		if err != nil {
-			return err
+			return errors.Wrap(err, "getting command from broker")
 		}
 		if nc == nil {
 			continue
