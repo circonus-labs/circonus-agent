@@ -58,7 +58,6 @@ func (c *Connection) processCommands(ctx context.Context) error {
 		default: // fall out of select
 		}
 
-		c.conn.SetDeadline(time.Now().Add(c.commTimeout))
 		nc, err := c.getCommandFromBroker(c.conn)
 		if err != nil {
 			return errors.Wrap(err, "getting command from broker")
@@ -93,8 +92,6 @@ func (c *Connection) processCommands(ctx context.Context) error {
 		if err != nil {
 			c.logger.Warn().Err(err).Msg("fetching metric data")
 		}
-
-		c.conn.SetDeadline(time.Now().Add(c.commTimeout))
 
 		// send the metrics received from the local agent back to the broker
 		if err := c.sendMetricData(c.conn, nc.channelID, data); err != nil {

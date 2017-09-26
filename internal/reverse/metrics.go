@@ -29,7 +29,10 @@ func (c *Connection) sendMetricData(r io.Writer, channelID uint16, data *[]byte)
 			Str("frame_hdr", fmt.Sprintf("%#v", frame[0:6])).
 			Int("frame_size", len(frame)).
 			Int("payload_len", len(buff)).
-			Msg("built payload frame")
+			Msg("metric payload frame")
+		if c.conn != nil {
+			c.conn.SetDeadline(time.Now().Add(c.commTimeout))
+		}
 		sentBytes, err := r.Write(frame)
 		if err != nil {
 			return errors.Wrap(err, "writing metric data")

@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -57,6 +58,9 @@ func (c *Connection) getCommandFromBroker(r io.Reader) (*noitCommand, error) {
 
 // getFrameFromBroker reads a frame(header + payload) from broker
 func (c *Connection) getFrameFromBroker(r io.Reader) (*noitPacket, error) {
+	if c.conn != nil {
+		c.conn.SetDeadline(time.Now().Add(c.commTimeout))
+	}
 	hdr, err := readHeader(r)
 	if err != nil {
 		return nil, err
@@ -66,6 +70,9 @@ func (c *Connection) getFrameFromBroker(r io.Reader) (*noitPacket, error) {
 		return nil, errors.Errorf("received oversized frame (%d len)", hdr.payloadLen) // restart the connection
 	}
 
+	if c.conn != nil {
+		c.conn.SetDeadline(time.Now().Add(c.commTimeout))
+	}
 	payload, err := readPayload(r, hdr.payloadLen)
 	if err != nil {
 		return nil, err
