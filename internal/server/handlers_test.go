@@ -49,7 +49,7 @@ func TestRun(t *testing.T) {
 	if err := p.Scan(); err != nil {
 		t.Fatalf("expected no error, got (%s)", err)
 	}
-	s := New(context.Background(), p, nil)
+	s, _ := New(context.Background(), p, nil)
 
 	for _, runReq := range runTests {
 		time.Sleep(1 * time.Second)
@@ -81,7 +81,7 @@ func TestInventory(t *testing.T) {
 
 	viper.Set(config.KeyPluginDir, testDir)
 	p := plugins.New(context.Background())
-	s := New(context.Background(), p, nil)
+	s, _ := New(context.Background(), p, nil)
 	time.Sleep(1 * time.Second)
 
 	t.Log("GET /inventory -> 200")
@@ -101,7 +101,7 @@ func TestWrite(t *testing.T) {
 	t.Log("Testing write")
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
-	s := New(context.Background(), nil, nil)
+	s, _ := New(context.Background(), nil, nil)
 
 	t.Log("PUT /write/ -> 404")
 	{

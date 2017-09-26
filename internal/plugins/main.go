@@ -8,7 +8,6 @@ package plugins
 import (
 	"context"
 	"encoding/json"
-	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -17,57 +16,8 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
-)
-
-// Metric defines an individual metric sample or array of samples (histogram)
-type Metric struct {
-	Type  string      `json:"_type"`
-	Value interface{} `json:"_value"`
-}
-
-// Metrics defines the list of metrics for a given plugin
-type Metrics map[string]Metric
-
-// Plugin defines a specific plugin
-type plugin struct {
-	sync.Mutex
-	ctx             context.Context
-	cmd             *exec.Cmd
-	metrics         *Metrics
-	prevMetrics     *Metrics
-	logger          zerolog.Logger
-	ID              string
-	InstanceID      string
-	Name            string
-	InstanceArgs    []string
-	Command         string
-	LastStart       time.Time
-	LastRunDuration time.Duration
-	LastError       error
-	Generation      uint64
-	Running         bool
-	RunDir          string
-}
-
-// Plugins defines plugin manager
-type Plugins struct {
-	sync.RWMutex
-	ctx           context.Context
-	generation    uint64
-	active        map[string]*plugin
-	running       bool
-	pluginDir     string
-	logger        zerolog.Logger
-	reservedNames map[string]bool
-}
-
-const (
-	metricDelimiter = "`"
-	fieldDelimiter  = "\t"
-	nullMetricValue = "[[null]]"
 )
 
 // New returns a new instance of the plugins manager

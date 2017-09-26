@@ -14,12 +14,12 @@ const (
 
 // vars are manipulated at link time (see goreleaser)
 var (
-	// VERSION of the release
-	VERSION = "dev"
 	// COMMIT of relase in git repo
 	COMMIT = "none"
 	// DATE of release
 	DATE = "unknown"
 	// TAG of release
 	TAG = ""
+	// VERSION of the release
+	VERSION = "dev"
 )

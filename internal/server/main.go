@@ -13,21 +13,10 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
 	"github.com/circonus-labs/circonus-agent/internal/statsd"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 	"xi2.org/x/httpgzip"
 )
-
-// Server defines the listening servers
-type Server struct {
-	ctx       context.Context
-	logger    zerolog.Logger
-	plugins   *plugins.Plugins
-	svrHTTP   *http.Server
-	svrHTTPS  *http.Server
-	statsdSvr *statsd.Server
-}
 
 // New creates a new instance of the listening servers
 func New(ctx context.Context, p *plugins.Plugins, ss *statsd.Server) (*Server, error) {

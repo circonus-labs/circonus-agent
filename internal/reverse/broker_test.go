@@ -6,7 +6,6 @@
 package reverse
 
 import (
-	"context"
 	"errors"
 	"net/url"
 	"testing"
@@ -34,7 +33,7 @@ func TestGetTLSConfig(t *testing.T) {
 	t.Log("No broker cid")
 	{
 		viper.Set(config.KeyReverse, false)
-		c, _ := New(context.Background())
+		c, _ := New()
 
 		_, err := c.getTLSConfig("", rurl)
 
@@ -50,7 +49,7 @@ func TestGetTLSConfig(t *testing.T) {
 	t.Log("Invalid broker cid")
 	{
 		viper.Set(config.KeyReverse, false)
-		c, _ := New(context.Background())
+		c, _ := New()
 
 		_, err := c.getTLSConfig("1234", rurl)
 
@@ -66,7 +65,7 @@ func TestGetTLSConfig(t *testing.T) {
 	t.Log("No API token")
 	{
 		viper.Set(config.KeyReverse, false)
-		c, _ := New(context.Background())
+		c, _ := New()
 
 		_, err := c.getTLSConfig("/broker/1234", rurl)
 
@@ -85,7 +84,7 @@ func TestGetTLSConfig(t *testing.T) {
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
 		viper.Set(config.KeyReverse, false)
-		c, _ := New(context.Background())
+		c, _ := New()
 		_, err := c.getTLSConfig("/broker/404", rurl)
 		viper.Reset()
 
@@ -104,7 +103,7 @@ func TestGetTLSConfig(t *testing.T) {
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
 		viper.Set(config.KeyReverse, false)
-		c, _ := New(context.Background())
+		c, _ := New()
 		_, err := c.getTLSConfig("/broker/1234", badrurl)
 		viper.Reset()
 
@@ -123,7 +122,7 @@ func TestGetTLSConfig(t *testing.T) {
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
 		viper.Set(config.KeyReverse, false)
-		c, _ := New(context.Background())
+		c, _ := New()
 		viper.Set(config.KeyReverseBrokerCAFile, "testdata/missingca.crt")
 		_, err := c.getTLSConfig("/broker/1234", rurl)
 		viper.Reset()
@@ -144,7 +143,7 @@ func TestGetTLSConfig(t *testing.T) {
 		viper.Set(config.KeyAPITokenApp, "foo")
 		viper.Set(config.KeyReverseBrokerCAFile, "testdata/ca.crt")
 		viper.Set(config.KeyReverse, false)
-		c, _ := New(context.Background())
+		c, _ := New()
 		_, err := c.getTLSConfig("/broker/1234", rurl)
 		viper.Reset()
 
@@ -159,7 +158,7 @@ func TestGetTLSConfig(t *testing.T) {
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
 		viper.Set(config.KeyReverse, false)
-		c, _ := New(context.Background())
+		c, _ := New()
 		_, err := c.getTLSConfig("/broker/1234", rurl)
 		viper.Reset()
 

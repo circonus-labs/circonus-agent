@@ -8,19 +8,8 @@ package receiver
 import (
 	"encoding/json"
 	"io"
-	"sync"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
-)
-
-// Metrics holds metrics received via HTTP PUT/POST
-type Metrics map[string]interface{}
-
-var (
-	metricsmu sync.Mutex
-	metrics   *Metrics
-	logger    = log.With().Str("pkg", "receiver").Logger()
 )
 
 // Flush returns current metrics

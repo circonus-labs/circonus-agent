@@ -19,22 +19,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Agent holds the main circonus-agent process
-type Agent struct {
-	signalCh     chan os.Signal
-	shutdown     func()
-	shutdownCtx  context.Context
-	errCh        chan error
-	plugins      *plugins.Plugins
-	listenServer *server.Server
-	reverseConn  *reverse.Connection
-	statsdServer *statsd.Server
-}
-
 // New returns a new agent instance
 func New() (*Agent, error) {
 	a := Agent{
-		errCh:    make(chan error),
+		errCh:    make(chan error, 10),
 		signalCh: make(chan os.Signal, 10),
 	}
 
@@ -51,12 +39,12 @@ func New() (*Agent, error) {
 		return nil, err
 	}
 
-	a.statsdServer, err = statsd.New(a.shutdownCtx)
+	a.statsdServer, err = statsd.New()
 	if err != nil {
 		return nil, err
 	}
 
-	a.reverseConn, err = reverse.New(a.shutdownCtx)
+	a.reverseConn, err = reverse.New()
 	if err != nil {
 		return nil, err
 	}
@@ -75,13 +63,13 @@ func (a *Agent) Start() {
 	go a.handleSignals()
 
 	go func() {
-		if err := a.statsdServer.Start(); err != nil {
+		if err := a.statsdServer.Start(a.shutdownCtx); err != nil {
 			a.errCh <- errors.Wrap(err, "Starting StatsD listener")
 		}
 	}()
 
 	go func() {
-		if err := a.reverseConn.Start(); err != nil {
+		if err := a.reverseConn.Start(a.shutdownCtx); err != nil {
 			a.errCh <- errors.Wrap(err, "Unable to start reverse connection")
 		}
 	}()

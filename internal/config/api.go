@@ -9,15 +9,12 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/url"
-	"path/filepath"
 	"strings"
 
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
-
-var cosiCfgFile = filepath.Join(defaults.BasePath, "..", cosiName, "etc", "cosi.json")
 
 // apiRequired checks to see if any options are set which would *require* accessing the API
 func apiRequired() bool {

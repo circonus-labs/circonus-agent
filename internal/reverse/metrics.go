@@ -6,6 +6,8 @@
 package reverse
 
 import (
+	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"net"
@@ -14,19 +16,21 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	emptyMetricsResponse = []byte("{}")
-)
-
 // sendMetricData frames and sends data (in chunks <= maxPayloadLen) to broker
-func (c *Connection) sendMetricData(channelID uint16, data *[]byte) error {
+func (c *Connection) sendMetricData(r io.Writer, channelID uint16, data *[]byte) error {
 	if data == nil {
 		data = &emptyMetricsResponse
 	}
 	for offset := 0; offset < len(*data); {
 		buff := make([]byte, int(math.Min(float64(len((*data)[offset:])), float64(maxPayloadLen))))
 		copy(buff, (*data)[offset:])
-		sentBytes, err := c.conn.Write(c.buildFrame(channelID, buff))
+		frame := buildFrame(channelID, false, buff)
+		c.logger.Debug().
+			Str("frame_hdr", fmt.Sprintf("%#v", frame[0:6])).
+			Int("frame_size", len(frame)).
+			Int("payload_len", len(buff)).
+			Msg("built payload frame")
+		sentBytes, err := r.Write(frame)
 		if err != nil {
 			return errors.Wrap(err, "writing metric data")
 		}

@@ -6,7 +6,6 @@
 package reverse
 
 import (
-	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -24,7 +23,7 @@ func TestGetCheckConfig(t *testing.T) {
 	t.Log("No config")
 	{
 		viper.Set(config.KeyReverse, false)
-		c, _ := New(context.Background())
+		c, _ := New()
 		_, _, err := c.getCheckConfig()
 
 		expectedErr := errors.New("Initializing cgm API: API Token is required")
@@ -42,7 +41,7 @@ func TestGetCheckConfig(t *testing.T) {
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
 		viper.Set(config.KeyReverse, false)
-		c, _ := New(context.Background())
+		c, _ := New()
 		_, _, err := c.getCheckConfig()
 		viper.Reset()
 
@@ -62,7 +61,7 @@ func TestGetCheckConfig(t *testing.T) {
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
 		viper.Set(config.KeyReverse, false)
-		c, _ := New(context.Background())
+		c, _ := New()
 		_, _, err := c.getCheckConfig()
 		viper.Reset()
 
@@ -82,7 +81,7 @@ func TestGetCheckConfig(t *testing.T) {
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
 		viper.Set(config.KeyReverse, false)
-		c, _ := New(context.Background())
+		c, _ := New()
 		_, _, err := c.getCheckConfig()
 		viper.Reset()
 
@@ -102,7 +101,7 @@ func TestGetCheckConfig(t *testing.T) {
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
 		viper.Set(config.KeyReverse, false)
-		c, _ := New(context.Background())
+		c, _ := New()
 		_, _, err := c.getCheckConfig()
 		viper.Reset()
 
@@ -118,7 +117,7 @@ func TestGetCheckConfig(t *testing.T) {
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
 		viper.Set(config.KeyReverse, false)
-		c, _ := New(context.Background())
+		c, _ := New()
 		_, _, err := c.getCheckConfig()
 		viper.Reset()
 

@@ -153,7 +153,7 @@ func TestStart(t *testing.T) {
 	t.Log("Reverse disabled (no start)")
 	{
 		viper.Set(config.KeyReverse, false)
-		c, err := New(context.Background())
+		c, err := New()
 		viper.Reset()
 
 		if err != nil {
@@ -168,7 +168,7 @@ func TestStart(t *testing.T) {
 	t.Log("Reverse disabled (start)")
 	{
 		viper.Set(config.KeyReverse, false)
-		c, err := New(context.Background())
+		c, err := New()
 		viper.Reset()
 
 		if err != nil {
@@ -179,7 +179,7 @@ func TestStart(t *testing.T) {
 			t.Fatal("expected not nil")
 		}
 
-		err = c.Start()
+		err = c.Start(context.Background())
 
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
@@ -189,7 +189,7 @@ func TestStart(t *testing.T) {
 	t.Log("No config")
 	{
 		viper.Set(config.KeyReverse, true)
-		_, err := New(context.Background())
+		_, err := New()
 		viper.Reset()
 
 		expectedErr := errors.New("reverse configuration (check): Initializing cgm API: API Token is required")
@@ -218,11 +218,11 @@ func TestStart(t *testing.T) {
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
 		viper.Set(config.KeyAPIURL, apiSim.URL)
-		c, err := New(context.Background())
+		c, err := New()
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
-		err = c.Start()
+		err = c.Start(context.Background())
 		viper.Reset()
 
 		expectedErr := errors.New("establishing reverse connection: dial tcp 127.0.0.1:1234: getsockopt: connection refused")
@@ -241,7 +241,7 @@ func TestStop(t *testing.T) {
 	t.Log("disabled")
 	{
 		viper.Set(config.KeyReverse, false)
-		c, err := New(context.Background())
+		c, err := New()
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -252,7 +252,7 @@ func TestStop(t *testing.T) {
 	t.Log("nil conn")
 	{
 		viper.Set(config.KeyReverse, false)
-		c, err := New(context.Background())
+		c, err := New()
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}

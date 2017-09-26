@@ -5,6 +5,16 @@
 
 package config
 
+import (
+	"path/filepath"
+
+	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
+)
+
+type cosiCheckConfig struct {
+	CID string `json:"_cid"`
+}
+
 const (
 	cosiName = "cosi"
 
@@ -94,4 +104,9 @@ const (
 
 	// KeyStatsdPort port for statsd listener (note, address will always be 'localhost')
 	KeyStatsdPort = "statsd.port"
+)
+
+var (
+	apiOK       = false
+	cosiCfgFile = filepath.Join(defaults.BasePath, "..", cosiName, "etc", "cosi.json")
 )
