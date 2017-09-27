@@ -50,6 +50,9 @@ func Parse(id string, data io.ReadCloser) error {
 
 	var tmp map[string]interface{}
 	if err := json.NewDecoder(data).Decode(&tmp); err != nil {
+		if serr, ok := err.(*json.SyntaxError); ok {
+			return errors.Wrapf(serr, "id:%s - offset %d", id, serr.Offset)
+		}
 		return errors.Wrapf(err, "parsing json for %s", id)
 	}
 

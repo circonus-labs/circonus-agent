@@ -118,7 +118,7 @@ func TestParse(t *testing.T) {
 		metrics = nil
 		data := []byte(`{"test": }`)
 		r := ioutil.NopCloser(bytes.NewReader(data))
-		expectedErr := errors.New("parsing json for test: invalid character '}' looking for beginning of value")
+		expectedErr := errors.New("id:test - offset 10: invalid character '}' looking for beginning of value")
 		err := Parse("test", r)
 		if err == nil {
 			t.Fatal("expected error")
