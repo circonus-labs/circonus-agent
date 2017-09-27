@@ -70,7 +70,7 @@ func (c *Connection) Start() error {
 		Str("agent", c.agentAddress).
 		Msg("Reverse configuration")
 
-	c.t.Go(c.reader)
+	c.t.Go(c.handler)
 	c.t.Go(c.processor)
 
 	return c.t.Wait()
