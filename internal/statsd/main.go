@@ -6,7 +6,6 @@
 package statsd
 
 import (
-	"context"
 	stdlog "log"
 	"net"
 	"regexp"
@@ -36,7 +35,8 @@ func New() (*Server, error) {
 		apiURL:         viper.GetString(config.KeyAPIURL),
 	}
 
-	address := net.JoinHostPort("localhost", viper.GetString(config.KeyStatsdPort))
+	port := viper.GetString(config.KeyStatsdPort)
+	address := net.JoinHostPort("localhost", port)
 	addr, err := net.ResolveUDPAddr("udp", address)
 	if err != nil {
 		return nil, errors.Wrapf(err, "resolving address '%s'", address)
@@ -60,96 +60,44 @@ func New() (*Server, error) {
 }
 
 // Start the StatsD listener
-func (s *Server) Start(ctx context.Context) error {
+func (s *Server) Start() error {
 	if s.disabled {
 		s.logger.Info().Msg("disabled, not starting listener")
 		return nil
 	}
 
-	s.logger.Info().Str("addr", s.address.String()).Msg("starting listener")
-	{
-		var err error
-		s.listener, err = net.ListenUDP("udp", s.address)
-		if err != nil {
-			return err
-		}
+	var err error
+	s.server, err = s.newStatsdServer()
+	if err != nil {
+		return err
 	}
 
-	packetQueue := make(chan []byte, packetQueueSize)
-	errCh := make(chan error, 10)
+	s.server.t.Go(s.reader)
+	s.server.t.Go(s.processor)
 
-	// read packets from listener
-	go func() {
-		defer s.listener.Close()
-
-		for {
-			buff := make([]byte, maxPacketSize)
-			n, err := s.listener.Read(buff)
-			if err != nil {
-				errCh <- err
-				return
-			}
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				if n > 0 {
-					pkt := make([]byte, n)
-					copy(pkt, buff[:n])
-					packetQueue <- pkt
-				}
-			}
-		}
-	}()
-
-	// run the packet handler separately so packet processing
-	// does not block the listener
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case pkt := <-packetQueue:
-				err := s.processPacket(pkt)
-				if err != nil {
-					errCh <- err
-					return
-				}
-			}
-		}
-	}()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case err := <-errCh:
-			close(packetQueue)
-			return err
-		}
-	}
+	return s.server.t.Wait()
 }
 
 // Stop the server
-func (s *Server) Stop() {
+func (s *Server) Stop() error {
 	if s.disabled {
-		return
+		return nil
 	}
 
-	if s.listener != nil {
-		s.logger.Debug().Msg("Stopping listener")
-		err := s.listener.Close()
-		if err != nil {
-			s.logger.Warn().Err(err).Msg("Closing listener")
-		}
+	s.logger.Info().Msg("Stopping StatsD Server")
+
+	if s.server.t.Alive() {
+		s.server.t.Kill(errors.New("Shutdown requested"))
 	}
 
-	// flush any outstanding group metrics (sent directly to circonus)
 	if s.groupMetrics != nil {
+		s.logger.Info().Msg("Flushing group metrics")
 		s.groupMetricsmu.Lock()
 		s.groupMetrics.Flush()
 		s.groupMetricsmu.Unlock()
 	}
+
+	return nil
 }
 
 // Flush *host* metrics only
@@ -198,7 +146,7 @@ func (s *Server) initHostMetrics() error {
 //       used by multiple systems.
 func (s *Server) initGroupMetrics() error {
 	if s.groupCID == "" {
-		log.Info().Msg("group check disabled")
+		s.logger.Info().Msg("group check disabled")
 		return nil
 	}
 
@@ -223,4 +171,55 @@ func (s *Server) initGroupMetrics() error {
 
 	s.logger.Info().Msg("group check initialized")
 	return nil
+}
+
+// newStatsdServer returns a new statsd listening server
+func (s *Server) newStatsdServer() (*statsdServer, error) {
+	s.logger.Info().Str("addr", s.address.String()).Msg("starting listener")
+	l, err := net.ListenUDP("udp", s.address)
+	if err != nil {
+		return nil, err
+	}
+	return &statsdServer{
+		listener: l,
+		packetCh: make(chan []byte, packetQueueSize),
+	}, nil
+}
+
+// reader reads packets from the statsd listener, adds packets recevied to the queue
+func (s *Server) reader() error {
+	defer close(s.server.packetCh)
+	for {
+		buff := make([]byte, maxPacketSize)
+		n, err := s.server.listener.Read(buff)
+		if err != nil {
+			return errors.Wrap(err, "reader")
+		}
+		select {
+		case <-s.server.t.Dying():
+			return nil
+		default:
+			if n > 0 {
+				pkt := make([]byte, n)
+				copy(pkt, buff[:n])
+				s.server.packetCh <- pkt
+			}
+		}
+	}
+}
+
+// processor reads the packet queue and processes each packet
+func (s *Server) processor() error {
+	defer s.server.listener.Close()
+	for {
+		select {
+		case <-s.server.t.Dying():
+			return nil
+		case pkt := <-s.server.packetCh:
+			err := s.processPacket(pkt)
+			if err != nil {
+				return errors.Wrap(err, "processor")
+			}
+		}
+	}
 }

@@ -13,6 +13,7 @@ import (
 
 	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/rs/zerolog"
+	"gopkg.in/tomb.v2"
 )
 
 // Server defines a statsd server
@@ -20,7 +21,6 @@ type Server struct {
 	ctx                   context.Context
 	disabled              bool
 	address               *net.UDPAddr
-	listener              *net.UDPConn
 	hostMetrics           *cgm.CirconusMetrics
 	hostMetricsmu         sync.Mutex
 	groupMetrics          *cgm.CirconusMetrics
@@ -39,6 +39,13 @@ type Server struct {
 	apiApp                string
 	apiURL                string
 	debugCGM              bool
+	server                *statsdServer
+}
+
+type statsdServer struct {
+	listener *net.UDPConn
+	packetCh chan []byte
+	t        tomb.Tomb
 }
 
 const (

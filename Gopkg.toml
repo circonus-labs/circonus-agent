@@ -44,3 +44,7 @@
 [[constraint]]
   branch = "master"
   name = "xi2.org/x/httpgzip"
+
+[[constraint]]
+  branch = "v2"
+  name = "gopkg.in/tomb.v2"

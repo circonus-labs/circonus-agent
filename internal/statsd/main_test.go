@@ -6,7 +6,6 @@
 package statsd
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -59,29 +58,11 @@ func TestStart(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		s.Start(context.Background())
+		s.Start()
 		viper.Reset()
 	}
 
-	t.Log("Enabled w/cancel")
-	{
-		viper.Set(config.KeyStatsdDisabled, false)
-		s, err := New()
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if s == nil {
-			t.Fatal("expected not nil")
-		}
-		ctx, cancel := context.WithCancel(context.Background())
-		time.AfterFunc(2*time.Second, func() {
-			cancel()
-		})
-		s.Start(ctx)
-		viper.Reset()
-	}
-
-	t.Log("Enabled w/close")
+	t.Log("Enabled w/Stop")
 	{
 		viper.Set(config.KeyStatsdDisabled, false)
 		s, err := New()
@@ -92,9 +73,26 @@ func TestStart(t *testing.T) {
 			t.Fatal("expected not nil")
 		}
 		time.AfterFunc(2*time.Second, func() {
-			s.listener.Close()
+			s.Stop()
 		})
-		s.Start(context.Background())
+		s.Start()
+		viper.Reset()
+	}
+
+	t.Log("Enabled w/direct server close")
+	{
+		viper.Set(config.KeyStatsdDisabled, false)
+		s, err := New()
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
+		if s == nil {
+			t.Fatal("expected not nil")
+		}
+		time.AfterFunc(2*time.Second, func() {
+			s.server.listener.Close()
+		})
+		s.Start()
 		viper.Reset()
 	}
 }
@@ -128,7 +126,7 @@ func TestStop(t *testing.T) {
 		time.AfterFunc(2*time.Second, func() {
 			s.Stop()
 		})
-		s.Start(context.Background())
+		s.Start()
 		viper.Reset()
 	}
 }

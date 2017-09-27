@@ -12,7 +12,6 @@ import (
 
 	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 )
 
 // processPacket parses a packet for metrics
@@ -46,7 +45,7 @@ func (s *Server) getMetricDestination(metricName string) (string, string) {
 		if strings.HasPrefix(metricName, s.groupPrefix) {
 			return destGroup, strings.Replace(metricName, s.groupPrefix, "", 1)
 		}
-		log.Debug().Str("metric_name", metricName).Msg("does not match host|group prefix, ignoring")
+		s.logger.Debug().Str("metric_name", metricName).Msg("does not match host|group prefix, ignoring")
 		return destIgnore, metricName
 	}
 
