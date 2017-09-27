@@ -8,7 +8,10 @@ package reverse
 import (
 	"crypto/tls"
 	"net/url"
+	"sync"
 	"time"
+
+	tomb "gopkg.in/tomb.v2"
 
 	"github.com/rs/zerolog"
 )
@@ -17,7 +20,7 @@ import (
 type Connection struct {
 	agentAddress  string
 	checkCID      string
-	cmdCh         chan noitCommand
+	cmdCh         chan *noitCommand
 	commTimeout   time.Duration
 	conn          *tls.Conn
 	connAttempts  int
@@ -28,7 +31,9 @@ type Connection struct {
 	maxDelay      time.Duration
 	metricTimeout time.Duration
 	reverseURL    *url.URL
+	t             tomb.Tomb
 	tlsConfig     *tls.Config
+	sync.Mutex
 }
 
 // noitHeader defines the header received from the noit/broker
@@ -50,6 +55,13 @@ type noitCommand struct {
 	channelID uint16
 	command   string
 	request   []byte
+}
+
+// connError returned from connect(), adds flag indicating whether the error is
+// a warning or fatal.
+type connError struct {
+	err   error
+	fatal bool
 }
 
 const (

@@ -6,17 +6,21 @@
 package reverse
 
 import (
-	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-gometrics/api"
@@ -145,12 +149,12 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func TestStart(t *testing.T) {
-	t.Log("Testing Start")
+func TestNew(t *testing.T) {
+	t.Log("Testing New")
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	t.Log("Reverse disabled (no start)")
+	t.Log("Reverse disabled")
 	{
 		viper.Set(config.KeyReverse, false)
 		c, err := New()
@@ -165,28 +169,7 @@ func TestStart(t *testing.T) {
 		}
 	}
 
-	t.Log("Reverse disabled (start)")
-	{
-		viper.Set(config.KeyReverse, false)
-		c, err := New()
-		viper.Reset()
-
-		if err != nil {
-			t.Fatalf("expected no error, got (%s)", err)
-		}
-
-		if c == nil {
-			t.Fatal("expected not nil")
-		}
-
-		err = c.Start(context.Background())
-
-		if err != nil {
-			t.Fatalf("expected no error, got (%s)", err)
-		}
-	}
-
-	t.Log("No config")
+	t.Log("Reverse enabled (no config)")
 	{
 		viper.Set(config.KeyReverse, true)
 		_, err := New()
@@ -200,7 +183,113 @@ func TestStart(t *testing.T) {
 			t.Fatalf("expected (%s) got (%s)", expectedErr, err)
 		}
 	}
+}
 
+func TestStart(t *testing.T) {
+	t.Log("Testing Start")
+
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+
+	t.Log("Reverse disabled")
+	{
+		viper.Set(config.KeyReverse, false)
+		c, err := New()
+		viper.Reset()
+
+		if err != nil {
+			t.Fatalf("expected no error, got (%s)", err)
+		}
+
+		if c == nil {
+			t.Fatal("expected not nil")
+		}
+
+		err = c.Start()
+
+		if err != nil {
+			t.Fatalf("expected no error, got (%s)", err)
+		}
+	}
+
+	t.Log("valid")
+	{
+		cert, err := tls.X509KeyPair(tcert, tkey)
+		if err != nil {
+			t.Fatalf("expected no error, got (%s)", err)
+		}
+
+		tcfg := new(tls.Config)
+		tcfg.Certificates = []tls.Certificate{cert}
+
+		cp := x509.NewCertPool()
+		clicert, err := x509.ParseCertificate(tcfg.Certificates[0].Certificate[0])
+		if err != nil {
+			t.Fatalf("expected no error, got (%s)", err)
+		}
+		cp.AddCert(clicert)
+
+		l, err := tls.Listen("tcp", "127.0.0.1:0", tcfg)
+		if err != nil {
+			t.Fatalf("expected no error, got (%s)", err)
+		}
+		defer l.Close()
+
+		go func() {
+			conn, cerr := l.Accept()
+			if cerr != nil {
+				return
+			}
+			go func(c net.Conn) {
+				var werr error
+				_, werr = c.Write(buildFrame(1, true, []byte("CONNECT")))
+				if werr != nil {
+					t.Fatalf("expected no error acceping connection, got %s", werr)
+				}
+				_, werr = c.Write(buildFrame(1, false, []byte{}))
+				if werr != nil {
+					t.Fatalf("expected no error acceping connection, got %s", werr)
+				}
+				//c.Close()
+			}(conn)
+		}()
+
+		viper.Set(config.KeyReverse, true)
+		viper.Set(config.KeyReverseCID, "1234")
+		viper.Set(config.KeyAPITokenKey, "foo")
+		viper.Set(config.KeyAPITokenApp, "foo")
+		viper.Set(config.KeyAPIURL, apiSim.URL)
+		s, err := New()
+		if err != nil {
+			t.Fatalf("expected no error got (%s)", err)
+		}
+
+		s.tlsConfig = &tls.Config{
+			RootCAs: cp,
+		}
+
+		tsURL, err := url.Parse("http://" + l.Addr().String() + "/check/foo-bar-baz#abc123")
+		if err != nil {
+			t.Fatalf("expected no error got (%s)", err)
+		}
+
+		s.reverseURL = tsURL
+		s.dialerTimeout = 1 * time.Second
+
+		time.AfterFunc(2*time.Second, func() {
+			s.Stop()
+		})
+
+		if err := s.Start(); err != nil {
+			if err.Error() != "Shutdown requested" {
+				t.Fatalf("expected no error got (%s)", err)
+			}
+		}
+
+		viper.Reset()
+	}
+}
+
+func TestStartLong(t *testing.T) {
 	ltFlag := "circonus-agent_LONG_TEST"
 	if longTest, _ := strconv.ParseBool(os.Getenv(ltFlag)); !longTest {
 		t.Logf("Skipping long tests, set %s=1 to enable", ltFlag)
@@ -222,7 +311,7 @@ func TestStart(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
-		err = c.Start(context.Background())
+		err = c.Start()
 		viper.Reset()
 
 		expectedErr := errors.New("establishing reverse connection: dial tcp 127.0.0.1:1234: getsockopt: connection refused")
@@ -237,6 +326,8 @@ func TestStart(t *testing.T) {
 
 func TestStop(t *testing.T) {
 	t.Log("Testing Stop")
+
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	t.Log("disabled")
 	{

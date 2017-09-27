@@ -108,7 +108,7 @@ func (s *Server) Start() error {
 // Stop the servers
 func (s *Server) Stop() {
 	if s.svrHTTP != nil {
-		s.logger.Debug().Msg("Stopping HTTP server")
+		s.logger.Info().Msg("Stopping HTTP server")
 		err := s.svrHTTP.Close()
 		if err != nil {
 			s.logger.Warn().Err(err).Msg("Closing HTTP server")
@@ -116,7 +116,7 @@ func (s *Server) Stop() {
 	}
 
 	if s.svrHTTPS != nil {
-		s.logger.Debug().Msg("Stopping HTTPS server")
+		s.logger.Info().Msg("Stopping HTTPS server")
 		err := s.svrHTTPS.Close()
 		if err != nil {
 			s.logger.Warn().Err(err).Msg("Closing HTTPS server")

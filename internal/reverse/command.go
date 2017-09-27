@@ -19,8 +19,13 @@ func (c *Connection) getCommandFromBroker(r io.Reader) (*noitCommand, error) {
 	nc := &noitCommand{}
 
 	cmdPkt, err := c.getFrameFromBroker(r)
-	if err != nil {
-		return nil, err
+	select {
+	case <-c.t.Dying():
+		return nil, nil
+	default:
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if !cmdPkt.header.isCommand {
@@ -36,8 +41,13 @@ func (c *Connection) getCommandFromBroker(r io.Reader) (*noitCommand, error) {
 
 	if nc.command == noitCmdConnect { // connect command requires a request
 		reqPkt, err := c.getFrameFromBroker(r)
-		if err != nil {
-			return nil, err
+		select {
+		case <-c.t.Dying():
+			return nil, nil
+		default:
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		if reqPkt.header.isCommand {

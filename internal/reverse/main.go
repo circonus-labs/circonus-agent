@@ -6,7 +6,6 @@
 package reverse
 
 import (
-	"context"
 	crand "crypto/rand"
 	"fmt"
 	"math"
@@ -34,7 +33,7 @@ func init() {
 func New() (*Connection, error) {
 	c := Connection{
 		checkCID:      viper.GetString(config.KeyReverseCID),
-		cmdCh:         make(chan noitCommand),
+		cmdCh:         make(chan *noitCommand),
 		commTimeout:   commTimeoutSeconds * time.Second,
 		connAttempts:  0,
 		delay:         1 * time.Second,
@@ -57,7 +56,7 @@ func New() (*Connection, error) {
 }
 
 // Start reverse connection to the broker
-func (c *Connection) Start(ctx context.Context) error {
+func (c *Connection) Start() error {
 	if !c.enabled {
 		c.logger.Info().Msg("Reverse disabled, not starting")
 		return nil
@@ -71,78 +70,10 @@ func (c *Connection) Start(ctx context.Context) error {
 		Str("agent", c.agentAddress).
 		Msg("Reverse configuration")
 
-	errCh := make(chan error, 10)
+	c.t.Go(c.reader)
+	c.t.Go(c.processor)
 
-	go func() {
-		var lastErr error
-		for { // allow for restarts
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				err := c.connect()
-				if err != nil {
-					lastErr = err
-					c.logger.Warn().Err(err).Int("attempt", c.connAttempts).Msg("failed")
-				}
-			}
-
-			if c.conn != nil {
-				select {
-				case <-ctx.Done():
-					return
-				default:
-					err := c.processCommands(ctx)
-					if err != nil { // non-fatal, log and reconnect
-						lastErr = err
-						c.logger.Warn().Err(err).Int("attempt", c.connAttempts).Msg("failed")
-					}
-				}
-			}
-
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				// retry n times on connection attempt failures
-				if c.connAttempts >= maxConnRetry {
-					errCh <- errors.Wrapf(lastErr, "after %d failed attempts, last error", c.connAttempts)
-					return
-				}
-
-				c.logger.Info().
-					Str("delay", c.delay.String()).
-					Int("attempt", c.connAttempts).
-					Msg("connect retry")
-
-				time.Sleep(c.delay)
-				c.setNextDelay()
-
-				if c.connAttempts%configRetryLimit == 0 {
-					// Under normal circumstances the configuration for reverse is
-					// non-volatile. There are, however, some situations where the
-					// configuration must be rebuilt. (e.g. ip of broker changed,
-					// check changed to use a different broker, broker certificate
-					// changes, etc.) The majority of configuration based errors are
-					// fatal, no attempt is made to resolve.
-					c.logger.Info().Int("attempts", c.connAttempts).Msg("reconfig triggered")
-					if err := c.setCheckConfig(); err != nil {
-						errCh <- errors.Wrap(err, "reconfiguring reverse connection")
-						return
-					}
-				}
-			}
-		}
-	}()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case err := <-errCh:
-			return err
-		}
-	}
+	return c.t.Wait()
 }
 
 // Stop the reverse connection
@@ -150,10 +81,18 @@ func (c *Connection) Stop() {
 	if !c.enabled {
 		return
 	}
-	c.logger.Debug().Msg("Stopping reverse connection")
+
+	c.logger.Info().Msg("Stopping reverse connection")
+
+	if c.t.Alive() {
+		c.t.Kill(errors.New("Shutdown requested"))
+	}
+
 	if c.conn == nil {
 		return
 	}
+
+	c.logger.Info().Msg("Closing reverse connection")
 	err := c.conn.Close()
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("Closing reverse connection")
