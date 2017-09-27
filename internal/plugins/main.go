@@ -55,7 +55,7 @@ func (p *Plugins) Flush(pluginName string) *map[string]interface{} {
 
 // Stop any long running plugins
 func (p *Plugins) Stop() error {
-	p.logger.Debug().Msg("Stopping plugins")
+	p.logger.Info().Msg("Stopping plugins")
 	for id, plug := range p.active {
 		plug.Lock()
 		if !plug.Running {
@@ -75,7 +75,7 @@ func (p *Plugins) Stop() error {
 			}
 
 			if stop {
-				p.logger.Debug().
+				p.logger.Info().
 					Str("plugin", id).
 					Msg("Stopping running plugin")
 				err := plug.cmd.Process.Kill()
