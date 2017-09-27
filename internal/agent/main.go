@@ -63,13 +63,13 @@ func (a *Agent) Start() {
 	go a.handleSignals()
 
 	go func() {
-		if err := a.statsdServer.Start(a.shutdownCtx); err != nil {
+		if err := a.statsdServer.Start(); err != nil {
 			a.errCh <- errors.Wrap(err, "Starting StatsD listener")
 		}
 	}()
 
 	go func() {
-		if err := a.reverseConn.Start(a.shutdownCtx); err != nil {
+		if err := a.reverseConn.Start(); err != nil {
 			a.errCh <- errors.Wrap(err, "Unable to start reverse connection")
 		}
 	}()
@@ -107,7 +107,7 @@ func (a *Agent) Wait() error {
 	select {
 	case <-a.shutdownCtx.Done():
 	case err := <-a.errCh:
-		log.Error().Err(err).Msg("Shutting down agent due to errors")
+		log.Error().Err(err).Msg("Shutting down agent due to error")
 		a.Stop()
 		return err
 	}
