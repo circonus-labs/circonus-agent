@@ -35,7 +35,6 @@ func (a *Agent) handleSignals() {
 	for {
 		select {
 		case <-a.shutdownCtx.Done():
-			log.Debug().Msg("Shutting down")
 			return
 		case sig := <-a.signalCh:
 			log.Info().Str("signal", sig.String()).Msg("Received signal")
