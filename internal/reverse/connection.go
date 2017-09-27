@@ -15,9 +15,87 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Error returns string representation of a connError
-func (e *connError) Error() string {
-	return e.err.Error()
+// handler connects to the broker and reads commands sent by the broker
+func (c *Connection) handler() error {
+	defer close(c.cmdCh)
+	for { // allow reconnecting
+		select {
+		case <-c.t.Dying():
+			return nil
+		default:
+			cerr := c.connect()
+			if cerr != nil {
+				if cerr.fatal {
+					return cerr
+				}
+				c.logger.Warn().Err(cerr).Int("attempt", c.connAttempts).Msg("connect failed")
+			}
+		}
+
+		if c.conn == nil {
+			continue
+		}
+
+		for {
+			cmd, err := c.getCommandFromBroker(c.conn)
+			select {
+			case <-c.t.Dying():
+				return nil
+			default:
+				// fall through
+			}
+			if err != nil {
+				c.logger.Warn().Err(err).Msg("reading commands, resetting connection")
+				break
+			}
+			c.cmdCh <- cmd
+		}
+	}
+}
+
+// processor handles commands from broker
+func (c *Connection) processor() error {
+	for {
+		select {
+		case <-c.t.Dying():
+			return nil
+		case nc := <-c.cmdCh:
+			if nc == nil {
+				continue
+			}
+			if nc.command != noitCmdConnect {
+				c.logger.Debug().Str("cmd", nc.command).Msg("ignoring command")
+				continue
+			}
+
+			if len(nc.request) == 0 {
+				c.logger.Debug().
+					Str("cmd", nc.command).
+					Str("req", string(nc.request)).
+					Msg("ignoring zero length request")
+				continue
+			}
+
+			// Successfully connected, sent, and received data.
+			// In certain circumstances, a broker will allow a connection, accept
+			// the initial introduction, and then summarily disconnect (e.g. multiple
+			// agents attempting reverse connections for the same check.)
+			if c.connAttempts > 0 {
+				c.resetConnectionAttempts()
+			}
+
+			// send the request from the broker to the local agent
+			data, err := c.fetchMetricData(&nc.request)
+			if err != nil {
+				c.logger.Warn().Err(err).Msg("fetching metric data")
+			}
+
+			// send the metrics received from the local agent back to the broker
+			if err := c.sendMetricData(c.conn, nc.channelID, data); err != nil {
+				return errors.Wrap(err, "sending metric data") // restart the connection
+			}
+		}
+	}
 }
 
 // connect to broker via w/tls and send initial introduction to start reverse
@@ -91,88 +169,6 @@ func (c *Connection) connect() *connError {
 	return nil
 }
 
-// reader connects to the broker and reads commands sent by the broker
-func (c *Connection) reader() error {
-	defer close(c.cmdCh)
-	for { // allow reconnecting
-		select {
-		case <-c.t.Dying():
-			return nil
-		default:
-			cerr := c.connect()
-			if cerr != nil {
-				if cerr.fatal {
-					return cerr
-				}
-				c.logger.Warn().Err(cerr).Int("attempt", c.connAttempts).Msg("connect failed")
-			}
-		}
-
-		if c.conn == nil {
-			continue
-		}
-
-		for {
-			cmd, err := c.getCommandFromBroker(c.conn)
-			select {
-			case <-c.t.Dying():
-				return nil
-			default:
-				if err != nil {
-					c.logger.Warn().Err(err).Msg("reading commands, resetting connection")
-					break
-				}
-				c.cmdCh <- cmd
-			}
-		}
-	}
-}
-
-// processor handles commands from broker
-func (c *Connection) processor() error {
-	for {
-		select {
-		case <-c.t.Dying():
-			return nil
-		case nc := <-c.cmdCh:
-			if nc == nil {
-				continue
-			}
-			if nc.command != noitCmdConnect {
-				c.logger.Debug().Str("cmd", nc.command).Msg("ignoring command")
-				continue
-			}
-
-			if len(nc.request) == 0 {
-				c.logger.Debug().
-					Str("cmd", nc.command).
-					Str("req", string(nc.request)).
-					Msg("ignoring zero length request")
-				continue
-			}
-
-			// Successfully connected, sent, and received data.
-			// In certain circumstances, a broker will allow a connection, accept
-			// the initial introduction, and then summarily disconnect (e.g. multiple
-			// agents attempting reverse connections for the same check.)
-			if c.connAttempts > 0 {
-				c.resetConnectionAttempts()
-			}
-
-			// send the request from the broker to the local agent
-			data, err := c.fetchMetricData(&nc.request)
-			if err != nil {
-				c.logger.Warn().Err(err).Msg("fetching metric data")
-			}
-
-			// send the metrics received from the local agent back to the broker
-			if err := c.sendMetricData(c.conn, nc.channelID, data); err != nil {
-				return errors.Wrap(err, "sending metric data") // restart the connection
-			}
-		}
-	}
-}
-
 // setNextDelay for failed connection attempts
 func (c *Connection) setNextDelay() {
 	if c.delay == c.maxDelay {
@@ -203,61 +199,7 @@ func (c *Connection) resetConnectionAttempts() {
 	}
 }
 
-// // processCommands coming from broker
-// func (c *Connection) processCommands(ctx context.Context) error {
-// 	defer c.conn.Close()
-//
-// 	for {
-// 		select {
-// 		case <-ctx.Done():
-// 			return nil
-// 		default: // fall out of select
-// 		}
-//
-// 		nc, err := c.getCommandFromBroker(ctx, c.conn)
-// 		if err != nil {
-// 			return errors.Wrap(err, "getting command from broker")
-// 		}
-// 		if nc == nil {
-// 			continue
-// 		}
-//
-// 		select {
-// 		case <-ctx.Done():
-// 			return nil
-// 		default: // fall out of select
-// 		}
-//
-// 		if nc.command != noitCmdConnect {
-// 			c.logger.Debug().Str("cmd", nc.command).Msg("ignoring command")
-// 			continue
-// 		}
-//
-// 		if len(nc.request) == 0 {
-// 			c.logger.Debug().
-// 				Str("cmd", nc.command).
-// 				Str("req", string(nc.request)).
-// 				Msg("ignoring zero length request")
-// 			continue
-// 		}
-//
-// 		if c.connAttempts > 1 {
-// 			// successfully connected, sent, and received data
-// 			// a broker can, in certain circumstances, allow a connection, accept
-// 			// the initial introduction, and then summarily disconnect (e.g. multiple
-// 			// agents attempting reverse connections for the same check.)
-// 			c.resetConnectionAttempts()
-// 		}
-//
-// 		// send the request from the broker to the local agent
-// 		data, err := c.fetchMetricData(&nc.request)
-// 		if err != nil {
-// 			c.logger.Warn().Err(err).Msg("fetching metric data")
-// 		}
-//
-// 		// send the metrics received from the local agent back to the broker
-// 		if err := c.sendMetricData(c.conn, nc.channelID, data); err != nil {
-// 			return errors.Wrap(err, "sending metric data") // restart the connection
-// 		}
-// 	}
-// }
+// Error returns string representation of a connError
+func (e *connError) Error() string {
+	return e.err.Error()
+}
