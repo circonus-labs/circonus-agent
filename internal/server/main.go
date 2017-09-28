@@ -69,6 +69,10 @@ func (s *Server) Stop() {
 			s.logger.Warn().Err(err).Msg("Closing HTTPS server")
 		}
 	}
+
+	if s.t.Alive() {
+		s.t.Kill(nil)
+	}
 }
 
 func (s *Server) startHTTP() error {
