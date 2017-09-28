@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"regexp"
 
+	tomb "gopkg.in/tomb.v2"
+
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
 	"github.com/circonus-labs/circonus-agent/internal/statsd"
 	"github.com/rs/zerolog"
@@ -23,6 +25,7 @@ type Server struct {
 	svrHTTP   *http.Server
 	svrHTTPS  *http.Server
 	statsdSvr *statsd.Server
+	t         tomb.Tomb
 }
 
 var (

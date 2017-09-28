@@ -49,7 +49,7 @@ func New() (*Agent, error) {
 		return nil, err
 	}
 
-	a.listenServer, err = server.New(a.shutdownCtx, a.plugins, a.statsdServer)
+	a.listenServer, err = server.New(a.plugins, a.statsdServer)
 	if err != nil {
 		return nil, err
 	}
