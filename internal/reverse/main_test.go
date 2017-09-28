@@ -9,12 +9,12 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/http/httputil"
 	"net/url"
 	"os"
 	"strconv"
@@ -24,6 +24,7 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-gometrics/api"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
@@ -64,20 +65,31 @@ func init() {
 	}
 }
 
+func dumpReq(r *http.Request) error {
+	output, err := httputil.DumpRequest(r, true)
+	if err != nil {
+		return errors.Wrap(err, "Error dumping request")
+	}
+	fmt.Println(string(output))
+	return nil
+}
+
 // brokerHandler simulates an actual broker
 func brokerHandler(w http.ResponseWriter, r *http.Request) {
+	// dumpReq(r)
 	// path := r.URL.Path
 	// reqURL := r.URL.String()
-	// fmt.Println(path, reqURL)
 	w.WriteHeader(200)
 	fmt.Fprintln(w, "")
 }
 
 // apiHandler simulates an api server for test requests
 func apiHandler(w http.ResponseWriter, r *http.Request) {
+	// dumpReq(r)
+
 	path := r.URL.Path
 	reqURL := r.URL.String()
-	// fmt.Println(path, reqURL)
+
 	switch path {
 	case "/check_bundle":
 		if strings.Contains(reqURL, "search") {
