@@ -6,34 +6,35 @@
 package agent
 
 import (
-	"context"
 	"os"
 	"os/signal"
 
+	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
 	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/reverse"
 	"github.com/circonus-labs/circonus-agent/internal/server"
 	"github.com/circonus-labs/circonus-agent/internal/statsd"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
 
 // New returns a new agent instance
 func New() (*Agent, error) {
 	a := Agent{
-		errCh:    make(chan error, 10),
 		signalCh: make(chan os.Signal, 10),
 	}
 
-	// Handle shutdown via a.shutdownCtx
-	signalNotifySetup(a.signalCh)
-
-	a.shutdownCtx, a.shutdown = context.WithCancel(context.Background())
-
 	var err error
 
-	a.plugins = plugins.New(a.shutdownCtx)
+	//
+	// validate the configuration
+	//
+	err = config.Validate()
+	if err != nil {
+		return nil, err
+	}
+
+	a.plugins = plugins.New(a.t.Context(nil))
 	err = a.plugins.Scan()
 	if err != nil {
 		return nil, err
@@ -54,31 +55,24 @@ func New() (*Agent, error) {
 		return nil, err
 	}
 
+	a.signalNotifySetup()
+
 	return &a, nil
 }
 
 // Start the agent
-func (a *Agent) Start() {
+func (a *Agent) Start() error {
+	a.t.Go(a.handleSignals)
+	a.t.Go(a.statsdServer.Start)
+	a.t.Go(a.reverseConn.Start)
+	a.t.Go(a.listenServer.Start)
 
-	go a.handleSignals()
+	log.Debug().
+		Int("pid", os.Getpid()).
+		Str("name", release.NAME).
+		Str("ver", release.VERSION).Msg("Starting wait")
 
-	go func() {
-		if err := a.statsdServer.Start(); err != nil {
-			a.errCh <- errors.Wrap(err, "Starting StatsD listener")
-		}
-	}()
-
-	go func() {
-		if err := a.reverseConn.Start(); err != nil {
-			a.errCh <- errors.Wrap(err, "Unable to start reverse connection")
-		}
-	}()
-
-	go func() {
-		if err := a.listenServer.Start(); err != nil {
-			a.errCh <- errors.Wrap(err, "Starting server")
-		}
-	}()
+	return a.t.Wait()
 }
 
 // Stop cleans up and shuts down the Agent
@@ -88,34 +82,19 @@ func (a *Agent) Stop() {
 	a.statsdServer.Stop()
 	a.reverseConn.Stop()
 	a.listenServer.Stop()
-	a.shutdown()
 
 	log.Debug().
 		Int("pid", os.Getpid()).
 		Str("name", release.NAME).
 		Str("ver", release.VERSION).Msg("Stopped")
 
-	os.Exit(0)
-}
-
-// Wait blocks until shutdown
-func (a *Agent) Wait() error {
-	log.Debug().
-		Int("pid", os.Getpid()).
-		Str("name", release.NAME).
-		Str("ver", release.VERSION).Msg("Starting wait")
-	select {
-	case <-a.shutdownCtx.Done():
-	case err := <-a.errCh:
-		log.Error().Err(err).Msg("Shutting down agent due to error")
-		a.Stop()
-		return err
+	if a.t.Alive() {
+		a.t.Kill(nil)
 	}
-
-	return nil
 }
 
 // stopSignalHandler disables the signal handler
 func (a *Agent) stopSignalHandler() {
 	signal.Stop(a.signalCh)
+	signal.Reset()
 }

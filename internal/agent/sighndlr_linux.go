@@ -6,7 +6,7 @@
 // +build linux
 
 // Signal handling for Linux
-// system that doesn't have SIGINFO, using SIGUSR1 instead
+// doesn't have SIGINFO, using SIGTRAP instead
 
 package agent
 
@@ -21,12 +21,12 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func signalNotifySetup(sigch chan os.Signal) {
-	signal.Notify(sigch, os.Interrupt, unix.SIGTERM, unix.SIGHUP, unix.SIGPIPE, unix.SIGUSR1)
+func (a *Agent) signalNotifySetup() {
+	signal.Notify(a.signalCh, os.Interrupt, unix.SIGTERM, unix.SIGHUP, unix.SIGPIPE, unix.SIGTRAP)
 }
 
 // handleSignals runs the signal handler thread
-func (a *Agent) handleSignals() {
+func (a *Agent) handleSignals() error {
 	const stacktraceBufSize = 1 * units.MiB
 
 	// pre-allocate a buffer
@@ -34,20 +34,20 @@ func (a *Agent) handleSignals() {
 
 	for {
 		select {
-		case <-a.shutdownCtx.Done():
-			return
+		case <-a.t.Dying():
+			return nil
 		case sig := <-a.signalCh:
 			log.Info().Str("signal", sig.String()).Msg("Received signal")
 			switch sig {
 			case os.Interrupt, unix.SIGTERM:
-				a.shutdown()
+				a.Stop()
 			case unix.SIGPIPE, unix.SIGHUP:
 				// Noop
-			case unix.SIGUSR1:
+			case unix.SIGTRAP:
 				stacklen := runtime.Stack(buf, true)
-				fmt.Printf("=== received SIGUSR1 ===\n*** goroutine dump...\n%s\n*** end\n", buf[:stacklen])
+				fmt.Printf("=== received SIGTRAP ===\n*** goroutine dump...\n%s\n*** end\n", buf[:stacklen])
 			default:
-				panic(fmt.Sprintf("unsupported signal: %v", sig))
+				log.Warn().Str("signal", sig.String()).Msg("unsupported")
 			}
 		}
 	}

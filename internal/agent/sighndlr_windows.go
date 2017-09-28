@@ -6,7 +6,7 @@
 // +build windows
 
 // Signal handling for Windows
-// system that doesn't have SIGINFO, attempt to use SIGTRAP instead...
+// doesn't have SIGINFO, attempt to use SIGTRAP instead...
 
 package agent
 
@@ -21,12 +21,12 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func signalNotifySetup(sigch chan os.Signal) {
-	signal.Notify(sigch, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE, syscall.SIGTRAP)
+func (a *Agent) signalNotifySetup() {
+	signal.Notify(a.signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE, syscall.SIGTRAP)
 }
 
 // handleSignals runs the signal handler thread
-func (a *Agent) handleSignals() {
+func (a *Agent) handleSignals() error {
 	const stacktraceBufSize = 1 * units.MiB
 
 	// pre-allocate a buffer
@@ -34,20 +34,20 @@ func (a *Agent) handleSignals() {
 
 	for {
 		select {
-		case <-a.shutdownCtx.Done():
-			return
+		case <-a.t.Dying():
+			return nil
 		case sig := <-a.signalCh:
 			log.Info().Str("signal", sig.String()).Msg("Received signal")
 			switch sig {
 			case os.Interrupt, syscall.SIGTERM:
-				a.shutdown()
+				a.Stop()
 			case syscall.SIGPIPE, syscall.SIGHUP:
 				// Noop
 			case syscall.SIGTRAP:
 				stacklen := runtime.Stack(buf, true)
-				fmt.Printf("=== received SIGINFO ===\n*** goroutine dump...\n%s\n*** end\n", buf[:stacklen])
+				fmt.Printf("=== received SIGTRAP ===\n*** goroutine dump...\n%s\n*** end\n", buf[:stacklen])
 			default:
-				panic(fmt.Sprintf("unsupported signal: %v", sig))
+				log.Warn().Str("signal", sig.String()).Msg("unsupported")
 			}
 		}
 	}
