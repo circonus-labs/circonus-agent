@@ -14,7 +14,7 @@ func main() {
 	cmd.Execute()
 }
 
-// defined during build/goreleaser, see .goreleaser.yml
+// defined during build (e.g. goreleaser, see .goreleaser.yml)
 var (
 	version = "dev"
 	commit  = "none"
