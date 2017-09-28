@@ -96,5 +96,5 @@ func (a *Agent) Stop() {
 // stopSignalHandler disables the signal handler
 func (a *Agent) stopSignalHandler() {
 	signal.Stop(a.signalCh)
-	signal.Reset()
+	signal.Reset() // so a second ctrl-c will force a kill
 }
