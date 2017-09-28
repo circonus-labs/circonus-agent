@@ -6,8 +6,9 @@
 package agent
 
 import (
-	"context"
 	"os"
+
+	tomb "gopkg.in/tomb.v2"
 
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
 	"github.com/circonus-labs/circonus-agent/internal/reverse"
@@ -17,12 +18,10 @@ import (
 
 // Agent holds the main circonus-agent process
 type Agent struct {
-	errCh        chan error
 	listenServer *server.Server
 	plugins      *plugins.Plugins
 	reverseConn  *reverse.Connection
-	shutdown     func()
-	shutdownCtx  context.Context
 	signalCh     chan os.Signal
 	statsdServer *statsd.Server
+	t            tomb.Tomb
 }
