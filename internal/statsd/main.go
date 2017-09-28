@@ -87,7 +87,7 @@ func (s *Server) Stop() error {
 	s.logger.Info().Msg("Stopping StatsD Server")
 
 	if s.server.t.Alive() {
-		s.server.t.Kill(errors.New("Shutdown requested"))
+		s.server.t.Kill(nil)
 	}
 
 	if s.groupMetrics != nil {
@@ -192,18 +192,16 @@ func (s *Server) reader() error {
 	for {
 		buff := make([]byte, maxPacketSize)
 		n, err := s.server.listener.Read(buff)
+		if s.shutdown() {
+			return nil
+		}
 		if err != nil {
 			return errors.Wrap(err, "reader")
 		}
-		select {
-		case <-s.server.t.Dying():
-			return nil
-		default:
-			if n > 0 {
-				pkt := make([]byte, n)
-				copy(pkt, buff[:n])
-				s.server.packetCh <- pkt
-			}
+		if n > 0 {
+			pkt := make([]byte, n)
+			copy(pkt, buff[:n])
+			s.server.packetCh <- pkt
 		}
 	}
 }
@@ -220,6 +218,17 @@ func (s *Server) processor() error {
 			if err != nil {
 				return errors.Wrap(err, "processor")
 			}
+		default:
 		}
+	}
+}
+
+// shutdown checks whether tomb is dying
+func (s *Server) shutdown() bool {
+	select {
+	case <-s.server.t.Dying():
+		return true
+	default:
+		return false
 	}
 }
