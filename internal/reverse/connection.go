@@ -23,8 +23,10 @@ func (c *Connection) handler() error {
 		if c.shutdown() {
 			return nil
 		}
-
 		cerr := c.connect()
+		if c.shutdown() {
+			return nil
+		}
 		if cerr != nil {
 			if cerr.fatal {
 				return cerr
@@ -36,6 +38,9 @@ func (c *Connection) handler() error {
 		}
 
 		for {
+			if c.shutdown() {
+				return nil
+			}
 			cmd, err := c.getCommandFromBroker(c.conn)
 			if c.shutdown() {
 				return nil
@@ -79,6 +84,11 @@ func (c *Connection) processor() error {
 				c.resetConnectionAttempts()
 			}
 
+			// NOTE: do not check whether shutting down for the next two
+			//       let the metrics go ahead and be sent through for
+			//       the channel in the request from the broker.
+			//       then exit at the start of the next iteration.
+			//
 			// send the request from the broker to the local agent
 			data, err := c.fetchMetricData(&nc.request)
 			if err != nil {
