@@ -16,16 +16,16 @@ import (
 
 // getCommandFromBroker reads a command and optional request from broker
 func (c *Connection) getCommandFromBroker(r io.Reader) (*noitCommand, error) {
-	nc := &noitCommand{}
+	if c.shutdown() {
+		return nil, nil
+	}
 
 	cmdPkt, err := c.getFrameFromBroker(r)
-	select {
-	case <-c.t.Dying():
+	if c.shutdown() {
 		return nil, nil
-	default:
-		if err != nil {
-			return nil, err
-		}
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	if !cmdPkt.header.isCommand {
@@ -36,18 +36,18 @@ func (c *Connection) getCommandFromBroker(r io.Reader) (*noitCommand, error) {
 		return nil, nil
 	}
 
-	nc.channelID = cmdPkt.header.channelID
-	nc.command = string(cmdPkt.payload)
+	nc := &noitCommand{
+		channelID: cmdPkt.header.channelID,
+		command:   string(cmdPkt.payload),
+	}
 
 	if nc.command == noitCmdConnect { // connect command requires a request
 		reqPkt, err := c.getFrameFromBroker(r)
-		select {
-		case <-c.t.Dying():
+		if c.shutdown() {
 			return nil, nil
-		default:
-			if err != nil {
-				return nil, err
-			}
+		}
+		if err != nil {
+			return nil, err
 		}
 
 		if reqPkt.header.isCommand {

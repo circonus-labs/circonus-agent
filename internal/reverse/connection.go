@@ -19,36 +19,34 @@ import (
 func (c *Connection) handler() error {
 	defer close(c.cmdCh)
 	for { // allow reconnecting
-		select {
-		case <-c.t.Dying():
+
+		if c.shutdown() {
 			return nil
-		default:
-			cerr := c.connect()
-			if cerr != nil {
-				if cerr.fatal {
-					return cerr
-				}
-				c.logger.Warn().Err(cerr).Int("attempt", c.connAttempts).Msg("connect failed")
-			}
 		}
 
+		cerr := c.connect()
+		if cerr != nil {
+			if cerr.fatal {
+				return cerr
+			}
+			c.logger.Warn().Err(cerr).Int("attempt", c.connAttempts).Msg("connect failed")
+		}
 		if c.conn == nil {
 			continue
 		}
 
 		for {
 			cmd, err := c.getCommandFromBroker(c.conn)
-			select {
-			case <-c.t.Dying():
+			if c.shutdown() {
 				return nil
-			default:
-				// fall through
 			}
 			if err != nil {
 				c.logger.Warn().Err(err).Msg("reading commands, resetting connection")
 				break
 			}
-			c.cmdCh <- cmd
+			if cmd != nil {
+				c.cmdCh <- cmd
+			}
 		}
 	}
 }
@@ -60,12 +58,9 @@ func (c *Connection) processor() error {
 		case <-c.t.Dying():
 			return nil
 		case nc := <-c.cmdCh:
-			if nc == nil {
-				continue
-			}
 			if nc.command != noitCmdConnect {
 				c.logger.Debug().Str("cmd", nc.command).Msg("ignoring command")
-				continue
+				break
 			}
 
 			if len(nc.request) == 0 {
@@ -73,7 +68,7 @@ func (c *Connection) processor() error {
 					Str("cmd", nc.command).
 					Str("req", string(nc.request)).
 					Msg("ignoring zero length request")
-				continue
+				break
 			}
 
 			// Successfully connected, sent, and received data.
@@ -89,11 +84,12 @@ func (c *Connection) processor() error {
 			if err != nil {
 				c.logger.Warn().Err(err).Msg("fetching metric data")
 			}
-
 			// send the metrics received from the local agent back to the broker
+			// NOTE: send even if metrics will be empty
 			if err := c.sendMetricData(c.conn, nc.channelID, data); err != nil {
-				return errors.Wrap(err, "sending metric data") // restart the connection
+				c.logger.Warn().Err(err).Msg("sending metric data")
 			}
+		default:
 		}
 	}
 }
@@ -132,10 +128,8 @@ func (c *Connection) connect() *connError {
 		}
 	}
 
-	select {
-	case <-c.t.Dying():
+	if c.shutdown() {
 		return nil
-	default:
 	}
 
 	c.logger.Info().Str("host", c.reverseURL.Host).Msg("Connecting")

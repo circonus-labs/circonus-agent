@@ -7,7 +7,6 @@ package reverse
 
 import (
 	crand "crypto/rand"
-	"fmt"
 	"math"
 	"math/big"
 	"math/rand"
@@ -15,7 +14,6 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
@@ -85,17 +83,26 @@ func (c *Connection) Stop() {
 	c.logger.Info().Msg("Stopping reverse connection")
 
 	if c.t.Alive() {
-		c.t.Kill(errors.New("Shutdown requested"))
+		c.t.Kill(nil)
 	}
 
-	if c.conn == nil {
-		return
-	}
+	// if c.conn == nil {
+	// 	return
+	// }
+	//
+	// c.logger.Info().Msg("Closing reverse connection")
+	// err := c.conn.Close()
+	// if err != nil {
+	// 	c.logger.Warn().Err(err).Msg("Closing reverse connection")
+	// }
+}
 
-	c.logger.Info().Msg("Closing reverse connection")
-	err := c.conn.Close()
-	if err != nil {
-		c.logger.Warn().Err(err).Msg("Closing reverse connection")
-		c.logger.Debug().Str("state", fmt.Sprintf("%+v", c.conn.ConnectionState())).Msg("conn state")
+// shutdown checks whether tomb is dying
+func (c *Connection) shutdown() bool {
+	select {
+	case <-c.t.Dying():
+		return true
+	default:
+		return false
 	}
 }
