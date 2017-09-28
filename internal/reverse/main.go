@@ -86,15 +86,15 @@ func (c *Connection) Stop() {
 		c.t.Kill(nil)
 	}
 
-	// if c.conn == nil {
-	// 	return
-	// }
-	//
-	// c.logger.Info().Msg("Closing reverse connection")
-	// err := c.conn.Close()
-	// if err != nil {
-	// 	c.logger.Warn().Err(err).Msg("Closing reverse connection")
-	// }
+	if c.conn == nil {
+		return
+	}
+
+	c.logger.Info().Msg("Closing reverse connection")
+	err := c.conn.Close()
+	if err != nil {
+		c.logger.Warn().Err(err).Msg("Closing reverse connection")
+	}
 }
 
 // shutdown checks whether tomb is dying
