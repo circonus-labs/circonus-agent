@@ -6,6 +6,8 @@
 package statsd
 
 import (
+	"crypto/x509"
+	"io/ioutil"
 	stdlog "log"
 	"net"
 	"regexp"
@@ -33,6 +35,7 @@ func New() (*Server, error) {
 		apiKey:         viper.GetString(config.KeyAPITokenKey),
 		apiApp:         viper.GetString(config.KeyAPITokenApp),
 		apiURL:         viper.GetString(config.KeyAPIURL),
+		apiCAFile:      viper.GetString(config.KeyAPICAFile),
 	}
 
 	port := viper.GetString(config.KeyStatsdPort)
@@ -43,7 +46,7 @@ func New() (*Server, error) {
 	}
 
 	s.address = addr
-	s.metricRegex = regexp.MustCompile("^(?P<name>[^:\\s]+):(?P<value>[^|\\s]+)\\|(?P<type>[a-z]+)(?:@(?P<sample>[0-9.]+))?$")
+	s.metricRegex = regexp.MustCompile(`^(?P<name>[^:\s]+):(?P<value>[^|\s]+)\|(?P<type>[a-z]+)(?:@(?P<sample>[0-9.]+))?$`)
 	s.metricRegexGroupNames = s.metricRegex.SubexpNames()
 
 	if !s.disabled {
@@ -162,6 +165,20 @@ func (s *Server) initGroupMetrics() error {
 	cmc.CheckManager.API.URL = s.apiURL
 	cmc.CheckManager.Check.ID = s.groupCID
 
+	if s.apiCAFile != "" {
+		cert, err := ioutil.ReadFile(s.apiCAFile)
+		if err != nil {
+			return err
+		}
+
+		cp := x509.NewCertPool()
+		if !cp.AppendCertsFromPEM(cert) {
+			return errors.Errorf("using api CA cert %#v", cert)
+		}
+
+		cmc.CheckManager.API.CACert = cp
+	}
+
 	gm, err := cgm.NewCirconusMetrics(cmc)
 	if err != nil {
 		return errors.Wrap(err, "statsd group check")
@@ -218,7 +235,6 @@ func (s *Server) processor() error {
 			if err != nil {
 				return errors.Wrap(err, "processor")
 			}
-		default:
 		}
 	}
 }

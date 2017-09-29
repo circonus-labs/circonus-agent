@@ -39,6 +39,7 @@ func validateAPIOptions() error {
 	apiKey := viper.GetString(KeyAPITokenKey)
 	apiApp := viper.GetString(KeyAPITokenApp)
 	apiURL := viper.GetString(KeyAPIURL)
+	apiCAFile := viper.GetString(KeyAPICAFile)
 
 	// if key is 'cosi' - load the cosi api config
 	if strings.ToLower(apiKey) == cosiName {
@@ -74,6 +75,15 @@ func validateAPIOptions() error {
 		if parsedURL.Scheme == "" || parsedURL.Host == "" || parsedURL.Path == "" {
 			return errors.Errorf("Invalid API URL (%s)", apiURL)
 		}
+	}
+
+	// NOTE the api ca file doesn't come from the cosi config
+	if apiCAFile != "" {
+		f, err := verifyFile(apiCAFile)
+		if err != nil {
+			return err
+		}
+		viper.Set(KeyAPICAFile, f)
 	}
 
 	viper.Set(KeyAPITokenKey, apiKey)

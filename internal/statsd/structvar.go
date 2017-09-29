@@ -38,6 +38,7 @@ type Server struct {
 	apiKey                string
 	apiApp                string
 	apiURL                string
+	apiCAFile             string
 	debugCGM              bool
 	server                *statsdServer
 }
