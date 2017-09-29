@@ -41,7 +41,5 @@ func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 		}
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
 	}
-
 }
