@@ -57,7 +57,7 @@ func TestSendMetricData(t *testing.T) {
 	if m == nil {
 		t.Fatal("expected not nil")
 	}
-	if bytes.Compare(m, data) != 0 {
+	if !bytes.Equal(m, data) {
 		t.Fatalf("expected (%s) got (%s)", string(data), string(m))
 	}
 }

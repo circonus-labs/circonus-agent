@@ -293,7 +293,7 @@ func TestBuildFrame(t *testing.T) {
 			t.Fatal("expected not nil")
 		}
 
-		if bytes.Compare(data, tst.expect) != 0 {
+		if !bytes.Equal(data, tst.expect) {
 			t.Fatalf("expected (%#v) got (%#v)", tst.expect, data)
 		}
 	}

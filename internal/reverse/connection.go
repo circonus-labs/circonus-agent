@@ -76,6 +76,10 @@ func (c *Connection) processor() error {
 				break
 			}
 
+			if c.shutdown() {
+				return nil
+			}
+
 			// Successfully connected, sent, and received data.
 			// In certain circumstances, a broker will allow a connection, accept
 			// the initial introduction, and then summarily disconnect (e.g. multiple
@@ -99,7 +103,6 @@ func (c *Connection) processor() error {
 			if err := c.sendMetricData(c.conn, nc.channelID, data); err != nil {
 				c.logger.Warn().Err(err).Msg("sending metric data")
 			}
-		default:
 		}
 	}
 }
@@ -189,8 +192,6 @@ func (c *Connection) setNextDelay() {
 	if c.delay > c.maxDelay {
 		c.delay = c.maxDelay
 	}
-
-	return
 }
 
 // resetConnectionAttempts on successful send/receive

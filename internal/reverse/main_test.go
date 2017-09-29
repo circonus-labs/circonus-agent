@@ -255,12 +255,14 @@ func TestStart(t *testing.T) {
 				var werr error
 				_, werr = c.Write(buildFrame(1, true, []byte("CONNECT")))
 				if werr != nil {
-					t.Fatalf("expected no error acceping connection, got %s", werr)
+					panic(werr)
 				}
 				_, werr = c.Write(buildFrame(1, false, []byte{}))
 				if werr != nil {
-					t.Fatalf("expected no error acceping connection, got %s", werr)
+					panic(werr)
 				}
+				// leave open broker connections are persistent
+				// closing it will trigger reconnecting
 				//c.Close()
 			}(conn)
 		}()

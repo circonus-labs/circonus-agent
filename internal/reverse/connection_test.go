@@ -85,8 +85,7 @@ func TestConnect(t *testing.T) {
 		go func() {
 			conn, cerr := l.Accept()
 			if cerr != nil {
-				t.Fatalf("expected no error acceping connection, got %s", cerr)
-				return
+				panic(cerr)
 			}
 			go func(c net.Conn) {
 				io.Copy(c, c)
@@ -166,8 +165,7 @@ func TestConnect(t *testing.T) {
 		go func() {
 			conn, cerr := l.Accept()
 			if cerr != nil {
-				t.Fatalf("expected no error acceping connection, got %s", cerr)
-				return
+				panic(cerr)
 			}
 			go func(c net.Conn) {
 				c.Close()

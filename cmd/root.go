@@ -451,7 +451,7 @@ func init() {
 			longOpt      = "debug-cgm"
 			defaultValue = false
 			envVar       = release.ENVPREFIX + "_DEBUG_CGM"
-			description  = "Enable CGM API debug messages"
+			description  = "Enable CGM & API debug messages"
 		)
 
 		RootCmd.Flags().Bool(longOpt, defaultValue, description)
@@ -541,25 +541,18 @@ func initLogging(cmd *cobra.Command, args []string) error {
 			switch level {
 			case "panic":
 				zerolog.SetGlobalLevel(zerolog.PanicLevel)
-				break
 			case "fatal":
 				zerolog.SetGlobalLevel(zerolog.FatalLevel)
-				break
 			case "error":
 				zerolog.SetGlobalLevel(zerolog.ErrorLevel)
-				break
 			case "warn":
 				zerolog.SetGlobalLevel(zerolog.WarnLevel)
-				break
 			case "info":
 				zerolog.SetGlobalLevel(zerolog.InfoLevel)
-				break
 			case "debug":
 				zerolog.SetGlobalLevel(zerolog.DebugLevel)
-				break
 			case "disabled":
 				zerolog.SetGlobalLevel(zerolog.Disabled)
-				break
 			default:
 				return errors.Errorf("Unknown log level (%s)", level)
 			}

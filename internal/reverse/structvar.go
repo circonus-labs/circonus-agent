@@ -77,7 +77,3 @@ const (
 	maxDelayStep         = 20        // maximum seconds to add on retry
 	noitCmdConnect       = "CONNECT" // command from noit/broker
 )
-
-var (
-	emptyMetricsResponse = []byte("{}")
-)

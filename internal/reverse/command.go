@@ -92,7 +92,7 @@ func (c *Connection) getFrameFromBroker(r io.Reader) (*noitPacket, error) {
 		Uint16("channel", hdr.channelID).
 		Bool("is_command", hdr.isCommand).
 		Uint32("payload_len", hdr.payloadLen).
-		Str("payload", fmt.Sprintf("%s", string(payload))).
+		Str("payload", string(payload)).
 		Msg("data from broker")
 
 	return &noitPacket{

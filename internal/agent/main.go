@@ -6,6 +6,7 @@
 package agent
 
 import (
+	"context"
 	"os"
 	"os/signal"
 
@@ -20,11 +21,10 @@ import (
 
 // New returns a new agent instance
 func New() (*Agent, error) {
+	var err error
 	a := Agent{
 		signalCh: make(chan os.Signal, 10),
 	}
-
-	var err error
 
 	//
 	// validate the configuration
@@ -34,7 +34,7 @@ func New() (*Agent, error) {
 		return nil, err
 	}
 
-	a.plugins = plugins.New(a.t.Context(nil))
+	a.plugins = plugins.New(a.t.Context(context.Background()))
 	err = a.plugins.Scan()
 	if err != nil {
 		return nil, err

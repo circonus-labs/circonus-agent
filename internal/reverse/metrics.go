@@ -18,8 +18,9 @@ import (
 
 // sendMetricData frames and sends data (in chunks <= maxPayloadLen) to broker
 func (c *Connection) sendMetricData(r io.Writer, channelID uint16, data *[]byte) error {
+	empty := []byte("{}")
 	if data == nil {
-		data = &emptyMetricsResponse
+		data = &empty
 	}
 	for offset := 0; offset < len(*data); {
 		buff := make([]byte, int(math.Min(float64(len((*data)[offset:])), float64(maxPayloadLen))))
