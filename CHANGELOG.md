@@ -1,3 +1,6 @@
+# v0.1.1
+    * merge structs
+    * eliminate race condition
 # v0.1.0
     * add freebsd and solaris builds for testing
     * add more test coverage throughout
