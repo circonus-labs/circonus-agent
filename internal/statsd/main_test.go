@@ -90,7 +90,7 @@ func TestStart(t *testing.T) {
 			t.Fatal("expected not nil")
 		}
 		time.AfterFunc(2*time.Second, func() {
-			s.server.listener.Close()
+			s.listener.Close()
 		})
 		s.Start()
 		viper.Reset()

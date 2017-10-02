@@ -50,14 +50,20 @@ func New() (*Server, error) {
 	s.metricRegexGroupNames = s.metricRegex.SubexpNames()
 
 	if !s.disabled {
-		if err := s.initHostMetrics(); err != nil {
-			return nil, errors.Wrap(err, "Initializing host metrics for StatsD")
+		if ierr := s.initHostMetrics(); ierr != nil {
+			return nil, errors.Wrap(ierr, "Initializing host metrics for StatsD")
 		}
 
-		if err := s.initGroupMetrics(); err != nil {
-			return nil, errors.Wrap(err, "Initializing group metrics for StatsD")
+		if ierr := s.initGroupMetrics(); ierr != nil {
+			return nil, errors.Wrap(ierr, "Initializing group metrics for StatsD")
 		}
 	}
+
+	l, err := net.ListenUDP("udp", s.address)
+	if err != nil {
+		return nil, err
+	}
+	s.listener = l
 
 	return &s, nil
 }
@@ -69,16 +75,10 @@ func (s *Server) Start() error {
 		return nil
 	}
 
-	var err error
-	s.server, err = s.newStatsdServer()
-	if err != nil {
-		return err
-	}
+	s.t.Go(s.reader)
+	s.t.Go(s.processor)
 
-	s.server.t.Go(s.reader)
-	s.server.t.Go(s.processor)
-
-	return s.server.t.Wait()
+	return s.t.Wait()
 }
 
 // Stop the server
@@ -89,8 +89,8 @@ func (s *Server) Stop() error {
 
 	s.logger.Info().Msg("Stopping StatsD Server")
 
-	if s.server.t.Alive() {
-		s.server.t.Kill(nil)
+	if s.t.Alive() {
+		s.t.Kill(nil)
 	}
 
 	if s.groupMetrics != nil {
@@ -190,25 +190,11 @@ func (s *Server) initGroupMetrics() error {
 	return nil
 }
 
-// newStatsdServer returns a new statsd listening server
-func (s *Server) newStatsdServer() (*statsdServer, error) {
-	s.logger.Info().Str("addr", s.address.String()).Msg("starting listener")
-	l, err := net.ListenUDP("udp", s.address)
-	if err != nil {
-		return nil, err
-	}
-	return &statsdServer{
-		listener: l,
-		packetCh: make(chan []byte, packetQueueSize),
-	}, nil
-}
-
 // reader reads packets from the statsd listener, adds packets recevied to the queue
 func (s *Server) reader() error {
-	defer close(s.server.packetCh)
 	for {
 		buff := make([]byte, maxPacketSize)
-		n, err := s.server.listener.Read(buff)
+		n, err := s.listener.Read(buff)
 		if s.shutdown() {
 			return nil
 		}
@@ -218,19 +204,19 @@ func (s *Server) reader() error {
 		if n > 0 {
 			pkt := make([]byte, n)
 			copy(pkt, buff[:n])
-			s.server.packetCh <- pkt
+			s.packetCh <- pkt
 		}
 	}
 }
 
 // processor reads the packet queue and processes each packet
 func (s *Server) processor() error {
-	defer s.server.listener.Close()
+	defer s.listener.Close()
 	for {
 		select {
-		case <-s.server.t.Dying():
+		case <-s.t.Dying():
 			return nil
-		case pkt := <-s.server.packetCh:
+		case pkt := <-s.packetCh:
 			err := s.processPacket(pkt)
 			if err != nil {
 				return errors.Wrap(err, "processor")
@@ -242,7 +228,7 @@ func (s *Server) processor() error {
 // shutdown checks whether tomb is dying
 func (s *Server) shutdown() bool {
 	select {
-	case <-s.server.t.Dying():
+	case <-s.t.Dying():
 		return true
 	default:
 		return false
