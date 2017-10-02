@@ -7,7 +7,7 @@
 > * No service configurations provided. (e.g. systemd, upstart, init, svc)
 > * Native plugins (.js) do not work. Unless modified to run `node` independently and follow [plugin output guidelines](#output).
 
-## v0.0.3 development working release
+## v0.1.1 development working release
 
 Download from repo [releases](https://github.com/circonus-labs/circonus-agent/releases).
 
@@ -18,7 +18,7 @@ cd /opt/circonus
 mkdir -p circonus-agent/{sbin,etc}
 cd circonus-agent
 ln -s /opt/circonus/nad/etc/node-agent.d plugins
-curl "https://github.com/circonus-labs/circonus-agent/releases/download/v0.0.3/circonus-agent_0.0.3_linux_64-bit.tar.gz" -o circonus-agent.tgz
+curl "https://github.com/circonus-labs/circonus-agent/releases/download/v0.1.1/circonus-agent_0.1.1_linux_64-bit.tar.gz" -o circonus-agent.tgz
 tar zxf circonus-agent.tgz
 ```
 To leverage the existing COSI/NAD installation, create a configuration file `/opt/circonus/circonus-agent/etc/circonus-agent.toml` (or use the corresponding command line options.)
