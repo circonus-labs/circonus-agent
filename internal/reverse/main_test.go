@@ -6,19 +6,25 @@
 package reverse
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-gometrics/api"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
@@ -59,20 +65,31 @@ func init() {
 	}
 }
 
+func dumpReq(r *http.Request) error {
+	output, err := httputil.DumpRequest(r, true)
+	if err != nil {
+		return errors.Wrap(err, "Error dumping request")
+	}
+	fmt.Println(string(output))
+	return nil
+}
+
 // brokerHandler simulates an actual broker
 func brokerHandler(w http.ResponseWriter, r *http.Request) {
+	// dumpReq(r)
 	// path := r.URL.Path
 	// reqURL := r.URL.String()
-	// fmt.Println(path, reqURL)
 	w.WriteHeader(200)
 	fmt.Fprintln(w, "")
 }
 
 // apiHandler simulates an api server for test requests
 func apiHandler(w http.ResponseWriter, r *http.Request) {
+	// dumpReq(r)
+
 	path := r.URL.Path
 	reqURL := r.URL.String()
-	// fmt.Println(path, reqURL)
+
 	switch path {
 	case "/check_bundle":
 		if strings.Contains(reqURL, "search") {
@@ -144,27 +161,30 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func TestStart(t *testing.T) {
-	t.Log("Testing Start")
+func TestNew(t *testing.T) {
+	t.Log("Testing New")
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	t.Log("Reverse disabled")
 	{
 		viper.Set(config.KeyReverse, false)
-		c := New()
+		c, err := New()
 		viper.Reset()
 
-		if c != nil {
-			t.Fatal("expected nil")
+		if err != nil {
+			t.Fatalf("expected no error, got (%s)", err)
+		}
+
+		if c == nil {
+			t.Fatal("expected not nil")
 		}
 	}
 
-	t.Log("No config")
+	t.Log("Reverse enabled (no config)")
 	{
 		viper.Set(config.KeyReverse, true)
-		c := New()
-		err := c.Start()
+		_, err := New()
 		viper.Reset()
 
 		expectedErr := errors.New("reverse configuration (check): Initializing cgm API: API Token is required")
@@ -175,7 +195,115 @@ func TestStart(t *testing.T) {
 			t.Fatalf("expected (%s) got (%s)", expectedErr, err)
 		}
 	}
+}
 
+func TestStart(t *testing.T) {
+	t.Log("Testing Start")
+
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+
+	t.Log("Reverse disabled")
+	{
+		viper.Set(config.KeyReverse, false)
+		c, err := New()
+		viper.Reset()
+
+		if err != nil {
+			t.Fatalf("expected no error, got (%s)", err)
+		}
+
+		if c == nil {
+			t.Fatal("expected not nil")
+		}
+
+		err = c.Start()
+
+		if err != nil {
+			t.Fatalf("expected no error, got (%s)", err)
+		}
+	}
+
+	t.Log("valid")
+	{
+		cert, err := tls.X509KeyPair(tcert, tkey)
+		if err != nil {
+			t.Fatalf("expected no error, got (%s)", err)
+		}
+
+		tcfg := new(tls.Config)
+		tcfg.Certificates = []tls.Certificate{cert}
+
+		cp := x509.NewCertPool()
+		clicert, err := x509.ParseCertificate(tcfg.Certificates[0].Certificate[0])
+		if err != nil {
+			t.Fatalf("expected no error, got (%s)", err)
+		}
+		cp.AddCert(clicert)
+
+		l, err := tls.Listen("tcp", "127.0.0.1:0", tcfg)
+		if err != nil {
+			t.Fatalf("expected no error, got (%s)", err)
+		}
+		defer l.Close()
+
+		go func() {
+			conn, cerr := l.Accept()
+			if cerr != nil {
+				return
+			}
+			go func(c net.Conn) {
+				var werr error
+				_, werr = c.Write(buildFrame(1, true, []byte("CONNECT")))
+				if werr != nil {
+					panic(werr)
+				}
+				_, werr = c.Write(buildFrame(1, false, []byte{}))
+				if werr != nil {
+					panic(werr)
+				}
+				// leave open broker connections are persistent
+				// closing it will trigger reconnecting
+				//c.Close()
+			}(conn)
+		}()
+
+		viper.Set(config.KeyReverse, true)
+		viper.Set(config.KeyReverseCID, "1234")
+		viper.Set(config.KeyAPITokenKey, "foo")
+		viper.Set(config.KeyAPITokenApp, "foo")
+		viper.Set(config.KeyAPIURL, apiSim.URL)
+		s, err := New()
+		if err != nil {
+			t.Fatalf("expected no error got (%s)", err)
+		}
+
+		s.tlsConfig = &tls.Config{
+			RootCAs: cp,
+		}
+
+		tsURL, err := url.Parse("http://" + l.Addr().String() + "/check/foo-bar-baz#abc123")
+		if err != nil {
+			t.Fatalf("expected no error got (%s)", err)
+		}
+
+		s.reverseURL = tsURL
+		s.dialerTimeout = 1 * time.Second
+
+		time.AfterFunc(2*time.Second, func() {
+			s.Stop()
+		})
+
+		if err := s.Start(); err != nil {
+			if err.Error() != "Shutdown requested" {
+				t.Fatalf("expected no error got (%s)", err)
+			}
+		}
+
+		viper.Reset()
+	}
+}
+
+func TestStartLong(t *testing.T) {
 	ltFlag := "circonus-agent_LONG_TEST"
 	if longTest, _ := strconv.ParseBool(os.Getenv(ltFlag)); !longTest {
 		t.Logf("Skipping long tests, set %s=1 to enable", ltFlag)
@@ -193,8 +321,11 @@ func TestStart(t *testing.T) {
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
 		viper.Set(config.KeyAPIURL, apiSim.URL)
-		c := New()
-		err := c.Start()
+		c, err := New()
+		if err != nil {
+			t.Fatalf("expected no error, got (%s)", err)
+		}
+		err = c.Start()
 		viper.Reset()
 
 		expectedErr := errors.New("establishing reverse connection: dial tcp 127.0.0.1:1234: getsockopt: connection refused")
@@ -205,4 +336,36 @@ func TestStart(t *testing.T) {
 			t.Fatalf("expected (%s) got (%s)", expectedErr, err)
 		}
 	}
+}
+
+func TestStop(t *testing.T) {
+	t.Log("Testing Stop")
+
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+
+	t.Log("disabled")
+	{
+		viper.Set(config.KeyReverse, false)
+		c, err := New()
+		if err != nil {
+			t.Fatalf("expected no error, got (%s)", err)
+		}
+
+		c.Stop()
+	}
+
+	t.Log("nil conn")
+	{
+		viper.Set(config.KeyReverse, false)
+		c, err := New()
+		if err != nil {
+			t.Fatalf("expected no error, got (%s)", err)
+		}
+
+		c.enabled = true
+		c.conn = nil
+
+		c.Stop()
+	}
+
 }

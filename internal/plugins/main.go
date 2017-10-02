@@ -8,62 +8,16 @@ package plugins
 import (
 	"context"
 	"encoding/json"
-	"os/exec"
 	"strings"
 	"sync"
+	"time"
 
 	// "github.com/rjeczalik/notify"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
-)
-
-// Metric defines an individual metric sample or array of samples (histogram)
-type Metric struct {
-	Type  string      `json:"_type"`
-	Value interface{} `json:"_value"`
-}
-
-// Metrics defines the list of metrics for a given plugin
-type Metrics map[string]Metric
-
-// Plugin defines a specific plugin
-type plugin struct {
-	sync.RWMutex
-	ctx          context.Context
-	cmd          *exec.Cmd
-	metrics      *Metrics
-	prevMetrics  *Metrics
-	logger       zerolog.Logger
-	ID           string
-	InstanceID   string
-	Name         string
-	InstanceArgs []string
-	Command      string
-	Generation   uint64
-	Running      bool
-	RunDir       string
-}
-
-// Plugins defines plugin manager
-type Plugins struct {
-	sync.RWMutex
-	ctx           context.Context
-	generation    uint64
-	active        map[string]*plugin
-	running       bool
-	pluginDir     string
-	logger        zerolog.Logger
-	reservedNames map[string]bool
-}
-
-const (
-	metricDelimiter = "`"
-	fieldDelimiter  = "\t"
-	nullMetricValue = "[[null]]"
 )
 
 // New returns a new instance of the plugins manager
@@ -101,41 +55,43 @@ func (p *Plugins) Flush(pluginName string) *map[string]interface{} {
 
 // Stop any long running plugins
 func (p *Plugins) Stop() error {
-	p.logger.Debug().Msg("Stopping plugins")
-	for id, plug := range p.active {
-		plug.Lock()
-		if !plug.Running {
-			plug.Unlock()
-			continue
-		}
-		if plug.cmd == nil {
-			plug.Unlock()
-			continue
-		}
-		if plug.cmd.Process != nil {
-			var stop bool
-			if plug.cmd.ProcessState == nil {
-				stop = true
-			} else {
-				stop = !plug.cmd.ProcessState.Exited()
-			}
-
-			if stop {
-				p.logger.Debug().
-					Str("plugin", id).
-					Msg("Stopping running plugin")
-				err := plug.cmd.Process.Kill()
-				if err != nil {
-					p.logger.Error().
-						Err(err).
-						Str("plugin", id).
-						Msg("Stopping plugin")
-				}
-			}
-		}
-		plug.Unlock()
-	}
+	p.logger.Info().Msg("Stopping plugins")
 	return nil
+
+	// for id, plug := range p.active {
+	// 	plug.Lock()
+	// 	if !plug.Running {
+	// 		plug.Unlock()
+	// 		continue
+	// 	}
+	// 	if plug.cmd == nil {
+	// 		plug.Unlock()
+	// 		continue
+	// 	}
+	// 	if plug.cmd.Process != nil {
+	// 		var stop bool
+	// 		if plug.cmd.ProcessState == nil {
+	// 			stop = true
+	// 		} else {
+	// 			stop = !plug.cmd.ProcessState.Exited()
+	// 		}
+	//
+	// 		if stop {
+	// 			p.logger.Info().
+	// 				Str("plugin", id).
+	// 				Msg("Stopping running plugin")
+	// 			err := plug.cmd.Process.Kill()
+	// 			if err != nil {
+	// 				p.logger.Error().
+	// 					Err(err).
+	// 					Str("plugin", id).
+	// 					Msg("Stopping plugin")
+	// 			}
+	// 		}
+	// 	}
+	// 	plug.Unlock()
+	// }
+	// return nil
 }
 
 // Run one or all plugins
@@ -220,11 +176,48 @@ func (p *Plugins) IsInternal(pluginName string) bool {
 	return reserved
 }
 
+type lastRunError struct {
+	Code int    `json:"code"`
+	Msg  string `json:"message"`
+}
+
+type pluginDetails struct {
+	Name            string   `json:"name"`
+	Instance        string   `json:"instance"`
+	Command         string   `json:"command"`
+	Args            []string `json:"args"`
+	LastRunStart    string   `json:"last_run_start"`
+	LastRunDuration string   `json:"last_run_duration"`
+	LastError       string   `json:"last_error"`
+}
+
 // Inventory returns list of active plugins
-func (p *Plugins) Inventory() ([]byte, error) {
-	p.RLock()
-	defer p.RUnlock()
-	return json.Marshal(p.active)
+func (p *Plugins) Inventory() []byte {
+	p.Lock()
+	defer p.Unlock()
+	inventory := make(map[string]*pluginDetails, len(p.active))
+	for id, plug := range p.active {
+		plug.Lock()
+		inventory[id] = &pluginDetails{
+			Name:            plug.ID,
+			Instance:        plug.InstanceID,
+			Command:         plug.Command,
+			Args:            plug.InstanceArgs,
+			LastRunStart:    plug.LastStart.Format(time.RFC3339Nano),
+			LastRunDuration: plug.LastRunDuration.String(),
+		}
+
+		if plug.LastError != nil {
+			inventory[id].LastError = plug.LastError.Error()
+		}
+
+		plug.Unlock()
+	}
+	data, err := json.Marshal(inventory)
+	if err != nil {
+		p.logger.Fatal().Err(err).Msg("inventory -> json")
+	}
+	return data
 }
 
 // func pluginWatcher() {

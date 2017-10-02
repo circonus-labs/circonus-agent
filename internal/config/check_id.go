@@ -13,10 +13,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-type cosiCheckConfig struct {
-	CID string `json:"_cid"`
-}
-
 func loadCOSICheckID(cfgFile string) (string, error) {
 	data, err := ioutil.ReadFile(cfgFile)
 	if err != nil {

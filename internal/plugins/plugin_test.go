@@ -208,7 +208,7 @@ func TestExec(t *testing.T) {
 	t.Log("error (exit)")
 	{
 		p.Command = path.Join(testDir, "error.sh")
-		expectedErr := errors.Errorf(`cmd err: exit status 1`)
+		expectedErr := errors.Errorf(`cmd err (foo bar ): exit status 1`)
 		err := p.exec()
 		if err == nil {
 			t.Fatalf("expected error")

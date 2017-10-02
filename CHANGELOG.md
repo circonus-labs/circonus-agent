@@ -1,3 +1,12 @@
+# v0.1.0
+    * add freebsd and solaris builds for testing
+    * add more test coverage throughout
+    * switch to tomb instead of contexts
+    * refactor code throughout
+    * add build constraints to control target specific signal handling in agent package
+    * fix race condition w/inventory handler
+    * reset connection attempts after successful send/receive (catch connection drops)
+    * randomize connection retry attempt delays (not all agents retrying on same schedule)
 # v0.0.3
     * integrate context
     * cleaner shutdown handling

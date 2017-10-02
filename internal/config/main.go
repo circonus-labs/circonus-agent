@@ -14,10 +14,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-var (
-	apiOK = false
-)
-
 // Validate verifies the required portions of the configuration
 func Validate() error {
 

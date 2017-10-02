@@ -19,6 +19,23 @@ import (
 	"github.com/spf13/viper"
 )
 
+func (c *Connection) setCheckConfig() error {
+	bid, reverseURL, err := c.getCheckConfig()
+	if err != nil {
+		return errors.Wrap(err, "reverse configuration (check)")
+	}
+
+	tlsConfig, err := c.getTLSConfig(bid, reverseURL)
+	if err != nil {
+		return errors.Wrap(err, "reverse configuration (tls)")
+	}
+
+	c.reverseURL = reverseURL
+	c.tlsConfig = tlsConfig
+
+	return nil
+}
+
 func (c *Connection) getCheckConfig() (string, *url.URL, error) {
 	cfg := &api.Config{
 		TokenKey: viper.GetString(config.KeyAPITokenKey),
@@ -70,15 +87,12 @@ func (c *Connection) getCheckBundle(client *api.API) (*api.CheckBundle, error) {
 		err    error
 	)
 
-	cid := viper.GetString(config.KeyReverseCID)
-
-	if cid != "" {
-		checkBundleID := cid
+	if c.checkCID != "" {
 		// Retrieve check bundle if we have a CID
-		if ok, _ := regexp.MatchString("^[0-9]+$", checkBundleID); ok {
-			checkBundleID = "/check_bundle/" + checkBundleID
+		if ok, _ := regexp.MatchString("^[0-9]+$", c.checkCID); ok {
+			c.checkCID = "/check_bundle/" + c.checkCID
 		}
-		bundle, err = client.FetchCheckBundle(api.CIDType(&checkBundleID))
+		bundle, err = client.FetchCheckBundle(api.CIDType(&c.checkCID))
 		if err != nil {
 			return nil, err
 		}
@@ -94,8 +108,8 @@ func (c *Connection) getCheckBundle(client *api.API) (*api.CheckBundle, error) {
 		return nil, errors.New("No available check bundle to use for reverse")
 	}
 
-	if bundle.CID != cid {
-		viper.Set(config.KeyReverseCID, bundle.CID)
+	if bundle.CID != c.checkCID {
+		c.checkCID = bundle.CID
 	}
 
 	return bundle, nil
@@ -133,31 +147,3 @@ func (c *Connection) searchForCheckBundle(client *api.API) (*api.CheckBundle, er
 
 	return &bundle, nil
 }
-
-// func updateConfigFromCheckBundle(bundle *api.CheckBundle) error {
-// 	if len(bundle.ReverseConnectURLs) == 0 {
-// 		return errors.New("No reverse URLs found in check")
-// 	}
-// 	rURL := bundle.ReverseConnectURLs[0]
-// 	rSecret := bundle.Config["reverse:secret_key"]
-//
-// 	if rSecret != "" {
-// 		rURL += "#" + rSecret
-// 	}
-//
-// 	// Replace protocol, url.Parse does not understand 'mtev_reverse'.
-// 	// Important part is validating what's after 'proto://'. Using
-// 	// a raw tls connection, the url protocol is not germane.
-// 	r, err := url.Parse(strings.Replace(rURL, "mtev_reverse", "http", -1))
-// 	if err != nil {
-// 		return errors.Wrapf(err, "Unable to parse reverse URL (%s)", rURL)
-// 	}
-// 	reverseURL = r
-//
-// 	if len(bundle.Brokers) == 0 {
-// 		return errors.New("No brokers found in check")
-// 	}
-// 	brokerID = bundle.Brokers[0]
-//
-// 	return nil
-// }

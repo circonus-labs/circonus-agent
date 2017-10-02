@@ -81,7 +81,7 @@ func (c *Connection) getBrokerCN(broker *api.Broker, reverseURL *url.URL) (strin
 	cn := ""
 
 	for _, detail := range broker.Details {
-		// certs are generated agains the CN (in theory)
+		// certs are generated against the CN (in theory)
 		// 1. find the right broker instance with matching IP or external hostname
 		// 2. set the tls.Config.ServerName to whatever that instance's CN is currently
 		// 3. cert will be valid for TLS conns (in theory)

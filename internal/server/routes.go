@@ -5,16 +5,7 @@
 
 package server
 
-import (
-	"net/http"
-	"regexp"
-)
-
-var (
-	pluginPathRx    = regexp.MustCompile("^/(run(/.*)?)?$")
-	inventoryPathRx = regexp.MustCompile("^/inventory/?$")
-	writePathRx     = regexp.MustCompile("^/write/.+$")
-)
+import "net/http"
 
 func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 
@@ -50,7 +41,5 @@ func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 		}
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
 	}
-
 }

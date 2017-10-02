@@ -141,6 +141,12 @@
 
 [[projects]]
   branch = "master"
+  name = "golang.org/x/net"
+  packages = ["context"]
+  revision = "0a9397675ba34b2845f758fe3cd68828369c6517"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
   revision = "b6e1ae21643682ce023deb8d152024597b0e9bb4"
@@ -150,6 +156,12 @@
   name = "golang.org/x/text"
   packages = ["internal/gen","internal/triegen","internal/ucd","transform","unicode/cldr","unicode/norm"]
   revision = "1cbadb444a806fd9430d14ad08967ed91da4fa0a"
+
+[[projects]]
+  branch = "v2"
+  name = "gopkg.in/tomb.v2"
+  packages = ["."]
+  revision = "d5d1b5820637886def9eef33e03a27a9f166942c"
 
 [[projects]]
   branch = "v2"
@@ -166,6 +178,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c66d3db9245335ad9495a0f9606c11d50b7c4fe0525abfe733ecff0fa19ce842"
+  inputs-digest = "01485cc86c56ae0acfc32db978489bedee5170c446bcf787087476c57eb4e68f"
   solver-name = "gps-cdcl"
   solver-version = 1

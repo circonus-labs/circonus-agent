@@ -8,19 +8,8 @@ package receiver
 import (
 	"encoding/json"
 	"io"
-	"sync"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
-)
-
-// Metrics holds metrics received via HTTP PUT/POST
-type Metrics map[string]interface{}
-
-var (
-	metricsmu sync.Mutex
-	metrics   *Metrics
-	logger    = log.With().Str("pkg", "receiver").Logger()
 )
 
 // Flush returns current metrics
@@ -61,6 +50,9 @@ func Parse(id string, data io.ReadCloser) error {
 
 	var tmp map[string]interface{}
 	if err := json.NewDecoder(data).Decode(&tmp); err != nil {
+		if serr, ok := err.(*json.SyntaxError); ok {
+			return errors.Wrapf(serr, "id:%s - offset %d", id, serr.Offset)
+		}
 		return errors.Wrapf(err, "parsing json for %s", id)
 	}
 

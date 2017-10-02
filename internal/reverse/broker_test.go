@@ -30,11 +30,11 @@ func TestGetTLSConfig(t *testing.T) {
 		t.Fatalf("parsing test url (%s)", err)
 	}
 
-	viper.Set(config.KeyReverse, true)
-	c := New()
-
 	t.Log("No broker cid")
 	{
+		viper.Set(config.KeyReverse, false)
+		c, _ := New()
+
 		_, err := c.getTLSConfig("", rurl)
 
 		expectedErr := errors.New("No broker CID supplied")
@@ -48,6 +48,9 @@ func TestGetTLSConfig(t *testing.T) {
 
 	t.Log("Invalid broker cid")
 	{
+		viper.Set(config.KeyReverse, false)
+		c, _ := New()
+
 		_, err := c.getTLSConfig("1234", rurl)
 
 		expectedErr := errors.New("Invalid broker CID (1234)")
@@ -61,6 +64,9 @@ func TestGetTLSConfig(t *testing.T) {
 
 	t.Log("No API token")
 	{
+		viper.Set(config.KeyReverse, false)
+		c, _ := New()
+
 		_, err := c.getTLSConfig("/broker/1234", rurl)
 
 		expectedErr := errors.New("Initializing cgm API: API Token is required")
@@ -77,6 +83,8 @@ func TestGetTLSConfig(t *testing.T) {
 		viper.Set(config.KeyAPIURL, apiSim.URL)
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
+		viper.Set(config.KeyReverse, false)
+		c, _ := New()
 		_, err := c.getTLSConfig("/broker/404", rurl)
 		viper.Reset()
 
@@ -94,6 +102,8 @@ func TestGetTLSConfig(t *testing.T) {
 		viper.Set(config.KeyAPIURL, apiSim.URL)
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
+		viper.Set(config.KeyReverse, false)
+		c, _ := New()
 		_, err := c.getTLSConfig("/broker/1234", badrurl)
 		viper.Reset()
 
@@ -111,6 +121,8 @@ func TestGetTLSConfig(t *testing.T) {
 		viper.Set(config.KeyAPIURL, apiSim.URL)
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
+		viper.Set(config.KeyReverse, false)
+		c, _ := New()
 		viper.Set(config.KeyReverseBrokerCAFile, "testdata/missingca.crt")
 		_, err := c.getTLSConfig("/broker/1234", rurl)
 		viper.Reset()
@@ -130,6 +142,8 @@ func TestGetTLSConfig(t *testing.T) {
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
 		viper.Set(config.KeyReverseBrokerCAFile, "testdata/ca.crt")
+		viper.Set(config.KeyReverse, false)
+		c, _ := New()
 		_, err := c.getTLSConfig("/broker/1234", rurl)
 		viper.Reset()
 
@@ -143,6 +157,8 @@ func TestGetTLSConfig(t *testing.T) {
 		viper.Set(config.KeyAPIURL, apiSim.URL)
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
+		viper.Set(config.KeyReverse, false)
+		c, _ := New()
 		_, err := c.getTLSConfig("/broker/1234", rurl)
 		viper.Reset()
 

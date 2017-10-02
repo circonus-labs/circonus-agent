@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -226,7 +227,7 @@ func (p *plugin) exec() error {
 	}
 
 	p.Running = true
-
+	p.LastStart = time.Now()
 	p.cmd = exec.CommandContext(p.ctx, p.Command)
 	p.cmd.Dir = p.RunDir
 	if p.InstanceArgs != nil {
@@ -238,8 +239,10 @@ func (p *plugin) exec() error {
 
 	p.Unlock()
 
-	resetStatus := func() {
+	resetStatus := func(err error) {
 		p.Lock()
+		p.LastRunDuration = time.Since(p.LastStart)
+		p.LastError = err
 		p.Running = false
 		p.Unlock()
 	}
@@ -250,7 +253,7 @@ func (p *plugin) exec() error {
 		plog.Error().
 			Err(err).
 			Msg(msg)
-		resetStatus()
+		resetStatus(err)
 		return errors.Wrap(err, msg)
 	}
 
@@ -263,7 +266,7 @@ func (p *plugin) exec() error {
 			Err(err).
 			Str("cmd", p.Command).
 			Msg(msg)
-		resetStatus()
+		resetStatus(err)
 		return errors.Wrap(err, msg)
 	}
 
@@ -297,27 +300,36 @@ func (p *plugin) exec() error {
 	p.parsePluginOutput(lines)
 
 	if err := p.cmd.Wait(); err != nil {
+		var stderr string
+		if errOut.Len() > 0 {
+			stderr = strings.Replace(errOut.String(), "\n", "", -1)
+		}
 		if exiterr, ok := err.(*exec.ExitError); ok {
-			errMsg := fmt.Sprintf("%s %s", errOut.String(), exiterr.Stderr)
+			errMsg := fmt.Sprintf("%s %s", stderr, exiterr.Stderr)
 			plog.Error().
 				Str("stderr", errMsg).
 				Str("status", exiterr.String()).
 				Str("cmd", p.Command).
 				Msg("exited non-zero")
+			if runErr != nil {
+				runErr = errors.Wrapf(exiterr, "cmd err (%s) and %s", errMsg, runErr)
+			} else {
+				runErr = errors.Wrapf(exiterr, "cmd err (%s)", errMsg)
+			}
 		} else {
 			plog.Error().
 				Err(err).
 				Str("cmd", p.Command).
-				Str("stderr", errOut.String()).
+				Str("stderr", stderr).
 				Msg("exited non-zero (not exiterr)")
-		}
-		if runErr != nil {
-			runErr = errors.Wrapf(err, "cmd err and %s", runErr)
-		} else {
-			runErr = errors.Wrap(err, "cmd err")
+			if runErr != nil {
+				runErr = errors.Wrapf(err, "cmd err (%s) and %s", stderr, runErr)
+			} else {
+				runErr = errors.Wrapf(err, "cmd err (%s)", stderr)
+			}
 		}
 	}
 
-	resetStatus()
+	resetStatus(runErr)
 	return runErr
 }

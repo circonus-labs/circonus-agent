@@ -7,88 +7,72 @@ package agent
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
-	"runtime"
-	"syscall"
 
-	"github.com/alecthomas/units"
+	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
 	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/reverse"
 	"github.com/circonus-labs/circonus-agent/internal/server"
 	"github.com/circonus-labs/circonus-agent/internal/statsd"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
 
-// Agent holds the main circonus-agent process
-type Agent struct {
-	signalCh     chan os.Signal
-	shutdown     func()
-	shutdownCtx  context.Context
-	errCh        chan error
-	plugins      *plugins.Plugins
-	listenServer *server.Server
-	reverseConn  *reverse.Connection
-	statsdServer *statsd.Server
-}
-
 // New returns a new agent instance
 func New() (*Agent, error) {
+	var err error
 	a := Agent{
-		errCh:    make(chan error),
 		signalCh: make(chan os.Signal, 10),
 	}
 
-	// Handle shutdown via a.shutdownCtx
-	signal.Notify(a.signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE, syscall.SIGTRAP)
-
-	a.shutdownCtx, a.shutdown = context.WithCancel(context.Background())
-
-	a.plugins = plugins.New(a.shutdownCtx)
-	if err := a.plugins.Scan(); err != nil {
+	//
+	// validate the configuration
+	//
+	err = config.Validate()
+	if err != nil {
 		return nil, err
 	}
 
-	{
-		var err error
-		a.statsdServer, err = statsd.New(a.shutdownCtx)
-		if err != nil {
-			return nil, err
-		}
+	a.plugins = plugins.New(a.t.Context(context.Background()))
+	err = a.plugins.Scan()
+	if err != nil {
+		return nil, err
 	}
 
-	a.reverseConn = reverse.New()
+	a.statsdServer, err = statsd.New()
+	if err != nil {
+		return nil, err
+	}
 
-	a.listenServer = server.New(a.shutdownCtx, a.plugins, a.statsdServer)
+	a.reverseConn, err = reverse.New()
+	if err != nil {
+		return nil, err
+	}
+
+	a.listenServer, err = server.New(a.plugins, a.statsdServer)
+	if err != nil {
+		return nil, err
+	}
+
+	a.signalNotifySetup()
 
 	return &a, nil
 }
 
 // Start the agent
-func (a *Agent) Start() {
+func (a *Agent) Start() error {
+	a.t.Go(a.handleSignals)
+	a.t.Go(a.statsdServer.Start)
+	a.t.Go(a.reverseConn.Start)
+	a.t.Go(a.listenServer.Start)
 
-	go a.handleSignals()
+	log.Debug().
+		Int("pid", os.Getpid()).
+		Str("name", release.NAME).
+		Str("ver", release.VERSION).Msg("Starting wait")
 
-	go func() {
-		if err := a.statsdServer.Start(); err != nil {
-			a.errCh <- errors.Wrap(err, "Starting StatsD listener")
-		}
-	}()
-
-	go func() {
-		if err := a.reverseConn.Start(); err != nil {
-			a.errCh <- errors.Wrap(err, "Unable to start reverse connection")
-		}
-	}()
-
-	go func() {
-		if err := a.listenServer.Start(); err != nil {
-			a.errCh <- errors.Wrap(err, "Starting server")
-		}
-	}()
+	return a.t.Wait()
 }
 
 // Stop cleans up and shuts down the Agent
@@ -98,55 +82,19 @@ func (a *Agent) Stop() {
 	a.statsdServer.Stop()
 	a.reverseConn.Stop()
 	a.listenServer.Stop()
-	a.shutdown()
 
-	log.Debug().Msg("Stopped " + release.NAME + " agent")
-	os.Exit(0)
-}
+	log.Debug().
+		Int("pid", os.Getpid()).
+		Str("name", release.NAME).
+		Str("ver", release.VERSION).Msg("Stopped")
 
-// Wait blocks until shutdown
-func (a *Agent) Wait() error {
-	log.Debug().Msg("Starting wait")
-	select {
-	case <-a.shutdownCtx.Done():
-	case err := <-a.errCh:
-		a.Stop()
-		return err
-	}
-
-	return nil
-}
-
-// handleSignals runs the signal handler thread
-func (a *Agent) handleSignals() {
-	const stacktraceBufSize = 1 * units.MiB
-
-	// pre-allocate a buffer
-	buf := make([]byte, stacktraceBufSize)
-
-	for {
-		select {
-		case <-a.shutdownCtx.Done():
-			log.Debug().Msg("Shutting down")
-			return
-		case sig := <-a.signalCh:
-			log.Info().Str("signal", sig.String()).Msg("Received signal")
-			switch sig {
-			case os.Interrupt, syscall.SIGTERM:
-				a.shutdown()
-			case syscall.SIGPIPE, syscall.SIGHUP:
-				// Noop
-			case syscall.SIGTRAP:
-				stacklen := runtime.Stack(buf, true)
-				fmt.Printf("=== received SIGINFO ===\n*** goroutine dump...\n%s\n*** end\n", buf[:stacklen])
-			default:
-				panic(fmt.Sprintf("unsupported signal: %v", sig))
-			}
-		}
+	if a.t.Alive() {
+		a.t.Kill(nil)
 	}
 }
 
 // stopSignalHandler disables the signal handler
 func (a *Agent) stopSignalHandler() {
 	signal.Stop(a.signalCh)
+	signal.Reset() // so a second ctrl-c will force a kill
 }
