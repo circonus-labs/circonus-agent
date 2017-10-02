@@ -40,13 +40,9 @@ type Server struct {
 	apiURL                string
 	apiCAFile             string
 	debugCGM              bool
-	server                *statsdServer
-}
-
-type statsdServer struct {
-	listener *net.UDPConn
-	packetCh chan []byte
-	t        tomb.Tomb
+	listener              *net.UDPConn
+	packetCh              chan []byte
+	t                     tomb.Tomb
 }
 
 const (
