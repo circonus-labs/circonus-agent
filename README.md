@@ -18,7 +18,7 @@ cd /opt/circonus
 mkdir -p agent/{sbin,etc}
 cd agent
 ln -s /opt/circonus/nad/etc/node-agent.d plugins
-curl "https://github.com/circonus-labs/circonus-agent/releases/download/v0.1.2/circonus-agent_0.1.2_linux_64-bit.tar.gz" -o circonus-agent.tgz
+curl -L "https://github.com/circonus-labs/circonus-agent/releases/download/v0.1.2/circonus-agent_0.1.2_linux_64-bit.tar.gz" -o circonus-agent.tgz
 tar zxf circonus-agent.tgz
 ```
 To leverage the existing COSI/NAD installation, create a configuration file `/opt/circonus/agent/etc/circonus-agent.toml` (or use the corresponding command line options.)
@@ -45,21 +45,14 @@ Ensure that NAD is not currently running (e.g. `systemctl stop nad`) and start c
 
 > NOTE: See `Vagrantfile` for an example which bootstraps a centos7 vm.
 
-1. Install go (on linux for example)
-    1. `curl "https://storage.googleapis.com/golang/go1.9.linux-amd64.tar.gz" -O`
-    1. `sudo tar -C /usr/local -xzf go1.9.linux-amd64.tar.gz`
-    1. `echo 'export PATH="$PATH:/usr/local/go/bin"' > /etc/profile.d/go.sh` (root)
-1. Setup go env & clone repo
-    1. `mkdir -p ~/godev/src/github.com/circonus-labs`
-    1. Set `GOPATH="${HOME}/godev"` in `.bashrc`
-    1. Logout/login, verify `go version && env | grep GOPATH`
-1. Install dep (go package dependency manager)
-    1. `go get -u github.com/golang/dep/cmd/dep`
+1. Install and setup go environment
+    1. Install dep `go get -u github.com/golang/dep/cmd/dep`
 1. Clone repo and run dep
     1. `cd $GOPATH/src/github.com/circonus-labs`
     1. `git clone https://github.com/circonus-labs/circonus-agent.git`
-    1. `cd circonus-agent && dep ensure`
+    1. `cd circonus-agent`
 1. Build/Install
+    1.  `dep ensure`
     1. `go build`
     1. `mkdir -p /opt/circonus/agent/sbin`
     1. `cp circonus-agent /opt/circonus/agent/sbin/circonus-agentd`
