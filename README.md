@@ -6,6 +6,8 @@
 > * No target specific packages. (e.g. rpm|deb|pkg)
 > * No service configurations provided. (e.g. systemd, upstart, init, svc)
 > * Native plugins (.js) do not work. Unless modified to run `node` independently and follow [plugin output guidelines](#output).
+>
+> The code is changing frequently at this point. Before reporting an issue, please ensure the [latest release](https://github.com/circonus-labs/circonus-agent/releases/latest) is being used.
 
 ## development working release - quick start
 
