@@ -7,7 +7,7 @@
 > * No service configurations provided. (e.g. systemd, upstart, init, svc)
 > * Native plugins (.js) do not work. Unless modified to run `node` independently and follow [plugin output guidelines](#output).
 
-## development working release
+## development working release - quick start
 
 Download latest release from repo [releases](https://github.com/circonus-labs/circonus-agent/releases).
 
@@ -34,7 +34,9 @@ key = "cosi"
 
 Ensure that NAD is not currently running (e.g. `systemctl stop nad`) and start circonus-agent `sbin/circonus-agentd`.
 
-## development testing notes
+---
+
+## development testing (manual build/install from source)
 
 > NOTE: See `Vagrantfile` for an example which bootstraps a centos7 vm.
 
