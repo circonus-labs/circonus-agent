@@ -36,6 +36,7 @@ func New() (*Server, error) {
 		apiApp:         viper.GetString(config.KeyAPITokenApp),
 		apiURL:         viper.GetString(config.KeyAPIURL),
 		apiCAFile:      viper.GetString(config.KeyAPICAFile),
+		packetCh:       make(chan []byte, packetQueueSize),
 	}
 
 	port := viper.GetString(config.KeyStatsdPort)
@@ -199,6 +200,7 @@ func (s *Server) reader() error {
 			return nil
 		}
 		if err != nil {
+			s.logger.Error().Err(err).Msg("reader")
 			return errors.Wrap(err, "reader")
 		}
 		if n > 0 {
@@ -219,6 +221,7 @@ func (s *Server) processor() error {
 		case pkt := <-s.packetCh:
 			err := s.processPacket(pkt)
 			if err != nil {
+				s.logger.Error().Err(err).Msg("processor")
 				return errors.Wrap(err, "processor")
 			}
 		}
