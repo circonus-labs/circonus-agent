@@ -1,3 +1,6 @@
+# v0.1.2
+    * fix statsd packet channel (broken in v0.1.1)
+    * update readme with current instructions
 # v0.1.1
     * merge structs
     * eliminate race condition

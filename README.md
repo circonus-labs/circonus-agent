@@ -7,21 +7,21 @@
 > * No service configurations provided. (e.g. systemd, upstart, init, svc)
 > * Native plugins (.js) do not work. Unless modified to run `node` independently and follow [plugin output guidelines](#output).
 
-## v0.1.1 development working release
+## development working release
 
-Download from repo [releases](https://github.com/circonus-labs/circonus-agent/releases).
+Download latest release from repo [releases](https://github.com/circonus-labs/circonus-agent/releases).
 
 Example of installing into an existing COSI registered linux system.
 
 ```sh
 cd /opt/circonus
-mkdir -p circonus-agent/{sbin,etc}
-cd circonus-agent
+mkdir -p agent/{sbin,etc}
+cd agent
 ln -s /opt/circonus/nad/etc/node-agent.d plugins
-curl "https://github.com/circonus-labs/circonus-agent/releases/download/v0.1.1/circonus-agent_0.1.1_linux_64-bit.tar.gz" -o circonus-agent.tgz
+curl "https://github.com/circonus-labs/circonus-agent/releases/download/v0.1.2/circonus-agent_0.1.2_linux_64-bit.tar.gz" -o circonus-agent.tgz
 tar zxf circonus-agent.tgz
 ```
-To leverage the existing COSI/NAD installation, create a configuration file `/opt/circonus/circonus-agent/etc/circonus-agent.toml` (or use the corresponding command line options.)
+To leverage the existing COSI/NAD installation, create a configuration file `/opt/circonus/agent/etc/circonus-agent.toml` (or use the corresponding command line options.)
 
 ```toml
 [reverse]
@@ -32,7 +32,7 @@ cid = "cosi"
 key = "cosi"
 ```
 
-Ensure that NAD is not currently running (e.g. `systemctl stop nad`) and start circonus-agent `sbin/circonus-agent`.
+Ensure that NAD is not currently running (e.g. `systemctl stop nad`) and start circonus-agent `sbin/circonus-agentd`.
 
 ## development testing notes
 
