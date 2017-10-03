@@ -24,6 +24,11 @@ tar zxf circonus-agent.tgz
 To leverage the existing COSI/NAD installation, create a configuration file `/opt/circonus/agent/etc/circonus-agent.toml` (or use the corresponding command line options.)
 
 ```toml
+#debug = true
+
+# set the plugin directory to NAD's
+plugin-dir = "/opt/circonus/nad/etc/node-agent.d"
+
 [reverse]
 enabled = true
 cid = "cosi"
