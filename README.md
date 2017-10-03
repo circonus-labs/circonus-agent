@@ -54,64 +54,25 @@ Ensure that NAD is not currently running (e.g. `systemctl stop nad`) and start c
     1. `cd circonus-agent && dep ensure`
 1. Build
     1. `go build`
+1. Install
+    1. `mkdir -p /opt/circonus/agent/sbin`
+    1. `cp circonus-agent /opt/circonus/agent/sbin/circonus-agentd`
 1. Run
-    1. `./circonus-agent -h` for help
+    1. `/opt/circonus/agent/sbin/circonus-agentd -h` for help
     1. example - on a system where cosi has *already* been run
        1. stop nad, if it is running
-       1. run: `./circonus-agent -p /opt/circonus/nad/etc/node-agent.d -r -cid cosi -api-key cosi --log-pretty`
+       1. run: `/opt/circonus/agent/sbin/circonus-agentd -p /opt/circonus/nad/etc/node-agent.d -r -cid cosi -api-key cosi --log-pretty`
         * `-p` use the existing nad plugins
         * `--api-key cosi` load api credentials from cosi installation
-        * `--cid cosi` load check information from cosi installation
+        * `--reverse-cid cosi` load check information from cosi installation
         * `-r` establish a reverse connection
         * `--log-prety` print formatted logging output to the terminal
 
 # Options
 
 ```
-$ /opt/circonus/circonus-agent/sbin/circonus-agent -h
-The Circonus host agent daemon provides a simple mechanism
-to expose systems and application metrics to Circonus.
-It inventories all executable programs in its plugin directory
-and executes them upon external request, returning results
-in JSON format.
-
-Usage:
-  circonus-agent [flags]
-
-Flags:
-      --api-app string                  Circonus API Token app (default "circonus-agent")
-      --api-ca-file string              Circonus API CA certificate file
-      --api-key string                  Circonus API Token key
-      --api-url string                  Circonus API URL (default "https://api.circonus.com/v2/")
-      --config string                   config file (default is /opt/circonus/circonus-agent/etc/circonus-agent.(json|toml|yaml)
-  -d, --debug                           Enable debug messages
-      --debug-cgm                       Enable CGM API debug messages
-  -h, --help                            help for circonus-agent
-  -l, --listen string                   Listen address and port [[IP]:[PORT]](default ":2609")
-      --log-level string                Log level [(panic|fatal|error|warn|info|debug|disabled)] (default "info")
-      --log-pretty                      Output formatted/colored log lines
-      --no-statsd                       Disable StatsD listener
-  -p, --plugin-dir string               Plugin directory (default "/opt/circonus/circonus-agent/plugins")
-  -r, --reverse                         Enable reverse connection
-      --reverse-broker-ca-file string   Broker CA certificate file
-      --reverse-cid string              Check Bundle ID for reverse connection
-      --reverse-target string           Target host (default "centos7")
-      --show-config                     Show config and exit
-      --ssl-cert-file string            SSL Certificate file (PEM cert and CAs concatenated together) (default "/opt/circonus/circonus-agent/etc/circonus-agent.pem")
-      --ssl-key-file string             SSL Key file (default "/opt/circonus/circonus-agent/etc/circonus-agent.key")
-      --ssl-listen string               SSL listen address and port [IP]:[PORT] - setting enables SSL
-      --ssl-verify                      Enable SSL verification (default true)
-      --statsd-group-cid string         StatsD group check bundle ID
-      --statsd-group-counters string    StatsD group metric counter handling (average|sum) (default "sum")
-      --statsd-group-gauges string      StatsD group gauge operator (default "average")
-      --statsd-group-prefix string      StatsD group metric prefix (default "group.")
-      --statsd-group-sets string        StatsD group set operator (default "sum")
-      --statsd-host-cateogry string     StatsD host metric category (default "statsd")
-      --statsd-host-prefix string       StatsD host metric prefix (default "host.")
-      --statsd-port string              StatsD port (default "8125")
-  -V, --version                         Show version and exit
+$ /opt/circonus/agent/sbin/circonus-agentd -h
 ```
-
 
 # Plugins
 
