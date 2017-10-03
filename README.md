@@ -9,7 +9,7 @@
 
 ## development working release - quick start
 
-Download latest release from repo [releases](https://github.com/circonus-labs/circonus-agent/releases).
+Download [latest release](https://github.com/circonus-labs/circonus-agent/releases/latest) from GitHub repository.
 
 Example of installing into an existing COSI registered linux system.
 
@@ -21,6 +21,7 @@ ln -s /opt/circonus/nad/etc/node-agent.d plugins
 curl -L "https://github.com/circonus-labs/circonus-agent/releases/download/v0.1.2/circonus-agent_0.1.2_linux_64-bit.tar.gz" -o circonus-agent.tgz
 tar zxf circonus-agent.tgz
 ```
+
 To leverage the existing COSI/NAD installation, create a configuration file `/opt/circonus/agent/etc/circonus-agent.toml` (or use the corresponding command line options.)
 
 ```toml
