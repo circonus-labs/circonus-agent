@@ -13,10 +13,10 @@ builds:
 
         goos:
             - linux
-            - darwin
-            - windows
-            - freebsd
-            - solaris
+            # - darwin
+            # - windows
+            # - freebsd
+            # - solaris
 
         goarch:
             - amd64
