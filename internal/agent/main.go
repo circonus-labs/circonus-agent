@@ -83,18 +83,16 @@ func (a *Agent) Stop() {
 	a.reverseConn.Stop()
 	a.listenServer.Stop()
 
+	a.t.Kill(nil)
+
 	log.Debug().
 		Int("pid", os.Getpid()).
 		Str("name", release.NAME).
 		Str("ver", release.VERSION).Msg("Stopped")
-
-	if a.t.Alive() {
-		a.t.Kill(nil)
-	}
 }
 
 // stopSignalHandler disables the signal handler
 func (a *Agent) stopSignalHandler() {
 	signal.Stop(a.signalCh)
-	signal.Reset() // so a second ctrl-c will force a kill
+	signal.Reset() // so a second ctrl-c will force immediate stop
 }
