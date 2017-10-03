@@ -59,16 +59,15 @@ Ensure that NAD is not currently running (e.g. `systemctl stop nad`) and start c
     1. `cd $GOPATH/src/github.com/circonus-labs`
     1. `git clone https://github.com/circonus-labs/circonus-agent.git`
     1. `cd circonus-agent && dep ensure`
-1. Build
+1. Build/Install
     1. `go build`
-1. Install
     1. `mkdir -p /opt/circonus/agent/sbin`
     1. `cp circonus-agent /opt/circonus/agent/sbin/circonus-agentd`
 1. Run
     1. `/opt/circonus/agent/sbin/circonus-agentd -h` for help
     1. example - on a system where cosi has *already* been run
        1. stop nad, if it is running
-       1. run: `/opt/circonus/agent/sbin/circonus-agentd -p /opt/circonus/nad/etc/node-agent.d -r -cid cosi -api-key cosi --log-pretty`
+       1. run: `/opt/circonus/agent/sbin/circonus-agentd -p /opt/circonus/nad/etc/node-agent.d -r --reverse-cid cosi --api-key cosi --log-pretty`
         * `-p` use the existing nad plugins
         * `--api-key cosi` load api credentials from cosi installation
         * `--reverse-cid cosi` load check information from cosi installation
