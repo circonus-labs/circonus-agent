@@ -60,11 +60,11 @@ in JSON format.`,
 
 		a, err := agent.New()
 		if err != nil {
-			log.Fatal().Err(err).Msg("Initializing")
+			log.Fatal().Err(err).Msg("initializing")
 		}
 
 		if err := a.Start(); err != nil {
-			log.Fatal().Err(err).Msg("Startup")
+			log.Fatal().Err(err).Msg("starting agent")
 		}
 	},
 }
