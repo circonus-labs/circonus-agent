@@ -1,3 +1,6 @@
+# v0.2.0
+    * add ability to create a [reverse] check - if a check bundle id is not provided for reverse, the agent will search for a suitable check bundle for the host. Previously, if a check bundle could not be found the agent would exit. Now, when `--reverse-create-check` is supplied, the agent has the ability to create a check, rather than exit.
+    * expose basic app stats endpoint /stats
 # v0.1.2
     * fix statsd packet channel (broken in v0.1.1)
     * update readme with current instructions
