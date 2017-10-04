@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/circonus-labs/circonus-agent/internal/appstats"
 	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/pkg/errors"
 )
@@ -24,6 +25,7 @@ func (s *Server) processPacket(pkt []byte) error {
 	metrics := bytes.Split(pkt, []byte("\n"))
 	for _, metric := range metrics {
 		if err := s.parseMetric(string(metric)); err != nil {
+			appstats.IncrementInt("statsd_metrics_bad")
 			s.logger.Warn().Err(err).Str("metric", string(metric)).Msg("parsing")
 		}
 	}

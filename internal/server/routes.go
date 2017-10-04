@@ -5,9 +5,15 @@
 
 package server
 
-import "net/http"
+import (
+	"expvar"
+	"net/http"
+
+	"github.com/circonus-labs/circonus-agent/internal/appstats"
+)
 
 func (s *Server) router(w http.ResponseWriter, r *http.Request) {
+	appstats.IncrementInt("requests_total")
 
 	s.logger.Info().
 		Str("method", r.Method).
@@ -20,7 +26,10 @@ func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 			s.run(w, r)
 		} else if inventoryPathRx.MatchString(r.URL.Path) { // plugin inventory
 			s.inventory(w, r)
+		} else if r.URL.Path == "/stats" {
+			expvar.Handler().ServeHTTP(w, r)
 		} else {
+			appstats.IncrementInt("requests_bad")
 			s.logger.Warn().
 				Str("method", r.Method).
 				Str("url", r.URL.String()).
@@ -33,6 +42,7 @@ func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 		if writePathRx.MatchString(r.URL.Path) {
 			s.write(w, r)
 		} else {
+			appstats.IncrementInt("requests_bad")
 			s.logger.Warn().
 				Str("method", r.Method).
 				Str("url", r.URL.String()).
@@ -40,6 +50,7 @@ func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 			http.NotFound(w, r)
 		}
 	default:
+		appstats.IncrementInt("requests_bad")
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }

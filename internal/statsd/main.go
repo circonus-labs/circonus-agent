@@ -12,6 +12,7 @@ import (
 	"net"
 	"regexp"
 
+	"github.com/circonus-labs/circonus-agent/internal/appstats"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/pkg/errors"
@@ -204,6 +205,7 @@ func (s *Server) reader() error {
 			return errors.Wrap(err, "reader")
 		}
 		if n > 0 {
+			appstats.IncrementInt("statsd_packets_total")
 			pkt := make([]byte, n)
 			copy(pkt, buff[:n])
 			s.packetCh <- pkt
@@ -221,6 +223,7 @@ func (s *Server) processor() error {
 		case pkt := <-s.packetCh:
 			err := s.processPacket(pkt)
 			if err != nil {
+				appstats.IncrementInt("statsd_packets_bad")
 				s.logger.Error().Err(err).Msg("processor")
 				return errors.Wrap(err, "processor")
 			}
