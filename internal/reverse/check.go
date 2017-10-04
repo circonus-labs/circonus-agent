@@ -9,7 +9,6 @@ import (
 	"fmt"
 	stdlog "log"
 	"net/url"
-	"os"
 	"regexp"
 	"strings"
 
@@ -117,20 +116,7 @@ func (c *Connection) getCheckBundle(client *api.API) (*api.CheckBundle, error) {
 }
 
 func (c *Connection) searchForCheckBundle(client *api.API) (*api.CheckBundle, error) {
-	target := viper.GetString(config.KeyReverseTarget)
-	if target == "" {
-		host, err := os.Hostname()
-		if err != nil {
-			return nil, errors.Wrap(err, "Target not set, unable to derive valid hostname")
-		}
-		c.logger.Info().
-			Str("hostname", host).
-			Msg("Target not set, using hostname")
-		target = host
-	}
-
-	criteria := api.SearchQueryType(fmt.Sprintf(`(active:1)(type:"json:nad")(target:"%s")`, target))
-
+	criteria := api.SearchQueryType(fmt.Sprintf(`(active:1)(type:"json:nad")(target:"%s")`, viper.GetString(config.KeyReverseTarget)))
 	bundles, err := client.SearchCheckBundles(&criteria, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "Searching for check bundles")
@@ -141,7 +127,7 @@ func (c *Connection) searchForCheckBundle(client *api.API) (*api.CheckBundle, er
 			return nil, errors.Errorf("No check bundles matched criteria (%s)", string(criteria))
 		}
 
-		bundle, err := c.createCheckBundle(client, target)
+		bundle, err := c.createCheckBundle(client)
 		if err != nil {
 			return nil, err
 		}
@@ -157,7 +143,7 @@ func (c *Connection) searchForCheckBundle(client *api.API) (*api.CheckBundle, er
 	return &bundle, nil
 }
 
-func (c *Connection) createCheckBundle(client *api.API, target string) (*api.CheckBundle, error) {
+func (c *Connection) createCheckBundle(client *api.API) (*api.CheckBundle, error) {
 
 	addr := c.agentAddress
 	if addr[0:1] == ":" {
@@ -165,7 +151,7 @@ func (c *Connection) createCheckBundle(client *api.API, target string) (*api.Che
 	}
 	cfg := api.NewCheckBundle()
 	cfg.DisplayName = viper.GetString(config.KeyReverseCreateCheckTitle)
-	cfg.Target = target
+	cfg.Target = viper.GetString(config.KeyReverseTarget)
 	cfg.Type = "json:nad"
 	cfg.Config = api.CheckBundleConfig{apiconf.URL: "http://" + addr + "/"}
 	cfg.Metrics = []api.CheckBundleMetric{

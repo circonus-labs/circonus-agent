@@ -115,8 +115,8 @@ var (
 	// StatsdConf returns the default statsd config file
 	StatsdConf = "" // (e.g. /opt/circonus/agent/etc/statsd.json)
 
-	// Target defaults to return from os.Hostname()
-	Target = ""
+	// ReverseTarget defaults to return from os.Hostname()
+	ReverseTarget = ""
 
 	// ReverseCreateCheckTitle to use if creating a check
 	ReverseCreateCheckTitle = ""
@@ -145,11 +145,11 @@ func init() {
 	SSLCertFile = filepath.Join(EtcPath, release.NAME+".pem")
 	SSLKeyFile = filepath.Join(EtcPath, release.NAME+".key")
 
-	Target, err = os.Hostname()
+	ReverseTarget, err = os.Hostname()
 	if err != nil {
 		fmt.Printf("Unable to determine hostname for target %v\n", err)
 		os.Exit(1)
 	}
 
-	ReverseCreateCheckTitle = Target + " /agent"
+	ReverseCreateCheckTitle = ReverseTarget + " /agent"
 }

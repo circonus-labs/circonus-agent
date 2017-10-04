@@ -161,10 +161,10 @@ func init() {
 			description = "Target host"
 		)
 
-		RootCmd.Flags().String(longOpt, defaults.Target, description)
+		RootCmd.Flags().String(longOpt, defaults.ReverseTarget, description)
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
-		viper.SetDefault(key, defaults.Target)
+		viper.SetDefault(key, defaults.ReverseTarget)
 
 	}
 
@@ -651,11 +651,15 @@ func Execute() {
 }
 
 func showConfig(w io.Writer) error {
-	var cfg interface{}
+	var cfg map[string]interface{}
 
 	if err := viper.Unmarshal(&cfg); err != nil {
 		return errors.Wrap(err, "parsing config")
 	}
+
+	// these are pure flags (shouldn't be "in" config files)
+	delete(cfg, "version")
+	delete(cfg, "show-config")
 
 	data, err := json.MarshalIndent(cfg, " ", "  ")
 	if err != nil {
