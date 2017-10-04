@@ -66,14 +66,17 @@ type connError struct {
 
 const (
 	// NOTE: TBD, make some of these user-configurable
-	commTimeoutSeconds   = 65        // seconds, when communicating with noit
-	dialerTimeoutSeconds = 15        // seconds, establishing connection
-	metricTimeoutSeconds = 50        // seconds, when communicating with agent
-	maxPayloadLen        = 65529     // max unsigned short - 6 (for header)
-	maxConnRetry         = 10        // max times to retry a persistently failing connection
-	configRetryLimit     = 5         // if failed attempts > threshold, force reconfig
-	maxDelaySeconds      = 60        // maximum amount of delay between attempts
-	minDelayStep         = 1         // minimum seconds to add on retry
-	maxDelayStep         = 20        // maximum seconds to add on retry
-	noitCmdConnect       = "CONNECT" // command from noit/broker
+	commTimeoutSeconds    = 65        // seconds, when communicating with noit
+	dialerTimeoutSeconds  = 15        // seconds, establishing connection
+	metricTimeoutSeconds  = 50        // seconds, when communicating with agent
+	maxPayloadLen         = 65529     // max unsigned short - 6 (for header)
+	maxConnRetry          = 10        // max times to retry a persistently failing connection
+	configRetryLimit      = 5         // if failed attempts > threshold, force reconfig
+	maxDelaySeconds       = 60        // maximum amount of delay between attempts
+	minDelayStep          = 1         // minimum seconds to add on retry
+	maxDelayStep          = 20        // maximum seconds to add on retry
+	noitCmdConnect        = "CONNECT" // command from noit/broker
+	brokerMaxRetries      = 5
+	brokerMaxResponseTime = 500 * time.Millisecond
+	brokerActiveStatus    = "active"
 )

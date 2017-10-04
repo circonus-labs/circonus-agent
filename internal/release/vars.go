@@ -23,3 +23,12 @@ var (
 	// VERSION of the release
 	VERSION = "dev"
 )
+
+// Info contains release information
+type Info struct {
+	Name      string
+	Version   string
+	Commit    string
+	BuildDate string
+	Tag       string
+}

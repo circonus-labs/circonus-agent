@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/circonus-labs/circonus-agent/internal/appstats"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -42,6 +43,8 @@ func (p *Plugins) Scan() error {
 	if err := p.Stop(); err != nil {
 		return errors.Wrap(err, "stopping plugin(s)")
 	}
+
+	appstats.SetInt("plugins_total", 0)
 
 	if err := p.scanPluginDirectory(); err != nil {
 		return errors.Wrap(err, "plugin directory scan")
@@ -194,6 +197,7 @@ func (p *Plugins) scanPluginDirectory() error {
 				plug = p.active[fileBase]
 			}
 
+			appstats.IncrementInt("plugins_total")
 			plug.Generation = p.generation
 			plug.Command = cmdName
 			p.logger.Info().
@@ -219,6 +223,7 @@ func (p *Plugins) scanPluginDirectory() error {
 					plug = p.active[pluginName]
 				}
 
+				appstats.IncrementInt("plugins_total")
 				plug.Generation = p.generation
 				plug.Command = cmdName
 				p.logger.Info().

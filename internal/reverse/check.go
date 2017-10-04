@@ -9,12 +9,12 @@ import (
 	"fmt"
 	stdlog "log"
 	"net/url"
-	"os"
 	"regexp"
 	"strings"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-gometrics/api"
+	apiconf "github.com/circonus-labs/circonus-gometrics/api/config"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
@@ -89,7 +89,7 @@ func (c *Connection) getCheckBundle(client *api.API) (*api.CheckBundle, error) {
 
 	if c.checkCID != "" {
 		// Retrieve check bundle if we have a CID
-		if ok, _ := regexp.MatchString("^[0-9]+$", c.checkCID); ok {
+		if ok, _ := regexp.MatchString(`^[0-9]+$`, c.checkCID); ok {
 			c.checkCID = "/check_bundle/" + c.checkCID
 		}
 		bundle, err = client.FetchCheckBundle(api.CIDType(&c.checkCID))
@@ -97,7 +97,7 @@ func (c *Connection) getCheckBundle(client *api.API) (*api.CheckBundle, error) {
 			return nil, err
 		}
 	} else {
-		// Otherwise, search for a check bundle
+		// Otherwise, search for a check bundle (optionally, create one if not found)
 		bundle, err = c.searchForCheckBundle(client)
 		if err != nil {
 			return nil, err
@@ -116,27 +116,22 @@ func (c *Connection) getCheckBundle(client *api.API) (*api.CheckBundle, error) {
 }
 
 func (c *Connection) searchForCheckBundle(client *api.API) (*api.CheckBundle, error) {
-	target := viper.GetString(config.KeyReverseTarget)
-	if target == "" {
-		host, err := os.Hostname()
-		if err != nil {
-			return nil, errors.Wrap(err, "Target not set, unable to derive valid hostname")
-		}
-		c.logger.Info().
-			Str("hostname", host).
-			Msg("Target not set, using hostname")
-		target = host
-	}
-
-	criteria := api.SearchQueryType(fmt.Sprintf(`(active:1)(type:"json:nad")(target:"%s")`, target))
-
+	criteria := api.SearchQueryType(fmt.Sprintf(`(active:1)(type:"json:nad")(target:"%s")`, viper.GetString(config.KeyReverseTarget)))
 	bundles, err := client.SearchCheckBundles(&criteria, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "Searching for check bundles")
 	}
 
 	if len(*bundles) == 0 {
-		return nil, errors.Errorf("No check bundles matched criteria (%s)", string(criteria))
+		if !viper.GetBool(config.KeyReverseCreateCheck) {
+			return nil, errors.Errorf("No check bundles matched criteria (%s)", string(criteria))
+		}
+
+		bundle, err := c.createCheckBundle(client)
+		if err != nil {
+			return nil, err
+		}
+		return bundle, nil
 	}
 
 	if len(*bundles) > 1 {
@@ -146,4 +141,48 @@ func (c *Connection) searchForCheckBundle(client *api.API) (*api.CheckBundle, er
 	bundle := (*bundles)[0]
 
 	return &bundle, nil
+}
+
+func (c *Connection) createCheckBundle(client *api.API) (*api.CheckBundle, error) {
+
+	addr := c.agentAddress
+	if addr[0:1] == ":" {
+		addr = "localhost" + addr
+	}
+	cfg := api.NewCheckBundle()
+	cfg.DisplayName = viper.GetString(config.KeyReverseCreateCheckTitle)
+	cfg.Target = viper.GetString(config.KeyReverseTarget)
+	cfg.Type = "json:nad"
+	cfg.Config = api.CheckBundleConfig{apiconf.URL: "http://" + addr + "/"}
+	cfg.Metrics = []api.CheckBundleMetric{
+		api.CheckBundleMetric{Name: "placeholder", Type: "text", Status: "active"}, // one metric is required again
+	}
+
+	tags := viper.GetString(config.KeyReverseCreateCheckTags)
+	if tags != "" {
+		cfg.Tags = strings.Split(tags, ",")
+	}
+
+	brokerCID := viper.GetString(config.KeyReverseCreateCheckBroker)
+	if brokerCID == "" || strings.ToLower(brokerCID) == "select" {
+		broker, err := c.selectBroker(client, "json:nad")
+		if err != nil {
+			return nil, err
+		}
+
+		brokerCID = broker.CID
+	}
+
+	if ok, _ := regexp.MatchString(`^[0-9]+$`, brokerCID); ok {
+		brokerCID = "/broker/" + brokerCID
+	}
+
+	cfg.Brokers = []string{brokerCID}
+
+	bundle, err := client.CreateCheckBundle(cfg)
+	if err != nil {
+		return nil, errors.Wrap(err, "creating check bundle")
+	}
+
+	return bundle, nil
 }

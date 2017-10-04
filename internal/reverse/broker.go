@@ -11,8 +11,14 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	stdlog "log"
+	"math/rand"
+	"net"
 	"net/url"
+	"reflect"
 	"regexp"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-gometrics/api"
@@ -134,4 +140,145 @@ func (c *Connection) fetchBrokerCA(client *api.API) ([]byte, error) {
 	}
 
 	return []byte(cadata.Contents), nil
+}
+
+// Select a broker for use when creating a check, if a specific broker
+// was not specified.
+func (c *Connection) selectBroker(client *api.API, checkType string) (*api.Broker, error) {
+	brokerList, err := client.FetchBrokers()
+	if err != nil {
+		return nil, errors.Wrap(err, "select broker")
+	}
+
+	if len(*brokerList) == 0 {
+		return nil, errors.New("zero brokers found")
+	}
+
+	validBrokers := make(map[string]api.Broker)
+	haveEnterprise := false
+
+	for _, broker := range *brokerList {
+		broker := broker
+		if c.isValidBroker(&broker, checkType) {
+			validBrokers[broker.CID] = broker
+			if broker.Type == "enterprise" {
+				haveEnterprise = true
+			}
+		}
+	}
+
+	if haveEnterprise { // eliminate non-enterprise brokers from valid brokers
+		for k, v := range validBrokers {
+			if v.Type != "enterprise" {
+				delete(validBrokers, k)
+			}
+		}
+	}
+
+	if len(validBrokers) == 0 {
+		return nil, errors.Errorf("found %d broker(s), zero are valid", len(*brokerList))
+	}
+
+	validBrokerKeys := reflect.ValueOf(validBrokers).MapKeys()
+	selectedBroker := validBrokers[validBrokerKeys[rand.Intn(len(validBrokerKeys))].String()]
+
+	c.logger.Debug().Str("broker", selectedBroker.Name).Msg("selected")
+
+	return &selectedBroker, nil
+}
+
+// Is the broker valid (active, supports check type, and reachable)
+func (c *Connection) isValidBroker(broker *api.Broker, checkType string) bool {
+	var brokerHost string
+	var brokerPort string
+	valid := false
+	for _, detail := range broker.Details {
+		detail := detail
+
+		// broker must be active
+		if detail.Status != brokerActiveStatus {
+			c.logger.Debug().Str("broker", broker.Name).Msg("not active, skipping")
+			continue
+		}
+
+		// broker must have module loaded for the check type to be used
+		if !c.brokerSupportsCheckType(checkType, &detail) {
+			c.logger.Debug().Str("broker", broker.Name).Str("type", checkType).Msg("unsupported check type, skipping")
+			continue
+		}
+
+		if detail.ExternalPort != 0 {
+			brokerPort = strconv.Itoa(int(detail.ExternalPort))
+		} else {
+			if *detail.Port != 0 {
+				brokerPort = strconv.Itoa(int(*detail.Port))
+			} else {
+				brokerPort = "43191"
+			}
+		}
+
+		if detail.ExternalHost != nil && *detail.ExternalHost != "" {
+			brokerHost = *detail.ExternalHost
+		} else {
+			brokerHost = *detail.IP
+		}
+
+		if brokerHost == "trap.noit.circonus.net" && brokerPort != "443" {
+			brokerPort = "443"
+		}
+
+		minDelay := int(200 * time.Millisecond)
+		maxDelay := int(2 * time.Second)
+
+		for attempt := 1; attempt <= brokerMaxRetries; attempt++ {
+			// broker must be reachable and respond within designated time
+			conn, err := net.DialTimeout("tcp", net.JoinHostPort(brokerHost, brokerPort), brokerMaxResponseTime)
+			if err == nil {
+				conn.Close()
+				valid = true
+				break
+			}
+
+			delay := time.Duration(rand.Intn(maxDelay-minDelay) + minDelay)
+
+			c.logger.Warn().
+				Err(err).
+				Str("delay", delay.String()).
+				Str("broker", broker.Name).
+				Int("attempt", attempt).
+				Int("retries", brokerMaxRetries).
+				Msg("unable to connect, retrying")
+
+			time.Sleep(delay)
+		}
+
+		if valid {
+			c.logger.Debug().Str("broker", broker.Name).Msg("valid")
+			break
+		}
+	}
+	return valid
+}
+
+// Verify broker supports the check type to be used
+func (c *Connection) brokerSupportsCheckType(checkType string, details *api.BrokerDetail) bool {
+	baseType := string(checkType)
+
+	for _, module := range details.Modules {
+		if module == baseType {
+			return true
+		}
+	}
+
+	if idx := strings.Index(baseType, ":"); idx > 0 {
+		baseType = baseType[0:idx]
+	}
+
+	for _, module := range details.Modules {
+		if module == baseType {
+			return true
+		}
+	}
+
+	return false
 }

@@ -98,7 +98,7 @@ func init() {
 			longOpt     = "listen"
 			shortOpt    = "l"
 			envVar      = release.ENVPREFIX + "_LISTEN"
-			description = "Listen address and port [[IP]:[PORT]]" + `(default "` + defaults.Listen + `")`
+			description = "Listen address and port [[IP]:[PORT]] " + `(default "` + defaults.Listen + `")`
 		)
 
 		RootCmd.Flags().StringP(longOpt, shortOpt, "", description)
@@ -161,11 +161,67 @@ func init() {
 			description = "Target host"
 		)
 
-		RootCmd.Flags().String(longOpt, defaults.Target, description)
+		RootCmd.Flags().String(longOpt, defaults.ReverseTarget, description)
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
-		viper.SetDefault(key, defaults.Target)
+		viper.SetDefault(key, defaults.ReverseTarget)
 
+	}
+
+	{
+		const (
+			key         = config.KeyReverseCreateCheck
+			longOpt     = "reverse-create-check"
+			envVar      = release.ENVPREFIX + "_REVERSE_CREATE_CHECK"
+			description = "Create check bundle for reverse if one cannot be found"
+		)
+
+		RootCmd.Flags().Bool(longOpt, defaults.ReverseCreateCheck, description)
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+		viper.SetDefault(key, defaults.ReverseCreateCheck)
+	}
+
+	{
+		const (
+			key         = config.KeyReverseCreateCheckBroker
+			longOpt     = "reverse-create-check-broker"
+			envVar      = release.ENVPREFIX + "_REVERSE_CREATE_CHECK_BROKER"
+			description = "ID of Broker to use or 'select' for random selection of valid broker, if creating a check bundle"
+		)
+
+		RootCmd.Flags().String(longOpt, defaults.ReverseCreateCheckBroker, description)
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+		viper.SetDefault(key, defaults.ReverseCreateCheckBroker)
+	}
+
+	{
+		const (
+			key         = config.KeyReverseCreateCheckTitle
+			longOpt     = "reverse-create-check-title"
+			envVar      = release.ENVPREFIX + "_REVERSE_CREATE_CHECK_TITLE"
+			description = "Title [display name] to use, if creating a check bundle"
+		)
+
+		RootCmd.Flags().String(longOpt, defaults.ReverseCreateCheckTitle, description)
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+		viper.SetDefault(key, defaults.ReverseCreateCheckTitle)
+	}
+
+	{
+		const (
+			key         = config.KeyReverseCreateCheckTags
+			longOpt     = "reverse-create-check-tags"
+			envVar      = release.ENVPREFIX + "_REVERSE_CREATE_CHECK_TAGS"
+			description = "Tags [comma separated list] to use, if creating a check bundle"
+		)
+
+		RootCmd.Flags().String(longOpt, defaults.ReverseCreateCheckTags, description)
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+		viper.SetDefault(key, defaults.ReverseCreateCheckTags)
 	}
 
 	{
@@ -595,11 +651,15 @@ func Execute() {
 }
 
 func showConfig(w io.Writer) error {
-	var cfg interface{}
+	var cfg map[string]interface{}
 
 	if err := viper.Unmarshal(&cfg); err != nil {
 		return errors.Wrap(err, "parsing config")
 	}
+
+	// these are pure flags (shouldn't be "in" config files)
+	delete(cfg, "version")
+	delete(cfg, "show-config")
 
 	data, err := json.MarshalIndent(cfg, " ", "  ")
 	if err != nil {

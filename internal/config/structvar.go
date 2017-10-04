@@ -16,8 +16,6 @@ type cosiCheckConfig struct {
 }
 
 const (
-	cosiName = "cosi"
-
 	// KeyAPICAFile custom ca for circonus api (e.g. inside)
 	KeyAPICAFile = "api.ca_file"
 
@@ -59,6 +57,18 @@ const (
 
 	// KeyReverseTarget custom target|host to use for reverse (searching for a check) default os.Hostname()
 	KeyReverseTarget = "reverse.check_target"
+
+	// KeyReverseCreateCheck indicates whether a check should be created if one cannot be found for the target
+	KeyReverseCreateCheck = "reverse.create_check"
+
+	// KeyReverseCreateCheckBroker cid to use if creating a check
+	KeyReverseCreateCheckBroker = "reverse.check.broker"
+
+	// KeyReverseCreateCheckTitle to use if creating a check
+	KeyReverseCreateCheckTitle = "reverse.check.title"
+
+	// KeyReverseCreateCheckTags to add if creating a check
+	KeyReverseCreateCheckTags = "reverse.check.tags"
 
 	// KeyShowConfig - show configuration and exit
 	KeyShowConfig = "show-config"
@@ -104,9 +114,10 @@ const (
 
 	// KeyStatsdPort port for statsd listener (note, address will always be 'localhost')
 	KeyStatsdPort = "statsd.port"
+
+	cosiName = "cosi"
 )
 
 var (
-	apiOK       = false
 	cosiCfgFile = filepath.Join(defaults.BasePath, "..", cosiName, "etc", "cosi.json")
 )

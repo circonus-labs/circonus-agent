@@ -74,6 +74,19 @@ const (
 
 	// StatsdGroupSets defines how group counter metrics will be handled (average or sum)
 	StatsdGroupSets = "sum"
+
+	// ReverseCreateCheck flags whether a check, for reverse, should be created if one cannot be found
+	ReverseCreateCheck = false
+
+	// ReverseCreateCheckBroker to use if creating a check, 'select' or '' will
+	// result in the first broker which meets some basic criteria being selected.
+	// 1. Active status
+	// 2. Supports the required check type
+	// 3. Responds within reverse.brokerMaxResponseTime
+	ReverseCreateCheckBroker = "select"
+
+	// ReverseCreateCheckTags to use if creating a check (comma separated list)
+	ReverseCreateCheckTags = ""
 )
 
 var (
@@ -102,8 +115,11 @@ var (
 	// StatsdConf returns the default statsd config file
 	StatsdConf = "" // (e.g. /opt/circonus/agent/etc/statsd.json)
 
-	// Target defaults to return from os.Hostname()
-	Target = ""
+	// ReverseTarget defaults to return from os.Hostname()
+	ReverseTarget = ""
+
+	// ReverseCreateCheckTitle to use if creating a check
+	ReverseCreateCheckTitle = ""
 )
 
 func init() {
@@ -129,9 +145,11 @@ func init() {
 	SSLCertFile = filepath.Join(EtcPath, release.NAME+".pem")
 	SSLKeyFile = filepath.Join(EtcPath, release.NAME+".key")
 
-	Target, err = os.Hostname()
+	ReverseTarget, err = os.Hostname()
 	if err != nil {
 		fmt.Printf("Unable to determine hostname for target %v\n", err)
 		os.Exit(1)
 	}
+
+	ReverseCreateCheckTitle = ReverseTarget + " /agent"
 }
