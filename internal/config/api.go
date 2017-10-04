@@ -32,10 +32,6 @@ func apiRequired() bool {
 }
 
 func validateAPIOptions() error {
-	if apiOK {
-		return nil
-	}
-
 	apiKey := viper.GetString(KeyAPITokenKey)
 	apiApp := viper.GetString(KeyAPITokenApp)
 	apiURL := viper.GetString(KeyAPIURL)
@@ -89,7 +85,6 @@ func validateAPIOptions() error {
 	viper.Set(KeyAPITokenKey, apiKey)
 	viper.Set(KeyAPITokenApp, apiApp)
 	viper.Set(KeyAPIURL, apiURL)
-	apiOK = true
 
 	return nil
 }

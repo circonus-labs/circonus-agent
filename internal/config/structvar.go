@@ -16,8 +16,6 @@ type cosiCheckConfig struct {
 }
 
 const (
-	cosiName = "cosi"
-
 	// KeyAPICAFile custom ca for circonus api (e.g. inside)
 	KeyAPICAFile = "api.ca_file"
 
@@ -116,9 +114,10 @@ const (
 
 	// KeyStatsdPort port for statsd listener (note, address will always be 'localhost')
 	KeyStatsdPort = "statsd.port"
+
+	cosiName = "cosi"
 )
 
 var (
-	apiOK       = false
 	cosiCfgFile = filepath.Join(defaults.BasePath, "..", cosiName, "etc", "cosi.json")
 )

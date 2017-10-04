@@ -47,16 +47,6 @@ func TestValidateAPIOptions(t *testing.T) {
 		viper.Set(KeyStatsdDisabled, false)
 	}
 
-	t.Log("API already validated")
-	{
-		apiOK = true
-		err := validateAPIOptions()
-		if err != nil {
-			t.Fatal("Expected NO error")
-		}
-		apiOK = false
-	}
-
 	t.Log("No key/app/url")
 	{
 		expectedError := errors.New("API key is required")
