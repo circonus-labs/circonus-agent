@@ -173,7 +173,7 @@ func init() {
 			key         = config.KeyReverseCreateCheck
 			longOpt     = "reverse-create-check"
 			envVar      = release.ENVPREFIX + "_REVERSE_CREATE_CHECK"
-			description = "Create check if one cannot be found"
+			description = "Create check bundle for reverse if one cannot be found"
 		)
 
 		RootCmd.Flags().Bool(longOpt, defaults.ReverseCreateCheck, description)
@@ -187,7 +187,7 @@ func init() {
 			key         = config.KeyReverseCreateCheckBroker
 			longOpt     = "reverse-create-check-broker"
 			envVar      = release.ENVPREFIX + "_REVERSE_CREATE_CHECK_BROKER"
-			description = "Broker to use, if creating a check"
+			description = "ID of Broker to use or 'select' for random selection of valid broker, if creating a check bundle"
 		)
 
 		RootCmd.Flags().String(longOpt, defaults.ReverseCreateCheckBroker, description)
@@ -201,7 +201,7 @@ func init() {
 			key         = config.KeyReverseCreateCheckTitle
 			longOpt     = "reverse-create-check-title"
 			envVar      = release.ENVPREFIX + "_REVERSE_CREATE_CHECK_TITLE"
-			description = "Title [display name] to use, if creating a check"
+			description = "Title [display name] to use, if creating a check bundle"
 		)
 
 		RootCmd.Flags().String(longOpt, defaults.ReverseCreateCheckTitle, description)
@@ -215,7 +215,7 @@ func init() {
 			key         = config.KeyReverseCreateCheckTags
 			longOpt     = "reverse-create-check-tags"
 			envVar      = release.ENVPREFIX + "_REVERSE_CREATE_CHECK_TAGS"
-			description = "Tags [comma separated list] to use, if creating a check"
+			description = "Tags [comma separated list] to use, if creating a check bundle"
 		)
 
 		RootCmd.Flags().String(longOpt, defaults.ReverseCreateCheckTags, description)
