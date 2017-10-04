@@ -170,6 +170,62 @@ func init() {
 
 	{
 		const (
+			key         = config.KeyReverseCreateCheck
+			longOpt     = "reverse-create-check"
+			envVar      = release.ENVPREFIX + "_REVERSE_CREATE_CHECK"
+			description = "Create check if one cannot be found"
+		)
+
+		RootCmd.Flags().Bool(longOpt, defaults.ReverseCreateCheck, description)
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+		viper.SetDefault(key, defaults.ReverseCreateCheck)
+	}
+
+	{
+		const (
+			key         = config.KeyReverseCreateCheckBroker
+			longOpt     = "reverse-create-check-broker"
+			envVar      = release.ENVPREFIX + "_REVERSE_CREATE_CHECK_BROKER"
+			description = "Broker to use, if creating a check"
+		)
+
+		RootCmd.Flags().String(longOpt, defaults.ReverseCreateCheckBroker, description)
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+		viper.SetDefault(key, defaults.ReverseCreateCheckBroker)
+	}
+
+	{
+		const (
+			key         = config.KeyReverseCreateCheckTitle
+			longOpt     = "reverse-create-check-title"
+			envVar      = release.ENVPREFIX + "_REVERSE_CREATE_CHECK_TITLE"
+			description = "Title [display name] to use, if creating a check"
+		)
+
+		RootCmd.Flags().String(longOpt, defaults.ReverseCreateCheckTitle, description)
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+		viper.SetDefault(key, defaults.ReverseCreateCheckTitle)
+	}
+
+	{
+		const (
+			key         = config.KeyReverseCreateCheckTags
+			longOpt     = "reverse-create-check-tags"
+			envVar      = release.ENVPREFIX + "_REVERSE_CREATE_CHECK_TAGS"
+			description = "Tags [comma separated list] to use, if creating a check"
+		)
+
+		RootCmd.Flags().String(longOpt, defaults.ReverseCreateCheckTags, description)
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+		viper.SetDefault(key, defaults.ReverseCreateCheckTags)
+	}
+
+	{
+		const (
 			key          = config.KeyReverseBrokerCAFile
 			longOpt      = "reverse-broker-ca-file"
 			defaultValue = ""

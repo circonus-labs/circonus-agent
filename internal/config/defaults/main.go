@@ -74,6 +74,19 @@ const (
 
 	// StatsdGroupSets defines how group counter metrics will be handled (average or sum)
 	StatsdGroupSets = "sum"
+
+	// ReverseCreateCheck flags whether a check, for reverse, should be created if one cannot be found
+	ReverseCreateCheck = false
+
+	// ReverseCreateCheckBroker to use if creating a check, 'select' or '' will
+	// result in the first broker which meets some basic criteria being selected.
+	// 1. Active status
+	// 2. Supports the required check type
+	// 3. Responds within reverse.brokerMaxResponseTime
+	ReverseCreateCheckBroker = "select"
+
+	// ReverseCreateCheckTags to use if creating a check (comma separated list)
+	ReverseCreateCheckTags = ""
 )
 
 var (
@@ -104,6 +117,9 @@ var (
 
 	// Target defaults to return from os.Hostname()
 	Target = ""
+
+	// ReverseCreateCheckTitle to use if creating a check
+	ReverseCreateCheckTitle = ""
 )
 
 func init() {
@@ -134,4 +150,6 @@ func init() {
 		fmt.Printf("Unable to determine hostname for target %v\n", err)
 		os.Exit(1)
 	}
+
+	ReverseCreateCheckTitle = Target + " /agent"
 }
