@@ -98,7 +98,7 @@ func init() {
 			longOpt     = "listen"
 			shortOpt    = "l"
 			envVar      = release.ENVPREFIX + "_LISTEN"
-			description = "Listen address and port [[IP]:[PORT]]" + `(default "` + defaults.Listen + `")`
+			description = "Listen address and port [[IP]:[PORT]] " + `(default "` + defaults.Listen + `")`
 		)
 
 		RootCmd.Flags().StringP(longOpt, shortOpt, "", description)
