@@ -7,6 +7,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"expvar"
 	"fmt"
 	"io"
 	stdlog "log"
@@ -62,6 +63,8 @@ in JSON format.`,
 		if err != nil {
 			log.Fatal().Err(err).Msg("initializing")
 		}
+
+		statConfig()
 
 		if err := a.Start(); err != nil {
 			log.Fatal().Err(err).Msg("starting agent")
@@ -650,16 +653,45 @@ func Execute() {
 	}
 }
 
-func showConfig(w io.Writer) error {
+// statConfig adds the running config to the app stats
+func statConfig() error {
+	cfg, err := getConfig()
+	if err != nil {
+		return err
+	}
+
+	// obscure the api key/app, if set
+	cfg.(map[string]interface{})["api"].(map[string]interface{})["key"] = "..."
+	cfg.(map[string]interface{})["api"].(map[string]interface{})["app"] = "..."
+
+	expvar.Publish("config", expvar.Func(func() interface{} {
+		return &cfg
+	}))
+
+	return nil
+}
+
+// getConfig dumps the current configuration and returns it
+func getConfig() (interface{}, error) {
 	var cfg map[string]interface{}
 
 	if err := viper.Unmarshal(&cfg); err != nil {
-		return errors.Wrap(err, "parsing config")
+		return nil, errors.Wrap(err, "parsing config")
 	}
 
 	// these are pure flags (shouldn't be "in" config files)
 	delete(cfg, "version")
 	delete(cfg, "show-config")
+
+	return cfg, nil
+}
+
+// showConfig prints the running configuration
+func showConfig(w io.Writer) error {
+	cfg, err := getConfig()
+	if err != nil {
+		return err
+	}
 
 	data, err := json.MarshalIndent(cfg, " ", "  ")
 	if err != nil {
@@ -669,3 +701,23 @@ func showConfig(w io.Writer) error {
 	fmt.Fprintf(w, "%s v%s running config:\n%s\n", release.NAME, release.VERSION, data)
 	return nil
 }
+
+// func showConfig(w io.Writer) error {
+// 	var cfg map[string]interface{}
+//
+// 	if err := viper.Unmarshal(&cfg); err != nil {
+// 		return errors.Wrap(err, "parsing config")
+// 	}
+//
+// 	// these are pure flags (shouldn't be "in" config files)
+// 	delete(cfg, "version")
+// 	delete(cfg, "show-config")
+//
+// 	data, err := json.MarshalIndent(cfg, " ", "  ")
+// 	if err != nil {
+// 		return errors.Wrap(err, "formatting config")
+// 	}
+//
+// 	fmt.Fprintf(w, "%s v%s running config:\n%s\n", release.NAME, release.VERSION, data)
+// 	return nil
+// }
