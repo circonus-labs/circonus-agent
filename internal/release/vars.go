@@ -9,7 +9,7 @@ const (
 	// NAME is the name of this application
 	NAME = "circonus-agent"
 	// ENVPREFIX is the environment variable prefix
-	ENVPREFIX = "NAD"
+	ENVPREFIX = "CA"
 )
 
 // vars are manipulated at link time (see goreleaser)

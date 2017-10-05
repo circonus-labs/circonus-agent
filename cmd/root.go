@@ -83,6 +83,10 @@ func init() {
 
 	cobra.OnInitialize(initConfig)
 
+	desc := func(desc, env string) string {
+		return fmt.Sprintf("[ENV: %s] %s", env, desc)
+	}
+
 	//
 	// Basic
 	//
@@ -104,7 +108,7 @@ func init() {
 			description = "Listen address and port [[IP]:[PORT]] " + `(default "` + defaults.Listen + `")`
 		)
 
-		RootCmd.Flags().StringP(longOpt, shortOpt, "", description)
+		RootCmd.Flags().StringP(longOpt, shortOpt, "", desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 	}
@@ -118,7 +122,7 @@ func init() {
 			description = "Plugin directory"
 		)
 
-		RootCmd.Flags().StringP(longOpt, shortOpt, defaults.PluginPath, description)
+		RootCmd.Flags().StringP(longOpt, shortOpt, defaults.PluginPath, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 		viper.SetDefault(key, defaults.PluginPath)
@@ -136,7 +140,7 @@ func init() {
 			description = "Enable reverse connection"
 		)
 
-		RootCmd.Flags().BoolP(longOpt, shortOpt, defaults.Reverse, description)
+		RootCmd.Flags().BoolP(longOpt, shortOpt, defaults.Reverse, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 		viper.SetDefault(key, defaults.Reverse)
@@ -151,7 +155,7 @@ func init() {
 			description  = "Check Bundle ID for reverse connection"
 		)
 
-		RootCmd.Flags().String(longOpt, defaultValue, description)
+		RootCmd.Flags().String(longOpt, defaultValue, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 	}
@@ -164,7 +168,7 @@ func init() {
 			description = "Target host"
 		)
 
-		RootCmd.Flags().String(longOpt, defaults.ReverseTarget, description)
+		RootCmd.Flags().String(longOpt, defaults.ReverseTarget, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 		viper.SetDefault(key, defaults.ReverseTarget)
@@ -179,7 +183,7 @@ func init() {
 			description = "Create check bundle for reverse if one cannot be found"
 		)
 
-		RootCmd.Flags().Bool(longOpt, defaults.ReverseCreateCheck, description)
+		RootCmd.Flags().Bool(longOpt, defaults.ReverseCreateCheck, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 		viper.SetDefault(key, defaults.ReverseCreateCheck)
@@ -193,7 +197,7 @@ func init() {
 			description = "ID of Broker to use or 'select' for random selection of valid broker, if creating a check bundle"
 		)
 
-		RootCmd.Flags().String(longOpt, defaults.ReverseCreateCheckBroker, description)
+		RootCmd.Flags().String(longOpt, defaults.ReverseCreateCheckBroker, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 		viper.SetDefault(key, defaults.ReverseCreateCheckBroker)
@@ -207,7 +211,7 @@ func init() {
 			description = "Title [display name] to use, if creating a check bundle"
 		)
 
-		RootCmd.Flags().String(longOpt, defaults.ReverseCreateCheckTitle, description)
+		RootCmd.Flags().String(longOpt, defaults.ReverseCreateCheckTitle, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 		viper.SetDefault(key, defaults.ReverseCreateCheckTitle)
@@ -221,7 +225,7 @@ func init() {
 			description = "Tags [comma separated list] to use, if creating a check bundle"
 		)
 
-		RootCmd.Flags().String(longOpt, defaults.ReverseCreateCheckTags, description)
+		RootCmd.Flags().String(longOpt, defaults.ReverseCreateCheckTags, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 		viper.SetDefault(key, defaults.ReverseCreateCheckTags)
@@ -236,7 +240,7 @@ func init() {
 			description  = "Broker CA certificate file"
 		)
 
-		RootCmd.Flags().String(longOpt, defaultValue, description)
+		RootCmd.Flags().String(longOpt, defaultValue, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 	}
@@ -252,7 +256,7 @@ func init() {
 			envVar       = release.ENVPREFIX + "_API_KEY"
 			description  = "Circonus API Token key"
 		)
-		RootCmd.Flags().String(longOpt, defaultValue, description)
+		RootCmd.Flags().String(longOpt, defaultValue, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 	}
@@ -265,7 +269,7 @@ func init() {
 			description = "Circonus API Token app"
 		)
 
-		RootCmd.Flags().String(longOpt, defaults.APIApp, description)
+		RootCmd.Flags().String(longOpt, defaults.APIApp, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 		viper.SetDefault(key, defaults.APIApp)
@@ -279,7 +283,7 @@ func init() {
 			description = "Circonus API URL"
 		)
 
-		RootCmd.Flags().String(longOpt, defaults.APIURL, description)
+		RootCmd.Flags().String(longOpt, defaults.APIURL, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 		viper.SetDefault(key, defaults.APIURL)
@@ -294,7 +298,7 @@ func init() {
 			description  = "Circonus API CA certificate file"
 		)
 
-		RootCmd.Flags().String(longOpt, defaultValue, description)
+		RootCmd.Flags().String(longOpt, defaultValue, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 	}
@@ -311,7 +315,7 @@ func init() {
 			description  = "SSL listen address and port [IP]:[PORT] - setting enables SSL"
 		)
 
-		RootCmd.Flags().String(longOpt, defaultValue, description)
+		RootCmd.Flags().String(longOpt, defaultValue, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 	}
@@ -324,7 +328,7 @@ func init() {
 			description = "SSL Certificate file (PEM cert and CAs concatenated together)"
 		)
 
-		RootCmd.Flags().String(longOpt, defaults.SSLCertFile, description)
+		RootCmd.Flags().String(longOpt, defaults.SSLCertFile, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 		viper.SetDefault(key, defaults.SSLCertFile)
@@ -338,7 +342,7 @@ func init() {
 			description = "SSL Key file"
 		)
 
-		RootCmd.Flags().String(longOpt, defaults.SSLKeyFile, description)
+		RootCmd.Flags().String(longOpt, defaults.SSLKeyFile, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 		viper.SetDefault(key, defaults.SSLKeyFile)
@@ -352,7 +356,7 @@ func init() {
 			description = "Enable SSL verification"
 		)
 
-		RootCmd.Flags().Bool(longOpt, defaults.SSLVerify, description)
+		RootCmd.Flags().Bool(longOpt, defaults.SSLVerify, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 		viper.SetDefault(key, defaults.SSLVerify)
@@ -369,7 +373,7 @@ func init() {
 			description = "Disable StatsD listener"
 		)
 
-		RootCmd.Flags().Bool(longOpt, defaults.NoStatsd, description)
+		RootCmd.Flags().Bool(longOpt, defaults.NoStatsd, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 		viper.SetDefault(key, defaults.NoStatsd)
@@ -383,7 +387,7 @@ func init() {
 			description = "StatsD port"
 		)
 
-		RootCmd.Flags().String(longOpt, defaults.StatsdPort, description)
+		RootCmd.Flags().String(longOpt, defaults.StatsdPort, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 		viper.SetDefault(key, defaults.StatsdPort)
@@ -397,7 +401,7 @@ func init() {
 			description = "StatsD host metric prefix"
 		)
 
-		RootCmd.Flags().String(longOpt, defaults.StatsdHostPrefix, description)
+		RootCmd.Flags().String(longOpt, defaults.StatsdHostPrefix, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 		viper.SetDefault(key, defaults.StatsdHostPrefix)
@@ -411,7 +415,7 @@ func init() {
 			description = "StatsD host metric category"
 		)
 
-		RootCmd.Flags().String(longOpt, defaults.StatsdHostCategory, description)
+		RootCmd.Flags().String(longOpt, defaults.StatsdHostCategory, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 		viper.SetDefault(key, defaults.StatsdHostCategory)
@@ -426,7 +430,7 @@ func init() {
 			description  = "StatsD group check bundle ID"
 		)
 
-		RootCmd.Flags().String(longOpt, defaultValue, description)
+		RootCmd.Flags().String(longOpt, defaultValue, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 	}
@@ -439,7 +443,7 @@ func init() {
 			description = "StatsD group metric prefix"
 		)
 
-		RootCmd.Flags().String(longOpt, defaults.StatsdGroupPrefix, description)
+		RootCmd.Flags().String(longOpt, defaults.StatsdGroupPrefix, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 		viper.SetDefault(key, defaults.StatsdGroupPrefix)
@@ -453,7 +457,7 @@ func init() {
 			description = "StatsD group metric counter handling (average|sum)"
 		)
 
-		RootCmd.Flags().String(longOpt, defaults.StatsdGroupCounters, description)
+		RootCmd.Flags().String(longOpt, defaults.StatsdGroupCounters, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 		viper.SetDefault(key, defaults.StatsdGroupCounters)
@@ -467,7 +471,7 @@ func init() {
 			description = "StatsD group gauge operator"
 		)
 
-		RootCmd.Flags().String(longOpt, defaults.StatsdGroupGauges, description)
+		RootCmd.Flags().String(longOpt, defaults.StatsdGroupGauges, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 		viper.SetDefault(key, defaults.StatsdGroupGauges)
@@ -481,7 +485,7 @@ func init() {
 			description = "StatsD group set operator"
 		)
 
-		RootCmd.Flags().String(longOpt, defaults.StatsdGroupSets, description)
+		RootCmd.Flags().String(longOpt, defaults.StatsdGroupSets, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 		viper.SetDefault(key, defaults.StatsdGroupSets)
@@ -498,7 +502,7 @@ func init() {
 			description = "Enable debug messages"
 		)
 
-		RootCmd.Flags().BoolP(longOpt, shortOpt, defaults.Debug, description)
+		RootCmd.Flags().BoolP(longOpt, shortOpt, defaults.Debug, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 		viper.SetDefault(key, defaults.Debug)
@@ -513,7 +517,7 @@ func init() {
 			description  = "Enable CGM & API debug messages"
 		)
 
-		RootCmd.Flags().Bool(longOpt, defaultValue, description)
+		RootCmd.Flags().Bool(longOpt, defaultValue, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 		viper.SetDefault(key, defaultValue)
@@ -527,7 +531,7 @@ func init() {
 			description = "Log level [(panic|fatal|error|warn|info|debug|disabled)]"
 		)
 
-		RootCmd.Flags().String(longOpt, defaults.LogLevel, description)
+		RootCmd.Flags().String(longOpt, defaults.LogLevel, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 		viper.SetDefault(key, defaults.LogLevel)
@@ -541,7 +545,7 @@ func init() {
 			description = "Output formatted/colored log lines"
 		)
 
-		RootCmd.Flags().Bool(longOpt, defaults.LogPretty, description)
+		RootCmd.Flags().Bool(longOpt, defaults.LogPretty, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 		viper.SetDefault(key, defaults.LogPretty)
