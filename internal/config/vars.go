@@ -11,10 +11,88 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 )
 
+// Log defines the running config.log structure
+type Log struct {
+	Level  string `json:"level" yaml:"level" toml:"level"`
+	Pretty bool   `json:"pretty" yaml:"pretty" toml:"pretty"`
+}
+
+// API defines the running config.api structure
+type API struct {
+	Key    string `json:"key" yaml:"key" toml:"key"`
+	App    string `json:"app" yaml:"app" toml:"app"`
+	URL    string `json:"url" yaml:"url" toml:"url"`
+	CAFile string `mapstructure:"ca_file" json:"ca_file" yaml:"ca_file" toml:"ca_file"`
+}
+
+// ReverseCreateCheckOptions defines the running config.reverse.check structure
+type ReverseCreateCheckOptions struct {
+	Broker string `json:"broker" yaml:"broker" toml:"broker"`
+	Tags   string `json:"tags" yaml:"tags" toml:"tags"`
+	Title  string `json:"title" yaml:"title" toml:"title"`
+}
+
+// Reverse defines the running config.reverse structure
+type Reverse struct {
+	Enabled            bool                      `json:"enabled" yaml:"enabled" toml:"enabled"`
+	BrokerCAFile       string                    `mapstructure:"broker_ca_file" json:"broker_ca_file" yaml:"broker_ca_file" toml:"broker_ca_file"`
+	CheckBundleID      string                    `mapstructure:"check_bundle_id" json:"check_bundle_id" yaml:"check_bundle_id" toml:"check_bundle_id"`
+	CheckTarget        string                    `mapstructure:"check_target" json:"check_target" yaml:"check_target" toml:"check_target"`
+	CreateCheck        bool                      `mapstructure:"create_check" json:"create_check" yaml:"create_check" toml:"create_check"`
+	CreateCheckOptions ReverseCreateCheckOptions `json:"check" yaml:"check" toml:"check"`
+}
+
+// SSL defines the running config.ssl structure
+type SSL struct {
+	CertFile string `mapstructure:"cert_file" json:"cert_file" yaml:"cert_file" toml:"cert_file"`
+	KeyFile  string `mapstructure:"key_file" json:"key_file" yaml:"key_file" toml:"key_file"`
+	Listen   string `json:"listen" yaml:"listen" toml:"listen"`
+	Verify   bool   `json:"verify" yaml:"verify" toml:"verify"`
+}
+
+// StatsDHost defines the running config.statsd.host structure
+type StatsDHost struct {
+	Category     string `json:"category" yaml:"category" toml:"category"`
+	MetricPrefix string `mapstructure:"metric_prefix" json:"metric_prefix" yaml:"metric_prefix" toml:"metric_prefix"`
+}
+
+// StatsDGroup defines the running config.statsd.group structure
+type StatsDGroup struct {
+	CheckBundleID string `mapstructure:"check_bundle_id" json:"check_bundle_id" yaml:"check_bundle_id" toml:"check_bundle_id"`
+	Counters      string `json:"counters" yaml:"counters" toml:"counters"`
+	Gauges        string `json:"gauges" yaml:"gauges" toml:"gauges"`
+	MetricPrefix  string `mapstructure:"metric_prefix" json:"metric_prefix" yaml:"metric_prefix" toml:"metric_prefix"`
+	Sets          string `json:"sets" yaml:"sets" toml:"sets"`
+}
+
+// StatsD defines the running config.statsd structure
+type StatsD struct {
+	Disabled bool        `json:"disabled" yaml:"disabled" toml:"disabled"`
+	Port     string      `json:"port" yaml:"port" toml:"port"`
+	Group    StatsDGroup `json:"group" yaml:"group" toml:"group"`
+	Host     StatsDHost  `json:"host" yaml:"host" toml:"host"`
+}
+
+// Config defines the running config structure
+type Config struct {
+	Debug     bool    `json:"debug" yaml:"debug" toml:"debug"`
+	API       API     `json:"api" yaml:"api" toml:"api"`
+	Log       Log     `json:"log" yaml:"log" toml:"log"`
+	DebugCGM  bool    `mapstructure:"debug_cgm" json:"debug_cgm" yaml:"debug_cgm" toml:"debug_cgm"`
+	Listen    string  `json:"listen" yaml:"listen" toml:"listen"`
+	PluginDir string  `mapstructure:"plugin_dir" json:"plugin_dir" yaml:"plugin_dir" toml:"plugin_dir"`
+	Reverse   Reverse `json:"reverse" yaml:"reverse" toml:"reverse"`
+	SSL       SSL     `json:"ssl" yaml:"ssl" toml:"ssl"`
+	StatsD    StatsD  `json:"statsd" yaml:"statsd" toml:"statsd"`
+}
+
 type cosiCheckConfig struct {
 	CID string `json:"_cid"`
 }
 
+//
+// NOTE: adding a Key* MUST be reflected in the Config structures above
+//
 const (
 	// KeyAPICAFile custom ca for circonus api (e.g. inside)
 	KeyAPICAFile = "api.ca_file"

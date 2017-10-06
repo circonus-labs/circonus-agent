@@ -6,7 +6,6 @@
 package cmd
 
 import (
-	"io/ioutil"
 	"testing"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
@@ -19,26 +18,6 @@ func TestInitConfig(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	initConfig()
-}
-
-func TestShowConfig(t *testing.T) {
-	t.Log("Testing showConfig")
-	zerolog.SetGlobalLevel(zerolog.Disabled)
-
-	err := showConfig(ioutil.Discard)
-	if err != nil {
-		t.Fatalf("expected no error, got %s", err)
-	}
-}
-
-func TestStatConfig(t *testing.T) {
-	t.Log("Testing statConfig")
-	zerolog.SetGlobalLevel(zerolog.Disabled)
-
-	err := statConfig()
-	if err != nil {
-		t.Fatalf("expected no error, got %s", err)
-	}
 }
 
 func TestInitLogging(t *testing.T) {
