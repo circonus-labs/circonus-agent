@@ -15,7 +15,7 @@
 
 1. `mkdir -p /opt/circonus/agent/{sbin,etc}`
 1. Download [latest release](https://github.com/circonus-labs/circonus-agent/releases/latest) from GitHub repository (or [build manually](#manual-build))
-1. If downloaded, extract archive into `/opt/circonus`
+1. If downloaded, extract archive into `/opt/circonus/agent`
 1. Stop NAD (e.g. `systemctl stop nad`)
 1. Create a [config](#config) or use command line parameters
 1. Run `sbin/circonus-agentd`
