@@ -13,8 +13,9 @@ import (
 )
 
 var (
-	once  sync.Once
-	stats *expvar.Map
+	once              sync.Once
+	stats             *expvar.Map
+	notInitializedErr = errors.Errorf("stats not initialized")
 )
 
 func init() {
@@ -26,11 +27,11 @@ func init() {
 // NewString creates a new string stat
 func NewString(name string) error {
 	if stats == nil {
-		return errors.Errorf("stats not initialized")
+		return notInitializedErr
 	}
 
 	if stats.Get(name) != nil {
-		return errors.Errorf("stat (%s) already initialized", name)
+		return nil
 	}
 
 	stats.Set(name, new(expvar.String))
@@ -41,11 +42,13 @@ func NewString(name string) error {
 // SetString sets string stat to value
 func SetString(name string, value string) error {
 	if stats == nil {
-		return errors.Errorf("stats not initialized")
+		return notInitializedErr
 	}
 
 	if stats.Get(name) == nil {
-		NewString(name)
+		if err := NewString(name); err != nil {
+			return err
+		}
 	}
 
 	stats.Get(name).(*expvar.String).Set(value)
@@ -56,11 +59,11 @@ func SetString(name string, value string) error {
 // NewInt creates a new int stat
 func NewInt(name string) error {
 	if stats == nil {
-		return errors.Errorf("stats not initialized")
+		return notInitializedErr
 	}
 
 	if stats.Get(name) != nil {
-		return errors.Errorf("stat (%s) already initialized", name)
+		return nil
 	}
 
 	stats.Set(name, new(expvar.Int))
@@ -71,11 +74,13 @@ func NewInt(name string) error {
 // SetInt sets int stat to value
 func SetInt(name string, value int64) error {
 	if stats == nil {
-		return errors.Errorf("stats not initialized")
+		return notInitializedErr
 	}
 
 	if stats.Get(name) == nil {
-		NewInt(name)
+		if err := NewInt(name); err != nil {
+			return err
+		}
 	}
 
 	stats.Get(name).(*expvar.Int).Set(value)
@@ -86,11 +91,13 @@ func SetInt(name string, value int64) error {
 // IncrementInt increment int stat
 func IncrementInt(name string) error {
 	if stats == nil {
-		return errors.Errorf("stats not initialized")
+		return notInitializedErr
 	}
 
 	if stats.Get(name) == nil {
-		NewInt(name)
+		if err := NewInt(name); err != nil {
+			return err
+		}
 	}
 
 	stats.Add(name, 1)
@@ -101,11 +108,13 @@ func IncrementInt(name string) error {
 // DecrementInt decrement int stat
 func DecrementInt(name string) error {
 	if stats == nil {
-		return errors.Errorf("stats not initialized")
+		return notInitializedErr
 	}
 
 	if stats.Get(name) == nil {
-		NewInt(name)
+		if err := NewInt(name); err != nil {
+			return err
+		}
 	}
 
 	stats.Add(name, -1)
@@ -116,11 +125,11 @@ func DecrementInt(name string) error {
 // NewFloat creates a new float stat
 func NewFloat(name string) error {
 	if stats == nil {
-		return errors.Errorf("stats not initialized")
+		return notInitializedErr
 	}
 
 	if stats.Get(name) != nil {
-		return errors.Errorf("stat (%s) already initialized", name)
+		return nil
 	}
 
 	stats.Set(name, new(expvar.Float))
@@ -131,11 +140,13 @@ func NewFloat(name string) error {
 // SetFloat sets a float stat to value
 func SetFloat(name string, value float64) error {
 	if stats == nil {
-		return errors.Errorf("stats not initialized")
+		return notInitializedErr
 	}
 
 	if stats.Get(name) == nil {
-		NewFloat(name)
+		if err := NewFloat(name); err != nil {
+			return err
+		}
 	}
 
 	stats.Get(name).(*expvar.Float).Set(value)
@@ -146,11 +157,13 @@ func SetFloat(name string, value float64) error {
 // AddFloat adds value to existing float
 func AddFloat(name string, value float64) error {
 	if stats == nil {
-		return errors.Errorf("stats not initialized")
+		return notInitializedErr
 	}
 
 	if stats.Get(name) == nil {
-		NewFloat(name)
+		if err := NewFloat(name); err != nil {
+			return err
+		}
 	}
 
 	stats.Get(name).(*expvar.Float).Add(value)
