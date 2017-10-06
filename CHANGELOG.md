@@ -1,3 +1,7 @@
+# v0.3.0
+    * add running config settings to app stats
+    * add env vars for options to help output
+    * switch env var prefix from `NAD_` to `CA_`
 # v0.2.0
     * add ability to create a [reverse] check - if a check bundle id is not provided for reverse, the agent will search for a suitable check bundle for the host. Previously, if a check bundle could not be found the agent would exit. Now, when `--reverse-create-check` is supplied, the agent has the ability to create a check, rather than exit.
     * expose basic app stats endpoint /stats
