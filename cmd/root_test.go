@@ -31,6 +31,16 @@ func TestShowConfig(t *testing.T) {
 	}
 }
 
+func TestStatConfig(t *testing.T) {
+	t.Log("Testing statConfig")
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+
+	err := statConfig()
+	if err != nil {
+		t.Fatalf("expected no error, got %s", err)
+	}
+}
+
 func TestInitLogging(t *testing.T) {
 	t.Log("Testing initLogging")
 	zerolog.SetGlobalLevel(zerolog.Disabled)
