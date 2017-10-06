@@ -76,6 +76,45 @@ Ensure that NAD is not currently running (e.g. `systemctl stop nad`) and start c
 $ /opt/circonus/agent/sbin/circonus-agentd -h
 ```
 
+```
+Flags:
+      --api-app string                       [ENV: CA_API_APP] Circonus API Token app (default "circonus-agent")
+      --api-ca-file string                   [ENV: CA_API_CA_FILE] Circonus API CA certificate file
+      --api-key string                       [ENV: CA_API_KEY] Circonus API Token key
+      --api-url string                       [ENV: CA_API_URL] Circonus API URL (default "https://api.circonus.com/v2/")
+  -c, --config string                        config file (default is /opt/circonus/etc/circonus-agent.(json|toml|yaml)
+  -d, --debug                                [ENV: CA_DEBUG] Enable debug messages
+      --debug-cgm                            [ENV: CA_DEBUG_CGM] Enable CGM & API debug messages
+  -h, --help                                 help for circonus-agent
+  -l, --listen string                        [ENV: CA_LISTEN] Listen address and port [[IP]:[PORT]] (default ":2609")
+      --log-level string                     [ENV: CA_LOG_LEVEL] Log level [(panic|fatal|error|warn|info|debug|disabled)] (default "info")
+      --log-pretty                           [ENV: CA_LOG_PRETTY] Output formatted/colored log lines
+      --no-statsd                            [ENV: CA_NO_STATSD] Disable StatsD listener
+  -p, --plugin-dir string                    [ENV: CA_PLUGIN_DIR] Plugin directory (default "/opt/circonus/plugins")
+  -r, --reverse                              [ENV: CA_REVERSE] Enable reverse connection
+      --reverse-broker-ca-file string        [ENV: CA_REVERSE_BROKER_CA_FILE] Broker CA certificate file
+      --reverse-cid string                   [ENV: CA_REVERSE_CID] Check Bundle ID for reverse connection
+      --reverse-create-check                 [ENV: CA_REVERSE_CREATE_CHECK] Create check bundle for reverse if one cannot be found
+      --reverse-create-check-broker string   [ENV: CA_REVERSE_CREATE_CHECK_BROKER] ID of Broker to use or 'select' for random selection of valid broker, if creating a check bundle (default "select")
+      --reverse-create-check-tags string     [ENV: CA_REVERSE_CREATE_CHECK_TAGS] Tags [comma separated list] to use, if creating a check bundle
+      --reverse-create-check-title string    [ENV: CA_REVERSE_CREATE_CHECK_TITLE] Title [display name] to use, if creating a check bundle (default "<reverse-target> /agent")
+      --reverse-target string                [ENV: CA_REVERSE_TARGET] Target host (default hostname)
+      --show-config                          Show config and exit
+      --ssl-cert-file string                 [ENV: CA_SSL_CERT_FILE] SSL Certificate file (PEM cert and CAs concatenated together) (default "/opt/circonus/etc/circonus-agent.pem")
+      --ssl-key-file string                  [ENV: CA_SSL_KEY_FILE] SSL Key file (default "/opt/circonus/etc/circonus-agent.key")
+      --ssl-listen string                    [ENV: CA_SSL_LISTEN] SSL listen address and port [IP]:[PORT] - setting enables SSL
+      --ssl-verify                           [ENV: CA_SSL_VERIFY] Enable SSL verification (default true)
+      --statsd-group-cid string              [ENV: CA_STATSD_GROUP_CID] StatsD group check bundle ID
+      --statsd-group-counters string         [ENV: CA_STATSD_GROUP_COUNTERS] StatsD group metric counter handling (average|sum) (default "sum")
+      --statsd-group-gauges string           [ENV: CA_STATSD_GROUP_GAUGES] StatsD group gauge operator (default "average")
+      --statsd-group-prefix string           [ENV: CA_STATSD_GROUP_PREFIX] StatsD group metric prefix (default "group.")
+      --statsd-group-sets string             [ENV: CA_STATSD_GROPUP_SETS] StatsD group set operator (default "sum")
+      --statsd-host-cateogry string          [ENV: CA_STATSD_HOST_CATEGORY] StatsD host metric category (default "statsd")
+      --statsd-host-prefix string            [ENV: CA_STATSD_HOST_PREFIX] StatsD host metric prefix (default "host.")
+      --statsd-port string                   [ENV: CA_STATSD_PORT] StatsD port (default "8125")
+  -V, --version                              Show version and exit
+ ```
+
 # Plugins
 
 * Go in the `--plugin-dir`.
