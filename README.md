@@ -3,18 +3,17 @@
 >NOTE: This is an "in development" project. As such, there are a few things to be aware of at this time...
 >
 > Caveats:
+> * The code is *changing frequently* - please ensure the [latest release](../../releases/latest) is being used
 > * No target specific packages. (e.g. rpm|deb|pkg)
 > * No service configurations provided. (e.g. systemd, upstart, init, svc)
-> * Native plugins (.js) do not work. Unless modified to run `node` independently and follow [plugin output guidelines](#output).
->
-> The code is changing frequently at this point. Before reporting an issue, please ensure the [latest release](https://github.com/circonus-labs/circonus-agent/releases/latest) is being used.
+> * Native plugins (.js) do not work. Unless modified to run `node` independently and follow [plugin output guidelines](#output)
 
 # Quick Start
 
 > Installing on a system which has already had [cosi](https://github.com/circonus-labs/circonus-one-step-install) install and configure NAD.
 
 1. `mkdir -p /opt/circonus/agent/{sbin,etc}`
-1. Download [latest release](https://github.com/circonus-labs/circonus-agent/releases/latest) from GitHub repository (or [build manually](#manual-build))
+1. Download [latest release](../../releases/latest) from repository (or [build manually](#manual-build))
 1. If downloaded, extract archive into `/opt/circonus/agent`
 1. Stop NAD (e.g. `systemctl stop nad`)
 1. Create a [config](#config) or use command line parameters
