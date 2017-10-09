@@ -3,72 +3,37 @@
 >NOTE: This is an "in development" project. As such, there are a few things to be aware of at this time...
 >
 > Caveats:
+> * The code is *changing frequently* - please ensure the [latest release](../../releases/latest) is being used
 > * No target specific packages. (e.g. rpm|deb|pkg)
 > * No service configurations provided. (e.g. systemd, upstart, init, svc)
-> * Native plugins (.js) do not work. Unless modified to run `node` independently and follow [plugin output guidelines](#output).
->
-> The code is changing frequently at this point. Before reporting an issue, please ensure the [latest release](https://github.com/circonus-labs/circonus-agent/releases/latest) is being used.
+> * Native plugins (.js) do not work. Unless modified to run `node` independently and follow [plugin output guidelines](#output)
 
-## development working release - quick start
+# Quick Start
 
-Download [latest release](https://github.com/circonus-labs/circonus-agent/releases/latest) from GitHub repository.
+> Installing on a system which has already had [cosi](https://github.com/circonus-labs/circonus-one-step-install) install and configure NAD.
 
-Example of installing into an existing COSI registered linux system.
+1. `mkdir -p /opt/circonus/agent/{sbin,etc}`
+1. Download [latest release](../../releases/latest) from repository (or [build manually](#manual-build))
+1. If downloaded, extract archive into `/opt/circonus/agent`
+1. Stop NAD (e.g. `systemctl stop nad`)
+1. Create a [config](#config) or use command line parameters
+1. Run `sbin/circonus-agentd`
 
-```sh
-cd /opt/circonus
-mkdir -p agent/{sbin,etc}
-cd agent
-ln -s /opt/circonus/nad/etc/node-agent.d plugins
-curl -L "https://github.com/circonus-labs/circonus-agent/releases/download/v0.1.2/circonus-agent_0.1.2_linux_64-bit.tar.gz" -o circonus-agent.tgz
-tar zxf circonus-agent.tgz
-```
-
-To leverage the existing COSI/NAD installation, create a configuration file `/opt/circonus/agent/etc/circonus-agent.toml` (or use the corresponding command line options.)
+Example, minimal, configuration using existing cosi install `/opt/circonus/agent/etc/circonus-agent.toml`:
 
 ```toml
-#debug = true
-
 # set the plugin directory to NAD's
 plugin-dir = "/opt/circonus/nad/etc/node-agent.d"
 
 [reverse]
 enabled = true
-cid = "cosi"
+cid = "cosi" # use cosi system check bundle
 
 [api]
-key = "cosi"
+key = "cosi" # use cosi api configuration
+
+#debug = true
 ```
-
-Ensure that NAD is not currently running (e.g. `systemctl stop nad`) and start circonus-agent `sbin/circonus-agentd`.
-
----
-
-## development testing (manual build/install from source)
-
-> NOTE: See `Vagrantfile` for an example which bootstraps a centos7 vm.
-
-1. Install and setup go environment
-    1. Install dep `go get -u github.com/golang/dep/cmd/dep`
-1. Clone repo and run dep
-    1. `cd $GOPATH/src/github.com/circonus-labs`
-    1. `git clone https://github.com/circonus-labs/circonus-agent.git`
-    1. `cd circonus-agent`
-1. Build/Install
-    1.  `dep ensure`
-    1. `go build`
-    1. `mkdir -p /opt/circonus/agent/sbin`
-    1. `cp circonus-agent /opt/circonus/agent/sbin/circonus-agentd`
-1. Run
-    1. `/opt/circonus/agent/sbin/circonus-agentd -h` for help
-    1. example - on a system where cosi has *already* been run
-       1. stop nad, if it is running
-       1. run: `/opt/circonus/agent/sbin/circonus-agentd -p /opt/circonus/nad/etc/node-agent.d -r --reverse-cid cosi --api-key cosi --log-pretty`
-        * `-p` use the existing nad plugins
-        * `--api-key cosi` load api credentials from cosi installation
-        * `--reverse-cid cosi` load check information from cosi installation
-        * `-r` establish a reverse connection
-        * `--log-prety` print formatted logging output to the terminal
 
 # Options
 
@@ -82,7 +47,7 @@ Flags:
       --api-ca-file string                   [ENV: CA_API_CA_FILE] Circonus API CA certificate file
       --api-key string                       [ENV: CA_API_KEY] Circonus API Token key
       --api-url string                       [ENV: CA_API_URL] Circonus API URL (default "https://api.circonus.com/v2/")
-  -c, --config string                        config file (default is /opt/circonus/etc/circonus-agent.(json|toml|yaml)
+  -c, --config string                        config file (default is /opt/circonus/agent/etc/circonus-agent.(json|toml|yaml)
   -d, --debug                                [ENV: CA_DEBUG] Enable debug messages
       --debug-cgm                            [ENV: CA_DEBUG_CGM] Enable CGM & API debug messages
   -h, --help                                 help for circonus-agent
@@ -90,7 +55,7 @@ Flags:
       --log-level string                     [ENV: CA_LOG_LEVEL] Log level [(panic|fatal|error|warn|info|debug|disabled)] (default "info")
       --log-pretty                           [ENV: CA_LOG_PRETTY] Output formatted/colored log lines
       --no-statsd                            [ENV: CA_NO_STATSD] Disable StatsD listener
-  -p, --plugin-dir string                    [ENV: CA_PLUGIN_DIR] Plugin directory (default "/opt/circonus/plugins")
+  -p, --plugin-dir string                    [ENV: CA_PLUGIN_DIR] Plugin directory (default "/opt/circonus/agent/plugins")
   -r, --reverse                              [ENV: CA_REVERSE] Enable reverse connection
       --reverse-broker-ca-file string        [ENV: CA_REVERSE_BROKER_CA_FILE] Broker CA certificate file
       --reverse-cid string                   [ENV: CA_REVERSE_CID] Check Bundle ID for reverse connection
@@ -100,8 +65,8 @@ Flags:
       --reverse-create-check-title string    [ENV: CA_REVERSE_CREATE_CHECK_TITLE] Title [display name] to use, if creating a check bundle (default "<reverse-target> /agent")
       --reverse-target string                [ENV: CA_REVERSE_TARGET] Target host (default hostname)
       --show-config                          Show config and exit
-      --ssl-cert-file string                 [ENV: CA_SSL_CERT_FILE] SSL Certificate file (PEM cert and CAs concatenated together) (default "/opt/circonus/etc/circonus-agent.pem")
-      --ssl-key-file string                  [ENV: CA_SSL_KEY_FILE] SSL Key file (default "/opt/circonus/etc/circonus-agent.key")
+      --ssl-cert-file string                 [ENV: CA_SSL_CERT_FILE] SSL Certificate file (PEM cert and CAs concatenated together) (default "/opt/circonus/agent/etc/circonus-agent.pem")
+      --ssl-key-file string                  [ENV: CA_SSL_KEY_FILE] SSL Key file (default "/opt/circonus/agent/etc/circonus-agent.key")
       --ssl-listen string                    [ENV: CA_SSL_LISTEN] SSL listen address and port [IP]:[PORT] - setting enables SSL
       --ssl-verify                           [ENV: CA_SSL_VERIFY] Enable SSL verification (default true)
       --statsd-group-cid string              [ENV: CA_STATSD_GROUP_CID] StatsD group check bundle ID
@@ -114,6 +79,162 @@ Flags:
       --statsd-port string                   [ENV: CA_STATSD_PORT] StatsD port (default "8125")
   -V, --version                              Show version and exit
  ```
+
+# Config
+
+YAML
+```yaml
+---
+debug: false
+debug_cgm: false
+listen: ":2609"
+plugin-dir: "/opt/circonus/agent/plugins"
+
+api:
+  app: circonus-agent
+  ca_file: ''
+  key: ''
+  url: https://api.circonus.com/v2/
+
+log:
+  level: info
+  pretty: false
+
+reverse:
+  enabled: false
+  broker_ca_file: ''
+  check_bundle_id: ''
+  check_target: localhost
+  create_check: false
+  check:
+    broker: select
+    tags: ''
+    title: localhost /agent
+
+ssl:
+  cert_file: "/opt/circonus/agent/etc/circonus-agent.pem"
+  key_file: "/opt/circonus/agent/etc/circonus-agent.key"
+  listen: ''
+  verify: true
+
+statsd:
+  disabled: false
+  port: '8125'
+  group:
+    check_bundle_id: ''
+    counters: sum
+    gauges: average
+    metric_prefix: group.
+    sets: sum
+  host:
+    category: statsd
+    metric_prefix: host.
+
+```
+
+TOML
+```toml
+debug = false
+debug_cgm = false
+listen = ":2609"
+plugin-dir = "/opt/circonus/agent/plugins"
+
+[api]
+app = "circonus-agent"
+ca_file = ""
+key = ""
+url = "https://api.circonus.com/v2/"
+
+[log]
+level = "info"
+pretty = false
+
+[reverse]
+enabled = false
+broker_ca_file = ""
+check_bundle_id = ""
+check_target = "localhost"
+create_check = false
+[reverse.check]
+broker = "select"
+tags = ""
+title = "localhost /agent"
+
+[ssl]
+cert_file = "/opt/circonus/agent/etc/circonus-agent.pem"
+key_file = "/opt/circonus/agent/etc/circonus-agent.key"
+listen = ""
+verify = true
+
+[statsd]
+disabled = false
+port = '8125'
+
+[statsd.group]
+check_bundle_id = ""
+counters = "sum"
+gauges = "average"
+metric_prefix = "group."
+sets = "sum"
+
+[statsd.host]
+category = "statsd"
+metric_prefix = "host."
+```
+
+JSON
+```json
+{
+   "api": {
+     "app": "circonus-agent",
+     "ca_file": "",
+     "key": "",
+     "url": "https://api.circonus.com/v2/"
+   },
+   "debug": false,
+   "debug_cgm": false,
+   "listen": ":2609",
+   "log": {
+     "level": "info",
+     "pretty": false
+   },
+   "plugin-dir": "/opt/circonus/agent/plugins",
+   "reverse": {
+     "broker_ca_file": "",
+     "check": {
+       "broker": "select",
+       "tags": "",
+       "title": "localhost /agent"
+     },
+     "check_bundle_id": "",
+     "check_target": "localhost",
+     "create_check": false,
+     "enabled": false
+   },
+   "ssl": {
+     "cert_file": "/opt/circonus/agent/etc/circonus-agent.pem",
+     "key_file": "/opt/circonus/agent/etc/circonus-agent.key",
+     "listen": "",
+     "verify": true
+   },
+   "statsd": {
+     "disabled": false,
+     "group": {
+       "check_bundle_id": "",
+       "counters": "sum",
+       "gauges": "average",
+       "metric_prefix": "group.",
+       "sets": "sum"
+     },
+     "host": {
+       "category": "statsd",
+       "metric_prefix": "host."
+     },
+     "port": "8125"
+   }
+ }
+```
+
 
 # Plugins
 
@@ -132,7 +253,11 @@ Flags:
     * A `.conf` file is assumed to be a shell configuration file which is loaded by the plugin itself.
 * All other directory entries are ignored.
 
-## Output
+## Running plugin environment
+
+When plugins are executed, the _current working directory_ will be set to the `--plugin-dir`, for relative path references to find configs or data files. Scripts may safely reference `$PWD`. See `plugin_test/write_test/wtest1.sh` for example. In `plugin_test`, run `ln -s write_test/wtest1.sh`, start the agent (e.g. `go run main.go -p plugin_test`), then `curl localhost:2609/` to see it in action.
+
+## Plugin Output
 
 Output from plugins is expected on `stdout` either tab-delimited or json.
 
@@ -162,8 +287,13 @@ Output from plugins is expected on `stdout` either tab-delimited or json.
 | `n`  | double/float            |
 | `s`  | string/text             |
 
-## Running
 
-When plugins are executed, the _current working directory_ will be set to the `--plugin-dir`, for relative path references to find configs or data files. Scripts may safely reference `$PWD`. See `plugin_test/write_test/wtest1.sh` for example. In `plugin_test`, run `ln -s write_test/wtest1.sh`, start the agent (e.g. `go run main.go -p plugin_test`), then `curl localhost:2609/` to see it in action.
+# Manual build
+
+1. Clone repo `git clone https://github.com/circonus-labs/circonus-agent.git`
+1. Dependencies, run `dep ensure` (requires [dep](https://github.com/golang/dep) utility)
+1. Build `go build -o circonus-agentd`
+1. Install `cp circonus-agentd /opt/circonus/agent/sbin`
+
 
 [![codecov](https://codecov.io/gh/maier/circonus-agent/branch/master/graph/badge.svg)](https://codecov.io/gh/maier/circonus-agent)

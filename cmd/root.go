@@ -6,10 +6,7 @@
 package cmd
 
 import (
-	"encoding/json"
-	"expvar"
 	"fmt"
-	"io"
 	stdlog "log"
 	"os"
 	"time"
@@ -49,8 +46,10 @@ in JSON format.`,
 		//
 		// show configuration and exit
 		//
-		if viper.GetBool(config.KeyShowConfig) {
-			showConfig(os.Stdout)
+		if viper.GetString(config.KeyShowConfig) != "" {
+			if err := config.ShowConfig(os.Stdout); err != nil {
+				log.Fatal().Err(err).Msg("show-config")
+			}
 			return
 		}
 
@@ -64,7 +63,7 @@ in JSON format.`,
 			log.Fatal().Err(err).Msg("initializing")
 		}
 
-		statConfig()
+		config.StatConfig()
 
 		if err := a.Start(); err != nil {
 			log.Fatal().Err(err).Msg("starting agent")
@@ -569,13 +568,12 @@ func init() {
 
 	{
 		const (
-			key          = config.KeyShowConfig
-			longOpt      = "show-config"
-			defaultValue = false
-			description  = "Show config and exit"
+			key         = config.KeyShowConfig
+			longOpt     = "show-config"
+			description = "Show config (json|toml|yaml) and exit"
 		)
 
-		RootCmd.Flags().Bool(longOpt, defaultValue, description)
+		RootCmd.Flags().String(longOpt, "", description)
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 	}
 }
@@ -656,72 +654,3 @@ func Execute() {
 			Msg("Unable to start")
 	}
 }
-
-// statConfig adds the running config to the app stats
-func statConfig() error {
-	cfg, err := getConfig()
-	if err != nil {
-		return err
-	}
-
-	// obscure the api key/app, if set
-	cfg.(map[string]interface{})["api"].(map[string]interface{})["key"] = "..."
-	cfg.(map[string]interface{})["api"].(map[string]interface{})["app"] = "..."
-
-	expvar.Publish("config", expvar.Func(func() interface{} {
-		return &cfg
-	}))
-
-	return nil
-}
-
-// getConfig dumps the current configuration and returns it
-func getConfig() (interface{}, error) {
-	var cfg map[string]interface{}
-
-	if err := viper.Unmarshal(&cfg); err != nil {
-		return nil, errors.Wrap(err, "parsing config")
-	}
-
-	// these are pure flags (shouldn't be "in" config files)
-	delete(cfg, "version")
-	delete(cfg, "show-config")
-
-	return cfg, nil
-}
-
-// showConfig prints the running configuration
-func showConfig(w io.Writer) error {
-	cfg, err := getConfig()
-	if err != nil {
-		return err
-	}
-
-	data, err := json.MarshalIndent(cfg, " ", "  ")
-	if err != nil {
-		return errors.Wrap(err, "formatting config")
-	}
-
-	fmt.Fprintf(w, "%s v%s running config:\n%s\n", release.NAME, release.VERSION, data)
-	return nil
-}
-
-// func showConfig(w io.Writer) error {
-// 	var cfg map[string]interface{}
-//
-// 	if err := viper.Unmarshal(&cfg); err != nil {
-// 		return errors.Wrap(err, "parsing config")
-// 	}
-//
-// 	// these are pure flags (shouldn't be "in" config files)
-// 	delete(cfg, "version")
-// 	delete(cfg, "show-config")
-//
-// 	data, err := json.MarshalIndent(cfg, " ", "  ")
-// 	if err != nil {
-// 		return errors.Wrap(err, "formatting config")
-// 	}
-//
-// 	fmt.Fprintf(w, "%s v%s running config:\n%s\n", release.NAME, release.VERSION, data)
-// 	return nil
-// }
