@@ -1,3 +1,8 @@
+# v0.4.0
+    * switch --show-config to take a format argument (json|toml|yaml)
+    * add more test coverage
+    * reorganize README
+    * update dependencies
 # v0.3.0
     * add running config settings to app stats
     * add env vars for options to help output
