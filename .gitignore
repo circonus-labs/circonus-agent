@@ -41,3 +41,4 @@ dist/
 # codecov.io repo token and report
 .codecov
 coverage.txt
+coverage.xml
