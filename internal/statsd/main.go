@@ -12,9 +12,9 @@ import (
 	"net"
 	"regexp"
 
-	"github.com/circonus-labs/circonus-agent/internal/appstats"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	cgm "github.com/circonus-labs/circonus-gometrics"
+	"github.com/maier/go-appstats"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"

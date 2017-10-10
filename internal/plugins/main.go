@@ -14,8 +14,8 @@ import (
 
 	// "github.com/rjeczalik/notify"
 
-	"github.com/circonus-labs/circonus-agent/internal/appstats"
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/maier/go-appstats"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"

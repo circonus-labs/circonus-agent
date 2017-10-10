@@ -13,8 +13,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/circonus-labs/circonus-agent/internal/appstats"
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/maier/go-appstats"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )

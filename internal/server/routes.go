@@ -9,7 +9,7 @@ import (
 	"expvar"
 	"net/http"
 
-	"github.com/circonus-labs/circonus-agent/internal/appstats"
+	"github.com/maier/go-appstats"
 )
 
 func (s *Server) router(w http.ResponseWriter, r *http.Request) {

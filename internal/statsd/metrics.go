@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/circonus-labs/circonus-agent/internal/appstats"
 	cgm "github.com/circonus-labs/circonus-gometrics"
+	"github.com/maier/go-appstats"
 	"github.com/pkg/errors"
 )
 
