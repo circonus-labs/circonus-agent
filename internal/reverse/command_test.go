@@ -7,6 +7,7 @@ package reverse
 
 import (
 	"bytes"
+	"errors"
 	"testing"
 
 	"github.com/rs/zerolog"
@@ -217,16 +218,17 @@ func TestReadPayload(t *testing.T) {
 	t.Log("undersize")
 	{
 		expect := []byte("test")
+		expectErr := errors.New("invalid read, expected bytes 6 got 4 ([]byte{0x74, 0x65, 0x73, 0x74} = test)")
 		b := bytes.NewReader(expect)
 		data, err := readPayload(b, 6)
-		if err != nil {
-			t.Fatalf("expected no error, got (%s)", err)
+		if err == nil {
+			t.Fatal("expected err")
 		}
-		if len(string(data)) != 6 {
-			t.Fatalf("expected (%d) got (%d)", len(expect), len(data))
+		if err.Error() != expectErr.Error() {
+			t.Fatalf("expected (%s) got (%s)", expectErr, err)
 		}
-		if string(data[:4]) != string(expect) {
-			t.Fatalf("expected (%s) got (%s)", string(expect), string(data))
+		if data != nil {
+			t.Fatalf("expected nil, got %#v %s", data, string(data))
 		}
 	}
 
