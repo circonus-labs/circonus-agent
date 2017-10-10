@@ -44,7 +44,7 @@ func (p *Plugins) Scan() error {
 		return errors.Wrap(err, "stopping plugin(s)")
 	}
 
-	appstats.SetInt("plugins_total", 0)
+	// appstats.MapSet("plugins", "total", bytes.NewBufferString("0"))
 
 	if err := p.scanPluginDirectory(); err != nil {
 		return errors.Wrap(err, "plugin directory scan")
@@ -197,7 +197,7 @@ func (p *Plugins) scanPluginDirectory() error {
 				plug = p.active[fileBase]
 			}
 
-			appstats.IncrementInt("plugins_total")
+			appstats.MapIncrementInt("plugins", "total")
 			plug.Generation = p.generation
 			plug.Command = cmdName
 			p.logger.Info().
@@ -223,7 +223,7 @@ func (p *Plugins) scanPluginDirectory() error {
 					plug = p.active[pluginName]
 				}
 
-				appstats.IncrementInt("plugins_total")
+				appstats.MapIncrementInt("plugins", "total")
 				plug.Generation = p.generation
 				plug.Command = cmdName
 				p.logger.Info().
