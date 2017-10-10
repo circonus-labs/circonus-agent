@@ -10,8 +10,8 @@
 [[projects]]
   name = "github.com/circonus-labs/circonus-gometrics"
   packages = [".","api","api/config","checkmgr"]
-  revision = "5124d2e597dd03e6ebd1f2734ec98dd0ab42c834"
-  version = "v1.1.2"
+  revision = "6419ea0ac64c8403f9eaabc743dd341adaf68315"
+  version = "v1.2.0"
 
 [[projects]]
   branch = "master"
@@ -76,8 +76,8 @@
 [[projects]]
   name = "github.com/maier/go-appstats"
   packages = ["."]
-  revision = "f2fe2b71980889600fea8d6be8e2eeee3051acd7"
-  version = "v0.1.0"
+  revision = "812a586e5d1f053211dda0c664e8ce6cb7c38396"
+  version = "v0.2.0"
 
 [[projects]]
   branch = "master"
