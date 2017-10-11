@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -116,18 +115,28 @@ func walkMetrics(w http.ResponseWriter, prefix string, ts int64, val interface{}
 				w.Write([]byte(fmt.Sprintf("%s`%s %f %d\n", prefix, pfx, metric.Value, ts)))
 			case string:
 				s := fmt.Sprintf("%v", metric.Value)
-				ok, err := regexp.MatchString("^[0-9]+$", s)
-				if err != nil {
-					log.Error().Err(err).Msg("testing string for digits")
-					continue
-				}
-				if ok {
+				switch metric.Type {
+				case "i":
+					fallthrough
+				case "I":
+					fallthrough
+				case "l":
+					fallthrough
+				case "L":
 					v, err := strconv.ParseInt(s, 10, 64)
 					if err != nil {
 						log.Error().Err(err).Msg("conv int64")
 						continue
 					}
 					w.Write([]byte(fmt.Sprintf("%s`%s %d %d\n", prefix, pfx, v, ts)))
+					continue
+				case "n":
+					v, err := strconv.ParseFloat(s, 64)
+					if err != nil {
+						log.Error().Err(err).Msg("conv float64")
+						continue
+					}
+					w.Write([]byte(fmt.Sprintf("%s`%s %f %d\n", prefix, pfx, v, ts)))
 					continue
 				}
 				w.Write([]byte(fmt.Sprintf("#TEXT %s`%s %s %d\n", prefix, pfx, s, ts)))
