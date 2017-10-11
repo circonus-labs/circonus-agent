@@ -50,40 +50,14 @@ func Flush() *cgm.Metrics {
 	metricsmu.Lock()
 	defer metricsmu.Unlock()
 
-	// if metrics == nil {
-	// 	return &cgm.Metrics{}
-	// }
-	// currMetrics := metrics
-	// metrics = nil
-	// return currMetrics
-
 	return metrics.FlushMetrics()
 }
-
-// NumMetricGroups returns number of metrics
-// func NumMetricGroups() int {
-// 	metricsmu.Lock()
-// 	defer metricsmu.Unlock()
-//
-// 	if metrics == nil {
-// 		metrics = &Metrics{}
-// 	}
-//
-// 	return len(*metrics)
-// }
 
 // Parse handles incoming PUT/POST requests
 func Parse(id string, data io.ReadCloser) error {
 	initCGM()
 	metricsmu.Lock()
 	defer metricsmu.Unlock()
-
-	// metricsmu.Lock()
-	// defer metricsmu.Unlock()
-	//
-	// if metrics == nil {
-	// 	metrics = &Metrics{}
-	// }
 
 	var tmp cgm.Metrics
 	if err := json.NewDecoder(data).Decode(&tmp); err != nil {
