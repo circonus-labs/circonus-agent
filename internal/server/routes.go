@@ -26,9 +26,9 @@ func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 			s.run(w, r)
 		} else if inventoryPathRx.MatchString(r.URL.Path) { // plugin inventory
 			s.inventory(w, r)
-		} else if r.URL.Path == "/stats" {
+		} else if statsPathRx.MatchString(r.URL.Path) { // app stats
 			expvar.Handler().ServeHTTP(w, r)
-		} else if r.URL.Path == "/prom" {
+		} else if promPathRx.MatchString(r.URL.Path) { // output prom format...
 			s.promOutput(w, r)
 		} else {
 			appstats.IncrementInt("requests_bad")

@@ -85,12 +85,17 @@ func TestRouter(t *testing.T) {
 		reqtests := []struct {
 			method string
 			path   string
+			code   int
 		}{
-			{"GET", "/"},
-			{"GET", "/run"},
-			{"GET", "/run/"},
-			{"GET", "/inventory"},
-			{"GET", "/inventory/"},
+			{"GET", "/", http.StatusOK},
+			{"GET", "/run", http.StatusOK},
+			{"GET", "/run/", http.StatusOK},
+			{"GET", "/inventory", http.StatusOK},
+			{"GET", "/inventory/", http.StatusOK},
+			{"GET", "/stats", http.StatusOK},
+			{"GET", "/stats/", http.StatusOK},
+			{"GET", "/prom", http.StatusNoContent},
+			{"GET", "/prom/", http.StatusNoContent},
 		}
 		for _, reqtest := range reqtests {
 			t.Logf("OK path (%s %s)", reqtest.method, reqtest.path)
@@ -101,8 +106,8 @@ func TestRouter(t *testing.T) {
 
 			resp := w.Result()
 
-			if resp.StatusCode != http.StatusOK {
-				t.Fatalf("expected %d, got %d", http.StatusOK, resp.StatusCode)
+			if resp.StatusCode != reqtest.code {
+				t.Fatalf("expected %d, got %d", reqtest.code, resp.StatusCode)
 			}
 		}
 	}

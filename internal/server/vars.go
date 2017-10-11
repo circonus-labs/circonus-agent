@@ -39,6 +39,8 @@ var (
 	pluginPathRx    = regexp.MustCompile("^/(run(/.*)?)?$")
 	inventoryPathRx = regexp.MustCompile("^/inventory/?$")
 	writePathRx     = regexp.MustCompile("^/write/.+$")
+	statsPathRx     = regexp.MustCompile("^/stats/?$")
+	promPathRx      = regexp.MustCompile("^/prom/?$")
 	lastMetrics     = &previousMetrics{}
 	lastMeticsmu    sync.Mutex
 )
