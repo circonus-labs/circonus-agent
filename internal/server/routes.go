@@ -28,6 +28,8 @@ func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 			s.inventory(w, r)
 		} else if r.URL.Path == "/stats" {
 			expvar.Handler().ServeHTTP(w, r)
+		} else if r.URL.Path == "/prom" {
+			s.promOutput(w, r)
 		} else {
 			appstats.IncrementInt("requests_bad")
 			s.logger.Warn().
