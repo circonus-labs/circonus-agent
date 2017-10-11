@@ -9,14 +9,16 @@ package receiver
 import (
 	"sync"
 
+	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/rs/zerolog/log"
 )
 
 // Metrics recived via PUT/POST
-type Metrics map[string]interface{}
+// type Metrics map[string]interface{}
 
 var (
 	metricsmu sync.Mutex
-	metrics   *Metrics
-	logger    = log.With().Str("pkg", "receiver").Logger()
+	// metrics   *Metrics
+	metrics *cgm.CirconusMetrics
+	logger  = log.With().Str("pkg", "receiver").Logger()
 )

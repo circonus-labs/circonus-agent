@@ -7,10 +7,14 @@ package receiver
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
+	"strings"
 	"testing"
 
+	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/rs/zerolog"
 )
 
@@ -19,7 +23,7 @@ func TestFlush(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	t.Log("No metrics")
+	t.Log("\tno metrics")
 	{
 		m := Flush()
 		if len(*m) != 0 {
@@ -27,10 +31,14 @@ func TestFlush(t *testing.T) {
 		}
 	}
 
-	metrics = &Metrics{"test": "test"}
-
-	t.Log("Valid w/1 metric")
+	t.Log("\tw/metric(s)")
 	{
+		err := initCGM()
+		if err != nil {
+			t.Fatalf("expected no error, got %s", err)
+		}
+		metrics.SetText("test", "test")
+
 		m := Flush()
 		if len(*m) != 1 {
 			t.Fatalf("expected 1 metric, got %d", len(*m))
@@ -38,39 +46,18 @@ func TestFlush(t *testing.T) {
 	}
 }
 
-func TestNumMetricGroups(t *testing.T) {
-	t.Log("Testing NumMetricGroups")
-
-	zerolog.SetGlobalLevel(zerolog.Disabled)
-
-	t.Log("No metrics")
-	{
-		n := NumMetricGroups()
-		if n != 0 {
-			t.Fatalf("expected 0 metrics, got %d", n)
-		}
-	}
-
-	metrics = &Metrics{"test": "test"}
-
-	t.Log("Valid w/1 metric")
-	{
-		n := NumMetricGroups()
-		if n != 1 {
-			t.Fatalf("expected 0 metrics, got %d", n)
-		}
-	}
-
-}
-
 func TestParse(t *testing.T) {
 	t.Log("Testing Parse")
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	t.Log("invalid json (no data)")
+	err := initCGM()
+	if err != nil {
+		t.Fatalf("expected no error, got %s", err)
+	}
+
+	t.Log("\tinvalid json (no data)")
 	{
-		metrics = nil
 		data := []byte{}
 		r := ioutil.NopCloser(bytes.NewReader(data))
 		expectedErr := errors.New("parsing json for test: EOF")
@@ -83,9 +70,8 @@ func TestParse(t *testing.T) {
 		}
 	}
 
-	t.Log("invalid json (blank)")
+	t.Log("\tinvalid json (blank)")
 	{
-		metrics = nil
 		data := []byte("")
 		r := ioutil.NopCloser(bytes.NewReader(data))
 		expectedErr := errors.New("parsing json for test: EOF")
@@ -98,9 +84,8 @@ func TestParse(t *testing.T) {
 		}
 	}
 
-	t.Log("invalid json (syntax)")
+	t.Log("\tinvalid json (syntax)")
 	{
-		metrics = nil
 		data := []byte("{")
 		r := ioutil.NopCloser(bytes.NewReader(data))
 		expectedErr := errors.New("parsing json for test: unexpected EOF")
@@ -113,9 +98,8 @@ func TestParse(t *testing.T) {
 		}
 	}
 
-	t.Log("invalid json (syntax)")
+	t.Log("\tinvalid json (syntax)")
 	{
-		metrics = nil
 		data := []byte(`{"test": }`)
 		r := ioutil.NopCloser(bytes.NewReader(data))
 		expectedErr := errors.New("id:test - offset 10: invalid character '}' looking for beginning of value")
@@ -128,38 +112,404 @@ func TestParse(t *testing.T) {
 		}
 	}
 
-	t.Log("no metrics")
+	t.Log("\tno metrics")
 	{
-		metrics = nil
 		data := []byte("{}")
 		r := ioutil.NopCloser(bytes.NewReader(data))
 		err := Parse("test", r)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		if len((*metrics)["test"].(map[string]interface{})) != 0 {
+		m := metrics.FlushMetrics()
+		if len(*m) != 0 {
 			t.Fatalf("expected no metrics, got %#v", metrics)
 		}
 	}
 
-	t.Log("Valid w/1 metric")
+	t.Log("\ttype 'i' int32")
 	{
-		data := []byte(`{"metric": 1}`)
+		data := []byte(`{"test": {"_type": "i", "_value": 1}}`)
 		r := ioutil.NopCloser(bytes.NewReader(data))
-		err := Parse("test", r)
+		err := Parse("testg", r)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		mg, ok := (*metrics)["test"].(map[string]interface{})
+		m := metrics.FlushMetrics()
+		testMetric, ok := (*m)["testg`test"]
 		if !ok {
-			t.Fatalf("expected metric group 'test', %#v", metrics)
+			t.Fatalf("expected metric 'testg`test', %#v", m)
 		}
-		m, ok := mg["metric"]
+		if testMetric.Value.(int32) != int32(1) {
+			t.Fatalf("expected 1 got %v", testMetric.Value)
+		}
+	}
+
+	t.Log("\ttype 'I' uint32")
+	{
+		data := []byte(`{"test": {"_type": "I", "_value": 1}}`)
+		r := ioutil.NopCloser(bytes.NewReader(data))
+		err := Parse("testg", r)
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
+		m := metrics.FlushMetrics()
+		testMetric, ok := (*m)["testg`test"]
 		if !ok {
-			t.Fatalf("expected metric 'metric', %#v", mg)
+			t.Fatalf("expected metric 'testg`test', %#v", m)
 		}
-		if m.(float64) != float64(1) {
-			t.Fatalf("expected 1 got %v", m)
+		if testMetric.Value.(uint32) != uint32(1) {
+			t.Fatalf("expected 1 got %v", testMetric.Value)
+		}
+	}
+
+	t.Log("\ttype 'l' int64")
+	{
+		data := []byte(`{"test": {"_type": "l", "_value": 1}}`)
+		r := ioutil.NopCloser(bytes.NewReader(data))
+		err := Parse("testg", r)
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
+		m := metrics.FlushMetrics()
+		testMetric, ok := (*m)["testg`test"]
+		if !ok {
+			t.Fatalf("expected metric 'testg`test', %#v", m)
+		}
+		if testMetric.Value.(int64) != int64(1) {
+			t.Fatalf("expected 1 got %v", testMetric.Value)
+		}
+	}
+
+	t.Log("\ttype 'L' uint64")
+	{
+		data := []byte(`{"test": {"_type": "L", "_value": 1}}`)
+		r := ioutil.NopCloser(bytes.NewReader(data))
+		err := Parse("testg", r)
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
+		m := metrics.FlushMetrics()
+		testMetric, ok := (*m)["testg`test"]
+		if !ok {
+			t.Fatalf("expected metric 'testg`test', %#v", m)
+		}
+		if testMetric.Value.(uint64) != uint64(1) {
+			t.Fatalf("expected 1 got %v", testMetric.Value)
+		}
+	}
+
+	t.Log("\ttype 'n' float")
+	{
+		data := []byte(`{"test": {"_type": "n", "_value": 1}}`)
+		r := ioutil.NopCloser(bytes.NewReader(data))
+		err := Parse("testg", r)
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
+		m := metrics.FlushMetrics()
+		testMetric, ok := (*m)["testg`test"]
+		if !ok {
+			t.Fatalf("expected metric 'testg`test', %#v", m)
+		}
+		if testMetric.Value.(float64) != float64(1) {
+			t.Fatalf("expected 1 got %v", testMetric.Value)
+		}
+	}
+
+	t.Log("\ttype 'n' float (histogram samples)")
+	{
+		data := []byte(`{"test": {"_type": "n", "_value": [1]}}`)
+		r := ioutil.NopCloser(bytes.NewReader(data))
+		err := Parse("testg", r)
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
+		m := metrics.FlushMetrics()
+		testMetric, ok := (*m)["testg`test"]
+		if !ok {
+			t.Fatalf("expected metric 'testg`test', %#v", m)
+		}
+		if len(testMetric.Value.([]string)) == 0 {
+			t.Fatalf("expected at least 1 sample, got %#v", testMetric.Value)
+		}
+		expect := "[H[1.0e+00]=1]"
+		if !strings.Contains(fmt.Sprintf("%v", testMetric.Value), expect) {
+			t.Fatalf("expected (%v) got (%v)", expect, testMetric.Value)
+		}
+	}
+
+	t.Log("\ttype 's' string")
+	{
+		data := []byte(`{"test": {"_type": "s", "_value": "foo"}}`)
+		r := ioutil.NopCloser(bytes.NewReader(data))
+		err := Parse("testg", r)
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
+		m := metrics.FlushMetrics()
+		testMetric, ok := (*m)["testg`test"]
+		if !ok {
+			t.Fatalf("expected metric 'testg`test', %#v", m)
+		}
+		if testMetric.Value.(string) != "foo" {
+			t.Fatalf("expected 'foo' got '%v'", testMetric.Value)
+		}
+	}
+
+	t.Log("\ttype 'z' invalid type")
+	{
+		data := []byte(`{"test": {"_type": "z", "_value": null}}`)
+		r := ioutil.NopCloser(bytes.NewReader(data))
+		err := Parse("testg", r)
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
+		m := metrics.FlushMetrics()
+		testMetric, ok := (*m)["testg`test"]
+		if ok {
+			t.Fatalf("expected no metric got, %#v", testMetric)
+		}
+	}
+}
+
+func createMetric(t string, v interface{}) cgm.Metric {
+
+	// convert native literal types to json then back to
+	// simulate parsed values comming in from a POST|PUT
+	// iow, what would be _coming_ from receive.Parse()
+
+	m := cgm.Metric{Type: t, Value: v}
+	b, err := json.Marshal(m)
+	if err != nil {
+		panic(err)
+	}
+
+	if err := json.Unmarshal(b, &m); err != nil {
+		panic(err)
+	}
+	return m
+}
+
+func TestParseInt32(t *testing.T) {
+	t.Log("Testing parseInt32")
+
+	metricType := "i"
+
+	tt := []struct {
+		Description string
+		Value       interface{}
+		Expect      int32
+		ShouldFail  bool
+	}{
+		{"valid", 1, int32(1), false},
+		{"valid, string", fmt.Sprintf("%v", 1), int32(1), false},
+		{"bad conversion", fmt.Sprintf("%v", "1a"), 0, true},
+		{"bad data type", []int{1}, 0, true},
+	}
+
+	for _, test := range tt {
+		t.Logf("\ttesting %s (%#v)", test.Description, test.Value)
+		metric := createMetric(metricType, test.Value)
+		v := parseInt32("test", metric)
+		if test.ShouldFail {
+			if v != nil {
+				t.Fatalf("expected nil, got (%#v)", v)
+			}
+		} else {
+			if v == nil {
+				t.Fatal("expected value")
+			}
+			if *v != test.Expect {
+				t.Fatalf("expected (%#v) got (%#v)", test.Expect, *v)
+			}
+		}
+	}
+}
+
+func TestParseUint32(t *testing.T) {
+	t.Log("Testing parseUint32")
+
+	metricType := "I"
+
+	tt := []struct {
+		Description string
+		Value       interface{}
+		Expect      uint32
+		ShouldFail  bool
+	}{
+		{"valid", 1, uint32(1), false},
+		{"valid, string", fmt.Sprintf("%v", 1), uint32(1), false},
+		{"bad conversion", fmt.Sprintf("%v", "1a"), 0, true},
+		{"bad data type", []int{1}, 0, true},
+	}
+
+	for _, test := range tt {
+		t.Logf("\ttesting %s (%#v)", test.Description, test.Value)
+		metric := createMetric(metricType, test.Value)
+		v := parseUint32("test", metric)
+		if test.ShouldFail {
+			if v != nil {
+				t.Fatalf("expected nil, got (%#v)", v)
+			}
+		} else {
+			if v == nil {
+				t.Fatal("expected value")
+			}
+			if *v != test.Expect {
+				t.Fatalf("expected (%#v) got (%#v)", test.Expect, *v)
+			}
+		}
+	}
+}
+
+func TestParseInt64(t *testing.T) {
+	t.Log("Testing parseInt64")
+
+	metricType := "l"
+
+	tt := []struct {
+		Description string
+		Value       interface{}
+		Expect      int64
+		ShouldFail  bool
+	}{
+		{"valid", 1, int64(1), false},
+		{"valid, string", fmt.Sprintf("%v", 1), int64(1), false},
+		{"bad conversion", fmt.Sprintf("%v", "1a"), 0, true},
+		{"bad data type", []int{1}, 0, true},
+	}
+
+	for _, test := range tt {
+		t.Logf("\ttesting %s (%#v)", test.Description, test.Value)
+		metric := createMetric(metricType, test.Value)
+		v := parseInt64("test", metric)
+		if test.ShouldFail {
+			if v != nil {
+				t.Fatalf("expected nil, got (%#v)", v)
+			}
+		} else {
+			if v == nil {
+				t.Fatal("expected value")
+			}
+			if *v != test.Expect {
+				t.Fatalf("expected (%#v) got (%#v)", test.Expect, *v)
+			}
+		}
+	}
+}
+
+func TestParseUint64(t *testing.T) {
+	t.Log("Testing parseUint64")
+
+	metricType := "L"
+
+	tt := []struct {
+		Description string
+		Value       interface{}
+		Expect      uint64
+		ShouldFail  bool
+	}{
+		{"valid", 1, uint64(1), false},
+		{"valid, string", fmt.Sprintf("%v", 1), uint64(1), false},
+		{"bad conversion", fmt.Sprintf("%v", "1a"), 0, true},
+		{"bad data type", []int{1}, 0, true},
+	}
+
+	for _, test := range tt {
+		t.Logf("\ttesting %s (%#v)", test.Description, test.Value)
+		metric := createMetric(metricType, test.Value)
+		v := parseUint64("test", metric)
+		if test.ShouldFail {
+			if v != nil {
+				t.Fatalf("expected nil, got (%#v)", v)
+			}
+		} else {
+			if v == nil {
+				t.Fatal("expected value")
+			}
+			if *v != test.Expect {
+				t.Fatalf("expected (%#v) got (%#v)", test.Expect, *v)
+			}
+		}
+	}
+}
+
+func TestParseFloat(t *testing.T) {
+	t.Log("Testing parseFloat")
+
+	metricType := "n"
+
+	tt := []struct {
+		Description string
+		Value       interface{}
+		Expect      float64
+		ShouldFail  bool
+	}{
+		{"valid1", 1, float64(1), false},
+		{"valid2", 1.2, float64(1.2), false},
+		{"valid, string1", fmt.Sprintf("%v", 1), float64(1), false},
+		{"valid, string2", fmt.Sprintf("%v", 1.2), float64(1.2), false},
+		{"bad conversion", fmt.Sprintf("%v", "1a"), 0, true},
+		{"bad data type", true, 0, true},
+	}
+
+	for _, test := range tt {
+		t.Logf("\ttesting %s (%#v)", test.Description, test.Value)
+		metric := createMetric(metricType, test.Value)
+		v, isHist := parseFloat("test", metric)
+		if isHist {
+			t.Fatal("not expecting histogram")
+		}
+		if test.ShouldFail {
+			if v != nil {
+				t.Fatalf("expected nil, got (%#v)", v)
+			}
+		} else {
+			if v == nil {
+				t.Fatal("expected value")
+			}
+			if *v != test.Expect {
+				t.Fatalf("expected (%#v) got (%#v)", test.Expect, *v)
+			}
+		}
+	}
+}
+
+func TestParseHistogram(t *testing.T) {
+	t.Log("Testing parseHistogram")
+
+	metricType := "n"
+
+	tt := []struct {
+		Description string
+		Value       interface{}
+		Expect      []float64
+		ShouldFail  bool
+	}{
+		{"valid1", []float64{1}, []float64{1}, false},
+		{"valid2", []float64{1.2}, []float64{1.2}, false},
+		{"valid, string1", []string{fmt.Sprintf("%v", 1)}, []float64{1}, false},
+		{"valid, string2", []string{fmt.Sprintf("%v", 1.2)}, []float64{1.2}, false},
+		{"bad conversion", []string{fmt.Sprintf("%v", "1a")}, []float64{}, true},
+		{"bad data type - metric", true, []float64{}, true},
+		{"bad data type - metric sample", []bool{true}, []float64{}, true},
+	}
+
+	for _, test := range tt {
+		t.Logf("\ttesting %s (%#v)", test.Description, test.Value)
+		metric := createMetric(metricType, test.Value)
+		v := parseHistogram("test", metric)
+		if test.ShouldFail {
+			if v != nil {
+				t.Fatalf("expected nil, got (%#v)", v)
+			}
+		} else {
+			if v == nil {
+				t.Fatal("expected value")
+			}
+			if fmt.Sprintf("%v", *v) != fmt.Sprintf("%v", test.Expect) {
+				t.Fatalf("expected (%#v) got (%#v)", test.Expect, *v)
+			}
 		}
 	}
 }
