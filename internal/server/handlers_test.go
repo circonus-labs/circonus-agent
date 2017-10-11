@@ -6,12 +6,15 @@
 package server
 
 import (
+	"bufio"
 	"bytes"
 	"context"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path"
+	"strings"
 	"testing"
 	"time"
 
@@ -103,7 +106,7 @@ func TestWrite(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 	s, _ := New(nil, nil)
 
-	t.Logf("PUT /write/ -> %d", http.StatusNotFound)
+	t.Logf("GET /write/ -> %d", http.StatusNotFound)
 	{
 		req := httptest.NewRequest("GET", "/write/", nil)
 		w := httptest.NewRecorder()
@@ -160,6 +163,76 @@ func TestWrite(t *testing.T) {
 
 		if resp.StatusCode != http.StatusNoContent {
 			t.Fatalf("expected %d, got %d", http.StatusNoContent, resp.StatusCode)
+		}
+	}
+
+}
+
+func TestPromOutput(t *testing.T) {
+	t.Log("Testing promOutput")
+
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+	s, _ := New(nil, nil)
+
+	t.Logf("GET /prom -> %d", http.StatusNoContent)
+	{
+		req := httptest.NewRequest("GET", "/prom", nil)
+		w := httptest.NewRecorder()
+
+		s.promOutput(w, req)
+
+		resp := w.Result()
+
+		if resp.StatusCode != http.StatusNoContent {
+			t.Fatalf("expected %d, got %d", http.StatusNoContent, resp.StatusCode)
+		}
+	}
+
+	t.Logf("GET /prom -> %d", http.StatusOK)
+	{
+		lastMetrics.ts = time.Now()
+		lastMetrics.metrics = &map[string]interface{}{
+			"gtest": &plugins.Metrics{
+				"mtest": plugins.Metric{Type: "i", Value: 1},
+			},
+		}
+		req := httptest.NewRequest("GET", "/prom", nil)
+		w := httptest.NewRecorder()
+
+		s.promOutput(w, req)
+
+		resp := w.Result()
+
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected %d, got %d", http.StatusOK, resp.StatusCode)
+		}
+
+		expect := "gtest`mtest 1"
+		body, _ := ioutil.ReadAll(resp.Body)
+		if !strings.Contains(string(body), expect) {
+			t.Fatalf("expected (%s) got (%s)", expect, string(body))
+		}
+	}
+}
+
+func TestMetricsToPromFormat(t *testing.T) {
+	t.Log("Testing metricsToPromFormat")
+
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+
+	t.Log("type *plugins.Metrics")
+	{
+		var b bytes.Buffer
+		w := bufio.NewWriter(&b)
+		ts := time.Now().UnixNano() / int64(time.Millisecond)
+		m := &plugins.Metrics{
+			"mtest": plugins.Metric{Type: "i", Value: 1},
+		}
+		metricsToPromFormat(w, "gtest", ts, m)
+		w.Flush()
+		expect := "gtest`mtest 1"
+		if !strings.Contains(b.String(), expect) {
+			t.Fatalf("expected (%s) got (%s)", expect, b.String())
 		}
 	}
 
