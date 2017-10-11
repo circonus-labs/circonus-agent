@@ -114,7 +114,7 @@ func metricsToPromFormat(w http.ResponseWriter, prefix string, ts int64, val int
 			w.Write([]byte(fmt.Sprintf("%s %d %d\n", prefix, v, ts)))
 		case "n":
 			if strings.Contains(s, "[H[") {
-				w.Write([]byte(fmt.Sprintf("#HISTOGRAM %s`%s %s %d\n", prefix, s, ts)))
+				w.Write([]byte(fmt.Sprintf("#HISTOGRAM %s %s %d\n", prefix, s, ts)))
 			} else {
 				v, err := strconv.ParseFloat(s, 64)
 				if err != nil {
