@@ -84,7 +84,7 @@ func TestInventory(t *testing.T) {
 	s, _ := New(p, nil)
 	time.Sleep(1 * time.Second)
 
-	t.Log("GET /inventory -> 200")
+	t.Logf("GET /inventory -> %d", http.StatusOK)
 	req := httptest.NewRequest("GET", "/inventory", nil)
 	w := httptest.NewRecorder()
 
@@ -103,7 +103,7 @@ func TestWrite(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 	s, _ := New(nil, nil)
 
-	t.Log("PUT /write/ -> 404")
+	t.Logf("PUT /write/ -> %d", http.StatusNotFound)
 	{
 		req := httptest.NewRequest("GET", "/write/", nil)
 		w := httptest.NewRecorder()
@@ -117,7 +117,7 @@ func TestWrite(t *testing.T) {
 		}
 	}
 
-	t.Log("PUT /write/foo w/o data -> 500")
+	t.Logf("PUT /write/foo w/o data -> %d", http.StatusBadRequest)
 	{
 		req := httptest.NewRequest("PUT", "/write/foo", nil)
 		w := httptest.NewRecorder()
@@ -126,12 +126,12 @@ func TestWrite(t *testing.T) {
 
 		resp := w.Result()
 
-		if resp.StatusCode != http.StatusInternalServerError {
-			t.Fatalf("expected %d, got %d", http.StatusInternalServerError, resp.StatusCode)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected %d, got %d", http.StatusBadRequest, resp.StatusCode)
 		}
 	}
 
-	t.Log("PUT /write/foo w/bad data -> 500")
+	t.Logf("PUT /write/foo w/bad data -> %d", http.StatusBadRequest)
 	{
 		reqBody := bytes.NewReader([]byte(`{"test":1`))
 
@@ -142,14 +142,14 @@ func TestWrite(t *testing.T) {
 
 		resp := w.Result()
 
-		if resp.StatusCode != http.StatusInternalServerError {
-			t.Fatalf("expected %d, got %d", http.StatusInternalServerError, resp.StatusCode)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected %d, got %d", http.StatusBadRequest, resp.StatusCode)
 		}
 	}
 
-	t.Log("PUT /write/foo w/data -> 204")
+	t.Logf("PUT /write/foo w/data -> %d", http.StatusNoContent)
 	{
-		reqBody := bytes.NewReader([]byte(`{"test":1}`))
+		reqBody := bytes.NewReader([]byte(`{"test":{"_type": "i", "_value":1}}`))
 
 		req := httptest.NewRequest("PUT", "/write/foo", reqBody)
 		w := httptest.NewRecorder()
