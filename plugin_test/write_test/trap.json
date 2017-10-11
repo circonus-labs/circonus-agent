@@ -1,10 +1,16 @@
 {
-  "number": 1.23,
-  "bignum_as_string": "281474976710656",
-  "test": "a text string",
-  "container": { "key1": 1234 },
-  "array": [  1234,
-              "string",
-              { "crazy": "like a fox" }
-           ]
+    "NOTE": "arbitrary data no longer supported, send directly to an HTTPTRAP check on broker",
+    "number": 1.23,
+    "bignum_as_string": "281474976710656",
+    "test": "a text string",
+    "container": {
+        "key1": 1234
+    },
+    "array": [
+        1234,
+        "string",
+        {
+            "crazy": "like a fox"
+        }
+    ]
 }
