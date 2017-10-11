@@ -8,6 +8,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -79,86 +80,6 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// promOutput returns the last metrics in prom format
-func (s *Server) promOutput(w http.ResponseWriter, r *http.Request) {
-	if lastMetrics.metrics == nil {
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
-
-	ms := lastMetrics.ts.UnixNano() / int64(time.Millisecond)
-
-	for group, data := range *lastMetrics.metrics {
-		metricsToPromFormat(w, group, ms, data)
-	}
-}
-
-func metricsToPromFormat(w http.ResponseWriter, prefix string, ts int64, val interface{}) {
-	switch t := val.(type) {
-	case cgm.Metric:
-		metric := val.(cgm.Metric)
-		s := fmt.Sprintf("%v", metric.Value)
-		switch metric.Type {
-		case "i":
-			fallthrough
-		case "I":
-			fallthrough
-		case "l":
-			fallthrough
-		case "L":
-			v, err := strconv.ParseInt(s, 10, 64)
-			if err != nil {
-				log.Error().Err(err).Msg("conv int64")
-				return
-			}
-			w.Write([]byte(fmt.Sprintf("%s %d %d\n", prefix, v, ts)))
-		case "n":
-			if strings.Contains(s, "[H[") {
-				w.Write([]byte(fmt.Sprintf("#HISTOGRAM %s %s %d\n", prefix, s, ts)))
-			} else {
-				v, err := strconv.ParseFloat(s, 64)
-				if err != nil {
-					log.Error().Err(err).Msg("conv float64")
-					return
-				}
-				w.Write([]byte(fmt.Sprintf("%s %f %d\n", prefix, v, ts)))
-			}
-		default:
-			w.Write([]byte(fmt.Sprintf("#TEXT %s %s %d\n", prefix, s, ts)))
-		}
-	case cgm.Metrics:
-		metrics, ok := val.(cgm.Metrics)
-		if !ok {
-			st := fmt.Sprintf("%T", t)
-			log.Warn().Interface("val", val).Str("target_type", st).Str("pkg", "prom export").Msg("unable to coerce")
-			return
-		}
-		for pfx, metric := range metrics {
-			name := prefix
-			if pfx != "" {
-				name += "`" + pfx
-			}
-			metricsToPromFormat(w, name, ts, metric)
-		}
-	case *plugins.Metrics:
-		metrics, ok := val.(*plugins.Metrics)
-		if !ok {
-			st := fmt.Sprintf("%T", t)
-			log.Warn().Interface("val", val).Str("target_type", st).Str("pkg", "prom export").Msg("unable to coerce")
-			return
-		}
-		for pfx, metric := range *metrics {
-			name := prefix
-			if pfx != "" {
-				name += "`" + pfx
-			}
-			metricsToPromFormat(w, name, ts, cgm.Metric(metric))
-		}
-	default:
-		w.Write([]byte(fmt.Sprintf("#UNHANDLED TYPE(%T) %v = %#v\n", t, prefix, val)))
-	}
-}
-
 // inventory returns the current, active plugin inventory
 func (s *Server) inventory(w http.ResponseWriter, r *http.Request) {
 	inventory := s.plugins.Inventory()
@@ -194,4 +115,96 @@ func (s *Server) write(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// promOutput returns the last metrics in prom format
+func (s *Server) promOutput(w http.ResponseWriter, r *http.Request) {
+	if lastMetrics.metrics == nil || len(*lastMetrics.metrics) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	ms := lastMetrics.ts.UnixNano() / int64(time.Millisecond)
+
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusOK)
+	for group, data := range *lastMetrics.metrics {
+		metricsToPromFormat(w, group, ms, data)
+	}
+}
+
+func metricsToPromFormat(w io.Writer, prefix string, ts int64, val interface{}) {
+	switch t := val.(type) {
+	case cgm.Metric:
+		metric := val.(cgm.Metric)
+		s := fmt.Sprintf("%v", metric.Value)
+		switch metric.Type {
+		case "i":
+			fallthrough
+		case "I":
+			fallthrough
+		case "l":
+			fallthrough
+		case "L":
+			v, err := strconv.ParseInt(s, 10, 64)
+			if err != nil {
+				log.Error().Err(err).Msg("conv int64")
+				return
+			}
+			if _, err := w.Write([]byte(fmt.Sprintf("%s %d %d\n", prefix, v, ts))); err != nil {
+				log.Error().Err(err).Msg("writing prom output")
+			}
+		case "n":
+			if strings.Contains(s, "[H[") {
+				if _, err := w.Write([]byte(fmt.Sprintf("#HISTOGRAM %s %s %d\n", prefix, s, ts))); err != nil {
+					log.Error().Err(err).Msg("writing prom output")
+				}
+			} else {
+				v, err := strconv.ParseFloat(s, 64)
+				if err != nil {
+					log.Error().Err(err).Msg("conv float64")
+					return
+				}
+				if _, err := w.Write([]byte(fmt.Sprintf("%s %f %d\n", prefix, v, ts))); err != nil {
+					log.Error().Err(err).Msg("writing prom output")
+				}
+			}
+		default:
+			if _, err := w.Write([]byte(fmt.Sprintf("#TEXT %s %s %d\n", prefix, s, ts))); err != nil {
+				log.Error().Err(err).Msg("writing prom output")
+			}
+		}
+	case cgm.Metrics:
+		metrics, ok := val.(cgm.Metrics)
+		if !ok {
+			st := fmt.Sprintf("%T", t)
+			log.Warn().Interface("val", val).Str("target_type", st).Str("pkg", "prom export").Msg("unable to coerce")
+			return
+		}
+		for pfx, metric := range metrics {
+			name := prefix
+			if pfx != "" {
+				name += "`" + pfx
+			}
+			metricsToPromFormat(w, name, ts, metric)
+		}
+	case *plugins.Metrics:
+		metrics, ok := val.(*plugins.Metrics)
+		if !ok {
+			st := fmt.Sprintf("%T", t)
+			log.Warn().Interface("val", val).Str("target_type", st).Str("pkg", "prom export").Msg("unable to coerce")
+			return
+		}
+		for pfx, metric := range *metrics {
+			name := prefix
+			if pfx != "" {
+				name += "`" + pfx
+			}
+			metricsToPromFormat(w, name, ts, cgm.Metric(metric))
+		}
+	default:
+		if _, err := w.Write([]byte(fmt.Sprintf("#UNHANDLED TYPE(%T) %v = %#v\n", t, prefix, val))); err != nil {
+			log.Error().Err(err).Msg("writing prom output")
+		}
+	}
 }
