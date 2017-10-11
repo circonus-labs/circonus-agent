@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -100,31 +102,61 @@ func walkMetrics(w http.ResponseWriter, prefix string, ts int64, val interface{}
 	t := reflect.TypeOf(val)
 	// log.Debug().Str("pfx", prefix).Str("type", t.String()).Interface("val", val).Msg("val")
 	switch t.String() {
-	case "circonusgometrics.Metric":
-		v, ok := val.(circonusgometrics.Metric)
+	case "circonusgometrics.Metrics":
+		metrics, ok := val.(circonusgometrics.Metrics)
 		if !ok {
 			log.Warn().Interface("val", val).Str("target_type", t.String()).Str("pkg", "prom export").Msg("unable to coerce")
 			return
 		}
-		walkMetrics(w, prefix, ts, v.Value)
+		for pfx, metric := range metrics {
+			switch t2 := metric.Value.(type) {
+			case uint64:
+				w.Write([]byte(fmt.Sprintf("%s`%s %d %d\n", prefix, pfx, metric.Value, ts)))
+			case float64:
+				w.Write([]byte(fmt.Sprintf("%s`%s %f %d\n", prefix, pfx, metric.Value, ts)))
+			case string:
+				s := fmt.Sprintf("%v", metric.Value)
+				ok, err := regexp.MatchString("^[0-9]+$", s)
+				if err != nil {
+					log.Error().Err(err).Msg("testing string for digits")
+					continue
+				}
+				if ok {
+					v, err := strconv.ParseInt(s, 10, 64)
+					if err != nil {
+						log.Error().Err(err).Msg("conv int64")
+						continue
+					}
+					w.Write([]byte(fmt.Sprintf("%s`%s %d %d\n", prefix, pfx, v, ts)))
+					continue
+				}
+				w.Write([]byte(fmt.Sprintf("#TEXT %s`%s %s %d\n", prefix, pfx, s, ts)))
+			case []string:
+				s := fmt.Sprintf("%v", metric.Value)
+				if strings.Contains(s, "[H[") {
+					w.Write([]byte(fmt.Sprintf("#HISTOGRAM %s`%s %s %d\n", prefix, pfx, s, ts)))
+					continue
+				}
+				walkMetrics(w, prefix+"`"+pfx, ts, metric.Value)
+			default:
+				w.Write([]byte(fmt.Sprintf("?? %s`%s %v - %T\n", prefix, pfx, metric.Value, t2)))
+				// walkMetrics(w, prefix+"`"+pfx, ts, metric.Value)
+			}
+		}
+	case "*plugins.Metrics":
+		for pfx, v := range *val.(*plugins.Metrics) {
+			walkMetrics(w, prefix+"`"+pfx, ts, v.Value)
+		}
 	case "[]string":
 		v, ok := val.([]string)
 		if ok {
 			if len(v) > 0 && v[0][0:2] == "H[" {
-				w.Write([]byte(fmt.Sprintf("#HISTOGRAM(!percentile) %s %s %d\n", prefix, val, ts)))
+				w.Write([]byte(fmt.Sprintf("#HISTOGRAM %s %s %d\n", prefix, val, ts)))
 				return
 			}
 			for idx, v2 := range v {
 				w.Write([]byte(fmt.Sprintf("%s`%d %s %d\n", prefix, idx, v2, ts)))
 			}
-		}
-	case "circonusgometrics.Metrics":
-		for pfx, v := range val.(circonusgometrics.Metrics) {
-			walkMetrics(w, prefix+"`"+pfx, ts, v)
-		}
-	case "*plugins.Metrics":
-		for pfx, v := range *val.(*plugins.Metrics) {
-			walkMetrics(w, prefix+"`"+pfx, ts, v.Value)
 		}
 	case "[]interface {}":
 		v, ok := val.([]interface{})
@@ -133,7 +165,7 @@ func walkMetrics(w http.ResponseWriter, prefix string, ts int64, val interface{}
 			return
 		}
 		if fmt.Sprintf("%v", v)[0:3] == "[H[" {
-			w.Write([]byte(fmt.Sprintf("#HISTOGRAM(!percentile) %s %s %d\n", prefix, val, ts)))
+			w.Write([]byte(fmt.Sprintf("#HISTOGRAM %s %s %d\n", prefix, val, ts)))
 			return
 		}
 		for idx, v2 := range v {
