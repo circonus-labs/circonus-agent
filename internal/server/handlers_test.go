@@ -20,6 +20,7 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
+	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
@@ -191,9 +192,9 @@ func TestPromOutput(t *testing.T) {
 	t.Logf("GET /prom -> %d", http.StatusOK)
 	{
 		lastMetrics.ts = time.Now()
-		lastMetrics.metrics = &map[string]interface{}{
-			"gtest": &plugins.Metrics{
-				"mtest": plugins.Metric{Type: "i", Value: 1},
+		lastMetrics.metrics = map[string]interface{}{
+			"gtest": &cgm.Metrics{
+				"mtest": cgm.Metric{Type: "i", Value: 1},
 			},
 		}
 		req := httptest.NewRequest("GET", "/prom", nil)
@@ -220,17 +221,47 @@ func TestMetricsToPromFormat(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 
-	t.Log("type *plugins.Metrics")
+	s, _ := New(nil, nil)
+
+	t.Log("basic coverage (*cgm.Metrics -> cgm.Metrics -> cgm.Metric)")
 	{
 		var b bytes.Buffer
 		w := bufio.NewWriter(&b)
 		ts := time.Now().UnixNano() / int64(time.Millisecond)
-		m := &plugins.Metrics{
-			"mtest": plugins.Metric{Type: "i", Value: 1},
+		m := &cgm.Metrics{
+			"mtest": cgm.Metric{Type: "i", Value: 1},
 		}
-		metricsToPromFormat(w, "gtest", ts, m)
+		s.metricsToPromFormat(w, "gtest", ts, m)
 		w.Flush()
 		expect := "gtest`mtest 1"
+		if !strings.Contains(b.String(), expect) {
+			t.Fatalf("expected (%s) got (%s)", expect, b.String())
+		}
+	}
+
+	t.Log("bad int conversion")
+	{
+		var b bytes.Buffer
+		w := bufio.NewWriter(&b)
+		ts := time.Now().UnixNano() / int64(time.Millisecond)
+		m := cgm.Metric{Type: "i", Value: "b"}
+		s.metricsToPromFormat(w, "mtest", ts, m)
+		w.Flush()
+		expect := ""
+		if b.String() != expect {
+			t.Fatalf("expected (%s) got (%s)", expect, b.String())
+		}
+	}
+
+	t.Log("simple float")
+	{
+		var b bytes.Buffer
+		w := bufio.NewWriter(&b)
+		ts := time.Now().UnixNano() / int64(time.Millisecond)
+		m := cgm.Metric{Type: "n", Value: 3.12}
+		s.metricsToPromFormat(w, "mtest", ts, m)
+		w.Flush()
+		expect := "mtest 3.12"
 		if !strings.Contains(b.String(), expect) {
 			t.Fatalf("expected (%s) got (%s)", expect, b.String())
 		}

@@ -31,7 +31,7 @@ type Server struct {
 }
 
 type previousMetrics struct {
-	metrics *map[string]interface{}
+	metrics map[string]interface{}
 	ts      time.Time
 }
 

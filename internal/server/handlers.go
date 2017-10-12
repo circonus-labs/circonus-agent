@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	"github.com/circonus-labs/circonus-agent/internal/plugins"
 	"github.com/circonus-labs/circonus-agent/internal/server/receiver"
 	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/rs/zerolog/log"
@@ -43,20 +42,21 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 	lastMeticsmu.Lock()
 	defer lastMeticsmu.Unlock()
 
-	metrics := &map[string]interface{}{}
+	metrics := map[string]interface{}{}
 
 	if plugin == "" || !s.plugins.IsInternal(plugin) {
 		// NOTE: errors are ignored from plugins.Run
 		//       1. errors are already logged by Run
 		//       2. do not expose execution state to callers
 		s.plugins.Run(plugin)
-		metrics = s.plugins.Flush(plugin)
+		pluginMetrics := s.plugins.Flush(plugin)
+		metrics = *pluginMetrics
 	}
 
 	if plugin == "" || plugin == "write" {
 		receiverMetrics := receiver.Flush()
-		for metricGroup, value := range *receiverMetrics {
-			(*metrics)[metricGroup] = value
+		for metricName, metric := range *receiverMetrics {
+			metrics[metricName] = metric
 		}
 	}
 
@@ -64,7 +64,7 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 		if s.statsdSvr != nil {
 			statsdMetrics := s.statsdSvr.Flush()
 			if statsdMetrics != nil {
-				(*metrics)[viper.GetString(config.KeyStatsdHostCategory)] = *statsdMetrics
+				metrics[viper.GetString(config.KeyStatsdHostCategory)] = statsdMetrics
 			}
 		}
 	}
@@ -100,7 +100,7 @@ func (s *Server) inventory(w http.ResponseWriter, r *http.Request) {
 func (s *Server) write(w http.ResponseWriter, r *http.Request) {
 	id := strings.Replace(r.URL.Path, "/write/", "", -1)
 
-	log.Debug().Str("path", r.URL.Path).Str("id", id).Msg("write request")
+	s.logger.Debug().Str("path", r.URL.Path).Str("id", id).Msg("write request")
 	// a write request *MUST* include a metric group id to act as a namespace.
 	// in other words, a "plugin name", all metrics for that write will appear
 	// _under_ the metric group id (aka plugin name)
@@ -119,7 +119,7 @@ func (s *Server) write(w http.ResponseWriter, r *http.Request) {
 
 // promOutput returns the last metrics in prom format
 func (s *Server) promOutput(w http.ResponseWriter, r *http.Request) {
-	if lastMetrics.metrics == nil || len(*lastMetrics.metrics) == 0 {
+	if lastMetrics.metrics == nil || len(lastMetrics.metrics) == 0 {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
@@ -128,16 +128,16 @@ func (s *Server) promOutput(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK)
-	for group, data := range *lastMetrics.metrics {
-		metricsToPromFormat(w, group, ms, data)
+	for id, data := range lastMetrics.metrics {
+		s.metricsToPromFormat(w, id, ms, data)
 	}
 }
 
-func metricsToPromFormat(w io.Writer, prefix string, ts int64, val interface{}) {
+func (s *Server) metricsToPromFormat(w io.Writer, prefix string, ts int64, val interface{}) {
 	switch t := val.(type) {
 	case cgm.Metric:
 		metric := val.(cgm.Metric)
-		s := fmt.Sprintf("%v", metric.Value)
+		sv := fmt.Sprintf("%v", metric.Value)
 		switch metric.Type {
 		case "i":
 			fallthrough
@@ -146,43 +146,50 @@ func metricsToPromFormat(w io.Writer, prefix string, ts int64, val interface{}) 
 		case "l":
 			fallthrough
 		case "L":
-			v, err := strconv.ParseInt(s, 10, 64)
+			v, err := strconv.ParseInt(sv, 10, 64)
 			if err != nil {
-				log.Error().Err(err).Msg("conv int64")
+				s.logger.Error().Err(err).Msg("conv int64")
 				return
 			}
 			if _, err := w.Write([]byte(fmt.Sprintf("%s %d %d\n", prefix, v, ts))); err != nil {
-				log.Error().Err(err).Msg("writing prom output")
+				s.logger.Error().Err(err).Msg("writing prom output")
 			}
 		case "n":
-			if strings.Contains(s, "[H[") {
-				log.Warn().
+			if strings.Contains(sv, "[H[") {
+				s.logger.Warn().
 					Str("pkg", "prom export").
 					Str("type", "histogram != [prom]histogram(percentile)").
 					Str("metric", fmt.Sprintf("%s %s", prefix, s)).
 					Msg("unsupported metric type")
 			} else {
-				v, err := strconv.ParseFloat(s, 64)
+				v, err := strconv.ParseFloat(sv, 64)
 				if err != nil {
-					log.Error().Err(err).Msg("conv float64")
+					s.logger.Error().Err(err).Msg("conv float64")
 					return
 				}
 				if _, err := w.Write([]byte(fmt.Sprintf("%s %f %d\n", prefix, v, ts))); err != nil {
-					log.Error().Err(err).Msg("writing prom output")
+					s.logger.Error().Err(err).Msg("writing prom output")
 				}
 			}
-		default:
+		case "s":
 			log.Warn().
 				Str("pkg", "prom export").
 				Str("type", "text").
 				Str("metric", fmt.Sprintf("%s %s", prefix, s)).
 				Msg("unsuported metric type")
+		default:
+			log.Warn().
+				Str("pkg", "prom export").
+				Str("type", metric.Type).
+				Str("pfx", prefix).
+				Interface("metric", metric).
+				Msg("invalid metric type")
 		}
 	case cgm.Metrics:
 		metrics, ok := val.(cgm.Metrics)
 		if !ok {
 			st := fmt.Sprintf("%T", t)
-			log.Warn().
+			s.logger.Warn().
 				Str("pkg", "prom export").
 				Interface("val", val).
 				Str("target_type", st).
@@ -192,30 +199,24 @@ func metricsToPromFormat(w io.Writer, prefix string, ts int64, val interface{}) 
 		for pfx, metric := range metrics {
 			name := prefix
 			if pfx != "" {
-				name += "`" + pfx
+				name = strings.Join([]string{name, pfx}, config.MetricNameSeparator)
 			}
-			metricsToPromFormat(w, name, ts, metric)
+			s.metricsToPromFormat(w, name, ts, metric)
 		}
-	case *plugins.Metrics:
-		metrics, ok := val.(*plugins.Metrics)
+	case *cgm.Metrics:
+		metrics, ok := val.(*cgm.Metrics)
 		if !ok {
 			st := fmt.Sprintf("%T", t)
-			log.Warn().
+			s.logger.Warn().
 				Str("pkg", "prom export").
 				Interface("val", val).
 				Str("target_type", st).
 				Msg("unable to coerce")
 			return
 		}
-		for pfx, metric := range *metrics {
-			name := prefix
-			if pfx != "" {
-				name += "`" + pfx
-			}
-			metricsToPromFormat(w, name, ts, cgm.Metric(metric))
-		}
+		s.metricsToPromFormat(w, prefix, ts, *metrics)
 	default:
-		log.Warn().
+		s.logger.Warn().
 			Str("pkg", "prom export").
 			Str("metric", fmt.Sprintf("#TYPE(%T) %v = %#v", t, prefix, val)).
 			Msg("unhandled type")
