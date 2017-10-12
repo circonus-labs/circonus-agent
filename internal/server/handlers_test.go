@@ -9,6 +9,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -175,7 +176,7 @@ func TestPromOutput(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 	s, _ := New(nil, nil)
 
-	t.Logf("GET /prom -> %d", http.StatusNoContent)
+	t.Logf("GET /prom -> %d (w/o metrics)", http.StatusNoContent)
 	{
 		req := httptest.NewRequest("GET", "/prom", nil)
 		w := httptest.NewRecorder()
@@ -189,7 +190,7 @@ func TestPromOutput(t *testing.T) {
 		}
 	}
 
-	t.Logf("GET /prom -> %d", http.StatusOK)
+	t.Logf("GET /prom -> %d (w/metrics)", http.StatusOK)
 	{
 		lastMetrics.ts = time.Now()
 		lastMetrics.metrics = map[string]interface{}{
@@ -219,33 +220,41 @@ func TestPromOutput(t *testing.T) {
 func TestMetricsToPromFormat(t *testing.T) {
 	t.Log("Testing metricsToPromFormat")
 
-	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	s, _ := New(nil, nil)
+	ts := int64(12345)
 
 	t.Log("basic coverage (*cgm.Metrics -> cgm.Metrics -> cgm.Metric)")
 	{
+		mgroup := "g"
+		mname := "m"
+		mtype := "i"
+		mval := 1
+
 		var b bytes.Buffer
 		w := bufio.NewWriter(&b)
-		ts := time.Now().UnixNano() / int64(time.Millisecond)
 		m := &cgm.Metrics{
-			"mtest": cgm.Metric{Type: "i", Value: 1},
+			mname: cgm.Metric{Type: mtype, Value: mval},
 		}
-		s.metricsToPromFormat(w, "gtest", ts, m)
+		s.metricsToPromFormat(w, mgroup, ts, m)
 		w.Flush()
-		expect := "gtest`mtest 1"
-		if !strings.Contains(b.String(), expect) {
+		expect := fmt.Sprintf("%s`%s %d %d\n", mgroup, mname, mval, ts)
+		if b.String() != expect {
 			t.Fatalf("expected (%s) got (%s)", expect, b.String())
 		}
 	}
 
 	t.Log("bad int conversion")
 	{
+		mname := "m"
+		mtype := "i"
+		mval := "a"
+
 		var b bytes.Buffer
 		w := bufio.NewWriter(&b)
-		ts := time.Now().UnixNano() / int64(time.Millisecond)
-		m := cgm.Metric{Type: "i", Value: "b"}
-		s.metricsToPromFormat(w, "mtest", ts, m)
+		m := cgm.Metric{Type: mtype, Value: mval}
+		s.metricsToPromFormat(w, mname, ts, m)
 		w.Flush()
 		expect := ""
 		if b.String() != expect {
@@ -255,14 +264,100 @@ func TestMetricsToPromFormat(t *testing.T) {
 
 	t.Log("simple float")
 	{
+		mname := "m"
+		mtype := "n"
+		mval := 3.12
+
 		var b bytes.Buffer
 		w := bufio.NewWriter(&b)
-		ts := time.Now().UnixNano() / int64(time.Millisecond)
-		m := cgm.Metric{Type: "n", Value: 3.12}
-		s.metricsToPromFormat(w, "mtest", ts, m)
+		m := cgm.Metric{Type: mtype, Value: mval}
+		s.metricsToPromFormat(w, mname, ts, m)
 		w.Flush()
-		expect := "mtest 3.12"
-		if !strings.Contains(b.String(), expect) {
+		expect := fmt.Sprintf("%s %f %d\n", mname, mval, ts)
+		if b.String() != expect {
+			t.Fatalf("expected (%s) got (%s)", expect, b.String())
+		}
+	}
+
+	t.Log("bad float conversion")
+	{
+		mname := "m"
+		mtype := "n"
+		mval := "a"
+
+		var b bytes.Buffer
+		w := bufio.NewWriter(&b)
+		m := cgm.Metric{Type: mtype, Value: mval}
+		s.metricsToPromFormat(w, mname, ts, m)
+		w.Flush()
+		expect := ""
+		if b.String() != expect {
+			t.Fatalf("expected (%s) got (%s)", expect, b.String())
+		}
+	}
+
+	t.Log("histogram string")
+	{
+		mname := "m"
+		mtype := "n"
+		mval := []string{"H[1]=1", "H[2]=1"}
+
+		var b bytes.Buffer
+		w := bufio.NewWriter(&b)
+		m := cgm.Metric{Type: mtype, Value: mval}
+		s.metricsToPromFormat(w, mname, ts, m)
+		w.Flush()
+		expect := ""
+		if b.String() != expect {
+			t.Fatalf("expected (%s) got (%s)", expect, b.String())
+		}
+	}
+
+	t.Log("simple text")
+	{
+		mname := "m"
+		mtype := "s"
+		mval := "foo"
+
+		var b bytes.Buffer
+		w := bufio.NewWriter(&b)
+		m := cgm.Metric{Type: mtype, Value: mval}
+		s.metricsToPromFormat(w, mname, ts, m)
+		w.Flush()
+		expect := ""
+		if b.String() != expect {
+			t.Fatalf("expected (%s) got (%s)", expect, b.String())
+		}
+	}
+
+	t.Log("invalid metric type")
+	{
+		mname := "m"
+		mtype := "q"
+		mval := "bar"
+
+		var b bytes.Buffer
+		w := bufio.NewWriter(&b)
+		m := cgm.Metric{Type: mtype, Value: mval}
+		s.metricsToPromFormat(w, mname, ts, m)
+		w.Flush()
+		expect := ""
+		if b.String() != expect {
+			t.Fatalf("expected (%s) got (%s)", expect, b.String())
+		}
+	}
+
+	t.Log("unhandled value type")
+	{
+		mname := "foo"
+
+		var b bytes.Buffer
+		w := bufio.NewWriter(&b)
+		m := []int{1, 2, 3}
+		s.metricsToPromFormat(w, mname, ts, m)
+		w.Flush()
+		expect := ""
+		if b.String() != expect {
 			t.Fatalf("expected (%s) got (%s)", expect, b.String())
 		}
 	}

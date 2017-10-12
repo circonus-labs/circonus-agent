@@ -17,7 +17,6 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/server/receiver"
 	cgm "github.com/circonus-labs/circonus-gometrics"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
 
@@ -134,6 +133,7 @@ func (s *Server) promOutput(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) metricsToPromFormat(w io.Writer, prefix string, ts int64, val interface{}) {
+	l := s.logger.With().Str("op", "prom export").Logger()
 	switch t := val.(type) {
 	case cgm.Metric:
 		metric := val.(cgm.Metric)
@@ -148,54 +148,42 @@ func (s *Server) metricsToPromFormat(w io.Writer, prefix string, ts int64, val i
 		case "L":
 			v, err := strconv.ParseInt(sv, 10, 64)
 			if err != nil {
-				s.logger.Error().Err(err).Msg("conv int64")
+				l.Error().Err(err).Msg("conv int64")
 				return
 			}
 			if _, err := w.Write([]byte(fmt.Sprintf("%s %d %d\n", prefix, v, ts))); err != nil {
-				s.logger.Error().Err(err).Msg("writing prom output")
+				l.Error().Err(err).Msg("writing prom output")
 			}
 		case "n":
 			if strings.Contains(sv, "[H[") {
-				s.logger.Warn().
-					Str("pkg", "prom export").
+				l.Warn().
 					Str("type", "histogram != [prom]histogram(percentile)").
-					Str("metric", fmt.Sprintf("%s %s", prefix, s)).
+					Str("metric", fmt.Sprintf("%s = %s", prefix, sv)).
 					Msg("unsupported metric type")
 			} else {
 				v, err := strconv.ParseFloat(sv, 64)
 				if err != nil {
-					s.logger.Error().Err(err).Msg("conv float64")
+					l.Error().Err(err).Msg("conv float64")
 					return
 				}
 				if _, err := w.Write([]byte(fmt.Sprintf("%s %f %d\n", prefix, v, ts))); err != nil {
-					s.logger.Error().Err(err).Msg("writing prom output")
+					l.Error().Err(err).Msg("writing prom output")
 				}
 			}
 		case "s":
-			log.Warn().
-				Str("pkg", "prom export").
-				Str("type", "text").
-				Str("metric", fmt.Sprintf("%s %s", prefix, s)).
+			l.Warn().
+				Str("type", "text [prom]???").
+				Str("metric", fmt.Sprintf("%s = %s", prefix, sv)).
 				Msg("unsuported metric type")
 		default:
-			log.Warn().
-				Str("pkg", "prom export").
+			l.Warn().
 				Str("type", metric.Type).
-				Str("pfx", prefix).
+				Str("name", prefix).
 				Interface("metric", metric).
 				Msg("invalid metric type")
 		}
 	case cgm.Metrics:
-		metrics, ok := val.(cgm.Metrics)
-		if !ok {
-			st := fmt.Sprintf("%T", t)
-			s.logger.Warn().
-				Str("pkg", "prom export").
-				Interface("val", val).
-				Str("target_type", st).
-				Msg("unable to coerce")
-			return
-		}
+		metrics := val.(cgm.Metrics)
 		for pfx, metric := range metrics {
 			name := prefix
 			if pfx != "" {
@@ -204,21 +192,11 @@ func (s *Server) metricsToPromFormat(w io.Writer, prefix string, ts int64, val i
 			s.metricsToPromFormat(w, name, ts, metric)
 		}
 	case *cgm.Metrics:
-		metrics, ok := val.(*cgm.Metrics)
-		if !ok {
-			st := fmt.Sprintf("%T", t)
-			s.logger.Warn().
-				Str("pkg", "prom export").
-				Interface("val", val).
-				Str("target_type", st).
-				Msg("unable to coerce")
-			return
-		}
+		metrics := val.(*cgm.Metrics)
 		s.metricsToPromFormat(w, prefix, ts, *metrics)
 	default:
-		s.logger.Warn().
-			Str("pkg", "prom export").
+		l.Warn().
 			Str("metric", fmt.Sprintf("#TYPE(%T) %v = %#v", t, prefix, val)).
-			Msg("unhandled type")
+			Msg("unhandled export type")
 	}
 }
