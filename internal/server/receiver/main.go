@@ -11,6 +11,7 @@ import (
 	"io"
 	stdlog "log"
 	"strconv"
+	"strings"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	cgm "github.com/circonus-labs/circonus-gometrics"
@@ -68,7 +69,7 @@ func Parse(id string, data io.ReadCloser) error {
 	}
 
 	for name, metric := range tmp {
-		metricName := id + "`" + name
+		metricName := strings.Join([]string{id, name}, config.MetricNameSeparator)
 		switch metric.Type {
 		case "i":
 			if v := parseInt32(metricName, metric); v != nil {
