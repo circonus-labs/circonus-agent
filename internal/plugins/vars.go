@@ -11,17 +11,9 @@ import (
 	"sync"
 	"time"
 
+	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/rs/zerolog"
 )
-
-// Metric defines an individual metric sample or array of samples (histogram)
-type Metric struct {
-	Type  string      `json:"_type"`
-	Value interface{} `json:"_value"`
-}
-
-// Metrics defines the list of metrics for a given plugin
-type Metrics map[string]Metric
 
 // Plugin defines a specific plugin
 type plugin struct {
@@ -36,9 +28,9 @@ type plugin struct {
 	LastRunDuration time.Duration
 	LastStart       time.Time
 	logger          zerolog.Logger
-	metrics         *Metrics
+	metrics         *cgm.Metrics
 	Name            string
-	prevMetrics     *Metrics
+	prevMetrics     *cgm.Metrics
 	RunDir          string
 	Running         bool
 	sync.Mutex

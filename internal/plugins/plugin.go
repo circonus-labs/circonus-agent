@@ -16,18 +16,19 @@ import (
 	"strings"
 	"time"
 
+	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/pkg/errors"
 )
 
 // drain returns and resets plugin's current metrics
-func (p *plugin) drain() *Metrics {
+func (p *plugin) drain() *cgm.Metrics {
 	p.Lock()
 	defer p.Unlock()
 
-	var metrics *Metrics
+	var metrics *cgm.Metrics
 	if p.metrics == nil {
 		if p.prevMetrics == nil {
-			metrics = &Metrics{}
+			metrics = &cgm.Metrics{}
 		} else {
 			metrics = p.prevMetrics
 		}
@@ -50,11 +51,11 @@ func (p *plugin) parsePluginOutput(output []string) error {
 		Msg("processing")
 
 	if len(output) == 0 {
-		p.metrics = &Metrics{}
+		p.metrics = &cgm.Metrics{}
 		return errors.Errorf("Zero lines of output")
 	}
 
-	metrics := Metrics{}
+	metrics := cgm.Metrics{}
 
 	// if first char of first line is '{' then assume output is json
 	if output[0][:1] == "{" {
@@ -64,7 +65,7 @@ func (p *plugin) parsePluginOutput(output []string) error {
 				Err(err).
 				Str("output", strings.Join(output, "\n")).
 				Msg("parsing json")
-			p.metrics = &Metrics{}
+			p.metrics = &cgm.Metrics{}
 			return errors.Wrap(err, "parsing json")
 		}
 		p.metrics = &metrics
@@ -109,7 +110,7 @@ func (p *plugin) parsePluginOutput(output []string) error {
 
 		// only received a name and type (intentionally null value)
 		if len(fields) == 2 {
-			metrics[metricName] = Metric{
+			metrics[metricName] = cgm.Metric{
 				Type:  metricType,
 				Value: nullMetricValue,
 			}
@@ -120,14 +121,14 @@ func (p *plugin) parsePluginOutput(output []string) error {
 
 		// intentionally null value, explicit syntax
 		if strings.ToLower(metricValue) == nullMetricValue {
-			metrics[metricName] = Metric{
+			metrics[metricName] = cgm.Metric{
 				Type:  metricType,
 				Value: nullMetricValue,
 			}
 			continue
 		}
 
-		metric := Metric{}
+		metric := cgm.Metric{}
 
 		switch metricType {
 		case "i": // signed 32bit

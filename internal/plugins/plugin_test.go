@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 )
@@ -41,7 +42,7 @@ func TestDrain(t *testing.T) {
 
 	t.Log("blank w/prevMetrics")
 	{
-		p.prevMetrics = &Metrics{}
+		p.prevMetrics = &cgm.Metrics{}
 
 		data := p.drain()
 		if data == nil {
