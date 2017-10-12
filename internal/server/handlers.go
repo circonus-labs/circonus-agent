@@ -156,9 +156,11 @@ func metricsToPromFormat(w io.Writer, prefix string, ts int64, val interface{}) 
 			}
 		case "n":
 			if strings.Contains(s, "[H[") {
-				if _, err := w.Write([]byte(fmt.Sprintf("#HISTOGRAM %s %s %d\n", prefix, s, ts))); err != nil {
-					log.Error().Err(err).Msg("writing prom output")
-				}
+				log.Warn().
+					Str("pkg", "prom export").
+					Str("type", "histogram != [prom]histogram(percentile)").
+					Str("metric", fmt.Sprintf("%s %s", prefix, s)).
+					Msg("unsupported metric type")
 			} else {
 				v, err := strconv.ParseFloat(s, 64)
 				if err != nil {
@@ -170,15 +172,21 @@ func metricsToPromFormat(w io.Writer, prefix string, ts int64, val interface{}) 
 				}
 			}
 		default:
-			if _, err := w.Write([]byte(fmt.Sprintf("#TEXT %s %s %d\n", prefix, s, ts))); err != nil {
-				log.Error().Err(err).Msg("writing prom output")
-			}
+			log.Warn().
+				Str("pkg", "prom export").
+				Str("type", "text").
+				Str("metric", fmt.Sprintf("%s %s", prefix, s)).
+				Msg("unsuported metric type")
 		}
 	case cgm.Metrics:
 		metrics, ok := val.(cgm.Metrics)
 		if !ok {
 			st := fmt.Sprintf("%T", t)
-			log.Warn().Interface("val", val).Str("target_type", st).Str("pkg", "prom export").Msg("unable to coerce")
+			log.Warn().
+				Str("pkg", "prom export").
+				Interface("val", val).
+				Str("target_type", st).
+				Msg("unable to coerce")
 			return
 		}
 		for pfx, metric := range metrics {
@@ -192,7 +200,11 @@ func metricsToPromFormat(w io.Writer, prefix string, ts int64, val interface{}) 
 		metrics, ok := val.(*plugins.Metrics)
 		if !ok {
 			st := fmt.Sprintf("%T", t)
-			log.Warn().Interface("val", val).Str("target_type", st).Str("pkg", "prom export").Msg("unable to coerce")
+			log.Warn().
+				Str("pkg", "prom export").
+				Interface("val", val).
+				Str("target_type", st).
+				Msg("unable to coerce")
 			return
 		}
 		for pfx, metric := range *metrics {
@@ -203,8 +215,9 @@ func metricsToPromFormat(w io.Writer, prefix string, ts int64, val interface{}) 
 			metricsToPromFormat(w, name, ts, cgm.Metric(metric))
 		}
 	default:
-		if _, err := w.Write([]byte(fmt.Sprintf("#UNHANDLED TYPE(%T) %v = %#v\n", t, prefix, val))); err != nil {
-			log.Error().Err(err).Msg("writing prom output")
-		}
+		log.Warn().
+			Str("pkg", "prom export").
+			Str("metric", fmt.Sprintf("#TYPE(%T) %v = %#v", t, prefix, val)).
+			Msg("unhandled type")
 	}
 }
