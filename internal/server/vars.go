@@ -7,6 +7,7 @@ package server
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"regexp"
 	"sync"
@@ -26,6 +27,7 @@ type Server struct {
 	plugins   *plugins.Plugins
 	svrHTTP   *http.Server
 	svrHTTPS  *http.Server
+	svrSocket *net.Listener
 	statsdSvr *statsd.Server
 	t         tomb.Tomb
 }

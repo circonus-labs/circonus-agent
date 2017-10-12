@@ -6,6 +6,7 @@
 package server
 
 import (
+	"net"
 	"net/http"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
@@ -37,6 +38,14 @@ func New(p *plugins.Plugins, ss *statsd.Server) (*Server, error) {
 		s.svrHTTPS.SetKeepAlivesEnabled(false)
 	}
 
+	if sp := viper.GetString(config.KeyListenSocketPath); sp != "" {
+		l, err := net.Listen("unix", sp)
+		if err != nil {
+			return nil, errors.Wrap(err, "Creating socket")
+		}
+		s.svrSocket = &l
+	}
+
 	return &s, nil
 }
 
@@ -48,6 +57,7 @@ func (s *Server) Start() error {
 
 	s.t.Go(s.startHTTP)
 	s.t.Go(s.startHTTPS)
+	s.t.Go(s.startSocket)
 
 	return s.t.Wait()
 }
@@ -67,6 +77,14 @@ func (s *Server) Stop() {
 		err := s.svrHTTPS.Close()
 		if err != nil {
 			s.logger.Warn().Err(err).Msg("Closing HTTPS server")
+		}
+	}
+
+	if s.svrSocket != nil {
+		s.logger.Info().Msg("Stopping Socket server")
+		err := (*s.svrSocket).Close()
+		if err != nil {
+			s.logger.Warn().Err(err).Msg("Closing Socket server")
 		}
 	}
 
@@ -100,6 +118,34 @@ func (s *Server) startHTTPS() error {
 	if err := s.svrHTTPS.ListenAndServeTLS(certFile, keyFile); err != nil {
 		if err != http.ErrServerClosed {
 			return errors.Wrap(err, "HTTPS server")
+		}
+	}
+	return nil
+}
+
+func (s *Server) startSocket() error {
+	if s.svrSocket == nil {
+		s.logger.Debug().Msg("No Socket path configured, skipping server")
+		return nil
+	}
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.logger.Debug().Str("method", r.Method).Interface("req_url", r.URL).Msg("got socket reqeust")
+
+		if !writePathRx.MatchString(r.URL.Path) {
+			http.NotFound(w, r)
+			return
+		}
+		if r.Method != "PUT" && r.Method != "POST" {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		s.write(w, r)
+	})
+
+	s.logger.Info().Str("listen", (*s.svrSocket).Addr().String()).Msg("Socket starting")
+	if err := http.Serve(*s.svrSocket, handler); err != nil {
+		if err != http.ErrServerClosed {
+			return errors.Wrap(err, "Socket server")
 		}
 	}
 	return nil
