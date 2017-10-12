@@ -114,6 +114,19 @@ func init() {
 
 	{
 		const (
+			key         = config.KeyListenSocketPath
+			longOpt     = "listen-socket-path"
+			envVar      = release.ENVPREFIX + "_LISTEN_SOCKET_PATH"
+			description = "Listen socket path"
+		)
+
+		RootCmd.Flags().String(longOpt, "", desc(description, envVar))
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+	}
+
+	{
+		const (
 			key         = config.KeyPluginDir
 			longOpt     = "plugin-dir"
 			shortOpt    = "p"

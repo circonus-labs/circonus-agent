@@ -115,6 +115,9 @@ const (
 	// KeyListen primary address and port to listen on
 	KeyListen = "listen"
 
+	// KeyListenSocketPath identifies where to create a unix socket
+	KeyListenSocketPath = "socket_file"
+
 	// KeyLogLevel logging level (panic, fatal, error, warn, info, debug, disabled)
 	KeyLogLevel = "log.level"
 
