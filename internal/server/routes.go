@@ -9,7 +9,7 @@ import (
 	"expvar"
 	"net/http"
 
-	"github.com/circonus-labs/circonus-agent/internal/appstats"
+	"github.com/maier/go-appstats"
 )
 
 func (s *Server) router(w http.ResponseWriter, r *http.Request) {
@@ -26,8 +26,10 @@ func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 			s.run(w, r)
 		} else if inventoryPathRx.MatchString(r.URL.Path) { // plugin inventory
 			s.inventory(w, r)
-		} else if r.URL.Path == "/stats" {
+		} else if statsPathRx.MatchString(r.URL.Path) { // app stats
 			expvar.Handler().ServeHTTP(w, r)
+		} else if promPathRx.MatchString(r.URL.Path) { // output prom format...
+			s.promOutput(w, r)
 		} else {
 			appstats.IncrementInt("requests_bad")
 			s.logger.Warn().

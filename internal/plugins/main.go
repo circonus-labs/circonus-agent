@@ -14,8 +14,8 @@ import (
 
 	// "github.com/rjeczalik/notify"
 
-	"github.com/circonus-labs/circonus-agent/internal/appstats"
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/maier/go-appstats"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
@@ -41,7 +41,7 @@ func (p *Plugins) Flush(pluginName string) *map[string]interface{} {
 	p.RLock()
 	defer p.RUnlock()
 
-	appstats.SetString("last_flush", time.Now().String())
+	appstats.MapSet("plugins", "last_flush", time.Now())
 
 	metrics := map[string]interface{}{}
 
@@ -109,7 +109,7 @@ func (p *Plugins) Run(pluginName string) error {
 	}
 
 	start := time.Now()
-	appstats.SetString("last_run_start", start.String())
+	appstats.MapSet("plugins", "last_run_start", start)
 
 	p.running = true
 
@@ -148,8 +148,8 @@ func (p *Plugins) Run(pluginName string) error {
 	wg.Wait()
 	p.logger.Debug().Msg("all plugins done")
 
-	appstats.SetString("last_run_end", time.Now().String())
-	appstats.SetString("last_run_duration", time.Since(start).String())
+	appstats.MapSet("plugins", "last_run_end", time.Now())
+	appstats.MapSet("plugins", "last_run_duration", time.Since(start))
 
 	p.running = false
 

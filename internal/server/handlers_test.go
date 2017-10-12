@@ -6,17 +6,22 @@
 package server
 
 import (
+	"bufio"
 	"bytes"
 	"context"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
+	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
@@ -84,7 +89,7 @@ func TestInventory(t *testing.T) {
 	s, _ := New(p, nil)
 	time.Sleep(1 * time.Second)
 
-	t.Log("GET /inventory -> 200")
+	t.Logf("GET /inventory -> %d", http.StatusOK)
 	req := httptest.NewRequest("GET", "/inventory", nil)
 	w := httptest.NewRecorder()
 
@@ -103,7 +108,7 @@ func TestWrite(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 	s, _ := New(nil, nil)
 
-	t.Log("PUT /write/ -> 404")
+	t.Logf("GET /write/ -> %d", http.StatusNotFound)
 	{
 		req := httptest.NewRequest("GET", "/write/", nil)
 		w := httptest.NewRecorder()
@@ -117,7 +122,7 @@ func TestWrite(t *testing.T) {
 		}
 	}
 
-	t.Log("PUT /write/foo w/o data -> 500")
+	t.Logf("PUT /write/foo w/o data -> %d", http.StatusBadRequest)
 	{
 		req := httptest.NewRequest("PUT", "/write/foo", nil)
 		w := httptest.NewRecorder()
@@ -126,12 +131,12 @@ func TestWrite(t *testing.T) {
 
 		resp := w.Result()
 
-		if resp.StatusCode != http.StatusInternalServerError {
-			t.Fatalf("expected %d, got %d", http.StatusInternalServerError, resp.StatusCode)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected %d, got %d", http.StatusBadRequest, resp.StatusCode)
 		}
 	}
 
-	t.Log("PUT /write/foo w/bad data -> 500")
+	t.Logf("PUT /write/foo w/bad data -> %d", http.StatusBadRequest)
 	{
 		reqBody := bytes.NewReader([]byte(`{"test":1`))
 
@@ -142,14 +147,14 @@ func TestWrite(t *testing.T) {
 
 		resp := w.Result()
 
-		if resp.StatusCode != http.StatusInternalServerError {
-			t.Fatalf("expected %d, got %d", http.StatusInternalServerError, resp.StatusCode)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected %d, got %d", http.StatusBadRequest, resp.StatusCode)
 		}
 	}
 
-	t.Log("PUT /write/foo w/data -> 204")
+	t.Logf("PUT /write/foo w/data -> %d", http.StatusNoContent)
 	{
-		reqBody := bytes.NewReader([]byte(`{"test":1}`))
+		reqBody := bytes.NewReader([]byte(`{"test":{"_type": "i", "_value":1}}`))
 
 		req := httptest.NewRequest("PUT", "/write/foo", reqBody)
 		w := httptest.NewRecorder()
@@ -160,6 +165,200 @@ func TestWrite(t *testing.T) {
 
 		if resp.StatusCode != http.StatusNoContent {
 			t.Fatalf("expected %d, got %d", http.StatusNoContent, resp.StatusCode)
+		}
+	}
+
+}
+
+func TestPromOutput(t *testing.T) {
+	t.Log("Testing promOutput")
+
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+	s, _ := New(nil, nil)
+
+	t.Logf("GET /prom -> %d (w/o metrics)", http.StatusNoContent)
+	{
+		req := httptest.NewRequest("GET", "/prom", nil)
+		w := httptest.NewRecorder()
+
+		s.promOutput(w, req)
+
+		resp := w.Result()
+
+		if resp.StatusCode != http.StatusNoContent {
+			t.Fatalf("expected %d, got %d", http.StatusNoContent, resp.StatusCode)
+		}
+	}
+
+	t.Logf("GET /prom -> %d (w/metrics)", http.StatusOK)
+	{
+		lastMetrics.ts = time.Now()
+		lastMetrics.metrics = map[string]interface{}{
+			"gtest": &cgm.Metrics{
+				"mtest": cgm.Metric{Type: "i", Value: 1},
+			},
+		}
+		req := httptest.NewRequest("GET", "/prom", nil)
+		w := httptest.NewRecorder()
+
+		s.promOutput(w, req)
+
+		resp := w.Result()
+
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected %d, got %d", http.StatusOK, resp.StatusCode)
+		}
+
+		expect := "gtest`mtest 1"
+		body, _ := ioutil.ReadAll(resp.Body)
+		if !strings.Contains(string(body), expect) {
+			t.Fatalf("expected (%s) got (%s)", expect, string(body))
+		}
+	}
+}
+
+func TestMetricsToPromFormat(t *testing.T) {
+	t.Log("Testing metricsToPromFormat")
+
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+
+	s, _ := New(nil, nil)
+	ts := int64(12345)
+
+	t.Log("basic coverage (*cgm.Metrics -> cgm.Metrics -> cgm.Metric)")
+	{
+		mgroup := "g"
+		mname := "m"
+		mtype := "i"
+		mval := 1
+
+		var b bytes.Buffer
+		w := bufio.NewWriter(&b)
+		m := &cgm.Metrics{
+			mname: cgm.Metric{Type: mtype, Value: mval},
+		}
+		s.metricsToPromFormat(w, mgroup, ts, m)
+		w.Flush()
+		expect := fmt.Sprintf("%s`%s %d %d\n", mgroup, mname, mval, ts)
+		if b.String() != expect {
+			t.Fatalf("expected (%s) got (%s)", expect, b.String())
+		}
+	}
+
+	t.Log("bad int conversion")
+	{
+		mname := "m"
+		mtype := "i"
+		mval := "a"
+
+		var b bytes.Buffer
+		w := bufio.NewWriter(&b)
+		m := cgm.Metric{Type: mtype, Value: mval}
+		s.metricsToPromFormat(w, mname, ts, m)
+		w.Flush()
+		expect := ""
+		if b.String() != expect {
+			t.Fatalf("expected (%s) got (%s)", expect, b.String())
+		}
+	}
+
+	t.Log("simple float")
+	{
+		mname := "m"
+		mtype := "n"
+		mval := 3.12
+
+		var b bytes.Buffer
+		w := bufio.NewWriter(&b)
+		m := cgm.Metric{Type: mtype, Value: mval}
+		s.metricsToPromFormat(w, mname, ts, m)
+		w.Flush()
+		expect := fmt.Sprintf("%s %f %d\n", mname, mval, ts)
+		if b.String() != expect {
+			t.Fatalf("expected (%s) got (%s)", expect, b.String())
+		}
+	}
+
+	t.Log("bad float conversion")
+	{
+		mname := "m"
+		mtype := "n"
+		mval := "a"
+
+		var b bytes.Buffer
+		w := bufio.NewWriter(&b)
+		m := cgm.Metric{Type: mtype, Value: mval}
+		s.metricsToPromFormat(w, mname, ts, m)
+		w.Flush()
+		expect := ""
+		if b.String() != expect {
+			t.Fatalf("expected (%s) got (%s)", expect, b.String())
+		}
+	}
+
+	t.Log("histogram string")
+	{
+		mname := "m"
+		mtype := "n"
+		mval := []string{"H[1]=1", "H[2]=1"}
+
+		var b bytes.Buffer
+		w := bufio.NewWriter(&b)
+		m := cgm.Metric{Type: mtype, Value: mval}
+		s.metricsToPromFormat(w, mname, ts, m)
+		w.Flush()
+		expect := ""
+		if b.String() != expect {
+			t.Fatalf("expected (%s) got (%s)", expect, b.String())
+		}
+	}
+
+	t.Log("simple text")
+	{
+		mname := "m"
+		mtype := "s"
+		mval := "foo"
+
+		var b bytes.Buffer
+		w := bufio.NewWriter(&b)
+		m := cgm.Metric{Type: mtype, Value: mval}
+		s.metricsToPromFormat(w, mname, ts, m)
+		w.Flush()
+		expect := ""
+		if b.String() != expect {
+			t.Fatalf("expected (%s) got (%s)", expect, b.String())
+		}
+	}
+
+	t.Log("invalid metric type")
+	{
+		mname := "m"
+		mtype := "q"
+		mval := "bar"
+
+		var b bytes.Buffer
+		w := bufio.NewWriter(&b)
+		m := cgm.Metric{Type: mtype, Value: mval}
+		s.metricsToPromFormat(w, mname, ts, m)
+		w.Flush()
+		expect := ""
+		if b.String() != expect {
+			t.Fatalf("expected (%s) got (%s)", expect, b.String())
+		}
+	}
+
+	t.Log("unhandled value type")
+	{
+		mname := "foo"
+
+		var b bytes.Buffer
+		w := bufio.NewWriter(&b)
+		m := []int{1, 2, 3}
+		s.metricsToPromFormat(w, mname, ts, m)
+		w.Flush()
+		expect := ""
+		if b.String() != expect {
+			t.Fatalf("expected (%s) got (%s)", expect, b.String())
 		}
 	}
 

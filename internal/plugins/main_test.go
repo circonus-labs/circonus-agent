@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
@@ -147,7 +148,7 @@ func TestFlush(t *testing.T) {
 		if len(*data) == 0 {
 			t.Fatalf("expected metrics got (%#v)", data)
 		}
-		metrics := (*data)["test"].(*Metrics)
+		metrics := (*data)["test"].(*cgm.Metrics)
 		if len(*metrics) == 0 {
 			t.Fatalf("expected metrics, got (%#v)", metrics)
 		}

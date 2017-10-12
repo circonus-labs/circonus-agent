@@ -103,7 +103,9 @@ func (c *Connection) getFrameFromBroker(r io.Reader) (*noitPacket, error) {
 
 // readHeader reads 6 bytes from the broker connection
 func readHeader(r io.Reader) (*noitHeader, error) {
-	data, err := readPayload(r, 6)
+	hdrSize := 6
+
+	data, err := readPayload(r, uint32(hdrSize))
 	if err != nil {
 		return nil, err
 	}
@@ -132,15 +134,24 @@ func readPayload(r io.Reader, size uint32) ([]byte, error) {
 
 // readBytes attempts to reads <size> bytes from broker connection.
 func readBytes(r io.Reader, size int64) ([]byte, error) {
-	buff := make([]byte, size)
+	buff := make([]byte, 0, size)
 	lr := io.LimitReader(r, size)
 
-	n, err := lr.Read(buff)
+	n, err := lr.Read(buff[:cap(buff)])
 	if n == 0 && err != nil {
 		return nil, err
 	}
 
-	return buff, nil
+	// dealing with expected sizes
+	if int64(n) != size {
+		sz := 30
+		if n < 30 {
+			sz = n
+		}
+		return nil, errors.Errorf("invalid read, expected bytes %d got %d (%#v = %s)", size, n, buff[0:sz], string(buff[0:sz]))
+	}
+
+	return buff[:n], nil
 }
 
 // buildFrame creates a frame to send to broker.

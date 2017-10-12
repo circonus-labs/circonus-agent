@@ -7,12 +7,16 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/server/receiver"
-	"github.com/rs/zerolog/log"
+	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/spf13/viper"
 )
 
@@ -34,20 +38,24 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	metrics := &map[string]interface{}{}
+	lastMeticsmu.Lock()
+	defer lastMeticsmu.Unlock()
+
+	metrics := map[string]interface{}{}
 
 	if plugin == "" || !s.plugins.IsInternal(plugin) {
 		// NOTE: errors are ignored from plugins.Run
 		//       1. errors are already logged by Run
 		//       2. do not expose execution state to callers
 		s.plugins.Run(plugin)
-		metrics = s.plugins.Flush(plugin)
+		pluginMetrics := s.plugins.Flush(plugin)
+		metrics = *pluginMetrics
 	}
 
 	if plugin == "" || plugin == "write" {
 		receiverMetrics := receiver.Flush()
-		for metricGroup, value := range *receiverMetrics {
-			(*metrics)[metricGroup] = value
+		for metricName, metric := range *receiverMetrics {
+			metrics[metricName] = metric
 		}
 	}
 
@@ -55,10 +63,13 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 		if s.statsdSvr != nil {
 			statsdMetrics := s.statsdSvr.Flush()
 			if statsdMetrics != nil {
-				(*metrics)[viper.GetString(config.KeyStatsdHostCategory)] = *statsdMetrics
+				metrics[viper.GetString(config.KeyStatsdHostCategory)] = statsdMetrics
 			}
 		}
 	}
+
+	lastMetrics.metrics = metrics
+	lastMetrics.ts = time.Now()
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(metrics); err != nil {
@@ -88,7 +99,7 @@ func (s *Server) inventory(w http.ResponseWriter, r *http.Request) {
 func (s *Server) write(w http.ResponseWriter, r *http.Request) {
 	id := strings.Replace(r.URL.Path, "/write/", "", -1)
 
-	log.Debug().Str("path", r.URL.Path).Str("id", id).Msg("write request")
+	s.logger.Debug().Str("path", r.URL.Path).Str("id", id).Msg("write request")
 	// a write request *MUST* include a metric group id to act as a namespace.
 	// in other words, a "plugin name", all metrics for that write will appear
 	// _under_ the metric group id (aka plugin name)
@@ -98,9 +109,94 @@ func (s *Server) write(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := receiver.Parse(id, r.Body); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// promOutput returns the last metrics in prom format
+func (s *Server) promOutput(w http.ResponseWriter, r *http.Request) {
+	if lastMetrics.metrics == nil || len(lastMetrics.metrics) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	ms := lastMetrics.ts.UnixNano() / int64(time.Millisecond)
+
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusOK)
+	for id, data := range lastMetrics.metrics {
+		s.metricsToPromFormat(w, id, ms, data)
+	}
+}
+
+func (s *Server) metricsToPromFormat(w io.Writer, prefix string, ts int64, val interface{}) {
+	l := s.logger.With().Str("op", "prom export").Logger()
+	switch t := val.(type) {
+	case cgm.Metric:
+		metric := val.(cgm.Metric)
+		sv := fmt.Sprintf("%v", metric.Value)
+		switch metric.Type {
+		case "i":
+			fallthrough
+		case "I":
+			fallthrough
+		case "l":
+			fallthrough
+		case "L":
+			v, err := strconv.ParseInt(sv, 10, 64)
+			if err != nil {
+				l.Error().Err(err).Msg("conv int64")
+				return
+			}
+			if _, err := w.Write([]byte(fmt.Sprintf("%s %d %d\n", prefix, v, ts))); err != nil {
+				l.Error().Err(err).Msg("writing prom output")
+			}
+		case "n":
+			if strings.Contains(sv, "[H[") {
+				l.Warn().
+					Str("type", "histogram != [prom]histogram(percentile)").
+					Str("metric", fmt.Sprintf("%s = %s", prefix, sv)).
+					Msg("unsupported metric type")
+			} else {
+				v, err := strconv.ParseFloat(sv, 64)
+				if err != nil {
+					l.Error().Err(err).Msg("conv float64")
+					return
+				}
+				if _, err := w.Write([]byte(fmt.Sprintf("%s %f %d\n", prefix, v, ts))); err != nil {
+					l.Error().Err(err).Msg("writing prom output")
+				}
+			}
+		case "s":
+			l.Warn().
+				Str("type", "text [prom]???").
+				Str("metric", fmt.Sprintf("%s = %s", prefix, sv)).
+				Msg("unsuported metric type")
+		default:
+			l.Warn().
+				Str("type", metric.Type).
+				Str("name", prefix).
+				Interface("metric", metric).
+				Msg("invalid metric type")
+		}
+	case cgm.Metrics:
+		metrics := val.(cgm.Metrics)
+		for pfx, metric := range metrics {
+			name := prefix
+			if pfx != "" {
+				name = strings.Join([]string{name, pfx}, config.MetricNameSeparator)
+			}
+			s.metricsToPromFormat(w, name, ts, metric)
+		}
+	case *cgm.Metrics:
+		metrics := val.(*cgm.Metrics)
+		s.metricsToPromFormat(w, prefix, ts, *metrics)
+	default:
+		l.Warn().
+			Str("metric", fmt.Sprintf("#TYPE(%T) %v = %#v", t, prefix, val)).
+			Msg("unhandled export type")
+	}
 }

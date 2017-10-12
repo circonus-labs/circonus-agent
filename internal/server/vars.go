@@ -9,6 +9,8 @@ import (
 	"context"
 	"net/http"
 	"regexp"
+	"sync"
+	"time"
 
 	tomb "gopkg.in/tomb.v2"
 
@@ -28,8 +30,17 @@ type Server struct {
 	t         tomb.Tomb
 }
 
+type previousMetrics struct {
+	metrics map[string]interface{}
+	ts      time.Time
+}
+
 var (
 	pluginPathRx    = regexp.MustCompile("^/(run(/.*)?)?$")
 	inventoryPathRx = regexp.MustCompile("^/inventory/?$")
 	writePathRx     = regexp.MustCompile("^/write/.+$")
+	statsPathRx     = regexp.MustCompile("^/stats/?$")
+	promPathRx      = regexp.MustCompile("^/prom/?$")
+	lastMetrics     = &previousMetrics{}
+	lastMeticsmu    sync.Mutex
 )

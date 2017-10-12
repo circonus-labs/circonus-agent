@@ -198,4 +198,7 @@ const (
 
 var (
 	cosiCfgFile = filepath.Join(defaults.BasePath, "..", cosiName, "etc", "cosi.json")
+
+	// MetricNameSeparator defines character used to delimit metric name parts
+	MetricNameSeparator = defaults.MetricNameSeparator // var, TBD whether it will become configurable
 )

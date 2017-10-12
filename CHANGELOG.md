@@ -1,3 +1,11 @@
+# v0.5.0
+    * standardize on cgm.Metric(s) structs for all metrics
+    * strict parsing of JSON sent to receiver `/write` endpoint
+    * add `/prom` endpoint (candidate poc)
+    * improve handling of invalid sized reads
+    * group plugin stats
+    * update cgm version
+    * common appstats package
 # v0.4.0
     * switch --show-config to take a format argument (json|toml|yaml)
     * add more test coverage
