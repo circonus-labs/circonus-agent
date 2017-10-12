@@ -87,6 +87,9 @@ const (
 
 	// ReverseCreateCheckTags to use if creating a check (comma separated list)
 	ReverseCreateCheckTags = ""
+
+	// MetricNameSeparator defines character used to delimit metric name parts
+	MetricNameSeparator = "`"
 )
 
 var (
