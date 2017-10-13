@@ -7,6 +7,7 @@ package receiver
 
 // Metrics holds metrics received via HTTP PUT/POST
 import (
+	"regexp"
 	"sync"
 
 	cgm "github.com/circonus-labs/circonus-gometrics"
@@ -14,7 +15,9 @@ import (
 )
 
 var (
-	metricsmu sync.Mutex
-	metrics   *cgm.CirconusMetrics
-	logger    = log.With().Str("pkg", "receiver").Logger()
+	metricsmu        sync.Mutex
+	metrics          *cgm.CirconusMetrics
+	histogramRx      *regexp.Regexp // encoded histogram regular express (e.g. coming from a cgm put to /write)
+	histogramRxNames []string
+	logger           = log.With().Str("pkg", "receiver").Logger()
 )

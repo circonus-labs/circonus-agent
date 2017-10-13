@@ -216,7 +216,7 @@ func TestParse(t *testing.T) {
 		}
 	}
 
-	t.Log("\ttype 'n' float (histogram samples)")
+	t.Log("\ttype 'n' float (histogram numeric samples)")
 	{
 		data := []byte(`{"test": {"_type": "n", "_value": [1]}}`)
 		r := ioutil.NopCloser(bytes.NewReader(data))
@@ -233,6 +233,28 @@ func TestParse(t *testing.T) {
 			t.Fatalf("expected at least 1 sample, got %#v", testMetric.Value)
 		}
 		expect := "[H[1.0e+00]=1]"
+		if !strings.Contains(fmt.Sprintf("%v", testMetric.Value), expect) {
+			t.Fatalf("expected (%v) got (%v)", expect, testMetric.Value)
+		}
+	}
+
+	t.Log("\ttype 'n' float (histogram encoded samples)")
+	{
+		data := []byte(`{"test": {"_type": "n", "_value": ["H[1.2]=1"]}}`)
+		r := ioutil.NopCloser(bytes.NewReader(data))
+		err := Parse("testg", r)
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
+		m := metrics.FlushMetrics()
+		testMetric, ok := (*m)["testg`test"]
+		if !ok {
+			t.Fatalf("expected metric 'testg`test', %#v", m)
+		}
+		if len(testMetric.Value.([]string)) == 0 {
+			t.Fatalf("expected at least 1 sample, got %#v", testMetric.Value)
+		}
+		expect := "[H[1.2e+00]=1]"
 		if !strings.Contains(fmt.Sprintf("%v", testMetric.Value), expect) {
 			t.Fatalf("expected (%v) got (%v)", expect, testMetric.Value)
 		}
@@ -483,16 +505,19 @@ func TestParseHistogram(t *testing.T) {
 	tt := []struct {
 		Description string
 		Value       interface{}
-		Expect      []float64
+		Expect      []histSample
 		ShouldFail  bool
 	}{
-		{"valid1", []float64{1}, []float64{1}, false},
-		{"valid2", []float64{1.2}, []float64{1.2}, false},
-		{"valid, string1", []string{fmt.Sprintf("%v", 1)}, []float64{1}, false},
-		{"valid, string2", []string{fmt.Sprintf("%v", 1.2)}, []float64{1.2}, false},
-		{"bad conversion", []string{fmt.Sprintf("%v", "1a")}, []float64{}, true},
-		{"bad data type - metric", true, []float64{}, true},
-		{"bad data type - metric sample", []bool{true}, []float64{}, true},
+		{"valid1", []float64{1}, []histSample{histSample{bucket: false, count: 0, value: 1}}, false},
+		{"valid2", []float64{1.2}, []histSample{histSample{bucket: false, count: 0, value: 1.2}}, false},
+		{"valid hist", []string{"H[1.2]=1"}, []histSample{histSample{bucket: true, count: 1, value: 1.2}}, false},
+		{"valid, string1", []string{fmt.Sprintf("%v", 1)}, []histSample{histSample{bucket: false, count: 0, value: 1}}, false},
+		{"valid, string2", []string{fmt.Sprintf("%v", 1.2)}, []histSample{histSample{bucket: false, count: 0, value: 1.2}}, false},
+		{"bad conversion", []string{fmt.Sprintf("%v", "1a")}, []histSample{}, true},
+		{"bad data type - metric", true, []histSample{}, true},
+		{"bad data type - metric sample", []bool{true}, []histSample{}, true},
+		{"bad hist val", []string{"H[1.2b]=1"}, []histSample{}, true},
+		{"bad hist cnt", []string{"H[1.2]=1b"}, []histSample{}, true},
 	}
 
 	for _, test := range tt {
