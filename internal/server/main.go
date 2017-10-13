@@ -12,6 +12,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
 	"github.com/circonus-labs/circonus-agent/internal/statsd"
+	appstats "github.com/maier/go-appstats"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
@@ -36,14 +37,6 @@ func New(p *plugins.Plugins, ss *statsd.Server) (*Server, error) {
 	if addr := viper.GetString(config.KeySSLListen); addr != "" {
 		s.svrHTTPS = &http.Server{Addr: addr, Handler: gzipHandler}
 		s.svrHTTPS.SetKeepAlivesEnabled(false)
-	}
-
-	if sp := viper.GetString(config.KeyListenSocketPath); sp != "" {
-		l, err := net.Listen("unix", sp)
-		if err != nil {
-			return nil, errors.Wrap(err, "Creating socket")
-		}
-		s.svrSocket = &l
 	}
 
 	return &s, nil
@@ -124,28 +117,51 @@ func (s *Server) startHTTPS() error {
 }
 
 func (s *Server) startSocket() error {
-	if s.svrSocket == nil {
+	sockPath := viper.GetString(config.KeyListenSocketPath)
+	if sockPath == "" {
 		s.logger.Debug().Msg("No Socket path configured, skipping server")
 		return nil
 	}
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s.logger.Debug().Str("method", r.Method).Interface("req_url", r.URL).Msg("got socket reqeust")
 
+	l, err := net.Listen("unix", sockPath)
+	if err != nil {
+		s.logger.Error().Err(err).Str("path", sockPath).Msg("creating socket")
+		return nil
+	}
+	s.svrSocket = &l
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !writePathRx.MatchString(r.URL.Path) {
+			appstats.IncrementInt("requests_bad")
+			s.logger.Warn().
+				Str("method", r.Method).
+				Str("url", r.URL.String()).
+				Msg("Not found")
 			http.NotFound(w, r)
 			return
 		}
+
 		if r.Method != "PUT" && r.Method != "POST" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			appstats.IncrementInt("requests_bad")
+			s.logger.Warn().
+				Str("method", r.Method).
+				Str("url", r.URL.String()).
+				Msg("Not found")
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
+
 		s.write(w, r)
 	})
 
 	s.logger.Info().Str("listen", (*s.svrSocket).Addr().String()).Msg("Socket starting")
 	if err := http.Serve(*s.svrSocket, handler); err != nil {
-		if err != http.ErrServerClosed {
-			return errors.Wrap(err, "Socket server")
+		select {
+		case <-s.t.Dying():
+			return nil
+		default:
+			s.logger.Error().Err(err).Str("path", sockPath).Msg("Socket server")
+			return errors.Wrapf(err, "Socket (%s) server", sockPath)
 		}
 	}
 	return nil
