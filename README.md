@@ -58,6 +58,7 @@ Flags:
       --debug-cgm                            [ENV: CA_DEBUG_CGM] Enable CGM & API debug messages
   -h, --help                                 help for circonus-agent
   -l, --listen string                        [ENV: CA_LISTEN] Listen address and port [[IP]:[PORT]] (default ":2609")
+      --listen-socket-path string            [ENV: CA_LISTEN_SOCKET_PATH] Listen socket path
       --log-level string                     [ENV: CA_LOG_LEVEL] Log level [(panic|fatal|error|warn|info|debug|disabled)] (default "info")
       --log-pretty                           [ENV: CA_LOG_PRETTY] Output formatted/colored log lines
       --no-statsd                            [ENV: CA_NO_STATSD] Disable StatsD listener
@@ -94,6 +95,7 @@ YAML
 debug: false
 debug_cgm: false
 listen: ":2609"
+listen_socket_path: ""
 plugin-dir: "/opt/circonus/agent/plugins"
 
 api:
@@ -143,6 +145,7 @@ TOML
 debug = false
 debug_cgm = false
 listen = ":2609"
+listen_socket_path = ""
 plugin-dir = "/opt/circonus/agent/plugins"
 
 [api]
@@ -200,6 +203,7 @@ JSON
    "debug": false,
    "debug_cgm": false,
    "listen": ":2609",
+   "listen_socket_path": "",
    "log": {
      "level": "info",
      "pretty": false
