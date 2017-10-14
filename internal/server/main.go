@@ -6,13 +6,14 @@
 package server
 
 import (
+	"context"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
 	"github.com/circonus-labs/circonus-agent/internal/statsd"
-	appstats "github.com/maier/go-appstats"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
@@ -39,12 +40,16 @@ func New(p *plugins.Plugins, ss *statsd.Server) (*Server, error) {
 		s.svrHTTPS.SetKeepAlivesEnabled(false)
 	}
 
+	if viper.GetString(config.KeyListenSocketPath) != "" {
+		s.svrSocket = &http.Server{Handler: http.HandlerFunc(s.socketHandler)}
+	}
+
 	return &s, nil
 }
 
 // Start main listening server(s)
 func (s *Server) Start() error {
-	if s.svrHTTP == nil && s.svrHTTPS == nil {
+	if s.svrHTTP == nil && s.svrHTTPS == nil && s.svrSocket == nil {
 		return errors.New("No servers defined")
 	}
 
@@ -57,9 +62,12 @@ func (s *Server) Start() error {
 
 // Stop the servers
 func (s *Server) Stop() {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	if s.svrHTTP != nil {
 		s.logger.Info().Msg("Stopping HTTP server")
-		err := s.svrHTTP.Close()
+		err := s.svrHTTP.Shutdown(ctx)
 		if err != nil {
 			s.logger.Warn().Err(err).Msg("Closing HTTP server")
 		}
@@ -67,7 +75,7 @@ func (s *Server) Stop() {
 
 	if s.svrHTTPS != nil {
 		s.logger.Info().Msg("Stopping HTTPS server")
-		err := s.svrHTTPS.Close()
+		err := s.svrHTTPS.Shutdown(ctx)
 		if err != nil {
 			s.logger.Warn().Err(err).Msg("Closing HTTPS server")
 		}
@@ -75,7 +83,7 @@ func (s *Server) Stop() {
 
 	if s.svrSocket != nil {
 		s.logger.Info().Msg("Stopping Socket server")
-		err := (*s.svrSocket).Close()
+		err := s.svrSocket.Shutdown(ctx)
 		if err != nil {
 			s.logger.Warn().Err(err).Msg("Closing Socket server")
 		}
@@ -117,6 +125,10 @@ func (s *Server) startHTTPS() error {
 }
 
 func (s *Server) startSocket() error {
+	if s.svrSocket == nil {
+		s.logger.Debug().Msg("No Socket path configured, skipping server")
+	}
+
 	sockPath := viper.GetString(config.KeyListenSocketPath)
 	if sockPath == "" {
 		s.logger.Debug().Msg("No Socket path configured, skipping server")
@@ -126,41 +138,12 @@ func (s *Server) startSocket() error {
 	l, err := net.Listen("unix", sockPath)
 	if err != nil {
 		s.logger.Error().Err(err).Str("path", sockPath).Msg("creating socket")
-		return nil
+		return err
 	}
-	s.svrSocket = &l
 
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !writePathRx.MatchString(r.URL.Path) {
-			appstats.IncrementInt("requests_bad")
-			s.logger.Warn().
-				Str("method", r.Method).
-				Str("url", r.URL.String()).
-				Msg("Not found")
-			http.NotFound(w, r)
-			return
-		}
-
-		if r.Method != "PUT" && r.Method != "POST" {
-			appstats.IncrementInt("requests_bad")
-			s.logger.Warn().
-				Str("method", r.Method).
-				Str("url", r.URL.String()).
-				Msg("Not found")
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		s.write(w, r)
-	})
-
-	s.logger.Info().Str("listen", (*s.svrSocket).Addr().String()).Msg("Socket starting")
-	if err := http.Serve(*s.svrSocket, handler); err != nil {
-		select {
-		case <-s.t.Dying():
-			return nil
-		default:
-			s.logger.Error().Err(err).Str("path", sockPath).Msg("Socket server")
+	s.logger.Info().Str("listen", l.Addr().String()).Msg("Socket starting")
+	if err := s.svrSocket.Serve(l); err != nil {
+		if err != http.ErrServerClosed {
 			return errors.Wrapf(err, "Socket (%s) server", sockPath)
 		}
 	}

@@ -17,7 +17,7 @@ import (
 
 func TestServerHTTP(t *testing.T) {
 	t.Log("Testing serverHTTP")
-
+	viper.Reset()
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	t.Log("No config")
@@ -35,12 +35,13 @@ func TestServerHTTP(t *testing.T) {
 		if s.svrHTTP == nil {
 			t.Fatal("expected NOT nil")
 		}
+		viper.Reset()
 	}
 }
 
 func TestServerHTTPS(t *testing.T) {
 	t.Log("Testing serverHTTPS")
-
+	viper.Reset()
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	t.Log("No config")
@@ -59,19 +60,73 @@ func TestServerHTTPS(t *testing.T) {
 		if s.svrHTTPS == nil {
 			t.Fatal("expected NOT nil")
 		}
+		viper.Reset()
 	}
 }
 
-func TestRunServers(t *testing.T) {
-	t.Log("Testing runServers")
-
+func TestServerSocket(t *testing.T) {
+	t.Log("Testing serverSocket")
+	viper.Reset()
 	zerolog.SetGlobalLevel(zerolog.Disabled)
+
+	t.Log("no config")
+	{
+		s, _ := New(nil, nil)
+		if s.svrSocket != nil {
+			t.Fatal("expected nil")
+		}
+	}
+
+	t.Log("w/bad config")
+	{
+		viper.Set(config.KeyListenSocketPath, "nodir/test.sock")
+		s, _ := New(nil, nil)
+		if s.svrSocket == nil {
+			t.Fatal("expected NOT nil")
+		}
+		expect := errors.New("listen unix nodir/test.sock: bind: no such file or directory")
+		err := s.startSocket()
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if err.Error() != expect.Error() {
+			t.Fatalf("expected (%s) got (%v)", expect, err)
+		}
+		s.svrSocket.Close()
+		viper.Reset()
+	}
+
+	t.Log("w/valid config")
+	{
+		viper.Set(config.KeyListenSocketPath, "testdata/test.sock")
+		s, _ := New(nil, nil)
+		viper.Reset()
+		if s.svrSocket == nil {
+			t.Fatal("expected NOT nil")
+		}
+		viper.Reset()
+	}
+}
+
+func TestStart(t *testing.T) {
+	t.Log("Testing Start")
+	viper.Reset()
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+
+	t.Log("no servers")
+	{
+		s, _ := New(nil, nil)
+		err := s.Start()
+		if err == nil {
+			t.Fatal("expected error")
+		}
+	}
 
 	t.Log("HTTP")
 	{
 		viper.Set(config.KeyListen, ":65111")
 		s, _ := New(nil, nil)
-		time.AfterFunc(2*time.Second, func() {
+		time.AfterFunc(1*time.Second, func() {
 			s.Stop()
 		})
 		if err := s.Start(); err != nil {
@@ -150,6 +205,37 @@ func TestRunServers(t *testing.T) {
 			t.Fatalf("expected (%s) got (%v)", expectedErr, err)
 		}
 		s.Stop()
+		viper.Reset()
+	}
+
+	t.Log("Socket")
+	{
+		viper.Set(config.KeyListenSocketPath, "testdata/test.sock")
+		s, _ := New(nil, nil)
+		time.AfterFunc(1*time.Second, func() {
+			s.Stop()
+		})
+		if err := s.Start(); err != nil {
+			t.Fatalf("expected NO error, got (%v)", err)
+		}
+		viper.Reset()
+	}
+
+	t.Log("Socket w/bad config")
+	{
+		viper.Set(config.KeyListenSocketPath, "nodir/test.sock")
+		s, _ := New(nil, nil)
+		time.AfterFunc(1*time.Second, func() {
+			s.Stop()
+		})
+		expect := errors.New("listen unix nodir/test.sock: bind: no such file or directory")
+		err := s.Start()
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if err.Error() != expect.Error() {
+			t.Fatalf("expected (%s) got (%v)", expect, err)
+		}
 		viper.Reset()
 	}
 }
