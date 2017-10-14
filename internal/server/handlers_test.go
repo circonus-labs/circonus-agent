@@ -28,7 +28,7 @@ import (
 
 func TestRun(t *testing.T) {
 	t.Log("Testing run")
-
+	viper.Reset()
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	runTests := []struct {
@@ -75,7 +75,7 @@ func TestRun(t *testing.T) {
 
 func TestInventory(t *testing.T) {
 	t.Log("Testing inventory")
-
+	viper.Reset()
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	dir, err := os.Getwd()
@@ -104,8 +104,9 @@ func TestInventory(t *testing.T) {
 
 func TestWrite(t *testing.T) {
 	t.Log("Testing write")
-
+	viper.Reset()
 	zerolog.SetGlobalLevel(zerolog.Disabled)
+
 	s, _ := New(nil, nil)
 
 	t.Logf("GET /write/ -> %d", http.StatusNotFound)
@@ -127,7 +128,7 @@ func TestWrite(t *testing.T) {
 		req := httptest.NewRequest("PUT", "/write/foo", nil)
 		w := httptest.NewRecorder()
 
-		s.router(w, req)
+		s.write(w, req)
 
 		resp := w.Result()
 
@@ -143,7 +144,7 @@ func TestWrite(t *testing.T) {
 		req := httptest.NewRequest("PUT", "/write/foo", reqBody)
 		w := httptest.NewRecorder()
 
-		s.router(w, req)
+		s.write(w, req)
 
 		resp := w.Result()
 
@@ -159,7 +160,84 @@ func TestWrite(t *testing.T) {
 		req := httptest.NewRequest("PUT", "/write/foo", reqBody)
 		w := httptest.NewRecorder()
 
-		s.router(w, req)
+		s.write(w, req)
+
+		resp := w.Result()
+
+		if resp.StatusCode != http.StatusNoContent {
+			t.Fatalf("expected %d, got %d", http.StatusNoContent, resp.StatusCode)
+		}
+	}
+
+}
+
+func TestSocketHandler(t *testing.T) {
+	t.Log("Testing socketHandler")
+	viper.Reset()
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+
+	s, _ := New(nil, nil)
+
+	t.Logf("GET /write/ -> %d", http.StatusNotFound)
+	{
+		req := httptest.NewRequest("GET", "/write/", nil)
+		w := httptest.NewRecorder()
+		s.socketHandler(w, req)
+		resp := w.Result()
+		if resp.StatusCode != http.StatusNotFound {
+			t.Fatalf("expected %d, got %d", http.StatusNotFound, resp.StatusCode)
+		}
+	}
+
+	t.Logf("GET /write/foo -> %d", http.StatusMethodNotAllowed)
+	{
+		req := httptest.NewRequest("GET", "/write/foo", nil)
+		w := httptest.NewRecorder()
+		s.socketHandler(w, req)
+		resp := w.Result()
+		if resp.StatusCode != http.StatusMethodNotAllowed {
+			t.Fatalf("expected %d, got %d", http.StatusMethodNotAllowed, resp.StatusCode)
+		}
+	}
+
+	t.Logf("PUT /write/foo w/o data -> %d", http.StatusBadRequest)
+	{
+		req := httptest.NewRequest("PUT", "/write/foo", nil)
+		w := httptest.NewRecorder()
+
+		s.socketHandler(w, req)
+
+		resp := w.Result()
+
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected %d, got %d", http.StatusBadRequest, resp.StatusCode)
+		}
+	}
+
+	t.Logf("PUT /write/foo w/bad data -> %d", http.StatusBadRequest)
+	{
+		reqBody := bytes.NewReader([]byte(`{"test":1`))
+
+		req := httptest.NewRequest("PUT", "/write/foo", reqBody)
+		w := httptest.NewRecorder()
+
+		s.socketHandler(w, req)
+
+		resp := w.Result()
+
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected %d, got %d", http.StatusBadRequest, resp.StatusCode)
+		}
+	}
+
+	t.Logf("PUT /write/foo w/data -> %d", http.StatusNoContent)
+	{
+		reqBody := bytes.NewReader([]byte(`{"test":{"_type": "i", "_value":1}}`))
+
+		req := httptest.NewRequest("PUT", "/write/foo", reqBody)
+		w := httptest.NewRecorder()
+
+		s.socketHandler(w, req)
 
 		resp := w.Result()
 
@@ -172,8 +250,9 @@ func TestWrite(t *testing.T) {
 
 func TestPromOutput(t *testing.T) {
 	t.Log("Testing promOutput")
-
+	viper.Reset()
 	zerolog.SetGlobalLevel(zerolog.Disabled)
+
 	s, _ := New(nil, nil)
 
 	t.Logf("GET /prom -> %d (w/o metrics)", http.StatusNoContent)
@@ -219,7 +298,7 @@ func TestPromOutput(t *testing.T) {
 
 func TestMetricsToPromFormat(t *testing.T) {
 	t.Log("Testing metricsToPromFormat")
-
+	viper.Reset()
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	s, _ := New(nil, nil)
@@ -361,5 +440,4 @@ func TestMetricsToPromFormat(t *testing.T) {
 			t.Fatalf("expected (%s) got (%s)", expect, b.String())
 		}
 	}
-
 }
