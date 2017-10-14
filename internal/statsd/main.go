@@ -40,6 +40,10 @@ func New() (*Server, error) {
 		packetCh:       make(chan []byte, packetQueueSize),
 	}
 
+	if s.disabled {
+		return &s, nil
+	}
+
 	port := viper.GetString(config.KeyStatsdPort)
 	address := net.JoinHostPort("localhost", port)
 	addr, err := net.ResolveUDPAddr("udp", address)
