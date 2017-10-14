@@ -24,11 +24,10 @@ func TestDrain(t *testing.T) {
 
 	p := &plugin{
 		ctx:        context.Background(),
-		ID:         "test",
-		InstanceID: "",
-		Name:       "test",
-		Generation: 1,
-		Command:    "testdata/test.sh",
+		id:         "test",
+		instanceID: "",
+		name:       "test",
+		command:    "testdata/test.sh",
 	}
 
 	t.Log("blank w/o prevMetrics")
@@ -58,11 +57,10 @@ func TestParsePluginOutput(t *testing.T) {
 
 	p := &plugin{
 		ctx:        context.Background(),
-		ID:         "test",
-		InstanceID: "",
-		Name:       "test",
-		Generation: 1,
-		Command:    "testdata/test.sh",
+		id:         "test",
+		instanceID: "",
+		name:       "test",
+		command:    "testdata/test.sh",
 	}
 
 	t.Log("blank")
@@ -153,11 +151,10 @@ func TestExec(t *testing.T) {
 
 	p := &plugin{
 		ctx:        context.Background(),
-		ID:         "test",
-		InstanceID: "",
-		Name:       "test",
-		Generation: 1,
-		Command:    "testdata/test.sh",
+		id:         "test",
+		instanceID: "",
+		name:       "test",
+		command:    "testdata/test.sh",
 	}
 
 	dir, err := os.Getwd()
@@ -168,7 +165,7 @@ func TestExec(t *testing.T) {
 
 	t.Log("already running")
 	{
-		p.Running = true
+		p.running = true
 		expectedErr := errors.Errorf("already running")
 		err := p.exec()
 		if err == nil {
@@ -177,12 +174,12 @@ func TestExec(t *testing.T) {
 		if err.Error() != expectedErr.Error() {
 			t.Fatalf("expected (%s) got (%s)", expectedErr, err)
 		}
-		p.Running = false
+		p.running = false
 	}
 
 	t.Log("not found")
 	{
-		p.Command = "testdata/invalid"
+		p.command = "testdata/invalid"
 		expectedErr := errors.Errorf("cmd start: fork/exec testdata/invalid: no such file or directory")
 		err := p.exec()
 		if err == nil {
@@ -195,7 +192,7 @@ func TestExec(t *testing.T) {
 
 	t.Log("not found (in $PATH)")
 	{
-		p.Command = "invalid"
+		p.command = "invalid"
 		expectedErr := errors.Errorf(`cmd start: exec: "invalid": executable file not found in $PATH`)
 		err := p.exec()
 		if err == nil {
@@ -208,7 +205,7 @@ func TestExec(t *testing.T) {
 
 	t.Log("error (exit)")
 	{
-		p.Command = path.Join(testDir, "error.sh")
+		p.command = path.Join(testDir, "error.sh")
 		expectedErr := errors.Errorf(`cmd err (foo bar ): exit status 1`)
 		err := p.exec()
 		if err == nil {
@@ -221,8 +218,8 @@ func TestExec(t *testing.T) {
 
 	t.Log("args")
 	{
-		p.Command = path.Join(testDir, "args.sh")
-		p.InstanceArgs = []string{"foo", "bar"}
+		p.command = path.Join(testDir, "args.sh")
+		p.instanceArgs = []string{"foo", "bar"}
 		err := p.exec()
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
@@ -230,7 +227,7 @@ func TestExec(t *testing.T) {
 		if len(*p.metrics) == 0 {
 			t.Fatal("expected metrics")
 		}
-		metricName := strings.Join(p.InstanceArgs, "`")
+		metricName := strings.Join(p.instanceArgs, "`")
 		_, ok := (*p.metrics)[metricName]
 		if !ok {
 			t.Fatalf("expected '%s' metric", metricName)

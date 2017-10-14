@@ -140,6 +140,20 @@ func init() {
 		viper.SetDefault(key, defaults.PluginPath)
 	}
 
+	{
+		const (
+			key         = config.KeyPluginTTLUnits
+			longOpt     = "plugin-ttl-units"
+			envVar      = release.ENVPREFIX + "_PLUGIN_TTL_UNITS"
+			description = "Default plugin TTL units"
+		)
+
+		RootCmd.Flags().String(longOpt, defaults.PluginTTLUnits, desc(description, envVar))
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+		viper.SetDefault(key, defaults.PluginTTLUnits)
+	}
+
 	//
 	// Reverse mode
 	//

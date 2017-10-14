@@ -90,6 +90,10 @@ const (
 
 	// MetricNameSeparator defines character used to delimit metric name parts
 	MetricNameSeparator = "`"
+
+	// PluginTTLUnits defines the default TTL units for plugins with TTLs
+	// e.g. plugin_ttl30s.sh (30s ttl) plugin_ttl45.sh (would get default ttl units, e.g. 45s)
+	PluginTTLUnits = "s" // seconds
 )
 
 var (

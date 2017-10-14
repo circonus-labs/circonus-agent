@@ -12,8 +12,6 @@ import (
 	"sync"
 	"time"
 
-	// "github.com/rjeczalik/notify"
-
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/maier/go-appstats"
 	"github.com/pkg/errors"
@@ -25,7 +23,6 @@ import (
 func New(ctx context.Context) *Plugins {
 	p := Plugins{
 		ctx:           ctx,
-		generation:    0,
 		running:       false,
 		pluginDir:     viper.GetString(config.KeyPluginDir),
 		logger:        log.With().Str("pkg", "plugins").Logger(),
@@ -60,41 +57,6 @@ func (p *Plugins) Flush(pluginName string) *map[string]interface{} {
 func (p *Plugins) Stop() error {
 	p.logger.Info().Msg("Stopping plugins")
 	return nil
-
-	// for id, plug := range p.active {
-	// 	plug.Lock()
-	// 	if !plug.Running {
-	// 		plug.Unlock()
-	// 		continue
-	// 	}
-	// 	if plug.cmd == nil {
-	// 		plug.Unlock()
-	// 		continue
-	// 	}
-	// 	if plug.cmd.Process != nil {
-	// 		var stop bool
-	// 		if plug.cmd.ProcessState == nil {
-	// 			stop = true
-	// 		} else {
-	// 			stop = !plug.cmd.ProcessState.Exited()
-	// 		}
-	//
-	// 		if stop {
-	// 			p.logger.Info().
-	// 				Str("plugin", id).
-	// 				Msg("Stopping running plugin")
-	// 			err := plug.cmd.Process.Kill()
-	// 			if err != nil {
-	// 				p.logger.Error().
-	// 					Err(err).
-	// 					Str("plugin", id).
-	// 					Msg("Stopping plugin")
-	// 			}
-	// 		}
-	// 	}
-	// 	plug.Unlock()
-	// }
-	// return nil
 }
 
 // Run one or all plugins
@@ -117,15 +79,21 @@ func (p *Plugins) Run(pluginName string) error {
 
 	if pluginName != "" {
 		numFound := 0
-		for pluginID, plug := range p.active {
+		for pluginID, pluginRef := range p.active {
 			if pluginID == pluginName || // specific plugin
 				strings.HasPrefix(pluginID, pluginName+"`") { // specific plugin with instances
+				if pluginRef.runTTL > time.Duration(0) {
+					if time.Since(pluginRef.lastEnd) < pluginRef.runTTL {
+						p.logger.Debug().Str("plugin", pluginID).Msg("skipping, TTL not expired")
+						continue // skip, ttl hasn't expired
+					}
+				}
 				numFound++
 				wg.Add(1)
 				go func(id string, plug *plugin) {
 					plug.exec()
 					wg.Done()
-				}(pluginID, plug)
+				}(pluginID, pluginRef)
 			}
 		}
 		if numFound == 0 {
@@ -136,8 +104,14 @@ func (p *Plugins) Run(pluginName string) error {
 			return errors.Errorf("invalid plugin (%s)", pluginName)
 		}
 	} else {
-		wg.Add(len(p.active))
 		for pluginID, pluginRef := range p.active {
+			if pluginRef.runTTL > time.Duration(0) {
+				if time.Since(pluginRef.lastEnd) < pluginRef.runTTL {
+					p.logger.Debug().Str("plugin", pluginID).Msg("skipping, TTL not expired")
+					continue // skip, ttl hasn't expired
+				}
+			}
+			wg.Add(1)
 			go func(id string, plug *plugin) {
 				plug.exec()
 				wg.Done()
@@ -185,21 +159,6 @@ func (p *Plugins) IsInternal(pluginName string) bool {
 	return reserved
 }
 
-type lastRunError struct {
-	Code int    `json:"code"`
-	Msg  string `json:"message"`
-}
-
-type pluginDetails struct {
-	Name            string   `json:"name"`
-	Instance        string   `json:"instance"`
-	Command         string   `json:"command"`
-	Args            []string `json:"args"`
-	LastRunStart    string   `json:"last_run_start"`
-	LastRunDuration string   `json:"last_run_duration"`
-	LastError       string   `json:"last_error"`
-}
-
 // Inventory returns list of active plugins
 func (p *Plugins) Inventory() []byte {
 	p.Lock()
@@ -208,16 +167,17 @@ func (p *Plugins) Inventory() []byte {
 	for id, plug := range p.active {
 		plug.Lock()
 		inventory[id] = &pluginDetails{
-			Name:            plug.ID,
-			Instance:        plug.InstanceID,
-			Command:         plug.Command,
-			Args:            plug.InstanceArgs,
-			LastRunStart:    plug.LastStart.Format(time.RFC3339Nano),
-			LastRunDuration: plug.LastRunDuration.String(),
+			Name:            plug.id,
+			Instance:        plug.instanceID,
+			Command:         plug.command,
+			Args:            plug.instanceArgs,
+			LastRunStart:    plug.lastStart.Format(time.RFC3339Nano),
+			LastRunEnd:      plug.lastEnd.Format(time.RFC3339Nano),
+			LastRunDuration: plug.lastRunDuration.String(),
 		}
 
-		if plug.LastError != nil {
-			inventory[id].LastError = plug.LastError.Error()
+		if plug.lastError != nil {
+			inventory[id].LastError = plug.lastError.Error()
 		}
 
 		plug.Unlock()
@@ -228,23 +188,3 @@ func (p *Plugins) Inventory() []byte {
 	}
 	return data
 }
-
-// func pluginWatcher() {
-// 	c := make(chan notify.EventInfo, 1)
-//
-// 	if err := notify.Watch(pluginDir, c, notify.All); err != nil {
-// 		logger.Fatal().
-// 			Err(err).
-// 			Str("plugin-dir", pluginDir).
-// 			Msg("Unable to watch plugin directory")
-// 	}
-//
-// 	defer notify.Stop(c)
-//
-// 	for ei := range c {
-// 		logger.Debug().
-// 			Str("event", ei.Event().String()).
-// 			Str("path", ei.Path()).
-// 			Msg("event")
-// 	}
-// }

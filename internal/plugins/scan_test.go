@@ -30,8 +30,7 @@ func TestScanPluginDirectory(t *testing.T) {
 
 	p := New(context.Background())
 	p.active["purge_inactive"] = &plugin{
-		ID:         "purge_inactive",
-		Generation: 0,
+		id: "purge_inactive",
 	}
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
