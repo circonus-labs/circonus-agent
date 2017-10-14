@@ -62,7 +62,8 @@ func New() (*Agent, error) {
 
 // Start the agent
 func (a *Agent) Start() error {
-	a.t.Go(a.handleSignals)
+	go a.handleSignals()
+
 	a.t.Go(a.statsdServer.Start)
 	a.t.Go(a.reverseConn.Start)
 	a.t.Go(a.listenServer.Start)
