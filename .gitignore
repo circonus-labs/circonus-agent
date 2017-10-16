@@ -42,3 +42,4 @@ dist/
 .codecov
 coverage.txt
 coverage.xml
+coverage.html
