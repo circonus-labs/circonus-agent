@@ -9,6 +9,7 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
@@ -36,12 +37,52 @@ func New(p *plugins.Plugins, ss *statsd.Server) (*Server, error) {
 	}
 
 	if addr := viper.GetString(config.KeySSLListen); addr != "" {
-		s.svrHTTPS = &http.Server{Addr: addr, Handler: gzipHandler}
-		s.svrHTTPS.SetKeepAlivesEnabled(false)
+		certFile := viper.GetString(config.KeySSLCertFile)
+		if _, err := os.Stat(certFile); os.IsNotExist(err) {
+			s.logger.Error().Err(err).Str("cert_file", certFile).Msg("SSL server")
+			return nil, errors.Wrapf(err, "SSL server cert file")
+		}
+		keyFile := viper.GetString(config.KeySSLKeyFile)
+		if _, err := os.Stat(keyFile); os.IsNotExist(err) {
+			s.logger.Error().Err(err).Str("key_file", keyFile).Msg("SSL server")
+			return nil, errors.Wrapf(err, "SSL server key file")
+		}
+
+		svr := sslServer{
+			certFile: certFile,
+			keyFile:  keyFile,
+			server:   &http.Server{Addr: addr, Handler: gzipHandler},
+		}
+
+		svr.server.SetKeepAlivesEnabled(false)
+		s.svrHTTPS = &svr
 	}
 
-	if viper.GetString(config.KeyListenSocketPath) != "" {
-		s.svrSocket = &http.Server{Handler: http.HandlerFunc(s.socketHandler)}
+	socketList := viper.GetStringSlice(config.KeyListenSocket)
+	if len(socketList) > 0 {
+		for idx, addr := range socketList {
+			ua, err := net.ResolveUnixAddr("unix", addr)
+			if err != nil {
+				s.logger.Error().Err(err).Int("id", idx).Str("addr", addr).Msg("resolving address")
+				return nil, err
+			}
+
+			ul, err := net.ListenUnix(ua.Network(), ua)
+			if err != nil {
+				s.logger.Error().Err(err).Int("id", idx).Str("addr", addr).Msg("creating socket")
+				return nil, err
+			}
+
+			s.svrSockets = append(s.svrSockets, socketServer{
+				address:  ua,
+				listener: ul,
+				server:   &http.Server{Handler: http.HandlerFunc(s.socketHandler)},
+			})
+		}
+	}
+
+	if s.svrHTTP == nil && s.svrHTTPS == nil && len(s.svrSockets) == 0 {
+		return nil, errors.New("No servers defined")
 	}
 
 	return &s, nil
@@ -49,18 +90,49 @@ func New(p *plugins.Plugins, ss *statsd.Server) (*Server, error) {
 
 // Start main listening server(s)
 func (s *Server) Start() error {
-	if s.svrHTTP == nil && s.svrHTTPS == nil && s.svrSocket == nil {
+	if s.svrHTTP == nil && s.svrHTTPS == nil && len(s.svrSockets) > 0 {
 		return errors.New("No servers defined")
 	}
 
 	s.t.Go(s.startHTTP)
 	s.t.Go(s.startHTTPS)
-	s.t.Go(s.startSocket)
+	for _, svrSocket := range s.svrSockets {
+		s.t.Go(func() error {
+			return s.startSocket(svrSocket)
+		})
+	}
+
+	// start a tomb dying listener so that if one server fails to start
+	// all other servers will be stopped. since http.servers don't have
+	// listen with context (yet) and will block waiting for a request
+	// in order to receive <-s.t.Dying. this is more 'immediate'.
+	go func() {
+		select {
+		case <-s.t.Dying():
+			if s.t.Err() == nil { // don't fire if a normal s.Stop() was initiated
+				return
+			}
+			if s.svrHTTP != nil {
+				s.svrHTTP.Close()
+			}
+			if s.svrHTTPS != nil && s.svrHTTPS.server != nil {
+				s.svrHTTPS.server.Close()
+			}
+			if len(s.svrSockets) == 0 {
+				return // no sockets to close
+			}
+			for _, svr := range s.svrSockets {
+				if svr.listener != nil {
+					svr.listener.Close()
+				}
+			}
+		}
+	}()
 
 	return s.t.Wait()
 }
 
-// Stop the servers
+// Stop the servers in an orderly, graceful fashion
 func (s *Server) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -75,17 +147,17 @@ func (s *Server) Stop() {
 
 	if s.svrHTTPS != nil {
 		s.logger.Info().Msg("Stopping HTTPS server")
-		err := s.svrHTTPS.Shutdown(ctx)
+		err := s.svrHTTPS.server.Shutdown(ctx)
 		if err != nil {
 			s.logger.Warn().Err(err).Msg("Closing HTTPS server")
 		}
 	}
 
-	if s.svrSocket != nil {
-		s.logger.Info().Msg("Stopping Socket server")
-		err := s.svrSocket.Shutdown(ctx)
+	for _, svrSocket := range s.svrSockets {
+		s.logger.Info().Str("server", svrSocket.address.Name).Msg("Stopping Socket server")
+		err := svrSocket.server.Shutdown(ctx)
 		if err != nil {
-			s.logger.Warn().Err(err).Msg("Closing Socket server")
+			s.logger.Warn().Err(err).Str("server", svrSocket.address.Name).Msg("Closing Socket server")
 		}
 	}
 
@@ -102,6 +174,7 @@ func (s *Server) startHTTP() error {
 	s.logger.Info().Str("listen", s.svrHTTP.Addr).Msg("Starting")
 	if err := s.svrHTTP.ListenAndServe(); err != nil {
 		if err != http.ErrServerClosed {
+			s.logger.Error().Err(err).Msg("HTTP Server, stopping agent")
 			return errors.Wrap(err, "HTTP server")
 		}
 	}
@@ -113,38 +186,27 @@ func (s *Server) startHTTPS() error {
 		s.logger.Debug().Msg("No SSL listen configured, skipping server")
 		return nil
 	}
-	certFile := viper.GetString(config.KeySSLCertFile)
-	keyFile := viper.GetString(config.KeySSLKeyFile)
-	s.logger.Info().Str("listen", s.svrHTTPS.Addr).Msg("SSL starting")
-	if err := s.svrHTTPS.ListenAndServeTLS(certFile, keyFile); err != nil {
+	s.logger.Info().Str("listen", s.svrHTTPS.server.Addr).Msg("SSL starting")
+	if err := s.svrHTTPS.server.ListenAndServeTLS(s.svrHTTPS.certFile, s.svrHTTPS.keyFile); err != nil {
 		if err != http.ErrServerClosed {
-			return errors.Wrap(err, "HTTPS server")
+			s.logger.Error().Err(err).Msg("SSL Server, stopping agent")
+			return errors.Wrap(err, "SSL server")
 		}
 	}
 	return nil
 }
 
-func (s *Server) startSocket() error {
-	if s.svrSocket == nil {
-		s.logger.Debug().Msg("No Socket path configured, skipping server")
-	}
-
-	sockPath := viper.GetString(config.KeyListenSocketPath)
-	if sockPath == "" {
-		s.logger.Debug().Msg("No Socket path configured, skipping server")
+func (s *Server) startSocket(svr socketServer) error {
+	if svr.address == nil || svr.listener == nil || svr.server == nil {
+		s.logger.Debug().Msg("No socket configured, skipping")
 		return nil
 	}
 
-	l, err := net.Listen("unix", sockPath)
-	if err != nil {
-		s.logger.Error().Err(err).Str("path", sockPath).Msg("creating socket")
-		return err
-	}
-
-	s.logger.Info().Str("listen", l.Addr().String()).Msg("Socket starting")
-	if err := s.svrSocket.Serve(l); err != nil {
+	s.logger.Info().Str("listen", svr.address.String()).Msg("Socket starting")
+	if err := svr.server.Serve(svr.listener); err != nil {
 		if err != http.ErrServerClosed {
-			return errors.Wrapf(err, "Socket (%s) server", sockPath)
+			s.logger.Error().Err(err).Str("socket", svr.address.String()).Msg("Socket Server, stopping agent")
+			return errors.Wrapf(err, "Socket (%s) server", svr.address.String())
 		}
 	}
 	return nil

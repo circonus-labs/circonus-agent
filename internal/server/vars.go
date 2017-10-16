@@ -7,6 +7,7 @@ package server
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"regexp"
 	"sync"
@@ -19,16 +20,28 @@ import (
 	"github.com/rs/zerolog"
 )
 
+type socketServer struct {
+	address  *net.UnixAddr
+	listener *net.UnixListener
+	server   *http.Server
+}
+
+type sslServer struct {
+	certFile string
+	keyFile  string
+	server   *http.Server
+}
+
 // Server defines the listening servers
 type Server struct {
-	ctx       context.Context
-	logger    zerolog.Logger
-	plugins   *plugins.Plugins
-	svrHTTP   *http.Server
-	svrHTTPS  *http.Server
-	svrSocket *http.Server
-	statsdSvr *statsd.Server
-	t         tomb.Tomb
+	ctx        context.Context
+	logger     zerolog.Logger
+	plugins    *plugins.Plugins
+	svrHTTP    *http.Server
+	svrHTTPS   *sslServer
+	svrSockets []socketServer
+	statsdSvr  *statsd.Server
+	t          tomb.Tomb
 }
 
 type previousMetrics struct {

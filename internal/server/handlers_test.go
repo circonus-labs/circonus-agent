@@ -50,11 +50,19 @@ func TestRun(t *testing.T) {
 	testDir := path.Join(dir, "testdata")
 
 	viper.Set(config.KeyPluginDir, testDir)
+	viper.Set(config.KeyListen, ":2609")
 	p := plugins.New(context.Background())
 	if err := p.Scan(); err != nil {
 		t.Fatalf("expected no error, got (%s)", err)
 	}
-	s, _ := New(p, nil)
+
+	s, err := New(p, nil)
+	if err != nil {
+		t.Fatalf("expected NO error, got (%s)", err)
+	}
+	if s == nil {
+		t.Fatal("expected NOT nil")
+	}
 
 	for _, runReq := range runTests {
 		time.Sleep(1 * time.Second)
@@ -71,11 +79,12 @@ func TestRun(t *testing.T) {
 		}
 
 	}
+
+	viper.Reset()
 }
 
 func TestInventory(t *testing.T) {
 	t.Log("Testing inventory")
-	viper.Reset()
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	dir, err := os.Getwd()
@@ -84,9 +93,16 @@ func TestInventory(t *testing.T) {
 	}
 	testDir := path.Join(dir, "testdata")
 
+	viper.Set(config.KeyListen, ":2609")
 	viper.Set(config.KeyPluginDir, testDir)
 	p := plugins.New(context.Background())
-	s, _ := New(p, nil)
+	s, err := New(p, nil)
+	if err != nil {
+		t.Fatalf("expected NO error, got (%s)", err)
+	}
+	if s == nil {
+		t.Fatal("expected NOT nil")
+	}
 	time.Sleep(1 * time.Second)
 
 	t.Logf("GET /inventory -> %d", http.StatusOK)
@@ -100,14 +116,22 @@ func TestInventory(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected %d, got %d", http.StatusOK, resp.StatusCode)
 	}
+
+	viper.Reset()
 }
 
 func TestWrite(t *testing.T) {
 	t.Log("Testing write")
-	viper.Reset()
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	s, _ := New(nil, nil)
+	viper.Set(config.KeyListen, ":2609")
+	s, err := New(nil, nil)
+	if err != nil {
+		t.Fatalf("expected NO error, got (%s)", err)
+	}
+	if s == nil {
+		t.Fatal("expected NOT nil")
+	}
 
 	t.Logf("GET /write/ -> %d", http.StatusNotFound)
 	{
@@ -169,14 +193,21 @@ func TestWrite(t *testing.T) {
 		}
 	}
 
+	viper.Reset()
 }
 
 func TestSocketHandler(t *testing.T) {
 	t.Log("Testing socketHandler")
-	viper.Reset()
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	s, _ := New(nil, nil)
+	viper.Set(config.KeyListen, ":2609")
+	s, err := New(nil, nil)
+	if err != nil {
+		t.Fatalf("expected NO error, got (%s)", err)
+	}
+	if s == nil {
+		t.Fatal("expected NOT nil")
+	}
 
 	t.Logf("GET /write/ -> %d", http.StatusNotFound)
 	{
@@ -246,14 +277,21 @@ func TestSocketHandler(t *testing.T) {
 		}
 	}
 
+	viper.Reset()
 }
 
 func TestPromOutput(t *testing.T) {
 	t.Log("Testing promOutput")
-	viper.Reset()
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	s, _ := New(nil, nil)
+	viper.Set(config.KeyListen, ":2609")
+	s, err := New(nil, nil)
+	if err != nil {
+		t.Fatalf("expected NO error, got (%s)", err)
+	}
+	if s == nil {
+		t.Fatal("expected NOT nil")
+	}
 
 	t.Logf("GET /prom -> %d (w/o metrics)", http.StatusNoContent)
 	{
@@ -294,14 +332,22 @@ func TestPromOutput(t *testing.T) {
 			t.Fatalf("expected (%s) got (%s)", expect, string(body))
 		}
 	}
+
+	viper.Reset()
 }
 
 func TestMetricsToPromFormat(t *testing.T) {
 	t.Log("Testing metricsToPromFormat")
-	viper.Reset()
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	s, _ := New(nil, nil)
+	viper.Set(config.KeyListen, ":2609")
+	s, err := New(nil, nil)
+	if err != nil {
+		t.Fatalf("expected NO error, got (%s)", err)
+	}
+	if s == nil {
+		t.Fatal("expected NOT nil")
+	}
 	ts := int64(12345)
 
 	t.Log("basic coverage (*cgm.Metrics -> cgm.Metrics -> cgm.Metric)")
@@ -440,4 +486,6 @@ func TestMetricsToPromFormat(t *testing.T) {
 			t.Fatalf("expected (%s) got (%s)", expect, b.String())
 		}
 	}
+
+	viper.Reset()
 }
