@@ -58,7 +58,7 @@ Flags:
       --debug-cgm                            [ENV: CA_DEBUG_CGM] Enable CGM & API debug messages
   -h, --help                                 help for circonus-agent
   -l, --listen string                        [ENV: CA_LISTEN] Listen address and port [[IP]:[PORT]] (default ":2609")
-      --listen-socket-path string            [ENV: CA_LISTEN_SOCKET_PATH] Listen socket path
+  -L, --listen-socket string                 [ENV: CA_LISTEN_SOCKET] Unix socket to create (more than once for multiple sockets)
       --log-level string                     [ENV: CA_LOG_LEVEL] Log level [(panic|fatal|error|warn|info|debug|disabled)] (default "info")
       --log-pretty                           [ENV: CA_LOG_PRETTY] Output formatted/colored log lines
       --no-statsd                            [ENV: CA_NO_STATSD] Disable StatsD listener

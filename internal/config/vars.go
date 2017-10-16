@@ -75,17 +75,17 @@ type StatsD struct {
 
 // Config defines the running config structure
 type Config struct {
-	Debug            bool    `json:"debug" yaml:"debug" toml:"debug"`
-	API              API     `json:"api" yaml:"api" toml:"api"`
-	Log              Log     `json:"log" yaml:"log" toml:"log"`
-	DebugCGM         bool    `mapstructure:"debug_cgm" json:"debug_cgm" yaml:"debug_cgm" toml:"debug_cgm"`
-	Listen           string  `json:"listen" yaml:"listen" toml:"listen"`
-	ListenSocketPath string  `mapstructure:"listen_socket_path" json:"listen_socket_path" yaml:"listen_socket_path" toml:"listen_socket_path"`
-	PluginDir        string  `mapstructure:"plugin_dir" json:"plugin_dir" yaml:"plugin_dir" toml:"plugin_dir"`
-	PluginTTLUnits   string  `mapstructure:"plugin_ttl_units" json:"plugin_ttl_units" yaml:"plugin_ttl_units" toml:"plugin_ttl_units"`
-	Reverse          Reverse `json:"reverse" yaml:"reverse" toml:"reverse"`
-	SSL              SSL     `json:"ssl" yaml:"ssl" toml:"ssl"`
-	StatsD           StatsD  `json:"statsd" yaml:"statsd" toml:"statsd"`
+	Debug          bool     `json:"debug" yaml:"debug" toml:"debug"`
+	API            API      `json:"api" yaml:"api" toml:"api"`
+	Log            Log      `json:"log" yaml:"log" toml:"log"`
+	DebugCGM       bool     `mapstructure:"debug_cgm" json:"debug_cgm" yaml:"debug_cgm" toml:"debug_cgm"`
+	Listen         string   `json:"listen" yaml:"listen" toml:"listen"`
+	ListenSocket   []string `mapstructure:"listen_socket" json:"listen_socket" yaml:"listen_socket" toml:"listen_socket"`
+	PluginDir      string   `mapstructure:"plugin_dir" json:"plugin_dir" yaml:"plugin_dir" toml:"plugin_dir"`
+	PluginTTLUnits string   `mapstructure:"plugin_ttl_units" json:"plugin_ttl_units" yaml:"plugin_ttl_units" toml:"plugin_ttl_units"`
+	Reverse        Reverse  `json:"reverse" yaml:"reverse" toml:"reverse"`
+	SSL            SSL      `json:"ssl" yaml:"ssl" toml:"ssl"`
+	StatsD         StatsD   `json:"statsd" yaml:"statsd" toml:"statsd"`
 }
 
 type cosiCheckConfig struct {
@@ -117,8 +117,8 @@ const (
 	// KeyListen primary address and port to listen on
 	KeyListen = "listen"
 
-	// KeyListenSocketPath identifies where to create a unix socket
-	KeyListenSocketPath = "listen_socket_path"
+	// KeyListenSocket identifies one or more unix socket files to create
+	KeyListenSocket = "listen_socket"
 
 	// KeyLogLevel logging level (panic, fatal, error, warn, info, debug, disabled)
 	KeyLogLevel = "log.level"

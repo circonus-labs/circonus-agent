@@ -114,13 +114,14 @@ func init() {
 
 	{
 		const (
-			key         = config.KeyListenSocketPath
-			longOpt     = "listen-socket-path"
-			envVar      = release.ENVPREFIX + "_LISTEN_SOCKET_PATH"
-			description = "Listen socket path"
+			key         = config.KeyListenSocket
+			longOpt     = "listen-socket"
+			shortOpt    = "L"
+			envVar      = release.ENVPREFIX + "_LISTEN_SOCKET"
+			description = "Unix socket to create (more than once for multiple sockets)"
 		)
 
-		RootCmd.Flags().String(longOpt, "", desc(description, envVar))
+		RootCmd.Flags().StringSliceP(longOpt, shortOpt, []string{}, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 	}
