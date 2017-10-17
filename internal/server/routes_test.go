@@ -57,7 +57,10 @@ func TestRouter(t *testing.T) {
 	{
 		viper.Set(config.KeyListen, ":2609")
 		viper.Set(config.KeyPluginDir, "testdata/")
-		p := plugins.New(context.Background())
+		p, perr := plugins.New(context.Background())
+		if perr != nil {
+			t.Fatalf("expected NO error, got (%s)", perr)
+		}
 		reqtests := []struct {
 			method string
 			path   string
@@ -94,7 +97,10 @@ func TestRouter(t *testing.T) {
 		viper.Set(config.KeyListen, ":2609")
 		viper.Set(config.KeyStatsdDisabled, true)
 		viper.Set(config.KeyPluginDir, "testdata/")
-		p := plugins.New(context.Background())
+		p, perr := plugins.New(context.Background())
+		if perr != nil {
+			t.Fatalf("expected NO error, got (%s)", perr)
+		}
 		s, err := New(p, nil)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
@@ -135,7 +141,10 @@ func TestRouter(t *testing.T) {
 		viper.Set(config.KeyListen, ":2609")
 		viper.Set(config.KeyStatsdDisabled, true)
 		viper.Set(config.KeyPluginDir, "testdata/")
-		p := plugins.New(context.Background())
+		p, perr := plugins.New(context.Background())
+		if perr != nil {
+			t.Fatalf("expected NO error, got (%s)", perr)
+		}
 		s, err := New(p, nil)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)

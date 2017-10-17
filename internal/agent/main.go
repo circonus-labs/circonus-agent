@@ -34,9 +34,11 @@ func New() (*Agent, error) {
 		return nil, err
 	}
 
-	a.plugins = plugins.New(a.t.Context(context.Background()))
-	err = a.plugins.Scan()
+	a.plugins, err = plugins.New(a.t.Context(context.Background()))
 	if err != nil {
+		return nil, err
+	}
+	if err = a.plugins.Scan(); err != nil {
 		return nil, err
 	}
 
