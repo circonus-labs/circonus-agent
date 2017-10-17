@@ -245,20 +245,13 @@ func TestStartSocket(t *testing.T) {
 	t.Log("\tw/bad config - invalid file")
 	{
 		viper.Set(config.KeyListenSocket, []string{"nodir/test.sock"})
-		s, err := New(nil, nil)
-		if err != nil {
-			t.Fatalf("expected no error, got (%s)", err)
-		}
-		if len(s.svrSockets) != 1 {
-			t.Fatal("expected 1 socket")
-		}
-		expect := errors.New("creating socket: listen unix nodir/test.sock: bind: no such file or directory")
-		serr := s.startSocket(s.svrSockets[0])
-		if serr == nil {
+		_, err := New(nil, nil)
+		if err == nil {
 			t.Fatal("expected error")
 		}
-		if serr.Error() != expect.Error() {
-			t.Fatalf("expected (%s) got (%v)", expect, serr)
+		expect := errors.New("creating socket: listen unix nodir/test.sock: bind: no such file or directory")
+		if err.Error() != expect.Error() {
+			t.Fatalf("expected (%s) got (%v)", expect, err)
 		}
 		viper.Reset()
 	}

@@ -101,13 +101,20 @@ func New(p *plugins.Plugins, ss *statsd.Server) (*Server, error) {
 			}
 
 			if _, err := os.Stat(ua.String()); err == nil || !os.IsNotExist(err) {
-				s.logger.Error().Str("socket_file", ua.String()).Msg("already exists")
+				s.logger.Error().Int("id", idx).Str("socket_file", ua.String()).Msg("already exists")
 				return nil, errors.Errorf("Socket server file (%s) exists", ua.String())
 			}
 
+			ul, err := net.ListenUnix(ua.Network(), ua)
+			if err != nil {
+				s.logger.Error().Err(err).Int("id", idx).Str("addr", ua.String()).Msg("creating socket")
+				return nil, errors.Wrap(err, "creating socket")
+			}
+
 			s.svrSockets = append(s.svrSockets, &socketServer{
-				address: ua,
-				server:  &http.Server{Handler: http.HandlerFunc(s.socketHandler)},
+				address:  ua,
+				listener: ul,
+				server:   &http.Server{Handler: http.HandlerFunc(s.socketHandler)},
 			})
 		}
 	}
@@ -202,10 +209,15 @@ func (s *Server) Stop() {
 }
 
 func (s *Server) startHTTP(svr *httpServer) error {
-	if svr == nil || svr.address == nil || svr.server == nil {
+	if svr == nil {
 		s.logger.Debug().Msg("No listen configured, skipping server")
 		return nil
 	}
+	if svr.address == nil || svr.server == nil {
+		s.logger.Debug().Msg("listen not configured, skipping server")
+		return nil
+	}
+
 	s.logger.Info().Str("listen", svr.address.String()).Msg("Starting")
 	if err := svr.server.ListenAndServe(); err != nil {
 		if err != http.ErrServerClosed {
@@ -232,18 +244,14 @@ func (s *Server) startHTTPS() error {
 }
 
 func (s *Server) startSocket(svr *socketServer) error {
-	if svr == nil || svr.address == nil || svr.server == nil {
+	if svr == nil {
 		s.logger.Debug().Msg("No socket configured, skipping")
 		return nil
 	}
-
-	ul, err := net.ListenUnix(svr.address.Network(), svr.address)
-	if err != nil {
-		s.logger.Error().Err(err).Str("addr", svr.address.String()).Msg("creating socket")
-		return errors.Wrap(err, "creating socket")
+	if svr.address == nil || svr.listener == nil || svr.server == nil {
+		s.logger.Debug().Msg("socket not configured, skipping")
+		return nil
 	}
-
-	svr.listener = ul
 
 	s.logger.Info().Str("listen", svr.address.String()).Msg("Socket starting")
 	if err := svr.server.Serve(svr.listener); err != nil {
