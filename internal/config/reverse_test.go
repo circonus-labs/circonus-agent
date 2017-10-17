@@ -26,7 +26,7 @@ func TestValidateReverseOptions(t *testing.T) {
 
 	t.Log("Reverse, (invalid, abc)")
 	{
-		expectedErr := errors.New("Reverse Check ID: Invalid Check ID (abc)")
+		expectedErr := errors.New("Invalid Reverse Check ID (abc)")
 		viper.Set(KeyReverseCID, "abc")
 		err := validateReverseOptions()
 		if err == nil {
@@ -39,7 +39,7 @@ func TestValidateReverseOptions(t *testing.T) {
 
 	t.Log("Reverse, (invalid, /check_bundle/abc)")
 	{
-		expectedErr := errors.New("Reverse Check ID: Invalid Check ID (/check_bundle/abc)")
+		expectedErr := errors.New("Invalid Reverse Check ID (/check_bundle/abc)")
 		viper.Set(KeyReverseCID, "/check_bundle/abc")
 		err := validateReverseOptions()
 		if err == nil {

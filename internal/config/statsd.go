@@ -6,11 +6,10 @@
 package config
 
 import (
-	"path/filepath"
 	"regexp"
 	"strconv"
 
-	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
+	"github.com/circonus-labs/circonus-agent/internal/config/cosi"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
@@ -50,8 +49,7 @@ func validateStatsdOptions() error {
 	}
 
 	if groupCID == "cosi" {
-		cfgFile := filepath.Join(defaults.BasePath, "..", cosiName, "registration", "registration-check-group.json")
-		cid, err := loadCOSICheckID(cfgFile)
+		cid, err := cosi.LoadCheckID("group")
 		if err != nil {
 			return err
 		}
@@ -59,8 +57,12 @@ func validateStatsdOptions() error {
 		viper.Set(KeyStatsdGroupCID, groupCID)
 	}
 
-	if err := validCheckID(groupCID); err != nil {
+	ok, err := cosi.ValidCheckID(groupCID)
+	if err != nil {
 		return errors.Wrap(err, "StatsD Group Check ID")
+	}
+	if !ok {
+		return errors.Errorf("Invalid StatsD Group Check ID (%s)", groupCID)
 	}
 
 	groupPrefix := viper.GetString(KeyStatsdGroupPrefix)

@@ -128,7 +128,7 @@ func TestValidateStatsdOptions(t *testing.T) {
 	{
 		viper.Set(KeyStatsdGroupCID, "abc")
 
-		expectedErr := errors.New("StatsD Group Check ID: Invalid Check ID (abc)")
+		expectedErr := errors.New("Invalid StatsD Group Check ID (abc)")
 		err := validateStatsdOptions()
 		if err == nil {
 			t.Fatal("Expected error")

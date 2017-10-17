@@ -6,10 +6,9 @@
 package config
 
 import (
-	"path/filepath"
 	"strings"
 
-	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
+	"github.com/circonus-labs/circonus-agent/internal/config/cosi"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
@@ -21,8 +20,7 @@ func validateReverseOptions() error {
 
 	// 1. cid = 'cosi' - try to load system check registration
 	if strings.ToLower(cid) == cosiName {
-		cfgFile := filepath.Join(defaults.BasePath, "..", cosiName, "registration", "registration-check-system.json")
-		cosiCID, err := loadCOSICheckID(cfgFile)
+		cosiCID, err := cosi.LoadCheckID("system")
 		if err != nil {
 			return err
 		}
@@ -35,8 +33,12 @@ func validateReverseOptions() error {
 		// 2. explicit check bundle id
 		// short form: just numeric id (e.g. --cid 123)
 		// or, long form: with '/check_bundle/' prefix (e.g. --cid "/check_bundle/123")
-		if err := validCheckID(cid); err != nil {
+		ok, err := cosi.ValidCheckID(cid)
+		if err != nil {
 			return errors.Wrap(err, "Reverse Check ID")
+		}
+		if !ok {
+			return errors.Errorf("Invalid Reverse Check ID (%s)", cid)
 		}
 		log.Debug().Str("cid", cid).Msg("reverse, specified cid")
 	}
