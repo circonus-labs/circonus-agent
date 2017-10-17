@@ -30,6 +30,7 @@ func New() (*Server, error) {
 	}
 
 	if s.disabled {
+		s.logger.Info().Msg("disabled, not configuring")
 		return &s, nil
 	}
 
@@ -102,6 +103,7 @@ func (s *Server) Start() error {
 // Stop the server
 func (s *Server) Stop() error {
 	if s.disabled {
+		s.logger.Info().Msg("disabled, nothing to stop")
 		return nil
 	}
 
