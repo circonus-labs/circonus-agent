@@ -10,9 +10,7 @@ import (
 	"expvar"
 	"fmt"
 	"io"
-	"net"
 
-	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/circonus-labs/circonus-agent/internal/release"
 	toml "github.com/pelletier/go-toml"
 	"github.com/pkg/errors"
@@ -31,19 +29,6 @@ func Validate() error {
 	log.Debug().
 		Str("path", viper.GetString(KeyPluginDir)).
 		Msg("plugin directory")
-
-	if viper.GetString(KeySSLListen) != "" {
-		if err := validateSSLOptions(); err != nil {
-			return errors.Wrap(err, "ssl server config")
-		}
-
-		log.Debug().
-			Str("listen", viper.GetString(KeySSLListen)).
-			Str("cert", viper.GetString(KeySSLCertFile)).
-			Str("key", viper.GetString(KeySSLKeyFile)).
-			Bool("verify", viper.GetBool(KeySSLVerify)).
-			Msg("ssl options")
-	}
 
 	if apiRequired() {
 		err := validateAPIOptions()
@@ -64,20 +49,6 @@ func Validate() error {
 			return errors.Wrap(err, "StatsD config")
 		}
 	}
-
-	listenSpec := viper.GetString(KeyListen)
-	if listenSpec == "" && viper.GetString(KeySSLListen) != "" {
-		return nil // only ssl
-	}
-
-	ip, port, err := parseListen(listenSpec, defaults.Listen)
-	if err != nil {
-		return errors.Wrap(err, "server config")
-	}
-	viper.Set(KeyListen, net.JoinHostPort(ip, port))
-	log.Debug().
-		Str("listen", viper.GetString(KeyListen)).
-		Msg("server config")
 
 	return nil
 }
