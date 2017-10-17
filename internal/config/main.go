@@ -36,12 +36,6 @@ func Validate() error {
 		}
 	}
 
-	if !viper.GetBool(KeyStatsdDisabled) {
-		if err := validateStatsdOptions(); err != nil {
-			return errors.Wrap(err, "StatsD config")
-		}
-	}
-
 	return nil
 }
 

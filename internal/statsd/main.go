@@ -11,8 +11,10 @@ import (
 	stdlog "log"
 	"net"
 	"regexp"
+	"strconv"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/config/cosi"
 	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/maier/go-appstats"
 	"github.com/pkg/errors"
@@ -23,6 +25,20 @@ import (
 // New returns a statsd server definition
 func New() (*Server, error) {
 	s := Server{
+		disabled: viper.GetBool(config.KeyStatsdDisabled),
+		logger:   log.With().Str("pkg", "statsd").Logger(),
+	}
+
+	if s.disabled {
+		return &s, nil
+	}
+
+	err := validateStatsdOptions()
+	if err != nil {
+		return nil, err
+	}
+
+	s = Server{
 		disabled:       viper.GetBool(config.KeyStatsdDisabled),
 		logger:         log.With().Str("pkg", "statsd").Logger(),
 		hostPrefix:     viper.GetString(config.KeyStatsdHostPrefix),
@@ -38,10 +54,6 @@ func New() (*Server, error) {
 		apiURL:         viper.GetString(config.KeyAPIURL),
 		apiCAFile:      viper.GetString(config.KeyAPICAFile),
 		packetCh:       make(chan []byte, packetQueueSize),
-	}
-
-	if s.disabled {
-		return &s, nil
 	}
 
 	port := viper.GetString(config.KeyStatsdPort)
@@ -243,4 +255,97 @@ func (s *Server) shutdown() bool {
 	default:
 		return false
 	}
+}
+
+func validateStatsdOptions() error {
+	if viper.GetBool(config.KeyStatsdDisabled) {
+		return nil
+	}
+
+	port := viper.GetString(config.KeyStatsdPort)
+	if port == "" {
+		return errors.New("Invalid StatsD port (empty)")
+	}
+	if ok, err := regexp.MatchString("^[0-9]+$", port); err != nil {
+		return errors.Wrapf(err, "Invalid StatsD port (%s)", port)
+	} else if !ok {
+		return errors.Errorf("Invalid StatsD port (%s)", port)
+	}
+	if pnum, err := strconv.ParseUint(port, 10, 32); err != nil {
+		return errors.Wrap(err, "Invalid StatsD port")
+	} else if pnum < 1024 || pnum > 65535 {
+		return errors.Errorf("Invalid StatsD port 1024>%s<65535", port)
+	}
+
+	// can be empty (all metrics go to host)
+	// validate further if group check is enabled (see groupPrefix validation below)
+	hostPrefix := viper.GetString(config.KeyStatsdHostPrefix)
+
+	hostCat := viper.GetString(config.KeyStatsdHostCategory)
+	if hostCat == "" {
+		return errors.New("Invalid StatsD host category (empty)")
+	}
+
+	groupCID := viper.GetString(config.KeyStatsdGroupCID)
+	if groupCID == "" {
+		return nil // statsd group check support disabled, all metrics go to host
+	}
+
+	if groupCID == "cosi" {
+		cid, err := cosi.LoadCheckID("group")
+		if err != nil {
+			return err
+		}
+		groupCID = cid
+		viper.Set(config.KeyStatsdGroupCID, groupCID)
+	}
+
+	ok, err := cosi.ValidCheckID(groupCID)
+	if err != nil {
+		return errors.Wrap(err, "StatsD Group Check ID")
+	}
+	if !ok {
+		return errors.Errorf("Invalid StatsD Group Check ID (%s)", groupCID)
+	}
+
+	groupPrefix := viper.GetString(config.KeyStatsdGroupPrefix)
+	if hostPrefix == "" && groupPrefix == "" {
+		return errors.New("StatsD host/group prefix mismatch (both empty)")
+	}
+
+	if hostPrefix == groupPrefix {
+		return errors.New("StatsD host/group prefix mismatch (same)")
+	}
+
+	counterOp := viper.GetString(config.KeyStatsdGroupCounters)
+	if counterOp == "" {
+		return errors.New("Invalid StatsD counter operator (empty)")
+	}
+	if ok, err := regexp.MatchString("^(average|sum)$", counterOp); err != nil {
+		return errors.Wrapf(err, "Invalid StatsD counter operator (%s)", counterOp)
+	} else if !ok {
+		return errors.Errorf("Invalid StatsD counter operator (%s)", counterOp)
+	}
+
+	gaugeOp := viper.GetString(config.KeyStatsdGroupGauges)
+	if gaugeOp == "" {
+		return errors.New("Invalid StatsD gauge operator (empty)")
+	}
+	if ok, err := regexp.MatchString("^(average|sum)$", gaugeOp); err != nil {
+		return errors.Wrapf(err, "Invalid StatsD gauge operator (%s)", gaugeOp)
+	} else if !ok {
+		return errors.Errorf("Invalid StatsD gauge operator (%s)", gaugeOp)
+	}
+
+	setOp := viper.GetString(config.KeyStatsdGroupSets)
+	if setOp == "" {
+		return errors.New("Invalid StatsD set operator (empty)")
+	}
+	if ok, err := regexp.MatchString("^(average|sum)$", setOp); err != nil {
+		return errors.Wrapf(err, "Invalid StatsD set operator (%s)", setOp)
+	} else if !ok {
+		return errors.Errorf("Invalid StatsD set operator (%s)", setOp)
+	}
+
+	return nil
 }
