@@ -6,7 +6,6 @@
 package config
 
 import (
-	"errors"
 	"io/ioutil"
 	"testing"
 
@@ -21,27 +20,32 @@ func TestValidate(t *testing.T) {
 
 	viper.Set(KeyStatsdDisabled, true)
 
-	t.Log("No plugin dir")
-	{
-		viper.Set(KeyPluginDir, "")
-		expectedErr := errors.New("plugin directory config: Invalid plugin directory ()")
-		err := Validate()
-		if err == nil {
-			t.Fatal("Expected error")
-		}
-		if err.Error() != expectedErr.Error() {
-			t.Errorf("Expected (%s) got (%s)", expectedErr, err)
-		}
+	err := Validate()
+	if err != nil {
+		t.Fatalf("Expected NO error, got (%s)", err)
 	}
 
-	t.Log("Valid plugin directory")
-	{
-		viper.Set(KeyPluginDir, "testdata")
-		err := Validate()
-		if err != nil {
-			t.Fatalf("Expected NO error, got (%s)", err)
-		}
-	}
+	// t.Log("No plugin dir")
+	// {
+	// 	viper.Set(KeyPluginDir, "")
+	// 	expectedErr := errors.New("plugin directory config: Invalid plugin directory ()")
+	// 	err := Validate()
+	// 	if err == nil {
+	// 		t.Fatal("Expected error")
+	// 	}
+	// 	if err.Error() != expectedErr.Error() {
+	// 		t.Errorf("Expected (%s) got (%s)", expectedErr, err)
+	// 	}
+	// }
+	//
+	// t.Log("Valid plugin directory")
+	// {
+	// 	viper.Set(KeyPluginDir, "testdata")
+	// 	err := Validate()
+	// 	if err != nil {
+	// 		t.Fatalf("Expected NO error, got (%s)", err)
+	// 	}
+	// }
 
 	// t.Log("Invalid server listen spec")
 	// {

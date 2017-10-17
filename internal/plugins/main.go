@@ -8,6 +8,8 @@ package plugins
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -20,17 +22,50 @@ import (
 )
 
 // New returns a new instance of the plugins manager
-func New(ctx context.Context) *Plugins {
+func New(ctx context.Context) (*Plugins, error) {
 	p := Plugins{
 		ctx:           ctx,
 		running:       false,
-		pluginDir:     viper.GetString(config.KeyPluginDir),
 		logger:        log.With().Str("pkg", "plugins").Logger(),
 		reservedNames: map[string]bool{"write": true, "statsd": true},
 		active:        make(map[string]*plugin),
 	}
 
-	return &p
+	errMsg := "Invalid plugin directory"
+
+	pluginDir := viper.GetString(config.KeyPluginDir)
+
+	if pluginDir == "" {
+		return nil, errors.New(errMsg + " (none)")
+	}
+
+	absDir, err := filepath.Abs(pluginDir)
+	if err != nil {
+		return nil, errors.Wrap(err, errMsg)
+	}
+
+	pluginDir = absDir
+
+	fi, err := os.Stat(pluginDir)
+	if err != nil {
+		return nil, errors.Wrap(err, errMsg)
+	}
+
+	if !fi.Mode().IsDir() {
+		return nil, errors.Errorf(errMsg+" (%s) not a directory", pluginDir)
+	}
+
+	// also try opening, to verify permissions
+	// if last dir on path is not accessible to user, stat doesn't return EPERM
+	f, err := os.Open(pluginDir)
+	if err != nil {
+		return nil, errors.Wrap(err, errMsg)
+	}
+	f.Close()
+
+	p.pluginDir = pluginDir
+
+	return &p, nil
 }
 
 // Flush plugin metrics

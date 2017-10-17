@@ -25,10 +25,35 @@ import (
 // mkdir noaccess ; chmod 700 noaccess && sudo chown root noaccess
 // touch noaccesscfg.json && chmod 600 noaccesscfg.json && sudo chown root noaccesscfg.json
 
+func TestScan(t *testing.T) {
+	t.Log("Testing Scan")
+
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+
+	t.Log("Valid plugin directory")
+	{
+		viper.Set(config.KeyPluginDir, "testdata/")
+
+		p, nerr := New(context.Background())
+		if nerr != nil {
+			t.Fatalf("expected NO error, got (%s)", nerr)
+		}
+		err := p.Scan()
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
+	}
+
+}
+
 func TestScanPluginDirectory(t *testing.T) {
 	t.Log("Testing scanPluginDirectory")
 
-	p := New(context.Background())
+	p, nerr := New(context.Background())
+	if nerr != nil {
+		t.Fatalf("new err %s", nerr)
+	}
+
 	p.active["purge_inactive"] = &plugin{
 		id: "purge_inactive",
 	}

@@ -22,14 +22,6 @@ import (
 // Validate verifies the required portions of the configuration
 func Validate() error {
 
-	if err := validatePluginDirectory(); err != nil {
-		return errors.Wrap(err, "plugin directory config")
-	}
-
-	log.Debug().
-		Str("path", viper.GetString(KeyPluginDir)).
-		Msg("plugin directory")
-
 	if apiRequired() {
 		err := validateAPIOptions()
 		if err != nil {
