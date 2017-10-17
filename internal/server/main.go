@@ -127,6 +127,15 @@ func New(p *plugins.Plugins, ss *statsd.Server) (*Server, error) {
 	return &s, nil
 }
 
+// GetReverseAgentAddress returns the address reverse should use to talk to the agent.
+// Initially, this is the first server address.
+func (s *Server) GetReverseAgentAddress() (string, error) {
+	if len(s.svrHTTP) == 0 {
+		return "", errors.New("No listen servers defined")
+	}
+	return s.svrHTTP[0].address.String(), nil
+}
+
 // Start main listening server(s)
 func (s *Server) Start() error {
 	if len(s.svrHTTP) == 0 && s.svrHTTPS == nil && len(s.svrSockets) > 0 {
