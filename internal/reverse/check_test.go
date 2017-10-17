@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
@@ -23,7 +24,7 @@ func TestGetCheckConfig(t *testing.T) {
 	t.Log("No config")
 	{
 		viper.Set(config.KeyReverse, false)
-		c, _ := New()
+		c, _ := New(defaults.Listen)
 		_, _, err := c.getCheckConfig()
 
 		expectedErr := errors.New("Initializing cgm API: API Token is required")
@@ -41,7 +42,7 @@ func TestGetCheckConfig(t *testing.T) {
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
 		viper.Set(config.KeyReverse, false)
-		c, _ := New()
+		c, _ := New(defaults.Listen)
 		_, _, err := c.getCheckConfig()
 		viper.Reset()
 
@@ -61,7 +62,7 @@ func TestGetCheckConfig(t *testing.T) {
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
 		viper.Set(config.KeyReverse, false)
-		c, _ := New()
+		c, _ := New(defaults.Listen)
 		_, _, err := c.getCheckConfig()
 		viper.Reset()
 
@@ -81,7 +82,7 @@ func TestGetCheckConfig(t *testing.T) {
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
 		viper.Set(config.KeyReverse, false)
-		c, _ := New()
+		c, _ := New(defaults.Listen)
 		_, _, err := c.getCheckConfig()
 		viper.Reset()
 
@@ -101,7 +102,7 @@ func TestGetCheckConfig(t *testing.T) {
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
 		viper.Set(config.KeyReverse, false)
-		c, _ := New()
+		c, _ := New(defaults.Listen)
 		_, _, err := c.getCheckConfig()
 		viper.Reset()
 
@@ -117,7 +118,7 @@ func TestGetCheckConfig(t *testing.T) {
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
 		viper.Set(config.KeyReverse, false)
-		c, _ := New()
+		c, _ := New(defaults.Listen)
 		_, _, err := c.getCheckConfig()
 		viper.Reset()
 

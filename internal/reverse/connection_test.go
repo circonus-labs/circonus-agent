@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
@@ -93,7 +94,7 @@ func TestConnect(t *testing.T) {
 			}(conn)
 		}()
 
-		s, err := New()
+		s, err := New(defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error got (%s)", err)
 		}
@@ -126,7 +127,7 @@ func TestConnect(t *testing.T) {
 
 		// basically, just don't accept any connections
 
-		s, err := New()
+		s, err := New(defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error got (%s)", err)
 		}
@@ -172,7 +173,7 @@ func TestConnect(t *testing.T) {
 			}(conn)
 		}()
 
-		s, err := New()
+		s, err := New(defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error got (%s)", err)
 		}
@@ -404,7 +405,7 @@ func TestSetNextDelay(t *testing.T) {
 	t.Log("delay == max")
 	{
 		viper.Set(config.KeyReverse, false)
-		c, err := New()
+		c, err := New(defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -419,7 +420,7 @@ func TestSetNextDelay(t *testing.T) {
 	t.Log("valid change")
 	{
 		viper.Set(config.KeyReverse, false)
-		c, err := New()
+		c, err := New(defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -448,7 +449,7 @@ func TestSetNextDelay(t *testing.T) {
 	t.Log("reset to max")
 	{
 		viper.Set(config.KeyReverse, false)
-		c, err := New()
+		c, err := New(defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -469,7 +470,7 @@ func TestResetConnectionAttempts(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	viper.Set(config.KeyReverse, false)
-	c, err := New()
+	c, err := New(defaults.Listen)
 	if err != nil {
 		t.Fatalf("expected no error, got (%s)", err)
 	}

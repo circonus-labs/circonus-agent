@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/circonus-labs/circonus-gometrics/api"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
@@ -169,7 +170,7 @@ func TestNew(t *testing.T) {
 	t.Log("Reverse disabled")
 	{
 		viper.Set(config.KeyReverse, false)
-		c, err := New()
+		c, err := New(defaults.Listen)
 		viper.Reset()
 
 		if err != nil {
@@ -184,7 +185,7 @@ func TestNew(t *testing.T) {
 	t.Log("Reverse enabled (no config)")
 	{
 		viper.Set(config.KeyReverse, true)
-		_, err := New()
+		_, err := New(defaults.Listen)
 		viper.Reset()
 
 		expectedErr := errors.New("reverse configuration (check): Initializing cgm API: API Token is required")
@@ -205,7 +206,7 @@ func TestStart(t *testing.T) {
 	t.Log("Reverse disabled")
 	{
 		viper.Set(config.KeyReverse, false)
-		c, err := New()
+		c, err := New(defaults.Listen)
 		viper.Reset()
 
 		if err != nil {
@@ -272,7 +273,7 @@ func TestStart(t *testing.T) {
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
 		viper.Set(config.KeyAPIURL, apiSim.URL)
-		s, err := New()
+		s, err := New(l.Addr().String())
 		if err != nil {
 			t.Fatalf("expected no error got (%s)", err)
 		}
@@ -321,7 +322,7 @@ func TestStartLong(t *testing.T) {
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
 		viper.Set(config.KeyAPIURL, apiSim.URL)
-		c, err := New()
+		c, err := New(defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -346,7 +347,7 @@ func TestStop(t *testing.T) {
 	t.Log("disabled")
 	{
 		viper.Set(config.KeyReverse, false)
-		c, err := New()
+		c, err := New(defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -357,7 +358,7 @@ func TestStop(t *testing.T) {
 	t.Log("nil conn")
 	{
 		viper.Set(config.KeyReverse, false)
-		c, err := New()
+		c, err := New(defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}

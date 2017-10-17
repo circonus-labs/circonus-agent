@@ -7,10 +7,10 @@ package reverse
 
 import (
 	crand "crypto/rand"
+	"errors"
 	"math"
 	"math/big"
 	"math/rand"
-	"strings"
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
@@ -28,8 +28,12 @@ func init() {
 }
 
 // New creates a new connection
-func New() (*Connection, error) {
+func New(agentAddress string) (*Connection, error) {
+	if agentAddress == "" {
+		return nil, errors.New("invalid agent address (empty)")
+	}
 	c := Connection{
+		agentAddress:  agentAddress,
 		checkCID:      viper.GetString(config.KeyReverseCID),
 		cmdCh:         make(chan *noitCommand),
 		commTimeout:   commTimeoutSeconds * time.Second,
@@ -43,7 +47,7 @@ func New() (*Connection, error) {
 	}
 
 	if c.enabled {
-		c.agentAddress = strings.Replace(viper.GetString(config.KeyListen), "0.0.0.0", "localhost", -1)
+		c.logger.Info().Str("agent_address", c.agentAddress).Msg("reverse")
 		err := c.setCheckConfig()
 		if err != nil {
 			return nil, err
