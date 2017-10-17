@@ -79,7 +79,7 @@ type Config struct {
 	API            API      `json:"api" yaml:"api" toml:"api"`
 	Log            Log      `json:"log" yaml:"log" toml:"log"`
 	DebugCGM       bool     `mapstructure:"debug_cgm" json:"debug_cgm" yaml:"debug_cgm" toml:"debug_cgm"`
-	Listen         string   `json:"listen" yaml:"listen" toml:"listen"`
+	Listen         []string `json:"listen" yaml:"listen" toml:"listen"`
 	ListenSocket   []string `mapstructure:"listen_socket" json:"listen_socket" yaml:"listen_socket" toml:"listen_socket"`
 	PluginDir      string   `mapstructure:"plugin_dir" json:"plugin_dir" yaml:"plugin_dir" toml:"plugin_dir"`
 	PluginTTLUnits string   `mapstructure:"plugin_ttl_units" json:"plugin_ttl_units" yaml:"plugin_ttl_units" toml:"plugin_ttl_units"`

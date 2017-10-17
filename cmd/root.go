@@ -99,7 +99,7 @@ func init() {
 	}
 
 	{
-		const (
+		var (
 			key         = config.KeyListen
 			longOpt     = "listen"
 			shortOpt    = "l"
@@ -107,7 +107,7 @@ func init() {
 			description = "Listen address and port [[IP]:[PORT]] " + `(default "` + defaults.Listen + `")`
 		)
 
-		RootCmd.Flags().StringP(longOpt, shortOpt, "", desc(description, envVar))
+		RootCmd.Flags().StringSliceP(longOpt, shortOpt, []string{}, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 	}

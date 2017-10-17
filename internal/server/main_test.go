@@ -24,17 +24,17 @@ func TestNew(t *testing.T) {
 		t.Log("\tno config")
 		{
 			s, err := New(nil, nil)
-			if err == nil {
-				t.Fatal("expecting error")
+			if err != nil {
+				t.Fatalf("expected no error, got (%s)", err)
 			}
-			if s != nil {
-				t.Fatal("expected nil")
+			if len(s.svrHTTP) == 0 {
+				t.Fatal("expected at least 1 http server")
 			}
 		}
 
 		t.Log("\t/address config")
 		{
-			viper.Set(config.KeyListen, ":2609")
+			viper.Set(config.KeyListen, []string{":2609"})
 			s, err := New(nil, nil)
 			if err != nil {
 				t.Fatalf("expected NO error, got (%s)", err)
@@ -51,17 +51,6 @@ func TestNew(t *testing.T) {
 
 	t.Log("Tetsting New w/HTTPS")
 	{
-		t.Log("\tno config")
-		{
-			s, err := New(nil, nil)
-			if err == nil {
-				t.Fatal("expecting error")
-			}
-			if s != nil {
-				t.Fatal("expected nil")
-			}
-		}
-
 		t.Log("\taddress, no cert/key")
 		{
 			viper.Set(config.KeySSLListen, ":2610")
@@ -137,30 +126,16 @@ func TestNew(t *testing.T) {
 
 	t.Log("Testing New w/Socket")
 	{
-		t.Log("\tno config")
+		t.Log("\tw/config (file exists)")
 		{
-			s, err := New(nil, nil)
+			viper.Set(config.KeyListenSocket, []string{"testdata/exists.sock"})
+			expected := errors.New("Socket server file (testdata/exists.sock) exists")
+			_, err := New(nil, nil)
 			if err == nil {
 				t.Fatal("expected error")
 			}
-			if s != nil {
-				t.Fatal("expected nil")
-			}
-		}
-
-		t.Log("\tw/bad config - invalid file")
-		{
-			viper.Set(config.KeyListenSocket, []string{"nodir/test.sock"})
-			s, err := New(nil, nil)
-			if err == nil {
-				t.Fatal("expected error")
-			}
-			expect := errors.New("listen unix nodir/test.sock: bind: no such file or directory")
-			if err.Error() != expect.Error() {
-				t.Fatalf("expected (%s) got (%v)", expect, err)
-			}
-			if s != nil {
-				t.Fatal("expected nil")
+			if err.Error() != expected.Error() {
+				t.Fatalf("expected (%s) got (%s)", expected, err)
 			}
 			viper.Reset()
 		}
@@ -190,7 +165,7 @@ func TestStartHTTP(t *testing.T) {
 	t.Log("\tno config")
 	{
 		s := &Server{}
-		err := s.startHTTP()
+		err := s.startHTTP(&httpServer{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", nil)
 		}
@@ -198,15 +173,18 @@ func TestStartHTTP(t *testing.T) {
 
 	t.Log("\tw/config")
 	{
-		viper.Set(config.KeyListen, ":65111")
+		viper.Set(config.KeyListen, []string{":65111"})
 		s, err := New(nil, nil)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
+		if len(s.svrHTTP) != 1 {
+			t.Fatal("expected 1 server")
+		}
 		time.AfterFunc(1*time.Second, func() {
-			s.svrHTTP.Close()
+			s.svrHTTP[0].server.Close()
 		})
-		if err := s.startHTTP(); err != nil {
+		if err := s.startHTTP(s.svrHTTP[0]); err != nil {
 			t.Fatalf("expected NO error, got (%v)", err)
 		}
 		viper.Reset()
@@ -258,13 +236,54 @@ func TestStartSocket(t *testing.T) {
 	t.Log("\tno config")
 	{
 		s := &Server{}
-		err := s.startSocket(socketServer{})
+		err := s.startSocket(&socketServer{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", nil)
 		}
 	}
 
-	t.Log("\tw/config")
+	t.Log("\tw/bad config - invalid file")
+	{
+		viper.Set(config.KeyListenSocket, []string{"nodir/test.sock"})
+		s, err := New(nil, nil)
+		if err != nil {
+			t.Fatalf("expected no error, got (%s)", err)
+		}
+		if len(s.svrSockets) != 1 {
+			t.Fatal("expected 1 socket")
+		}
+		expect := errors.New("creating socket: listen unix nodir/test.sock: bind: no such file or directory")
+		serr := s.startSocket(s.svrSockets[0])
+		if serr == nil {
+			t.Fatal("expected error")
+		}
+		if serr.Error() != expect.Error() {
+			t.Fatalf("expected (%s) got (%v)", expect, serr)
+		}
+		viper.Reset()
+	}
+
+	t.Log("\tw/config (server close)")
+	{
+		viper.Set(config.KeyListenSocket, []string{"testdata/test.sock"})
+		s, err := New(nil, nil)
+		if err != nil {
+			t.Fatalf("expected no error, got (%s)", err)
+		}
+		if len(s.svrSockets) != 1 {
+			t.Fatal("expected 1 socket")
+		}
+		time.AfterFunc(1*time.Second, func() {
+			s.svrSockets[0].server.Close()
+		})
+		serr := s.startSocket(s.svrSockets[0])
+		if serr != nil {
+			t.Fatalf("expected NO error, got (%v)", serr)
+		}
+		viper.Reset()
+	}
+
+	t.Log("\tw/config (listener close)")
 	{
 		viper.Set(config.KeyListenSocket, []string{"testdata/test.sock"})
 		s, err := New(nil, nil)
@@ -277,9 +296,15 @@ func TestStartSocket(t *testing.T) {
 		time.AfterFunc(1*time.Second, func() {
 			s.svrSockets[0].listener.Close()
 		})
-		if serr := s.startSocket(s.svrSockets[0]); err != nil {
-			t.Fatalf("expected NO error, got (%v)", serr)
+		expect := errors.New("socket server: accept unix testdata/test.sock: use of closed network connection")
+		serr := s.startSocket(s.svrSockets[0])
+		if serr == nil {
+			t.Fatal("expected error")
 		}
+		if serr.Error() != expect.Error() {
+			t.Fatalf("expected (%s) got (%v)", expect, serr)
+		}
+
 		viper.Reset()
 	}
 }
@@ -293,17 +318,17 @@ func TestStart(t *testing.T) {
 	t.Log("\tno servers")
 	{
 		s, err := New(nil, nil)
-		if err == nil {
-			t.Fatal("expected error")
+		if err != nil {
+			t.Fatalf("expected no error, got (%s)", err)
 		}
-		if s != nil {
-			t.Fatal("expected nil")
+		if len(s.svrHTTP) == 0 {
+			t.Fatal("expected at least 1 http server")
 		}
 	}
 
 	t.Log("\tvalid http, invalid https")
 	{
-		viper.Set(config.KeyListen, ":65226")
+		viper.Set(config.KeyListen, []string{":65226"})
 		viper.Set(config.KeySSLListen, ":65227")
 		viper.Set(config.KeySSLCertFile, "testdata/cert.crt")
 		viper.Set(config.KeySSLKeyFile, "testdata/key.key")
@@ -332,17 +357,17 @@ func TestStop(t *testing.T) {
 	t.Log("\tno servers")
 	{
 		s, err := New(nil, nil)
-		if err == nil {
-			t.Fatal("expected error")
+		if err != nil {
+			t.Fatalf("expected no error, got (%s)", err)
 		}
-		if s != nil {
-			t.Fatal("expected nil")
+		if len(s.svrHTTP) == 0 {
+			t.Fatal("expected at least 1 http server")
 		}
 	}
 
 	t.Log("\tvalid http, valid socket")
 	{
-		viper.Set(config.KeyListen, ":65226")
+		viper.Set(config.KeyListen, []string{":65226"})
 		viper.Set(config.KeyListenSocket, "testdata/test.sock")
 		s, err := New(nil, nil)
 		if err != nil {

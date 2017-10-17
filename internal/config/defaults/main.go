@@ -14,13 +14,8 @@ import (
 )
 
 const (
-	// Listen defaults to all ipv4 interfaces on port 2609
-	// valid formats:
-	//      ip:port (e.g. 127.0.0.1:12345 - listen on 127.0.0.1, port 12345)
-	//      ip (e.g. 127.0.0.1 - listen on 127.0.0.1, port default)
-	//      port (e.g. 12345 - listen default, port 12345)
-	//
-	Listen = ":2609"
+	// ListenPort is the default agent tcp listening port
+	ListenPort = 2609
 
 	// APIURL for circonus
 	APIURL = "https://api.circonus.com/v2/"
@@ -97,6 +92,14 @@ const (
 )
 
 var (
+	// Listen defaults to all interfaces on the default ListenPort
+	// valid formats:
+	//      ip:port (e.g. 127.0.0.1:12345 - listen address 127.0.0.1, port 12345)
+	//      ip (e.g. 127.0.0.1 - listen address 127.0.0.1, port ListenPort)
+	//      port (e.g. 12345 (or :12345) - listen address all, port 12345)
+	//
+	Listen = fmt.Sprintf(":%d", ListenPort)
+
 	// BasePath is the "base" directory
 	//
 	// expected installation structure:
