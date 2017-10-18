@@ -7,6 +7,7 @@ package server
 
 import (
 	"errors"
+	"regexp"
 	"testing"
 	"time"
 
@@ -33,7 +34,20 @@ func TestNew(t *testing.T) {
 			}
 		}
 
-		t.Log("\tport config")
+		t.Log("\tempty config")
+		{
+			viper.Set(config.KeyListen, []string{""})
+			s, err := New(nil, nil)
+			if err != nil {
+				t.Fatalf("expected no error, got (%s)", err)
+			}
+			if len(s.svrHTTP) == 0 {
+				t.Fatal("expected at least 1 http server")
+			}
+			viper.Reset()
+		}
+
+		t.Log("\tport config1 (colon)")
 		{
 			viper.Set(config.KeyListen, []string{":2609"})
 			s, err := New(nil, nil)
@@ -49,7 +63,42 @@ func TestNew(t *testing.T) {
 			viper.Reset()
 		}
 
-		t.Log("\taddress config")
+		t.Log("\tport config2 (no colon)")
+		{
+			viper.Set(config.KeyListen, []string{"2609"})
+			s, err := New(nil, nil)
+			if err != nil {
+				t.Fatalf("expected NO error, got (%s)", err)
+			}
+			if s == nil {
+				t.Fatal("expected NOT nil")
+			}
+			if s.svrHTTP == nil {
+				t.Fatal("expected NOT nil")
+			}
+			expect := defaults.Listen
+			if s.svrHTTP[0].address.String() != expect {
+				t.Fatalf("expected (%s) got (%s)", expect, s.svrHTTP[0].address.String())
+			}
+			viper.Reset()
+		}
+
+		t.Log("\taddress ipv4 config - invalid")
+		{
+			addr := "127.0.0.a"
+			viper.Set(config.KeyListen, []string{addr})
+			_, err := New(nil, nil)
+			if err == nil {
+				t.Fatal("expected error")
+			}
+			expect := "HTTP Server: resolving listen: lookup 127.0.0.a: no such host"
+			if err.Error() != expect {
+				t.Fatalf("expected (%s) got (%s)", expect, err)
+			}
+			viper.Reset()
+		}
+
+		t.Log("\taddress ipv4 config")
 		{
 			addr := "127.0.0.1"
 			viper.Set(config.KeyListen, []string{addr})
@@ -66,6 +115,119 @@ func TestNew(t *testing.T) {
 			expect := addr + defaults.Listen
 			if s.svrHTTP[0].address.String() != expect {
 				t.Fatalf("expected (%s) got (%s)", expect, s.svrHTTP[0].address.String())
+			}
+			viper.Reset()
+		}
+
+		t.Log("\taddress:port ipv4 config")
+		{
+			addr := "127.0.0.1:2610"
+			viper.Set(config.KeyListen, []string{addr})
+			s, err := New(nil, nil)
+			if err != nil {
+				t.Fatalf("expected NO error, got (%s)", err)
+			}
+			if s == nil {
+				t.Fatal("expected NOT nil")
+			}
+			if s.svrHTTP == nil {
+				t.Fatal("expected NOT nil")
+			}
+			expect := addr
+			if s.svrHTTP[0].address.String() != expect {
+				t.Fatalf("expected (%s) got (%s)", expect, s.svrHTTP[0].address.String())
+			}
+			viper.Reset()
+		}
+
+		t.Log("\taddress ipv6 config - invalid format")
+		{
+			addr := "::1"
+			viper.Set(config.KeyListen, []string{addr})
+			_, err := New(nil, nil)
+			if err == nil {
+				t.Fatal("expected error")
+			}
+			expect := "HTTP Server: parsing listen: address ::1: too many colons in address"
+			if err.Error() != expect {
+				t.Fatalf("expected (%s) got (%s)", expect, err)
+			}
+			viper.Reset()
+		}
+
+		t.Log("\taddress ipv6 config - valid format")
+		{
+			addr := "[::1]"
+			viper.Set(config.KeyListen, []string{addr})
+			s, err := New(nil, nil)
+			if err != nil {
+				t.Fatalf("expected NO error, got (%s)", err)
+			}
+			if s == nil {
+				t.Fatal("expected NOT nil")
+			}
+			if s.svrHTTP == nil {
+				t.Fatal("expected NOT nil")
+			}
+			expect := addr + defaults.Listen
+			if s.svrHTTP[0].address.String() != expect {
+				t.Fatalf("expected (%s) got (%s)", expect, s.svrHTTP[0].address.String())
+			}
+			viper.Reset()
+		}
+
+		t.Log("\taddress:port ipv6 config")
+		{
+			addr := "[::1]:2610"
+			viper.Set(config.KeyListen, []string{addr})
+			s, err := New(nil, nil)
+			if err != nil {
+				t.Fatalf("expected NO error, got (%s)", err)
+			}
+			if s == nil {
+				t.Fatal("expected NOT nil")
+			}
+			if s.svrHTTP == nil {
+				t.Fatal("expected NOT nil")
+			}
+			expect := addr
+			if s.svrHTTP[0].address.String() != expect {
+				t.Fatalf("expected (%s) got (%s)", expect, s.svrHTTP[0].address.String())
+			}
+			viper.Reset()
+		}
+
+		t.Log("\tfqdn config - unknown name")
+		{
+			addr := "foo.bar"
+			viper.Set(config.KeyListen, []string{addr})
+			_, err := New(nil, nil)
+			if err == nil {
+				t.Fatal("expected error")
+			}
+			expect := "HTTP Server: resolving listen: lookup foo.bar: no such host"
+			if err.Error() != expect {
+				t.Fatalf("expected (%s) got (%s)", expect, err)
+			}
+			viper.Reset()
+		}
+
+		t.Log("\tfqdn config")
+		{
+			addr := "www.google.com"
+			viper.Set(config.KeyListen, []string{addr})
+			s, err := New(nil, nil)
+			if err != nil {
+				t.Fatalf("expected NO error, got (%s)", err)
+			}
+			if s == nil {
+				t.Fatal("expected NOT nil")
+			}
+			if s.svrHTTP == nil {
+				t.Fatal("expected NOT nil")
+			}
+			if ok, _ := regexp.MatchString(`^\d{1,3}(\.\d{1,3}){3}:[0-9]+$`, s.svrHTTP[0].address.String()); !ok {
+				t.Fatalf("expected (ipv4:port) got (%s)", s.svrHTTP[0].address.String())
 			}
 			viper.Reset()
 		}
