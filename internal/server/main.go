@@ -43,6 +43,10 @@ func New(p *plugins.Plugins, ss *statsd.Server) (*Server, error) {
 				return nil, errors.Wrap(err, "HTTP Server")
 			}
 
+			if ta.Port == 0 {
+				ta.Port = defaults.ListenPort
+			}
+
 			svr := httpServer{
 				address: ta,
 				server: &http.Server{
