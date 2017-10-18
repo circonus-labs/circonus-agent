@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
@@ -32,7 +33,7 @@ func TestNew(t *testing.T) {
 			}
 		}
 
-		t.Log("\t/address config")
+		t.Log("\tport config")
 		{
 			viper.Set(config.KeyListen, []string{":2609"})
 			s, err := New(nil, nil)
@@ -44,6 +45,27 @@ func TestNew(t *testing.T) {
 			}
 			if s.svrHTTP == nil {
 				t.Fatal("expected NOT nil")
+			}
+			viper.Reset()
+		}
+
+		t.Log("\taddress config")
+		{
+			addr := "127.0.0.1"
+			viper.Set(config.KeyListen, []string{addr})
+			s, err := New(nil, nil)
+			if err != nil {
+				t.Fatalf("expected NO error, got (%s)", err)
+			}
+			if s == nil {
+				t.Fatal("expected NOT nil")
+			}
+			if s.svrHTTP == nil {
+				t.Fatal("expected NOT nil")
+			}
+			expect := addr + defaults.Listen
+			if s.svrHTTP[0].address.String() != expect {
+				t.Fatalf("expected (%s) got (%s)", expect, s.svrHTTP[0].address.String())
 			}
 			viper.Reset()
 		}

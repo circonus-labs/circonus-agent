@@ -10,6 +10,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
@@ -37,14 +39,14 @@ func New(p *plugins.Plugins, ss *statsd.Server) (*Server, error) {
 			serverList = []string{defaults.Listen}
 		}
 		for idx, addr := range serverList {
-			ta, err := net.ResolveTCPAddr("tcp", addr)
+			ip, port, err := parseListen(addr, defaults.Listen)
+			if err != nil {
+				return nil, errors.Wrap(err, "HTTP Server, parsing address")
+			}
+			ta, err := net.ResolveTCPAddr("tcp", ip+":"+port)
 			if err != nil {
 				s.logger.Error().Err(err).Int("id", idx).Str("addr", addr).Msg("resolving address")
 				return nil, errors.Wrap(err, "HTTP Server")
-			}
-
-			if ta.Port == 0 {
-				ta.Port = defaults.ListenPort
 			}
 
 			svr := httpServer{
@@ -274,4 +276,62 @@ func (s *Server) startSocket(svr *socketServer) error {
 		}
 	}
 	return nil
+}
+
+func parseListen(spec, defaultSpec string) (string, string, error) {
+	if spec == "" && defaultSpec == "" {
+		return "", "", nil
+	}
+
+	// fixup the default spec for parsing
+	if defaultSpec != "" {
+		if !strings.Contains(defaultSpec, ":") {
+			if strings.Contains(defaultSpec, ".") {
+				defaultSpec += ":" // e.g. 127.0.0.1 -> 127.0.0.1:
+			} else {
+				defaultSpec = ":" + defaultSpec // e.g. 1234 -> :1234
+			}
+		}
+	}
+	defaultIP, defaultPort, _ := net.SplitHostPort(defaultSpec)
+
+	// fixup the custom spec for parsing
+	if spec != "" {
+		if !strings.Contains(spec, ":") {
+			if strings.Contains(spec, ".") {
+				spec += ":"
+			} else {
+				spec = ":" + spec
+			}
+		}
+	}
+	ip, port, _ := net.SplitHostPort(spec)
+
+	if ip == "" {
+		ip = defaultIP
+	}
+
+	if port == "" {
+		port = defaultPort
+	}
+
+	if ip == "" && port == "" {
+		return "", "", errors.Errorf("Missing IP (%s) and Port (%s) in specification (%s)", ip, port, spec)
+	}
+
+	if ip != "" && net.ParseIP(ip) == nil {
+		return "", "", errors.Errorf("Invalid IP address format specified '%s'", ip)
+	}
+
+	if port != "" {
+		uport, err := strconv.Atoi(port)
+		if err != nil {
+			return "", "", errors.Wrap(err, "Invalid port")
+		}
+		if uport <= 0 || uport >= 65535 {
+			return "", "", errors.Errorf("Invalid port, out of range 0<%s<65535", port)
+		}
+	}
+
+	return ip, port, nil
 }
