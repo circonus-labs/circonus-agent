@@ -49,10 +49,10 @@ func TestNew(t *testing.T) {
 		viper.Reset()
 	}
 
-	t.Log("Enabled - default port, invalid host category")
+	t.Log("Enabled - port 65125, invalid host category")
 	{
 		viper.Set(config.KeyStatsdDisabled, false)
-		viper.Set(config.KeyStatsdPort, defaults.StatsdPort)
+		viper.Set(config.KeyStatsdPort, "65125")
 		expect := errors.New("Invalid StatsD host category (empty)")
 		_, err := New()
 		if err == nil {
@@ -64,10 +64,10 @@ func TestNew(t *testing.T) {
 		viper.Reset()
 	}
 
-	t.Log("Enabled - default port, default host category")
+	t.Log("Enabled - port 65125, default host category")
 	{
 		viper.Set(config.KeyStatsdDisabled, false)
-		viper.Set(config.KeyStatsdPort, defaults.StatsdPort)
+		viper.Set(config.KeyStatsdPort, "65125")
 		viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
 		s, err := New()
 		if err != nil {
@@ -97,7 +97,7 @@ func TestStart(t *testing.T) {
 	t.Log("Enabled w/Stop")
 	{
 		viper.Set(config.KeyStatsdDisabled, false)
-		viper.Set(config.KeyStatsdPort, defaults.StatsdPort)
+		viper.Set(config.KeyStatsdPort, "65125")
 		viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
 		s, err := New()
 		if err != nil {
@@ -116,7 +116,7 @@ func TestStart(t *testing.T) {
 	t.Log("Enabled w/direct server close")
 	{
 		viper.Set(config.KeyStatsdDisabled, false)
-		viper.Set(config.KeyStatsdPort, defaults.StatsdPort)
+		viper.Set(config.KeyStatsdPort, "65125")
 		viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
 		s, err := New()
 		if err != nil {
@@ -152,7 +152,7 @@ func TestStop(t *testing.T) {
 	t.Log("Enabled")
 	{
 		viper.Set(config.KeyStatsdDisabled, false)
-		viper.Set(config.KeyStatsdPort, defaults.StatsdPort)
+		viper.Set(config.KeyStatsdPort, "65125")
 		viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
 		s, err := New()
 		if err != nil {
@@ -192,7 +192,7 @@ func TestFlush(t *testing.T) {
 	t.Log("Flush (no stats)")
 	{
 		viper.Set(config.KeyStatsdDisabled, false)
-		viper.Set(config.KeyStatsdPort, defaults.StatsdPort)
+		viper.Set(config.KeyStatsdPort, "65125")
 		viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
 		s, err := New()
 		if err != nil {
@@ -212,7 +212,7 @@ func TestFlush(t *testing.T) {
 	t.Log("Flush (no stats, nil hostMetrics)")
 	{
 		viper.Set(config.KeyStatsdDisabled, false)
-		viper.Set(config.KeyStatsdPort, defaults.StatsdPort)
+		viper.Set(config.KeyStatsdPort, "65125")
 		viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
 		s, err := New()
 		if err != nil {

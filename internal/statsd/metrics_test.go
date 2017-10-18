@@ -21,7 +21,7 @@ func TestProcessPacket(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	viper.Set(config.KeyStatsdDisabled, false)
-	viper.Set(config.KeyStatsdPort, defaults.StatsdPort)
+	viper.Set(config.KeyStatsdPort, "65125")
 	viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
 	s, err := New()
 	if err != nil {
@@ -72,7 +72,7 @@ func TestGetMetricDest(t *testing.T) {
 		}
 
 		viper.Set(config.KeyStatsdDisabled, false)
-		viper.Set(config.KeyStatsdPort, defaults.StatsdPort)
+		viper.Set(config.KeyStatsdPort, "65125")
 		viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
 		s, err := New()
 		if err != nil {
@@ -109,7 +109,7 @@ func TestGetMetricDest(t *testing.T) {
 		}
 
 		viper.Set(config.KeyStatsdDisabled, false)
-		viper.Set(config.KeyStatsdPort, defaults.StatsdPort)
+		viper.Set(config.KeyStatsdPort, "65125")
 		viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
 		viper.Set(config.KeyStatsdHostPrefix, "host.")
 		viper.Set(config.KeyStatsdGroupPrefix, "group.")
@@ -148,7 +148,7 @@ func TestGetMetricDest(t *testing.T) {
 		}
 
 		viper.Set(config.KeyStatsdDisabled, false)
-		viper.Set(config.KeyStatsdPort, defaults.StatsdPort)
+		viper.Set(config.KeyStatsdPort, "65125")
 		viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
 		viper.Set(config.KeyStatsdGroupPrefix, "group.")
 		s, err := New()
@@ -186,7 +186,7 @@ func TestGetMetricDest(t *testing.T) {
 		}
 
 		viper.Set(config.KeyStatsdDisabled, false)
-		viper.Set(config.KeyStatsdPort, defaults.StatsdPort)
+		viper.Set(config.KeyStatsdPort, "65125")
 		viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
 		viper.Set(config.KeyStatsdHostPrefix, "host.")
 		s, err := New()
@@ -216,7 +216,7 @@ func TestParseMetric(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	viper.Set(config.KeyStatsdDisabled, false)
-	viper.Set(config.KeyStatsdPort, defaults.StatsdPort)
+	viper.Set(config.KeyStatsdPort, "65125")
 	viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
 	s, err := New()
 	if err != nil {
