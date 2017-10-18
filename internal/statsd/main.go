@@ -124,7 +124,7 @@ func (s *Server) Stop() error {
 }
 
 // Flush *host* metrics only
-// NOTE: group metrics flush independently via circonus-gometrics to a different check
+// NOTE: group metrics flush independently to a different check via circonus-gometrics
 func (s *Server) Flush() *cgm.Metrics {
 	if s.disabled {
 		return nil
