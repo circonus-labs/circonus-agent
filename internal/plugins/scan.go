@@ -59,17 +59,15 @@ func (p *Plugins) Scan() error {
 
 // scanPluginDirectory finds and loads plugins
 func (p *Plugins) scanPluginDirectory() error {
-	pluginDir := viper.GetString(config.KeyPluginDir)
-
-	if pluginDir == "" {
+	if p.pluginDir == "" {
 		return errors.New("invalid plugin directory (none)")
 	}
 
 	p.logger.Info().
-		Str("dir", pluginDir).
+		Str("dir", p.pluginDir).
 		Msg("Scanning plugin directory")
 
-	f, err := os.Open(pluginDir)
+	f, err := os.Open(p.pluginDir)
 	if err != nil {
 		return errors.Wrap(err, "open plugin directory")
 	}
@@ -94,7 +92,7 @@ func (p *Plugins) scanPluginDirectory() error {
 		fileName := fi.Name()
 
 		p.logger.Debug().
-			Str("path", filepath.Join(pluginDir, fileName)).
+			Str("path", filepath.Join(p.pluginDir, fileName)).
 			Msg("checking plugin directory entry")
 
 		if fi.IsDir() {
@@ -136,9 +134,9 @@ func (p *Plugins) scanPluginDirectory() error {
 
 		switch mode := fi.Mode(); {
 		case mode.IsRegular():
-			cmdName = filepath.Join(pluginDir, fi.Name())
+			cmdName = filepath.Join(p.pluginDir, fi.Name())
 		case mode&os.ModeSymlink != 0:
-			resolvedSymlink, err := filepath.EvalSymlinks(filepath.Join(pluginDir, fi.Name()))
+			resolvedSymlink, err := filepath.EvalSymlinks(filepath.Join(p.pluginDir, fi.Name()))
 			if err != nil {
 				p.logger.Warn().
 					Err(err).
@@ -165,7 +163,7 @@ func (p *Plugins) scanPluginDirectory() error {
 		var cfg map[string][]string
 
 		// check for config file
-		cfgFile := filepath.Join(pluginDir, fmt.Sprintf("%s.json", fileBase))
+		cfgFile := filepath.Join(p.pluginDir, fmt.Sprintf("%s.json", fileBase))
 		if data, err := ioutil.ReadFile(cfgFile); err != nil {
 			if !os.IsNotExist(err) {
 				p.logger.Warn().

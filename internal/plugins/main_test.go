@@ -306,6 +306,7 @@ func TestInventory(t *testing.T) {
 		t.Fatalf("new err %s", nerr)
 	}
 
+	p.pluginDir = "testdata/" // set it back to relative so absolute path does not make test fail below
 	err := p.Scan()
 	if err != nil {
 		t.Fatalf("expected no error, got %s", err)
