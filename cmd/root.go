@@ -104,7 +104,7 @@ func init() {
 			longOpt     = "listen"
 			shortOpt    = "l"
 			envVar      = release.ENVPREFIX + "_LISTEN"
-			description = "Listen address and port [[IP]:[PORT]] " + `(default "` + defaults.Listen + `")`
+			description = "Listen spec e.g. :2609, [::1], [::1]:2609, 127.0.0.1, 127.0.0.1:2609, foo.bar.baz, foo.bar.baz:2609 " + `(default "` + defaults.Listen + `")`
 		)
 
 		RootCmd.Flags().StringSliceP(longOpt, shortOpt, []string{}, desc(description, envVar))
@@ -118,7 +118,7 @@ func init() {
 			longOpt     = "listen-socket"
 			shortOpt    = "L"
 			envVar      = release.ENVPREFIX + "_LISTEN_SOCKET"
-			description = "Unix socket to create (more than once for multiple sockets)"
+			description = "Unix socket to create"
 		)
 
 		RootCmd.Flags().StringSliceP(longOpt, shortOpt, []string{}, desc(description, envVar))

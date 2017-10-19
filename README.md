@@ -57,12 +57,13 @@ Flags:
   -d, --debug                                [ENV: CA_DEBUG] Enable debug messages
       --debug-cgm                            [ENV: CA_DEBUG_CGM] Enable CGM & API debug messages
   -h, --help                                 help for circonus-agent
-  -l, --listen string                        [ENV: CA_LISTEN] Listen address and port [[IP]:[PORT]] (default ":2609")
-  -L, --listen-socket string                 [ENV: CA_LISTEN_SOCKET] Unix socket to create (more than once for multiple sockets)
+  -l, --listen stringSlice                   [ENV: CA_LISTEN] Listen spec e.g. :2609, [::1], [::1]:2609, 127.0.0.1, 127.0.0.1:2609, foo.bar.baz, foo.bar.baz:2609 (default ":2609")
+  -L, --listen-socket stringSlice            [ENV: CA_LISTEN_SOCKET] Unix socket to create
       --log-level string                     [ENV: CA_LOG_LEVEL] Log level [(panic|fatal|error|warn|info|debug|disabled)] (default "info")
       --log-pretty                           [ENV: CA_LOG_PRETTY] Output formatted/colored log lines
       --no-statsd                            [ENV: CA_NO_STATSD] Disable StatsD listener
   -p, --plugin-dir string                    [ENV: CA_PLUGIN_DIR] Plugin directory (default "/opt/circonus/agent/plugins")
+      --plugin-ttl-units string              [ENV: CA_PLUGIN_TTL_UNITS] Default plugin TTL units (default "s")
   -r, --reverse                              [ENV: CA_REVERSE] Enable reverse connection
       --reverse-broker-ca-file string        [ENV: CA_REVERSE_BROKER_CA_FILE] Broker CA certificate file
       --reverse-cid string                   [ENV: CA_REVERSE_CID] Check Bundle ID for reverse connection
@@ -70,8 +71,8 @@ Flags:
       --reverse-create-check-broker string   [ENV: CA_REVERSE_CREATE_CHECK_BROKER] ID of Broker to use or 'select' for random selection of valid broker, if creating a check bundle (default "select")
       --reverse-create-check-tags string     [ENV: CA_REVERSE_CREATE_CHECK_TAGS] Tags [comma separated list] to use, if creating a check bundle
       --reverse-create-check-title string    [ENV: CA_REVERSE_CREATE_CHECK_TITLE] Title [display name] to use, if creating a check bundle (default "<reverse-target> /agent")
-      --reverse-target string                [ENV: CA_REVERSE_TARGET] Target host (default hostname)
-      --show-config                          Show config and exit
+      --reverse-target string                [ENV: CA_REVERSE_TARGET] Target host (default <hostname>)
+      --show-config string                   Show config (json|toml|yaml) and exit
       --ssl-cert-file string                 [ENV: CA_SSL_CERT_FILE] SSL Certificate file (PEM cert and CAs concatenated together) (default "/opt/circonus/agent/etc/circonus-agent.pem")
       --ssl-key-file string                  [ENV: CA_SSL_KEY_FILE] SSL Key file (default "/opt/circonus/agent/etc/circonus-agent.key")
       --ssl-listen string                    [ENV: CA_SSL_LISTEN] SSL listen address and port [IP]:[PORT] - setting enables SSL
