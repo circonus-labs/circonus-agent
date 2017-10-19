@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
@@ -19,13 +20,16 @@ func TestProcessPacket(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
+	viper.Set(config.KeyStatsdDisabled, false)
+	viper.Set(config.KeyStatsdPort, "65125")
+	viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
+	s, err := New()
+	if err != nil {
+		t.Fatalf("expected NO error, got (%s)", err)
+	}
+
 	t.Log("empty")
 	{
-		s, err := New()
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-
 		if err := s.processPacket([]byte("\n")); err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -33,11 +37,6 @@ func TestProcessPacket(t *testing.T) {
 
 	t.Log("blank")
 	{
-		s, err := New()
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-
 		if err := s.processPacket([]byte("")); err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -45,15 +44,13 @@ func TestProcessPacket(t *testing.T) {
 
 	t.Log("bad")
 	{
-		s, err := New()
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-
 		if err := s.processPacket([]byte("test")); err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
 	}
+
+	s.listener.Close()
+	viper.Reset()
 }
 
 func TestGetMetricDest(t *testing.T) {
@@ -73,10 +70,15 @@ func TestGetMetricDest(t *testing.T) {
 			{"group.foo", "host", "group.foo"},
 			{"foo", "host", "foo"},
 		}
+
+		viper.Set(config.KeyStatsdDisabled, false)
+		viper.Set(config.KeyStatsdPort, "65125")
+		viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
 		s, err := New()
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
+
 		for _, d := range dtest {
 			t.Logf("%s -> %s", d.metricName, d.expectedDest)
 			dest, metric := s.getMetricDestination(d.metricName)
@@ -87,6 +89,9 @@ func TestGetMetricDest(t *testing.T) {
 				t.Fatalf("name expected '%s' got '%s'", d.metricName, metric)
 			}
 		}
+
+		s.listener.Close()
+		viper.Reset()
 	}
 
 	t.Log("Explicit 'host.' & 'group.'")
@@ -102,13 +107,17 @@ func TestGetMetricDest(t *testing.T) {
 			{"group.foo", "group", "foo"},
 			{"foo", "ignore", "foo"},
 		}
+
+		viper.Set(config.KeyStatsdDisabled, false)
+		viper.Set(config.KeyStatsdPort, "65125")
+		viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
 		viper.Set(config.KeyStatsdHostPrefix, "host.")
 		viper.Set(config.KeyStatsdGroupPrefix, "group.")
 		s, err := New()
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		viper.Reset()
+
 		for _, d := range dtest {
 			t.Logf("%s -> %s", d.metricName, d.expectedDest)
 			dest, metric := s.getMetricDestination(d.metricName)
@@ -119,6 +128,9 @@ func TestGetMetricDest(t *testing.T) {
 				t.Fatalf("name expected '%s' got '%s'", d.expectedName, metric)
 			}
 		}
+
+		s.listener.Close()
+		viper.Reset()
 	}
 
 	t.Log("Default to host")
@@ -134,12 +146,16 @@ func TestGetMetricDest(t *testing.T) {
 			{"group.foo", "group", "foo"},
 			{"foo", "host", "foo"},
 		}
+
+		viper.Set(config.KeyStatsdDisabled, false)
+		viper.Set(config.KeyStatsdPort, "65125")
+		viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
 		viper.Set(config.KeyStatsdGroupPrefix, "group.")
 		s, err := New()
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		viper.Reset()
+
 		for _, d := range dtest {
 			t.Logf("%s -> %s", d.metricName, d.expectedDest)
 			dest, metric := s.getMetricDestination(d.metricName)
@@ -150,6 +166,9 @@ func TestGetMetricDest(t *testing.T) {
 				t.Fatalf("name expected '%s' got '%s'", d.expectedName, metric)
 			}
 		}
+
+		s.listener.Close()
+		viper.Reset()
 	}
 
 	t.Log("Default to group")
@@ -165,12 +184,16 @@ func TestGetMetricDest(t *testing.T) {
 			{"group.foo", "group", "group.foo"},
 			{"foo", "group", "foo"},
 		}
+
+		viper.Set(config.KeyStatsdDisabled, false)
+		viper.Set(config.KeyStatsdPort, "65125")
+		viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
 		viper.Set(config.KeyStatsdHostPrefix, "host.")
 		s, err := New()
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		viper.Reset()
+
 		for _, d := range dtest {
 			t.Logf("%s -> %s", d.metricName, d.expectedDest)
 			dest, metric := s.getMetricDestination(d.metricName)
@@ -181,6 +204,9 @@ func TestGetMetricDest(t *testing.T) {
 				t.Fatalf("name expected '%s' got '%s'", d.expectedName, metric)
 			}
 		}
+
+		s.listener.Close()
+		viper.Reset()
 	}
 }
 
@@ -189,6 +215,9 @@ func TestParseMetric(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
+	viper.Set(config.KeyStatsdDisabled, false)
+	viper.Set(config.KeyStatsdPort, "65125")
+	viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
 	s, err := New()
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
@@ -261,4 +290,6 @@ func TestParseMetric(t *testing.T) {
 			}
 		}
 	}
+
+	s.listener.Close()
 }

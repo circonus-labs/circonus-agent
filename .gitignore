@@ -24,7 +24,9 @@ plugin_test/test*.sh
 
 # for permissions testing - must be created locally
 # see note internal/config/plugin_test.go
+# also, config/verifyfile_test.go
 no_access_dir/
+no_access_file
 
 internal/plugins/testdata/testsym.sh
 internal/plugins/testdata/invalid.sh
@@ -42,3 +44,4 @@ dist/
 .codecov
 coverage.txt
 coverage.xml
+coverage.html

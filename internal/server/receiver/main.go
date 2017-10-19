@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	stdlog "log"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -19,6 +20,11 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
+
+func init() {
+	histogramRx = regexp.MustCompile(`^H\[(?P<bucket>[^\]]+)\]=(?P<count>[0-9]+)$`)
+	histogramRxNames = histogramRx.SubexpNames()
+}
 
 func initCGM() error {
 	metricsmu.Lock()
@@ -95,7 +101,11 @@ func Parse(id string, data io.ReadCloser) error {
 				samples := parseHistogram(metricName, metric)
 				if samples != nil && len(*samples) > 0 {
 					for _, sample := range *samples {
-						metrics.RecordValue(metricName, sample)
+						if sample.bucket {
+							metrics.RecordCountForValue(metricName, sample.value, sample.count)
+						} else {
+							metrics.RecordValue(metricName, sample.value)
+						}
 					}
 				}
 			}
@@ -251,27 +261,86 @@ func parseFloat(metricName string, metric cgm.Metric) (*float64, bool) {
 	return nil, false
 }
 
-func parseHistogram(metricName string, metric cgm.Metric) *[]float64 {
+type histSample struct {
+	bucket bool
+	count  int64
+	value  float64
+}
+
+func parseHistogram(metricName string, metric cgm.Metric) *[]histSample {
 	switch t := metric.Value.(type) {
 	case []interface{}:
-		ret := make([]float64, 0, len(metric.Value.([]interface{})))
+		ret := make([]histSample, 0, len(metric.Value.([]interface{})))
 		for idx, v := range metric.Value.([]interface{}) {
 			switch t2 := v.(type) {
 			case float64:
-				ret = append(ret, v.(float64))
+				ret = append(ret, histSample{bucket: false, value: v.(float64)})
 			case string:
-				v2, err := strconv.ParseFloat(v.(string), 64)
+				sv := v.(string)
+				if !strings.Contains(sv, "H[") {
+					v2, err := strconv.ParseFloat(sv, 64)
+					if err != nil {
+						log.Error().
+							Str("pkg", "receiver").
+							Str("metric", metricName).
+							Interface("value", v).
+							Int("position", idx).
+							Err(err).
+							Msg("parsing histogram sample")
+						continue
+					}
+					ret = append(ret, histSample{bucket: false, value: float64(v2)})
+					continue
+				}
+
+				//
+				// it's an encoded histogram sample H[value]=count
+				//
+				bucket := ""
+				count := ""
+				matches := histogramRx.FindAllStringSubmatch(sv, -1)
+				for _, match := range matches {
+					for idx, val := range match {
+						switch histogramRxNames[idx] {
+						case "bucket":
+							bucket = val
+						case "count":
+							count = val
+						}
+					}
+				}
+				if bucket == "" || count == "" {
+					log.Error().
+						Str("pkg", "receiver").
+						Str("metric", metricName).
+						Str("sample", sv).
+						Int("position", idx).
+						Msg("invalid encoded histogram sample")
+					continue
+				}
+				b, err := strconv.ParseFloat(bucket, 64)
 				if err != nil {
 					log.Error().
 						Str("pkg", "receiver").
 						Str("metric", metricName).
-						Interface("value", v).
+						Str("sample", sv).
 						Int("position", idx).
 						Err(err).
-						Msg("parsing histogram sample")
+						Msg("encoded histogram sample, value parse")
 					continue
 				}
-				ret = append(ret, float64(v2))
+				c, err := strconv.ParseInt(count, 10, 64)
+				if err != nil {
+					log.Error().
+						Str("pkg", "receiver").
+						Str("metric", metricName).
+						Str("sample", sv).
+						Int("position", idx).
+						Err(err).
+						Msg("encoded histogram sample, count parse")
+					continue
+				}
+				ret = append(ret, histSample{bucket: true, value: b, count: c})
 			default:
 				log.Error().
 					Str("pkg", "receiver").

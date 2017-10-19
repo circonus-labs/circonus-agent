@@ -99,15 +99,29 @@ func init() {
 	}
 
 	{
-		const (
+		var (
 			key         = config.KeyListen
 			longOpt     = "listen"
 			shortOpt    = "l"
 			envVar      = release.ENVPREFIX + "_LISTEN"
-			description = "Listen address and port [[IP]:[PORT]] " + `(default "` + defaults.Listen + `")`
+			description = "Listen spec e.g. :2609, [::1], [::1]:2609, 127.0.0.1, 127.0.0.1:2609, foo.bar.baz, foo.bar.baz:2609 " + `(default "` + defaults.Listen + `")`
 		)
 
-		RootCmd.Flags().StringP(longOpt, shortOpt, "", desc(description, envVar))
+		RootCmd.Flags().StringSliceP(longOpt, shortOpt, []string{}, desc(description, envVar))
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+	}
+
+	{
+		const (
+			key         = config.KeyListenSocket
+			longOpt     = "listen-socket"
+			shortOpt    = "L"
+			envVar      = release.ENVPREFIX + "_LISTEN_SOCKET"
+			description = "Unix socket to create"
+		)
+
+		RootCmd.Flags().StringSliceP(longOpt, shortOpt, []string{}, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 	}
@@ -125,6 +139,20 @@ func init() {
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 		viper.SetDefault(key, defaults.PluginPath)
+	}
+
+	{
+		const (
+			key         = config.KeyPluginTTLUnits
+			longOpt     = "plugin-ttl-units"
+			envVar      = release.ENVPREFIX + "_PLUGIN_TTL_UNITS"
+			description = "Default plugin TTL units"
+		)
+
+		RootCmd.Flags().String(longOpt, defaults.PluginTTLUnits, desc(description, envVar))
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+		viper.SetDefault(key, defaults.PluginTTLUnits)
 	}
 
 	//

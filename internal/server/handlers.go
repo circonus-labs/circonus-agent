@@ -17,6 +17,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/server/receiver"
 	cgm "github.com/circonus-labs/circonus-gometrics"
+	appstats "github.com/maier/go-appstats"
 	"github.com/spf13/viper"
 )
 
@@ -89,6 +90,31 @@ func (s *Server) inventory(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(inventory)
+}
+
+// socketHandler gates /write for the socket server only
+func (s *Server) socketHandler(w http.ResponseWriter, r *http.Request) {
+	if !writePathRx.MatchString(r.URL.Path) {
+		appstats.IncrementInt("requests_bad")
+		s.logger.Warn().
+			Str("method", r.Method).
+			Str("url", r.URL.String()).
+			Msg("Not found")
+		http.NotFound(w, r)
+		return
+	}
+
+	if r.Method != "PUT" && r.Method != "POST" {
+		appstats.IncrementInt("requests_bad")
+		s.logger.Warn().
+			Str("method", r.Method).
+			Str("url", r.URL.String()).
+			Msg("Not found")
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	s.write(w, r)
 }
 
 // write handles PUT/POST requests with a JSON playload containing "freeform"

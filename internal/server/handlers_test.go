@@ -28,7 +28,7 @@ import (
 
 func TestRun(t *testing.T) {
 	t.Log("Testing run")
-
+	viper.Reset()
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	runTests := []struct {
@@ -50,11 +50,22 @@ func TestRun(t *testing.T) {
 	testDir := path.Join(dir, "testdata")
 
 	viper.Set(config.KeyPluginDir, testDir)
-	p := plugins.New(context.Background())
+	viper.Set(config.KeyListen, ":2609")
+	p, perr := plugins.New(context.Background())
+	if perr != nil {
+		t.Fatalf("expected NO error, got (%s)", perr)
+	}
 	if err := p.Scan(); err != nil {
 		t.Fatalf("expected no error, got (%s)", err)
 	}
-	s, _ := New(p, nil)
+
+	s, err := New(p, nil)
+	if err != nil {
+		t.Fatalf("expected NO error, got (%s)", err)
+	}
+	if s == nil {
+		t.Fatal("expected NOT nil")
+	}
 
 	for _, runReq := range runTests {
 		time.Sleep(1 * time.Second)
@@ -71,11 +82,12 @@ func TestRun(t *testing.T) {
 		}
 
 	}
+
+	viper.Reset()
 }
 
 func TestInventory(t *testing.T) {
 	t.Log("Testing inventory")
-
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	dir, err := os.Getwd()
@@ -84,9 +96,19 @@ func TestInventory(t *testing.T) {
 	}
 	testDir := path.Join(dir, "testdata")
 
+	viper.Set(config.KeyListen, ":2609")
 	viper.Set(config.KeyPluginDir, testDir)
-	p := plugins.New(context.Background())
-	s, _ := New(p, nil)
+	p, perr := plugins.New(context.Background())
+	if perr != nil {
+		t.Fatalf("expected NO error, got (%s)", perr)
+	}
+	s, err := New(p, nil)
+	if err != nil {
+		t.Fatalf("expected NO error, got (%s)", err)
+	}
+	if s == nil {
+		t.Fatal("expected NOT nil")
+	}
 	time.Sleep(1 * time.Second)
 
 	t.Logf("GET /inventory -> %d", http.StatusOK)
@@ -100,13 +122,22 @@ func TestInventory(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected %d, got %d", http.StatusOK, resp.StatusCode)
 	}
+
+	viper.Reset()
 }
 
 func TestWrite(t *testing.T) {
 	t.Log("Testing write")
-
 	zerolog.SetGlobalLevel(zerolog.Disabled)
-	s, _ := New(nil, nil)
+
+	viper.Set(config.KeyListen, ":2609")
+	s, err := New(nil, nil)
+	if err != nil {
+		t.Fatalf("expected NO error, got (%s)", err)
+	}
+	if s == nil {
+		t.Fatal("expected NOT nil")
+	}
 
 	t.Logf("GET /write/ -> %d", http.StatusNotFound)
 	{
@@ -127,7 +158,7 @@ func TestWrite(t *testing.T) {
 		req := httptest.NewRequest("PUT", "/write/foo", nil)
 		w := httptest.NewRecorder()
 
-		s.router(w, req)
+		s.write(w, req)
 
 		resp := w.Result()
 
@@ -143,7 +174,7 @@ func TestWrite(t *testing.T) {
 		req := httptest.NewRequest("PUT", "/write/foo", reqBody)
 		w := httptest.NewRecorder()
 
-		s.router(w, req)
+		s.write(w, req)
 
 		resp := w.Result()
 
@@ -159,7 +190,7 @@ func TestWrite(t *testing.T) {
 		req := httptest.NewRequest("PUT", "/write/foo", reqBody)
 		w := httptest.NewRecorder()
 
-		s.router(w, req)
+		s.write(w, req)
 
 		resp := w.Result()
 
@@ -168,13 +199,105 @@ func TestWrite(t *testing.T) {
 		}
 	}
 
+	viper.Reset()
+}
+
+func TestSocketHandler(t *testing.T) {
+	t.Log("Testing socketHandler")
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+
+	viper.Set(config.KeyListen, ":2609")
+	s, err := New(nil, nil)
+	if err != nil {
+		t.Fatalf("expected NO error, got (%s)", err)
+	}
+	if s == nil {
+		t.Fatal("expected NOT nil")
+	}
+
+	t.Logf("GET /write/ -> %d", http.StatusNotFound)
+	{
+		req := httptest.NewRequest("GET", "/write/", nil)
+		w := httptest.NewRecorder()
+		s.socketHandler(w, req)
+		resp := w.Result()
+		if resp.StatusCode != http.StatusNotFound {
+			t.Fatalf("expected %d, got %d", http.StatusNotFound, resp.StatusCode)
+		}
+	}
+
+	t.Logf("GET /write/foo -> %d", http.StatusMethodNotAllowed)
+	{
+		req := httptest.NewRequest("GET", "/write/foo", nil)
+		w := httptest.NewRecorder()
+		s.socketHandler(w, req)
+		resp := w.Result()
+		if resp.StatusCode != http.StatusMethodNotAllowed {
+			t.Fatalf("expected %d, got %d", http.StatusMethodNotAllowed, resp.StatusCode)
+		}
+	}
+
+	t.Logf("PUT /write/foo w/o data -> %d", http.StatusBadRequest)
+	{
+		req := httptest.NewRequest("PUT", "/write/foo", nil)
+		w := httptest.NewRecorder()
+
+		s.socketHandler(w, req)
+
+		resp := w.Result()
+
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected %d, got %d", http.StatusBadRequest, resp.StatusCode)
+		}
+	}
+
+	t.Logf("PUT /write/foo w/bad data -> %d", http.StatusBadRequest)
+	{
+		reqBody := bytes.NewReader([]byte(`{"test":1`))
+
+		req := httptest.NewRequest("PUT", "/write/foo", reqBody)
+		w := httptest.NewRecorder()
+
+		s.socketHandler(w, req)
+
+		resp := w.Result()
+
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected %d, got %d", http.StatusBadRequest, resp.StatusCode)
+		}
+	}
+
+	t.Logf("PUT /write/foo w/data -> %d", http.StatusNoContent)
+	{
+		reqBody := bytes.NewReader([]byte(`{"test":{"_type": "i", "_value":1}}`))
+
+		req := httptest.NewRequest("PUT", "/write/foo", reqBody)
+		w := httptest.NewRecorder()
+
+		s.socketHandler(w, req)
+
+		resp := w.Result()
+
+		if resp.StatusCode != http.StatusNoContent {
+			t.Fatalf("expected %d, got %d", http.StatusNoContent, resp.StatusCode)
+		}
+	}
+
+	viper.Reset()
 }
 
 func TestPromOutput(t *testing.T) {
 	t.Log("Testing promOutput")
-
 	zerolog.SetGlobalLevel(zerolog.Disabled)
-	s, _ := New(nil, nil)
+
+	viper.Set(config.KeyListen, ":2609")
+	s, err := New(nil, nil)
+	if err != nil {
+		t.Fatalf("expected NO error, got (%s)", err)
+	}
+	if s == nil {
+		t.Fatal("expected NOT nil")
+	}
 
 	t.Logf("GET /prom -> %d (w/o metrics)", http.StatusNoContent)
 	{
@@ -215,14 +338,22 @@ func TestPromOutput(t *testing.T) {
 			t.Fatalf("expected (%s) got (%s)", expect, string(body))
 		}
 	}
+
+	viper.Reset()
 }
 
 func TestMetricsToPromFormat(t *testing.T) {
 	t.Log("Testing metricsToPromFormat")
-
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	s, _ := New(nil, nil)
+	viper.Set(config.KeyListen, ":2609")
+	s, err := New(nil, nil)
+	if err != nil {
+		t.Fatalf("expected NO error, got (%s)", err)
+	}
+	if s == nil {
+		t.Fatal("expected NOT nil")
+	}
 	ts := int64(12345)
 
 	t.Log("basic coverage (*cgm.Metrics -> cgm.Metrics -> cgm.Metric)")
@@ -362,4 +493,5 @@ func TestMetricsToPromFormat(t *testing.T) {
 		}
 	}
 
+	viper.Reset()
 }

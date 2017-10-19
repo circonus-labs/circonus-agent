@@ -25,21 +25,44 @@ import (
 // mkdir noaccess ; chmod 700 noaccess && sudo chown root noaccess
 // touch noaccesscfg.json && chmod 600 noaccesscfg.json && sudo chown root noaccesscfg.json
 
+func TestScan(t *testing.T) {
+	t.Log("Testing Scan")
+
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+
+	t.Log("Valid plugin directory")
+	{
+		viper.Set(config.KeyPluginDir, "testdata/")
+
+		p, nerr := New(context.Background())
+		if nerr != nil {
+			t.Fatalf("expected NO error, got (%s)", nerr)
+		}
+		err := p.Scan()
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
+	}
+
+}
+
 func TestScanPluginDirectory(t *testing.T) {
 	t.Log("Testing scanPluginDirectory")
 
-	p := New(context.Background())
+	p, nerr := New(context.Background())
+	if nerr != nil {
+		t.Fatalf("new err %s", nerr)
+	}
+
 	p.active["purge_inactive"] = &plugin{
-		ID:         "purge_inactive",
-		Generation: 0,
+		id: "purge_inactive",
 	}
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	t.Log("No plugin directory")
 	{
-		viper.Set(config.KeyPluginDir, "")
-
+		p.pluginDir = ""
 		expectErr := errors.Errorf("invalid plugin directory (none)")
 		err := p.scanPluginDirectory()
 		if err == nil {
@@ -52,13 +75,12 @@ func TestScanPluginDirectory(t *testing.T) {
 
 	t.Log("No access plugin directory")
 	{
-		dir := "testdata/noaccess"
-		viper.Set(config.KeyPluginDir, dir)
+		p.pluginDir = "testdata/noaccess"
 
-		expectErr := errors.Errorf("open plugin directory: open %s: permission denied", dir)
+		expectErr := errors.Errorf("open plugin directory: open %s: permission denied", p.pluginDir)
 		err := p.scanPluginDirectory()
 		if err == nil {
-			t.Fatalf("expected error (verify %s owned by root and mode 0700)", dir)
+			t.Fatalf("expected error (verify %s owned by root and mode 0700)", p.pluginDir)
 		}
 		if expectErr.Error() != err.Error() {
 			t.Fatalf("expected (%s) got (%s)", expectErr, err)
@@ -67,8 +89,7 @@ func TestScanPluginDirectory(t *testing.T) {
 
 	t.Log("Valid plugin directory")
 	{
-		viper.Set(config.KeyPluginDir, "testdata/")
-
+		p.pluginDir = "testdata/"
 		err := p.scanPluginDirectory()
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)

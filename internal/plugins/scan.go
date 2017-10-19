@@ -11,7 +11,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/maier/go-appstats"
@@ -44,8 +46,6 @@ func (p *Plugins) Scan() error {
 		return errors.Wrap(err, "stopping plugin(s)")
 	}
 
-	// appstats.MapSet("plugins", "total", bytes.NewBufferString("0"))
-
 	if err := p.scanPluginDirectory(); err != nil {
 		return errors.Wrap(err, "plugin directory scan")
 	}
@@ -59,19 +59,15 @@ func (p *Plugins) Scan() error {
 
 // scanPluginDirectory finds and loads plugins
 func (p *Plugins) scanPluginDirectory() error {
-	p.generation++
-
-	pluginDir := viper.GetString(config.KeyPluginDir)
-
-	if pluginDir == "" {
+	if p.pluginDir == "" {
 		return errors.New("invalid plugin directory (none)")
 	}
 
 	p.logger.Info().
-		Str("dir", pluginDir).
+		Str("dir", p.pluginDir).
 		Msg("Scanning plugin directory")
 
-	f, err := os.Open(pluginDir)
+	f, err := os.Open(p.pluginDir)
 	if err != nil {
 		return errors.Wrap(err, "open plugin directory")
 	}
@@ -83,11 +79,20 @@ func (p *Plugins) scanPluginDirectory() error {
 		return errors.Wrap(err, "reading plugin directory")
 	}
 
+	ttlRx, err := regexp.Compile(`_ttl(.+)$`)
+	if err != nil {
+		return errors.Wrap(err, "compiling ttl regex")
+	}
+	ttlUnitRx, err := regexp.Compile(`(ms|s|m|h)$`)
+	if err != nil {
+		return errors.Wrap(err, "compiling ttl unit regex")
+	}
+
 	for _, fi := range files {
 		fileName := fi.Name()
 
 		p.logger.Debug().
-			Str("path", filepath.Join(pluginDir, fileName)).
+			Str("path", filepath.Join(p.pluginDir, fileName)).
 			Msg("checking plugin directory entry")
 
 		if fi.IsDir() {
@@ -129,9 +134,9 @@ func (p *Plugins) scanPluginDirectory() error {
 
 		switch mode := fi.Mode(); {
 		case mode.IsRegular():
-			cmdName = filepath.Join(pluginDir, fi.Name())
+			cmdName = filepath.Join(p.pluginDir, fi.Name())
 		case mode&os.ModeSymlink != 0:
-			resolvedSymlink, err := filepath.EvalSymlinks(filepath.Join(pluginDir, fi.Name()))
+			resolvedSymlink, err := filepath.EvalSymlinks(filepath.Join(p.pluginDir, fi.Name()))
 			if err != nil {
 				p.logger.Warn().
 					Err(err).
@@ -158,7 +163,7 @@ func (p *Plugins) scanPluginDirectory() error {
 		var cfg map[string][]string
 
 		// check for config file
-		cfgFile := filepath.Join(pluginDir, fmt.Sprintf("%s.json", fileBase))
+		cfgFile := filepath.Join(p.pluginDir, fmt.Sprintf("%s.json", fileBase))
 		if data, err := ioutil.ReadFile(cfgFile); err != nil {
 			if !os.IsNotExist(err) {
 				p.logger.Warn().
@@ -184,26 +189,43 @@ func (p *Plugins) scanPluginDirectory() error {
 			}
 		}
 
+		// parse fileBase for _ttl(.+)
+		matches := ttlRx.FindAllStringSubmatch(fileBase, -1)
+		var runTTL time.Duration
+		if len(matches) > 0 && len(matches[0]) > 1 {
+			ttl := matches[0][1]
+			if ttl != "" {
+				if !ttlUnitRx.MatchString(ttl) {
+					ttl += viper.GetString(config.KeyPluginTTLUnits)
+				}
+
+				if d, err := time.ParseDuration(ttl); err != nil {
+					p.logger.Warn().Err(err).Str("ttl", ttl).Msg("parsing plugin ttl, ignoring ttl")
+				} else {
+					runTTL = d
+				}
+			}
+		}
+
 		if cfg == nil {
 			plug, ok := p.active[fileBase]
 			if !ok {
 				p.active[fileBase] = &plugin{
 					ctx:    p.ctx,
-					ID:     fileBase,
-					Name:   fileBase,
+					id:     fileBase,
+					name:   fileBase,
 					logger: p.logger.With().Str("plugin", fileBase).Logger(),
-					RunDir: p.pluginDir,
+					runDir: p.pluginDir,
+					runTTL: runTTL,
 				}
 				plug = p.active[fileBase]
 			}
 
 			appstats.MapIncrementInt("plugins", "total")
-			plug.Generation = p.generation
-			plug.Command = cmdName
+			plug.command = cmdName
 			p.logger.Info().
 				Str("id", fileBase).
 				Str("cmd", cmdName).
-				Uint64("generation", p.generation).
 				Msg("Activating plugin")
 
 		} else {
@@ -213,39 +235,27 @@ func (p *Plugins) scanPluginDirectory() error {
 				if !ok {
 					p.active[pluginName] = &plugin{
 						ctx:          p.ctx,
-						ID:           fileBase,
-						InstanceID:   inst,
-						InstanceArgs: args,
-						Name:         pluginName,
+						id:           fileBase,
+						instanceID:   inst,
+						instanceArgs: args,
+						name:         pluginName,
 						logger:       p.logger.With().Str("plugin", pluginName).Logger(),
-						RunDir:       p.pluginDir,
+						runDir:       p.pluginDir,
+						runTTL:       runTTL,
 					}
 					plug = p.active[pluginName]
 				}
 
 				appstats.MapIncrementInt("plugins", "total")
-				plug.Generation = p.generation
-				plug.Command = cmdName
+				plug.command = cmdName
 				p.logger.Info().
 					Str("id", pluginName).
 					Str("cmd", cmdName).
-					Uint64("generation", p.generation).
 					Msg("Activating plugin")
 
 			}
 		}
 	}
-
-	// only relevant if *watching* is implemented
-	// // purge inactive plugins (plugins removed from plugin directory)
-	// for id, plug := range p.active {
-	// 	if plug.Generation != p.generation {
-	// 		p.logger.Debug().
-	// 			Str("plugin", id).
-	// 			Msg("purging inactive plugin")
-	// 		delete(p.active, id)
-	// 	}
-	// }
 
 	if len(p.active) == 0 {
 		return errors.New("No active plugins found")

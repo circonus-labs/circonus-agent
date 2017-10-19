@@ -220,19 +220,28 @@ func (p *plugin) exec() error {
 
 	plog.Debug().Msg("Running")
 
-	if p.Running {
+	if p.runTTL > time.Duration(0) {
+		if time.Since(p.lastEnd) < p.runTTL {
+			msg := "TTL not expired"
+			plog.Info().Msg(msg)
+			p.Unlock()
+			return errors.New(msg)
+		}
+	}
+
+	if p.running {
 		msg := "already running"
 		plog.Info().Msg(msg)
 		p.Unlock()
 		return errors.New(msg)
 	}
 
-	p.Running = true
-	p.LastStart = time.Now()
-	p.cmd = exec.CommandContext(p.ctx, p.Command)
-	p.cmd.Dir = p.RunDir
-	if p.InstanceArgs != nil {
-		p.cmd.Args = append(p.cmd.Args, p.InstanceArgs...)
+	p.running = true
+	p.lastStart = time.Now()
+	p.cmd = exec.CommandContext(p.ctx, p.command)
+	p.cmd.Dir = p.runDir
+	if p.instanceArgs != nil {
+		p.cmd.Args = append(p.cmd.Args, p.instanceArgs...)
 	}
 
 	var errOut bytes.Buffer
@@ -242,9 +251,10 @@ func (p *plugin) exec() error {
 
 	resetStatus := func(err error) {
 		p.Lock()
-		p.LastRunDuration = time.Since(p.LastStart)
-		p.LastError = err
-		p.Running = false
+		p.lastEnd = time.Now()
+		p.lastRunDuration = time.Since(p.lastStart)
+		p.lastError = err
+		p.running = false
 		p.Unlock()
 	}
 
@@ -265,7 +275,7 @@ func (p *plugin) exec() error {
 		msg := "cmd start"
 		plog.Error().
 			Err(err).
-			Str("cmd", p.Command).
+			Str("cmd", p.command).
 			Msg(msg)
 		resetStatus(err)
 		return errors.Wrap(err, msg)
@@ -310,7 +320,7 @@ func (p *plugin) exec() error {
 			plog.Error().
 				Str("stderr", errMsg).
 				Str("status", exiterr.String()).
-				Str("cmd", p.Command).
+				Str("cmd", p.command).
 				Msg("exited non-zero")
 			if runErr != nil {
 				runErr = errors.Wrapf(exiterr, "cmd err (%s) and %s", errMsg, runErr)
@@ -320,7 +330,7 @@ func (p *plugin) exec() error {
 		} else {
 			plog.Error().
 				Err(err).
-				Str("cmd", p.Command).
+				Str("cmd", p.command).
 				Str("stderr", stderr).
 				Msg("exited non-zero (not exiterr)")
 			if runErr != nil {

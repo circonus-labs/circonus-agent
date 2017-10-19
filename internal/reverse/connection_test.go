@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
@@ -93,7 +94,7 @@ func TestConnect(t *testing.T) {
 			}(conn)
 		}()
 
-		s, err := New()
+		s, err := New(defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error got (%s)", err)
 		}
@@ -126,7 +127,7 @@ func TestConnect(t *testing.T) {
 
 		// basically, just don't accept any connections
 
-		s, err := New()
+		s, err := New(defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error got (%s)", err)
 		}
@@ -172,7 +173,7 @@ func TestConnect(t *testing.T) {
 			}(conn)
 		}()
 
-		s, err := New()
+		s, err := New(defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error got (%s)", err)
 		}
@@ -201,201 +202,6 @@ func TestConnect(t *testing.T) {
 
 }
 
-// func TestProcessCommands(t *testing.T) {
-// 	t.Log("Testing processCommands")
-//
-// 	zerolog.SetGlobalLevel(zerolog.Disabled)
-//
-// 	cert, err := tls.X509KeyPair(tcert, tkey)
-// 	if err != nil {
-// 		t.Fatalf("expected no error, got (%s)", err)
-// 	}
-//
-// 	tcfg := new(tls.Config)
-// 	tcfg.Certificates = []tls.Certificate{cert}
-//
-// 	cp := x509.NewCertPool()
-// 	clicert, err := x509.ParseCertificate(tcfg.Certificates[0].Certificate[0])
-// 	if err != nil {
-// 		t.Fatalf("expected no error, got (%s)", err)
-// 	}
-// 	cp.AddCert(clicert)
-//
-// 	t.Log("invalid command")
-// 	{
-// 		l, err := tls.Listen("tcp", "127.0.0.1:0", tcfg)
-// 		if err != nil {
-// 			t.Fatalf("expected no error, got (%s)", err)
-// 		}
-// 		defer l.Close()
-//
-// 		go func() {
-// 			conn, cerr := l.Accept()
-// 			if cerr != nil {
-// 				t.Fatalf("expected no error acceping connection, got %s", cerr)
-// 				return
-// 			}
-// 			go func(c net.Conn) {
-// 				var werr error
-// 				_, werr = c.Write(buildFrame(1, true, []byte("FOO")))
-// 				if werr != nil {
-// 					t.Fatalf("expected no error acceping connection, got %s", werr)
-// 				}
-// 				_, werr = c.Write(buildFrame(1, false, []byte{}))
-// 				if werr != nil {
-// 					t.Fatalf("expected no error acceping connection, got %s", werr)
-// 				}
-// 				c.Close()
-// 			}(conn)
-// 		}()
-//
-// 		s, err := New()
-// 		if err != nil {
-// 			t.Fatalf("expected no error got (%s)", err)
-// 		}
-//
-// 		s.tlsConfig = &tls.Config{
-// 			RootCAs: cp,
-// 		}
-//
-// 		tsURL, err := url.Parse("http://" + l.Addr().String() + "/check/foo-bar-baz#abc123")
-// 		if err != nil {
-// 			t.Fatalf("expected no error got (%s)", err)
-// 		}
-//
-// 		s.connAttempts = 2
-// 		s.reverseURL = tsURL
-// 		s.dialerTimeout = 2 * time.Second
-//
-// 		if err := s.connect(); err != nil {
-// 			t.Fatalf("expected no error got (%s)", err)
-// 		}
-//
-// 		ctx, cancel := context.WithCancel(context.Background())
-// 		s.processCommands(ctx)
-//
-// 		time.AfterFunc(5*time.Second, func() {
-// 			cancel()
-// 		})
-// 	}
-//
-// 	t.Log("valid CONNECT w/empty request")
-// 	{
-// 		l, err := tls.Listen("tcp", "127.0.0.1:0", tcfg)
-// 		if err != nil {
-// 			t.Fatalf("expected no error, got (%s)", err)
-// 		}
-// 		defer l.Close()
-//
-// 		go func() {
-// 			conn, cerr := l.Accept()
-// 			if cerr != nil {
-// 				t.Fatalf("expected no error acceping connection, got %s", cerr)
-// 				return
-// 			}
-// 			go func(c net.Conn) {
-// 				var werr error
-// 				_, werr = c.Write(buildFrame(1, true, []byte("CONNECT")))
-// 				if werr != nil {
-// 					t.Fatalf("expected no error acceping connection, got %s", werr)
-// 				}
-// 				_, werr = c.Write(buildFrame(1, false, []byte{}))
-// 				if werr != nil {
-// 					t.Fatalf("expected no error acceping connection, got %s", werr)
-// 				}
-// 				c.Close()
-// 			}(conn)
-// 		}()
-//
-// 		s, err := New()
-// 		if err != nil {
-// 			t.Fatalf("expected no error got (%s)", err)
-// 		}
-//
-// 		s.tlsConfig = &tls.Config{
-// 			RootCAs: cp,
-// 		}
-//
-// 		tsURL, err := url.Parse("http://" + l.Addr().String() + "/check/foo-bar-baz#abc123")
-// 		if err != nil {
-// 			t.Fatalf("expected no error got (%s)", err)
-// 		}
-//
-// 		s.connAttempts = 2
-// 		s.reverseURL = tsURL
-// 		s.dialerTimeout = 2 * time.Second
-//
-// 		if err := s.connect(); err != nil {
-// 			t.Fatalf("expected no error got (%s)", err)
-// 		}
-//
-// 		ctx, cancel := context.WithCancel(context.Background())
-// 		s.processCommands(ctx)
-//
-// 		time.AfterFunc(5*time.Second, func() {
-// 			cancel()
-// 		})
-// 	}
-//
-// 	t.Log("valid CONNECT w/request")
-// 	{
-// 		l, err := tls.Listen("tcp", "127.0.0.1:0", tcfg)
-// 		if err != nil {
-// 			t.Fatalf("expected no error, got (%s)", err)
-// 		}
-// 		defer l.Close()
-//
-// 		go func() {
-// 			conn, cerr := l.Accept()
-// 			if cerr != nil {
-// 				t.Fatalf("expected no error acceping connection, got %s", cerr)
-// 				return
-// 			}
-// 			go func(c net.Conn) {
-// 				var werr error
-// 				_, werr = c.Write(buildFrame(1, true, []byte("CONNECT")))
-// 				if werr != nil {
-// 					t.Fatalf("expected no error acceping connection, got %s", werr)
-// 				}
-// 				_, werr = c.Write(buildFrame(1, false, []byte("GET /\r\n")))
-// 				if werr != nil {
-// 					t.Fatalf("expected no error acceping connection, got %s", werr)
-// 				}
-// 				c.Close()
-// 			}(conn)
-// 		}()
-//
-// 		s, err := New()
-// 		if err != nil {
-// 			t.Fatalf("expected no error got (%s)", err)
-// 		}
-//
-// 		s.tlsConfig = &tls.Config{
-// 			RootCAs: cp,
-// 		}
-//
-// 		tsURL, err := url.Parse("http://" + l.Addr().String() + "/check/foo-bar-baz#abc123")
-// 		if err != nil {
-// 			t.Fatalf("expected no error got (%s)", err)
-// 		}
-//
-// 		s.connAttempts = 2
-// 		s.reverseURL = tsURL
-// 		s.dialerTimeout = 2 * time.Second
-//
-// 		if err := s.connect(); err != nil {
-// 			t.Fatalf("expected no error got (%s)", err)
-// 		}
-//
-// 		ctx, cancel := context.WithCancel(context.Background())
-// 		s.processCommands(ctx)
-//
-// 		time.AfterFunc(5*time.Second, func() {
-// 			cancel()
-// 		})
-// 	}
-// }
-
 func TestSetNextDelay(t *testing.T) {
 	t.Log("Testing setNextDelay")
 
@@ -404,7 +210,7 @@ func TestSetNextDelay(t *testing.T) {
 	t.Log("delay == max")
 	{
 		viper.Set(config.KeyReverse, false)
-		c, err := New()
+		c, err := New(defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -419,7 +225,7 @@ func TestSetNextDelay(t *testing.T) {
 	t.Log("valid change")
 	{
 		viper.Set(config.KeyReverse, false)
-		c, err := New()
+		c, err := New(defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -448,7 +254,7 @@ func TestSetNextDelay(t *testing.T) {
 	t.Log("reset to max")
 	{
 		viper.Set(config.KeyReverse, false)
-		c, err := New()
+		c, err := New(defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -469,7 +275,7 @@ func TestResetConnectionAttempts(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	viper.Set(config.KeyReverse, false)
-	c, err := New()
+	c, err := New(defaults.Listen)
 	if err != nil {
 		t.Fatalf("expected no error, got (%s)", err)
 	}

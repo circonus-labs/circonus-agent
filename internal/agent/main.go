@@ -34,9 +34,11 @@ func New() (*Agent, error) {
 		return nil, err
 	}
 
-	a.plugins = plugins.New(a.t.Context(context.Background()))
-	err = a.plugins.Scan()
+	a.plugins, err = plugins.New(a.t.Context(context.Background()))
 	if err != nil {
+		return nil, err
+	}
+	if err = a.plugins.Scan(); err != nil {
 		return nil, err
 	}
 
@@ -45,12 +47,16 @@ func New() (*Agent, error) {
 		return nil, err
 	}
 
-	a.reverseConn, err = reverse.New()
+	a.listenServer, err = server.New(a.plugins, a.statsdServer)
 	if err != nil {
 		return nil, err
 	}
 
-	a.listenServer, err = server.New(a.plugins, a.statsdServer)
+	agentAddress, err := a.listenServer.GetReverseAgentAddress()
+	if err != nil {
+		return nil, err
+	}
+	a.reverseConn, err = reverse.New(agentAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +68,8 @@ func New() (*Agent, error) {
 
 // Start the agent
 func (a *Agent) Start() error {
-	a.t.Go(a.handleSignals)
+	go a.handleSignals()
+
 	a.t.Go(a.statsdServer.Start)
 	a.t.Go(a.reverseConn.Start)
 	a.t.Go(a.listenServer.Start)

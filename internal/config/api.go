@@ -6,11 +6,10 @@
 package config
 
 import (
-	"encoding/json"
-	"io/ioutil"
 	"net/url"
 	"strings"
 
+	"github.com/circonus-labs/circonus-agent/internal/config/cosi"
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -39,14 +38,14 @@ func validateAPIOptions() error {
 
 	// if key is 'cosi' - load the cosi api config
 	if strings.ToLower(apiKey) == cosiName {
-		cKey, cApp, cURL, err := loadCOSIConfig()
+		cfg, err := cosi.LoadAPIConfig()
 		if err != nil {
 			return err
 		}
 
-		apiKey = cKey
-		apiApp = cApp
-		apiURL = cURL
+		apiKey = cfg.Key
+		apiApp = cfg.App
+		apiURL = cfg.URL
 	}
 
 	// API is required for reverse and/or statsd
@@ -87,35 +86,4 @@ func validateAPIOptions() error {
 	viper.Set(KeyAPIURL, apiURL)
 
 	return nil
-}
-
-type cosiConfig struct {
-	APIKey string `json:"api_key"`
-	APIApp string `json:"api_app"`
-	APIURL string `json:"api_url"`
-}
-
-func loadCOSIConfig() (string, string, string, error) {
-	data, err := ioutil.ReadFile(cosiCfgFile)
-	if err != nil {
-		return "", "", "", errors.Wrap(err, "Unable to access cosi config")
-	}
-
-	var cfg cosiConfig
-	if err := json.Unmarshal(data, &cfg); err != nil {
-		return "", "", "", errors.Wrapf(err, "Unable to parse cosi config (%s)", cosiCfgFile)
-	}
-
-	if cfg.APIKey == "" {
-		return "", "", "", errors.Errorf("Missing API key, invalid cosi config (%s)", cosiCfgFile)
-	}
-	if cfg.APIApp == "" {
-		return "", "", "", errors.Errorf("Missing API app, invalid cosi config (%s)", cosiCfgFile)
-	}
-	if cfg.APIURL == "" {
-		return "", "", "", errors.Errorf("Missing API URL, invalid cosi config (%s)", cosiCfgFile)
-	}
-
-	return cfg.APIKey, cfg.APIApp, cfg.APIURL, nil
-
 }

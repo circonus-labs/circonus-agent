@@ -6,9 +6,10 @@
 package config
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
+
+	"github.com/pkg/errors"
 )
 
 func verifyFile(fileName string) (string, error) {
@@ -37,7 +38,7 @@ func verifyFile(fileName string) (string, error) {
 	}
 
 	if !fi.Mode().IsRegular() {
-		return "", errors.New("not a regular file")
+		return "", errors.Errorf("%s: not a regular file", fileName)
 	}
 
 	// also try opening, to verify permissions
