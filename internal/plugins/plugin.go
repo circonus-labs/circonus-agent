@@ -220,6 +220,15 @@ func (p *plugin) exec() error {
 
 	plog.Debug().Msg("Running")
 
+	if p.runTTL > time.Duration(0) {
+		if time.Since(p.lastEnd) < p.runTTL {
+			msg := "TTL not expired"
+			plog.Info().Msg(msg)
+			p.Unlock()
+			return errors.New(msg)
+		}
+	}
+
 	if p.running {
 		msg := "already running"
 		plog.Info().Msg(msg)

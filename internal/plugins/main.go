@@ -117,12 +117,6 @@ func (p *Plugins) Run(pluginName string) error {
 		for pluginID, pluginRef := range p.active {
 			if pluginID == pluginName || // specific plugin
 				strings.HasPrefix(pluginID, pluginName+"`") { // specific plugin with instances
-				if pluginRef.runTTL > time.Duration(0) {
-					if time.Since(pluginRef.lastEnd) < pluginRef.runTTL {
-						p.logger.Debug().Str("plugin", pluginID).Msg("skipping, TTL not expired")
-						continue // skip, ttl hasn't expired
-					}
-				}
 				numFound++
 				wg.Add(1)
 				go func(id string, plug *plugin) {
@@ -140,12 +134,6 @@ func (p *Plugins) Run(pluginName string) error {
 		}
 	} else {
 		for pluginID, pluginRef := range p.active {
-			if pluginRef.runTTL > time.Duration(0) {
-				if time.Since(pluginRef.lastEnd) < pluginRef.runTTL {
-					p.logger.Debug().Str("plugin", pluginID).Msg("skipping, TTL not expired")
-					continue // skip, ttl hasn't expired
-				}
-			}
 			wg.Add(1)
 			go func(id string, plug *plugin) {
 				plug.exec()

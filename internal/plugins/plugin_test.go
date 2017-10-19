@@ -11,6 +11,7 @@ import (
 	"path"
 	"strings"
 	"testing"
+	"time"
 
 	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/pkg/errors"
@@ -175,6 +176,21 @@ func TestExec(t *testing.T) {
 			t.Fatalf("expected (%s) got (%s)", expectedErr, err)
 		}
 		p.running = false
+	}
+
+	t.Log("TTL not expired")
+	{
+		p.lastEnd = time.Now()
+		p.runTTL = 5 * time.Minute
+		expectedErr := errors.Errorf("TTL not expired")
+		err := p.exec()
+		if err == nil {
+			t.Fatalf("expected error")
+		}
+		if err.Error() != expectedErr.Error() {
+			t.Fatalf("expected (%s) got (%s)", expectedErr, err)
+		}
+		p.runTTL = time.Duration(0)
 	}
 
 	t.Log("not found")
