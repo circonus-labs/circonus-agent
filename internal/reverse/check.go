@@ -150,8 +150,11 @@ func (c *Connection) createCheckBundle(client *api.API) (*api.CheckBundle, error
 		addr = "localhost" + addr
 	}
 	cfg := api.NewCheckBundle()
-	cfg.DisplayName = viper.GetString(config.KeyReverseCreateCheckTitle)
 	cfg.Target = viper.GetString(config.KeyReverseTarget)
+	cfg.DisplayName = viper.GetString(config.KeyReverseCreateCheckTitle)
+	if cfg.DisplayName == "" {
+		cfg.DisplayName = cfg.Target + " /agent"
+	}
 	cfg.Type = "json:nad"
 	cfg.Config = api.CheckBundleConfig{apiconf.URL: "http://" + addr + "/"}
 	cfg.Metrics = []api.CheckBundleMetric{

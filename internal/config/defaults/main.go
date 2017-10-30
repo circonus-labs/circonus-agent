@@ -121,9 +121,6 @@ var (
 	// PluginPath returns the default plugin path
 	PluginPath = "" // (e.g. /opt/circonus/agent/plugins)
 
-	// ReverseCreateCheckTitle to use if creating a check
-	ReverseCreateCheckTitle = ""
-
 	// ReverseTarget defaults to return from os.Hostname()
 	ReverseTarget = ""
 
@@ -165,8 +162,6 @@ func init() {
 		fmt.Printf("Unable to determine hostname for target %v\n", err)
 		os.Exit(1)
 	}
-
-	ReverseCreateCheckTitle = ReverseTarget + " /agent"
 
 	switch runtime.GOOS {
 	case "linux":

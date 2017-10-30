@@ -253,10 +253,9 @@ func init() {
 			description = "Title [display name] to use, if creating a check bundle"
 		)
 
-		RootCmd.Flags().String(longOpt, defaults.ReverseCreateCheckTitle, desc(description, envVar))
+		RootCmd.Flags().String(longOpt, "", desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
-		viper.SetDefault(key, defaults.ReverseCreateCheckTitle)
 	}
 
 	{
