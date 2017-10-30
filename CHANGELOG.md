@@ -1,3 +1,13 @@
+# v0.7.0
+
+* Windows builtin collectors (using WMI)
+* New configuration option `--collectors` (for platforms that support builtin collectors - currently windows only)
+* Available WMI collectors: cache, disk, interface, ip, memory, object, paging_file, processes, processor, tcp, udp
+* Default WMI collectors enabled `['cache', 'disk', 'ip', 'interface', 'memory', 'object', 'paging_file' 'processor', 'tcp', 'udp']`
+* Builtin collectors take precedence over plugins (e.g. a builtin named `cpu` would prevent a plugin named `cpu` from being run)
+* Plugin directory is now optional (valid use case to run w/o plugins - e.g. only builtins or statsd or receiver or a combination of the three)
+* Attempt to select _fastest_ broker rather than picking randomly from list of _all_ available brokers. If multiple brokers are equally fast, fallback to picking randomly from list of _fastest_ brokers.
+
 # v0.6.0
 
 * exit agent is issue creating/starting any server (http, ssl, sock)

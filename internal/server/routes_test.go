@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/circonus-labs/circonus-agent/internal/builtins"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
 	"github.com/rs/zerolog"
@@ -32,7 +33,7 @@ func TestRouter(t *testing.T) {
 			"TRACE",
 		}
 		viper.Set(config.KeyListen, ":2609")
-		s, err := New(nil, nil)
+		s, err := New(nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -72,7 +73,7 @@ func TestRouter(t *testing.T) {
 			{"PUT", "/invalid"},
 			{"PUT", "/write/"}, // /write/ must be followed by an id/name to use as "plugin namespace"
 		}
-		s, err := New(p, nil)
+		s, err := New(nil, p, nil)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -97,11 +98,15 @@ func TestRouter(t *testing.T) {
 		viper.Set(config.KeyListen, ":2609")
 		viper.Set(config.KeyStatsdDisabled, true)
 		viper.Set(config.KeyPluginDir, "testdata/")
+		b, berr := builtins.New()
+		if berr != nil {
+			t.Fatalf("expected no error, got (%s)", berr)
+		}
 		p, perr := plugins.New(context.Background())
 		if perr != nil {
 			t.Fatalf("expected NO error, got (%s)", perr)
 		}
-		s, err := New(p, nil)
+		s, err := New(b, p, nil)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -145,7 +150,7 @@ func TestRouter(t *testing.T) {
 		if perr != nil {
 			t.Fatalf("expected NO error, got (%s)", perr)
 		}
-		s, err := New(p, nil)
+		s, err := New(nil, p, nil)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -166,7 +171,7 @@ func TestRouter(t *testing.T) {
 	t.Log("OK (PUT /write/foo) w/data")
 	{
 		viper.Set(config.KeyListen, ":2609")
-		s, err := New(nil, nil)
+		s, err := New(nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}

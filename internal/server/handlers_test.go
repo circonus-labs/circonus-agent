@@ -19,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/circonus-labs/circonus-agent/internal/builtins"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
 	cgm "github.com/circonus-labs/circonus-gometrics"
@@ -51,15 +52,19 @@ func TestRun(t *testing.T) {
 
 	viper.Set(config.KeyPluginDir, testDir)
 	viper.Set(config.KeyListen, ":2609")
+	b, berr := builtins.New()
+	if berr != nil {
+		t.Fatalf("expected no error, got (%s)", berr)
+	}
 	p, perr := plugins.New(context.Background())
 	if perr != nil {
 		t.Fatalf("expected NO error, got (%s)", perr)
 	}
-	if err := p.Scan(); err != nil {
+	if err := p.Scan(b); err != nil {
 		t.Fatalf("expected no error, got (%s)", err)
 	}
 
-	s, err := New(p, nil)
+	s, err := New(b, p, nil)
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
@@ -102,7 +107,7 @@ func TestInventory(t *testing.T) {
 	if perr != nil {
 		t.Fatalf("expected NO error, got (%s)", perr)
 	}
-	s, err := New(p, nil)
+	s, err := New(nil, p, nil)
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
@@ -131,7 +136,7 @@ func TestWrite(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	viper.Set(config.KeyListen, ":2609")
-	s, err := New(nil, nil)
+	s, err := New(nil, nil, nil)
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
@@ -207,7 +212,7 @@ func TestSocketHandler(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	viper.Set(config.KeyListen, ":2609")
-	s, err := New(nil, nil)
+	s, err := New(nil, nil, nil)
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
@@ -291,7 +296,7 @@ func TestPromOutput(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	viper.Set(config.KeyListen, ":2609")
-	s, err := New(nil, nil)
+	s, err := New(nil, nil, nil)
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
@@ -347,7 +352,7 @@ func TestMetricsToPromFormat(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	viper.Set(config.KeyListen, ":2609")
-	s, err := New(nil, nil)
+	s, err := New(nil, nil, nil)
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}

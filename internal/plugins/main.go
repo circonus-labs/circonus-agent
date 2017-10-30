@@ -48,6 +48,11 @@ func New(ctx context.Context) (*Plugins, error) {
 
 	fi, err := os.Stat(pluginDir)
 	if err != nil {
+		if os.IsNotExist(err) {
+			p.logger.Warn().Err(err).Str("path", pluginDir).Msg("not found, ignoring")
+			p.pluginDir = ""
+			return &p, nil
+		}
 		return nil, errors.Wrap(err, errMsg)
 	}
 

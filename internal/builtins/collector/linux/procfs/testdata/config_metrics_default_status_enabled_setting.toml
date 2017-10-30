@@ -1,0 +1,2 @@
+metrics_default_status = "enabled"
+proc_file = "testdata/centos-7.2.stat"

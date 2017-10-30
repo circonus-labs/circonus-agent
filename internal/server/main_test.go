@@ -25,7 +25,7 @@ func TestNew(t *testing.T) {
 	{
 		t.Log("\tno config")
 		{
-			s, err := New(nil, nil)
+			s, err := New(nil, nil, nil)
 			if err != nil {
 				t.Fatalf("expected no error, got (%s)", err)
 			}
@@ -37,7 +37,7 @@ func TestNew(t *testing.T) {
 		t.Log("\tempty config")
 		{
 			viper.Set(config.KeyListen, []string{""})
-			s, err := New(nil, nil)
+			s, err := New(nil, nil, nil)
 			if err != nil {
 				t.Fatalf("expected no error, got (%s)", err)
 			}
@@ -50,7 +50,7 @@ func TestNew(t *testing.T) {
 		t.Log("\tport config1 (colon)")
 		{
 			viper.Set(config.KeyListen, []string{":2609"})
-			s, err := New(nil, nil)
+			s, err := New(nil, nil, nil)
 			if err != nil {
 				t.Fatalf("expected NO error, got (%s)", err)
 			}
@@ -66,7 +66,7 @@ func TestNew(t *testing.T) {
 		t.Log("\tport config2 (no colon)")
 		{
 			viper.Set(config.KeyListen, []string{"2609"})
-			s, err := New(nil, nil)
+			s, err := New(nil, nil, nil)
 			if err != nil {
 				t.Fatalf("expected NO error, got (%s)", err)
 			}
@@ -87,7 +87,7 @@ func TestNew(t *testing.T) {
 		{
 			addr := "127.0.0.a"
 			viper.Set(config.KeyListen, []string{addr})
-			_, err := New(nil, nil)
+			_, err := New(nil, nil, nil)
 			if err == nil {
 				t.Fatal("expected error")
 			}
@@ -102,7 +102,7 @@ func TestNew(t *testing.T) {
 		{
 			addr := "127.0.0.1"
 			viper.Set(config.KeyListen, []string{addr})
-			s, err := New(nil, nil)
+			s, err := New(nil, nil, nil)
 			if err != nil {
 				t.Fatalf("expected NO error, got (%s)", err)
 			}
@@ -123,7 +123,7 @@ func TestNew(t *testing.T) {
 		{
 			addr := "127.0.0.1:2610"
 			viper.Set(config.KeyListen, []string{addr})
-			s, err := New(nil, nil)
+			s, err := New(nil, nil, nil)
 			if err != nil {
 				t.Fatalf("expected NO error, got (%s)", err)
 			}
@@ -144,7 +144,7 @@ func TestNew(t *testing.T) {
 		{
 			addr := "::1"
 			viper.Set(config.KeyListen, []string{addr})
-			_, err := New(nil, nil)
+			_, err := New(nil, nil, nil)
 			if err == nil {
 				t.Fatal("expected error")
 			}
@@ -159,7 +159,7 @@ func TestNew(t *testing.T) {
 		{
 			addr := "[::1]"
 			viper.Set(config.KeyListen, []string{addr})
-			s, err := New(nil, nil)
+			s, err := New(nil, nil, nil)
 			if err != nil {
 				t.Fatalf("expected NO error, got (%s)", err)
 			}
@@ -180,7 +180,7 @@ func TestNew(t *testing.T) {
 		{
 			addr := "[::1]:2610"
 			viper.Set(config.KeyListen, []string{addr})
-			s, err := New(nil, nil)
+			s, err := New(nil, nil, nil)
 			if err != nil {
 				t.Fatalf("expected NO error, got (%s)", err)
 			}
@@ -201,7 +201,7 @@ func TestNew(t *testing.T) {
 		{
 			addr := "foo.bar"
 			viper.Set(config.KeyListen, []string{addr})
-			_, err := New(nil, nil)
+			_, err := New(nil, nil, nil)
 			if err == nil {
 				t.Fatal("expected error")
 			}
@@ -216,7 +216,7 @@ func TestNew(t *testing.T) {
 		{
 			addr := "www.google.com"
 			viper.Set(config.KeyListen, []string{addr})
-			s, err := New(nil, nil)
+			s, err := New(nil, nil, nil)
 			if err != nil {
 				t.Fatalf("expected NO error, got (%s)", err)
 			}
@@ -238,7 +238,7 @@ func TestNew(t *testing.T) {
 		t.Log("\taddress, no cert/key")
 		{
 			viper.Set(config.KeySSLListen, ":2610")
-			s, err := New(nil, nil)
+			s, err := New(nil, nil, nil)
 			if err == nil {
 				t.Fatal("expecting error")
 			}
@@ -256,7 +256,7 @@ func TestNew(t *testing.T) {
 		{
 			viper.Set(config.KeySSLListen, ":2610")
 			viper.Set(config.KeySSLCertFile, "testdata/missing.crt")
-			s, err := New(nil, nil)
+			s, err := New(nil, nil, nil)
 			if err == nil {
 				t.Fatal("expecting error")
 			}
@@ -274,7 +274,7 @@ func TestNew(t *testing.T) {
 		{
 			viper.Set(config.KeySSLListen, ":2610")
 			viper.Set(config.KeySSLCertFile, "testdata/cert.crt")
-			s, err := New(nil, nil)
+			s, err := New(nil, nil, nil)
 			if err == nil {
 				t.Fatal("expecting error")
 			}
@@ -293,7 +293,7 @@ func TestNew(t *testing.T) {
 			viper.Set(config.KeySSLListen, ":2610")
 			viper.Set(config.KeySSLCertFile, "testdata/cert.crt")
 			viper.Set(config.KeySSLKeyFile, "testdata/missing.key")
-			s, err := New(nil, nil)
+			s, err := New(nil, nil, nil)
 			if err == nil {
 				t.Fatal("expecting error")
 			}
@@ -314,7 +314,7 @@ func TestNew(t *testing.T) {
 		{
 			viper.Set(config.KeyListenSocket, []string{"testdata/exists.sock"})
 			expected := errors.New("Socket server file (testdata/exists.sock) exists")
-			_, err := New(nil, nil)
+			_, err := New(nil, nil, nil)
 			if err == nil {
 				t.Fatal("expected error")
 			}
@@ -327,7 +327,7 @@ func TestNew(t *testing.T) {
 		t.Log("\tw/valid config")
 		{
 			viper.Set(config.KeyListenSocket, []string{"testdata/test.sock"})
-			s, err := New(nil, nil)
+			s, err := New(nil, nil, nil)
 			if err != nil {
 				t.Fatalf("expected no error, got (%s)", err)
 			}
@@ -358,7 +358,7 @@ func TestStartHTTP(t *testing.T) {
 	t.Log("\tw/config")
 	{
 		viper.Set(config.KeyListen, []string{":65111"})
-		s, err := New(nil, nil)
+		s, err := New(nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -395,7 +395,7 @@ func TestStartHTTPS(t *testing.T) {
 		viper.Set(config.KeySSLListen, ":65225")
 		viper.Set(config.KeySSLCertFile, "testdata/cert.crt")
 		viper.Set(config.KeySSLKeyFile, "testdata/key.key")
-		s, err := New(nil, nil)
+		s, err := New(nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -429,7 +429,7 @@ func TestStartSocket(t *testing.T) {
 	t.Log("\tw/bad config - invalid file")
 	{
 		viper.Set(config.KeyListenSocket, []string{"nodir/test.sock"})
-		_, err := New(nil, nil)
+		_, err := New(nil, nil, nil)
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -443,7 +443,7 @@ func TestStartSocket(t *testing.T) {
 	t.Log("\tw/config (server close)")
 	{
 		viper.Set(config.KeyListenSocket, []string{"testdata/test.sock"})
-		s, err := New(nil, nil)
+		s, err := New(nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -463,7 +463,7 @@ func TestStartSocket(t *testing.T) {
 	t.Log("\tw/config (listener close)")
 	{
 		viper.Set(config.KeyListenSocket, []string{"testdata/test.sock"})
-		s, err := New(nil, nil)
+		s, err := New(nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -494,7 +494,7 @@ func TestStart(t *testing.T) {
 
 	t.Log("\tno servers")
 	{
-		s, err := New(nil, nil)
+		s, err := New(nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -509,7 +509,7 @@ func TestStart(t *testing.T) {
 		viper.Set(config.KeySSLListen, ":65227")
 		viper.Set(config.KeySSLCertFile, "testdata/cert.crt")
 		viper.Set(config.KeySSLKeyFile, "testdata/key.key")
-		s, err := New(nil, nil)
+		s, err := New(nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -533,7 +533,7 @@ func TestStop(t *testing.T) {
 
 	t.Log("\tno servers")
 	{
-		s, err := New(nil, nil)
+		s, err := New(nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -546,7 +546,7 @@ func TestStop(t *testing.T) {
 	{
 		viper.Set(config.KeyListen, []string{":65226"})
 		viper.Set(config.KeyListenSocket, "testdata/test.sock")
-		s, err := New(nil, nil)
+		s, err := New(nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
