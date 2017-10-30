@@ -53,6 +53,7 @@ Flags:
       --api-ca-file string                   [ENV: CA_API_CA_FILE] Circonus API CA certificate file
       --api-key string                       [ENV: CA_API_KEY] Circonus API Token key
       --api-url string                       [ENV: CA_API_URL] Circonus API URL (default "https://api.circonus.com/v2/")
+      --collectors stringSlice               [ENV: CA_COLLECTORS] List of builtin collectors to enable
   -c, --config string                        config file (default is /opt/circonus/agent/etc/circonus-agent.(json|toml|yaml)
   -d, --debug                                [ENV: CA_DEBUG] Enable debug messages
       --debug-cgm                            [ENV: CA_DEBUG_CGM] Enable CGM & API debug messages
@@ -60,7 +61,7 @@ Flags:
   -l, --listen stringSlice                   [ENV: CA_LISTEN] Listen spec e.g. :2609, [::1], [::1]:2609, 127.0.0.1, 127.0.0.1:2609, foo.bar.baz, foo.bar.baz:2609 (default ":2609")
   -L, --listen-socket stringSlice            [ENV: CA_LISTEN_SOCKET] Unix socket to create
       --log-level string                     [ENV: CA_LOG_LEVEL] Log level [(panic|fatal|error|warn|info|debug|disabled)] (default "info")
-      --log-pretty                           [ENV: CA_LOG_PRETTY] Output formatted/colored log lines
+      --log-pretty                           [ENV: CA_LOG_PRETTY] Output formatted/colored log lines [ignored on windows]
       --no-statsd                            [ENV: CA_NO_STATSD] Disable StatsD listener
   -p, --plugin-dir string                    [ENV: CA_PLUGIN_DIR] Plugin directory (default "/opt/circonus/agent/plugins")
       --plugin-ttl-units string              [ENV: CA_PLUGIN_TTL_UNITS] Default plugin TTL units (default "s")
@@ -419,13 +420,9 @@ Available WMI collectors and options:
 
 Windows default WMI collectors: `['cache', 'disk', 'ip', 'interface', 'memory', 'object', 'paging_file' 'processor', 'tcp', 'udp']`
 
-
 # Manual build
 
 1. Clone repo `git clone https://github.com/circonus-labs/circonus-agent.git`
 1. Dependencies, run `dep ensure` (requires [dep](https://github.com/golang/dep) utility)
 1. Build `go build -o circonus-agentd`
 1. Install `cp circonus-agentd /opt/circonus/agent/sbin`
-
-
-[![codecov](https://codecov.io/gh/maier/circonus-agent/branch/master/graph/badge.svg)](https://codecov.io/gh/maier/circonus-agent)
