@@ -355,16 +355,16 @@ Configuration:
 * Environment `CA_COLLECTORS` (space delimited list)
 * Config file `collectors` (array of strings)
 
-Each collector can be configured via a configuration file. The default location for a collector configuration file is relative to the agent binary `../etc` and the base name of the configuration is the collector name. Supported configuration file formats are `json`, `toml`, and `yaml`. For example, given a collector named `foo`, a valid configuration file would be `../etc/foo.(json|toml|yaml)`.
+Each collector can be configured via a configuration file. The default location for a collector configuration file is relative to the agent binary `../etc` and the base name of the configuration is the collector name. Supported configuration file formats are `json`, `toml`, and `yaml`. For example, given a collector named `foo`, valid configuration files would be `../etc/foo.(json|toml|yaml)`.
 
-Common options (applicable to all wmi builtin collectors):
+Common options (applicable to all WMI collectors):
 * `id` (string) of the collector - default is name of collector
 * `metrics_enabled` (array of strings) list of metrics which are enabled (to be collected) - default is empty
 * `metrics_disabled` (array of strings) list of metrics which are disabled (should NOT be collected) - default is empty
-* `metrics_default_status` (string(enabled|disabled)) how a metric NOT in the enabled/disabled lists should be treated - default is `enabled`
+* `metrics_default_status` (string(enabled|disabled)) how a metric NOT in the enabled/disabled lists should be handled - default is `enabled`
 * `metric_name_regex` (string) regular expression of valid characters for the metric names - default is `[^a-zA-Z0-9.-_:]`
 * `metric_name_char` (char|string) to use for replacing invalid characters in a metric name - default is `_`
-* `run_ttl` (string) indicating how often to run the collector (for expensive collectors) - default is broker request cadence - e.g. "10s", "5m", etc.
+* `run_ttl` (string) indicating collector will run no more frequently than TTL (e.g. "10s", "5m", etc. - for expensive collectors) - default is broker request cadence, once per minute
 
 Available WMI collectors and options:
 * `cache`
@@ -375,39 +375,39 @@ Available WMI collectors and options:
     * options:
         * `logical_disks` string(true|false), include logical disks (default "true")
         * `physical_disks` string(true|false), include physical disks (default "true")
-        * `include_regex` string, regular expression for inclusion - default `.+`
-        * `exclude_regex` string, regular expression for exclusion - default empty
+        * `include_regex` string, regular expression for disk inclusion - default `.+`
+        * `exclude_regex` string, regular expression for disk exclusion - default empty
 * `memory`
     * config file `../etc/memory.(json|toml|yaml)`
     * options: only common
 * `interface`
     * config file `../etc/interface.(json|toml|yaml)`
     * options:
-        * `include_regex` string, regular expression for inclusion - default `.+`
-        * `exclude_regex` string, regular expression for exclusion - default empty
+        * `include_regex` string, regular expression for interface inclusion - default `.+`
+        * `exclude_regex` string, regular expression for interface exclusion - default empty
 * `ip` (ipv4 and ipv6, can be controlled via config file)
     * config file `../etc/ip.(json|toml|yaml)`
     * options:
-        * `enable_ipv4` string(true|false), include IPv4 - default "true"
-        * `enable_ipv6` string(true|false), include IPv6 - default "true"
+        * `enable_ipv4` string(true|false), include IPv4 metrics - default "true"
+        * `enable_ipv6` string(true|false), include IPv6 metrics - default "true"
 * `tcp` (ipv4 and ipv6, can be controlled via config file)
     * config file `../etc/tcp.(json|toml|yaml)`
     * options:
-        * `enable_ipv4` string(true|false), include IPv4 - default "true"
-        * `enable_ipv6` string(true|false), include IPv6 - default "true"
+        * `enable_ipv4` string(true|false), include IPv4 metrics - default "true"
+        * `enable_ipv6` string(true|false), include IPv6 metrics - default "true"
 * `udp` (ipv4 and ipv6, can be controlled via config file)
     * config file `../etc/udp.(json|toml|yaml)`
     * options:
-        * `enable_ipv4` string(true|false), include IPv4 - default "true"
-        * `enable_ipv6` string(true|false), include IPv6 - default "true"
+        * `enable_ipv4` string(true|false), include IPv4 metrics - default "true"
+        * `enable_ipv6` string(true|false), include IPv6 metrics - default "true"
 * `objects`
     * config file `../etc/objects.(json|toml|yaml)`
     * options: only common
 * `paging_file`
     * config file `../etc/paging_file.(json|toml|yaml)`
     * options:
-        * `include_regex` string, regular expression for inclusion - default `.+`
-        * `exclude_regex` string, regular expression for exclusion - default empty
+        * `include_regex` string, regular expression for file inclusion - default `.+`
+        * `exclude_regex` string, regular expression for file exclusion - default empty
 * `processor`
     * config file `../etc/processor.(json|toml|yaml)`
     * options:
@@ -415,8 +415,8 @@ Available WMI collectors and options:
 * `processes` disabled by default (generates 28 metrics per process)
     * config file `../etc/processes.(json|toml|yaml)`
     * options:
-        * `include_regex` string, regular expression for inclusion - default `.+`
-        * `exclude_regex` string, regular expression for exclusion - default empty
+        * `include_regex` string, regular expression for process inclusion - default `.+`
+        * `exclude_regex` string, regular expression for process exclusion - default empty
 
 Windows default WMI collectors: `['cache', 'disk', 'ip', 'interface', 'memory', 'object', 'paging_file' 'processor', 'tcp', 'udp']`
 
