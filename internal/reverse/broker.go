@@ -156,11 +156,22 @@ func (c *Connection) selectBroker(client *api.API, checkType string) (*api.Broke
 
 	validBrokers := make(map[string]api.Broker)
 	haveEnterprise := false
+	threshold := 10 * time.Second
 
 	for _, broker := range *brokerList {
 		broker := broker
-		if c.isValidBroker(&broker, checkType) {
-			validBrokers[broker.CID] = broker
+		dur, ok := c.isValidBroker(&broker, checkType)
+		if ok {
+			if dur > threshold {
+				continue
+			} else if dur == threshold {
+				validBrokers[broker.CID] = broker
+			} else if dur < threshold {
+				validBrokers = make(map[string]api.Broker)
+				haveEnterprise = false
+				threshold = dur
+				validBrokers[broker.CID] = broker
+			}
 			if broker.Type == "enterprise" {
 				haveEnterprise = true
 			}
@@ -179,8 +190,13 @@ func (c *Connection) selectBroker(client *api.API, checkType string) (*api.Broke
 		return nil, errors.Errorf("found %d broker(s), zero are valid", len(*brokerList))
 	}
 
+	var selectedBroker api.Broker
 	validBrokerKeys := reflect.ValueOf(validBrokers).MapKeys()
-	selectedBroker := validBrokers[validBrokerKeys[rand.Intn(len(validBrokerKeys))].String()]
+	if len(validBrokerKeys) == 1 {
+		selectedBroker = validBrokers[validBrokerKeys[0].String()]
+	} else {
+		selectedBroker = validBrokers[validBrokerKeys[rand.Intn(len(validBrokerKeys))].String()]
+	}
 
 	c.logger.Debug().Str("broker", selectedBroker.Name).Msg("selected")
 
@@ -188,10 +204,12 @@ func (c *Connection) selectBroker(client *api.API, checkType string) (*api.Broke
 }
 
 // Is the broker valid (active, supports check type, and reachable)
-func (c *Connection) isValidBroker(broker *api.Broker, checkType string) bool {
+func (c *Connection) isValidBroker(broker *api.Broker, checkType string) (time.Duration, bool) {
 	var brokerHost string
 	var brokerPort string
+	var connDuration time.Duration
 	valid := false
+
 	for _, detail := range broker.Details {
 		detail := detail
 
@@ -231,9 +249,11 @@ func (c *Connection) isValidBroker(broker *api.Broker, checkType string) bool {
 		maxDelay := int(2 * time.Second)
 
 		for attempt := 1; attempt <= brokerMaxRetries; attempt++ {
+			start := time.Now()
 			// broker must be reachable and respond within designated time
 			conn, err := net.DialTimeout("tcp", net.JoinHostPort(brokerHost, brokerPort), brokerMaxResponseTime)
 			if err == nil {
+				connDuration = time.Since(start)
 				conn.Close()
 				valid = true
 				break
@@ -257,7 +277,8 @@ func (c *Connection) isValidBroker(broker *api.Broker, checkType string) bool {
 			break
 		}
 	}
-	return valid
+
+	return connDuration, valid
 }
 
 // Verify broker supports the check type to be used

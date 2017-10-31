@@ -10,6 +10,7 @@ import (
 
 	tomb "gopkg.in/tomb.v2"
 
+	"github.com/circonus-labs/circonus-agent/internal/builtins"
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
 	"github.com/circonus-labs/circonus-agent/internal/reverse"
 	"github.com/circonus-labs/circonus-agent/internal/server"
@@ -18,6 +19,7 @@ import (
 
 // Agent holds the main circonus-agent process
 type Agent struct {
+	builtins     *builtins.Builtins
 	listenServer *server.Server
 	plugins      *plugins.Plugins
 	reverseConn  *reverse.Connection

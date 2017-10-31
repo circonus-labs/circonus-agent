@@ -86,6 +86,7 @@ type Config struct {
 	Reverse        Reverse  `json:"reverse" yaml:"reverse" toml:"reverse"`
 	SSL            SSL      `json:"ssl" yaml:"ssl" toml:"ssl"`
 	StatsD         StatsD   `json:"statsd" yaml:"statsd" toml:"statsd"`
+	Collectors     []string `json:"collectors" yaml:"collectors" toml:"collectors"`
 }
 
 type cosiCheckConfig struct {
@@ -200,6 +201,9 @@ const (
 
 	// KeyStatsdPort port for statsd listener (note, address will always be 'localhost')
 	KeyStatsdPort = "statsd.port"
+
+	// KeyCollectors defines the builtin collectors to enable
+	KeyCollectors = "collectors"
 
 	cosiName = "cosi"
 )

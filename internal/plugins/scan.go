@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/circonus-labs/circonus-agent/internal/builtins"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/maier/go-appstats"
 	"github.com/pkg/errors"
@@ -22,9 +23,13 @@ import (
 )
 
 // Scan the plugin directory for new/updated plugins
-func (p *Plugins) Scan() error {
+func (p *Plugins) Scan(b *builtins.Builtins) error {
 	p.Lock()
 	defer p.Unlock()
+
+	if p.pluginDir == "" {
+		return nil
+	}
 
 	// initialRun fires each plugin one time. Unlike 'Run' it does
 	// not wait for plugins to finish this will provides:
@@ -46,7 +51,7 @@ func (p *Plugins) Scan() error {
 		return errors.Wrap(err, "stopping plugin(s)")
 	}
 
-	if err := p.scanPluginDirectory(); err != nil {
+	if err := p.scanPluginDirectory(b); err != nil {
 		return errors.Wrap(err, "plugin directory scan")
 	}
 
@@ -58,7 +63,7 @@ func (p *Plugins) Scan() error {
 }
 
 // scanPluginDirectory finds and loads plugins
-func (p *Plugins) scanPluginDirectory() error {
+func (p *Plugins) scanPluginDirectory(b *builtins.Builtins) error {
 	if p.pluginDir == "" {
 		return errors.New("invalid plugin directory (none)")
 	}
@@ -157,6 +162,11 @@ func (p *Plugins) scanPluginDirectory() error {
 				Str("file", cmdName).
 				Str("perms", fmt.Sprintf("%q", fi.Mode().Perm())).
 				Msg("executable bit not set, ignoring")
+			continue
+		}
+
+		if b != nil && b.IsBuiltin(fileBase) {
+			p.logger.Warn().Str("id", fileBase).Msg("Builtin collector already enabled, skipping plugin")
 			continue
 		}
 

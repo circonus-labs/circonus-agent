@@ -1,3 +1,15 @@
+# v0.7.0
+
+* add: builtin collector framework
+* new: configuration option `--collectors` (for platforms which have builtin collectors - windows only in this release)
+* add: wmi builtin collectors for windows
+    * available WMI collectors: cache, disk, interface, ip, memory, object, paging_file, processes, processor, tcp, udp
+    * default WMI collectors enabled `['cache', 'disk', 'ip', 'interface', 'memory', 'object', 'paging_file' 'processor', 'tcp', 'udp']`
+* new: collectors take precedence over plugins (e.g. collector named `cpu` would prevent plugin named `cpu` from running)
+* upd: plugin directory is now optional - valid use case to run w/o plugins - e.g. only builtins, statsd, receiver or a combination of the three
+* upd: select _fastest_ broker rather than picking randomly from list of _all_ available brokers. If multiple brokers are equally fast, fallback to picking randomly, from the list of _fastest_ brokers.
+* fix: use value of `--reverse-target` (if specified) in `--reverse-create-check-title` (if not specified)
+
 # v0.6.0
 
 * exit agent is issue creating/starting any server (http, ssl, sock)

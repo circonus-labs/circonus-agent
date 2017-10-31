@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/circonus-labs/circonus-agent/internal/release"
 )
@@ -110,11 +111,18 @@ var (
 	//   /sbin     (e.g. /opt/circonus/agent/sbin)
 	BasePath = ""
 
+	// Collectors defines the default builtin collectors to enable
+	// OS specific - see init() below
+	Collectors = []string{}
+
 	// EtcPath returns the default etc directory within base directory
 	EtcPath = "" // (e.g. /opt/circonus/agent/etc)
 
 	// PluginPath returns the default plugin path
 	PluginPath = "" // (e.g. /opt/circonus/agent/plugins)
+
+	// ReverseTarget defaults to return from os.Hostname()
+	ReverseTarget = ""
 
 	// SSLCertFile returns the deefault ssl cert file name
 	SSLCertFile = "" // (e.g. /opt/circonus/agent/etc/agent.pem)
@@ -124,12 +132,6 @@ var (
 
 	// StatsdConf returns the default statsd config file
 	StatsdConf = "" // (e.g. /opt/circonus/agent/etc/statsd.json)
-
-	// ReverseTarget defaults to return from os.Hostname()
-	ReverseTarget = ""
-
-	// ReverseCreateCheckTitle to use if creating a check
-	ReverseCreateCheckTitle = ""
 )
 
 func init() {
@@ -161,5 +163,24 @@ func init() {
 		os.Exit(1)
 	}
 
-	ReverseCreateCheckTitle = ReverseTarget + " /agent"
+	switch runtime.GOOS {
+	case "linux":
+		Collectors = []string{
+			"cpu",
+		}
+	case "windows":
+		Collectors = []string{
+			"cache",
+			"disk", // logical and physical
+			"interface",
+			"ip", // ipv4 and ipv6
+			"memory",
+			"objects",
+			"paging_file",
+			// "processes",
+			"processor",
+			"tcp", // ipv4 and ipv6
+			"udp", // ipv4 and ipv6
+		}
+	}
 }

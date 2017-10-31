@@ -45,12 +45,22 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 	metrics := map[string]interface{}{}
 
 	if plugin == "" || !s.plugins.IsInternal(plugin) {
+		s.builtins.Run(plugin)
+		builtinMetrics := s.builtins.Flush(plugin)
+		for metricName, metric := range *builtinMetrics {
+			metrics[metricName] = metric
+		}
+	}
+
+	if plugin == "" || !s.plugins.IsInternal(plugin) {
 		// NOTE: errors are ignored from plugins.Run
 		//       1. errors are already logged by Run
 		//       2. do not expose execution state to callers
 		s.plugins.Run(plugin)
 		pluginMetrics := s.plugins.Flush(plugin)
-		metrics = *pluginMetrics
+		for metricName, metric := range *pluginMetrics {
+			metrics[metricName] = metric
+		}
 	}
 
 	if plugin == "" || plugin == "write" {

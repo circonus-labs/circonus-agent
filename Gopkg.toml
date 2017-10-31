@@ -20,6 +20,9 @@
 #  name = "github.com/x/y"
 #  version = "2.4.0"
 
+# need to add a constraint on go-ole for wmi
+# wmi uses "master" rather than the semver release of go-ole
+required = ["github.com/go-ole/go-ole"]
 
 [[constraint]]
   branch = "master"
@@ -27,7 +30,7 @@
 
 [[constraint]]
   name = "github.com/circonus-labs/circonus-gometrics"
-  version = "2.0.0"
+  version = "2.1.0"
 
 [[constraint]]
   name = "github.com/maier/go-appstats"
@@ -68,3 +71,9 @@
 [[constraint]]
   branch = "master"
   name = "xi2.org/x/httpgzip"
+
+# need to add a constraint on go-ole for wmi
+# wmi uses "master" rather than the semver release of go-ole
+[[constraint]]
+    name = "github.com/go-ole/go-ole"
+    branch = "master"

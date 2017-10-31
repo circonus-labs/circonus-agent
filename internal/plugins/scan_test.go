@@ -9,6 +9,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/circonus-labs/circonus-agent/internal/builtins"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
@@ -38,7 +39,11 @@ func TestScan(t *testing.T) {
 		if nerr != nil {
 			t.Fatalf("expected NO error, got (%s)", nerr)
 		}
-		err := p.Scan()
+		b, berr := builtins.New()
+		if berr != nil {
+			t.Fatalf("expected NO error, got (%s)", berr)
+		}
+		err := p.Scan(b)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -49,6 +54,8 @@ func TestScan(t *testing.T) {
 func TestScanPluginDirectory(t *testing.T) {
 	t.Log("Testing scanPluginDirectory")
 
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+
 	p, nerr := New(context.Background())
 	if nerr != nil {
 		t.Fatalf("new err %s", nerr)
@@ -58,13 +65,16 @@ func TestScanPluginDirectory(t *testing.T) {
 		id: "purge_inactive",
 	}
 
-	zerolog.SetGlobalLevel(zerolog.Disabled)
+	b, berr := builtins.New()
+	if berr != nil {
+		t.Fatalf("expected NO error, got (%s)", berr)
+	}
 
 	t.Log("No plugin directory")
 	{
 		p.pluginDir = ""
 		expectErr := errors.Errorf("invalid plugin directory (none)")
-		err := p.scanPluginDirectory()
+		err := p.scanPluginDirectory(b)
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -76,9 +86,8 @@ func TestScanPluginDirectory(t *testing.T) {
 	t.Log("No access plugin directory")
 	{
 		p.pluginDir = "testdata/noaccess"
-
 		expectErr := errors.Errorf("open plugin directory: open %s: permission denied", p.pluginDir)
-		err := p.scanPluginDirectory()
+		err := p.scanPluginDirectory(b)
 		if err == nil {
 			t.Fatalf("expected error (verify %s owned by root and mode 0700)", p.pluginDir)
 		}
@@ -90,7 +99,7 @@ func TestScanPluginDirectory(t *testing.T) {
 	t.Log("Valid plugin directory")
 	{
 		p.pluginDir = "testdata/"
-		err := p.scanPluginDirectory()
+		err := p.scanPluginDirectory(b)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}

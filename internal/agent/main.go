@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/circonus-labs/circonus-agent/internal/builtins"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
 	"github.com/circonus-labs/circonus-agent/internal/release"
@@ -34,11 +35,16 @@ func New() (*Agent, error) {
 		return nil, err
 	}
 
+	a.builtins, err = builtins.New()
+	if err != nil {
+		return nil, err
+	}
+
 	a.plugins, err = plugins.New(a.t.Context(context.Background()))
 	if err != nil {
 		return nil, err
 	}
-	if err = a.plugins.Scan(); err != nil {
+	if err = a.plugins.Scan(a.builtins); err != nil {
 		return nil, err
 	}
 
@@ -47,7 +53,7 @@ func New() (*Agent, error) {
 		return nil, err
 	}
 
-	a.listenServer, err = server.New(a.plugins, a.statsdServer)
+	a.listenServer, err = server.New(a.builtins, a.plugins, a.statsdServer)
 	if err != nil {
 		return nil, err
 	}

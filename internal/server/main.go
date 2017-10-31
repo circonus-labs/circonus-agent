@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/circonus-labs/circonus-agent/internal/builtins"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
@@ -25,9 +26,10 @@ import (
 )
 
 // New creates a new instance of the listening servers
-func New(p *plugins.Plugins, ss *statsd.Server) (*Server, error) {
+func New(b *builtins.Builtins, p *plugins.Plugins, ss *statsd.Server) (*Server, error) {
 	s := Server{
 		logger:    log.With().Str("pkg", "server").Logger(),
+		builtins:  b,
 		plugins:   p,
 		statsdSvr: ss,
 	}

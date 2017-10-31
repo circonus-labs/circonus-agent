@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/circonus-labs/circonus-agent/internal/builtins"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/pkg/errors"
@@ -97,7 +98,12 @@ func TestRun(t *testing.T) {
 		t.Fatalf("new err %s", nerr)
 	}
 
-	if err := p.Scan(); err != nil {
+	b, err := builtins.New()
+	if err != nil {
+		t.Fatalf("expected NO error, got (%s)", err)
+	}
+
+	if err := p.Scan(b); err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
 
@@ -158,7 +164,12 @@ func TestFlush(t *testing.T) {
 		t.Fatalf("new err %s", nerr)
 	}
 
-	if err := p.Scan(); err != nil {
+	b, err := builtins.New()
+	if err != nil {
+		t.Fatalf("expected NO error, got (%s)", err)
+	}
+
+	if err := p.Scan(b); err != nil {
 		t.Fatalf("expected no error, got %s", err)
 	}
 	time.Sleep(2 * time.Second)
@@ -212,8 +223,12 @@ func TestIsValid(t *testing.T) {
 		t.Fatalf("new err %s", nerr)
 	}
 
-	err := p.Scan()
+	b, err := builtins.New()
 	if err != nil {
+		t.Fatalf("expected NO error, got (%s)", err)
+	}
+
+	if err := p.Scan(b); err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
 
@@ -255,8 +270,12 @@ func TestIsInternal(t *testing.T) {
 		t.Fatalf("new err %s", nerr)
 	}
 
-	err := p.Scan()
+	b, err := builtins.New()
 	if err != nil {
+		t.Fatalf("expected NO error, got (%s)", err)
+	}
+
+	if err := p.Scan(b); err != nil {
 		t.Fatalf("expected no error, got %s", err)
 	}
 
@@ -306,9 +325,14 @@ func TestInventory(t *testing.T) {
 		t.Fatalf("new err %s", nerr)
 	}
 
-	p.pluginDir = "testdata/" // set it back to relative so absolute path does not make test fail below
-	err := p.Scan()
+	b, err := builtins.New()
 	if err != nil {
+		t.Fatalf("expected NO error, got (%s)", err)
+	}
+
+	p.pluginDir = "testdata/" // set it back to relative so absolute path does not make test fail below
+
+	if err := p.Scan(b); err != nil {
 		t.Fatalf("expected no error, got %s", err)
 	}
 
