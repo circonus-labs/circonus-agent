@@ -24,9 +24,9 @@ import (
 // CPU metrics from the Linux ProcFS
 type CPU struct {
 	pfscommon
-	numCPU        float64
-	clockHZ       float64 // getconf CLK_TCK, may be overriden in config file
-	reportAllCPUs bool    // may be overriden in config file
+	numCPU        float64 // number of cpus
+	clockHZ       float64 // OPT getconf CLK_TCK, may be overriden in config file
+	reportAllCPUs bool    // OPT report all cpus (vs just total) may be overriden in config file
 }
 
 // cpuOptions defines what elements can be overriden in a config file
@@ -46,7 +46,7 @@ func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
 	c := CPU{}
 	c.id = "cpu"
 	c.file = "/proc/stat"
-	c.logger = log.With().Str("pkg", "builtins.procfs.c").Logger()
+	c.logger = log.With().Str("pkg", "procfs.cpu").Logger()
 	c.metricStatus = map[string]bool{}
 	c.metricDefaultActive = true
 
@@ -56,7 +56,7 @@ func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if cfgBaseName == "" {
 		if _, err := os.Stat(c.file); os.IsNotExist(err) {
-			return nil, errors.Wrap(err, "procfs")
+			return nil, errors.Wrap(err, "procfs.cpu")
 		}
 		return &c, nil
 	}
@@ -64,10 +64,10 @@ func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
 	var cfg cpuOptions
 	err := config.LoadConfigFile(cfgBaseName, &cfg)
 	if err != nil {
-		c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
 		if strings.Contains(err.Error(), "no config found matching") {
 			return &c, nil
 		}
+		c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
 		return nil, errors.Wrap(err, "procfs.cpu config")
 	}
 
@@ -119,13 +119,13 @@ func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.RunTTL != "" {
 		dur, err := time.ParseDuration(cfg.RunTTL)
 		if err != nil {
-			return nil, errors.Wrap(err, "wmi.processor parsing run_ttl")
+			return nil, errors.Wrap(err, "procfs.cpu parsing run_ttl")
 		}
 		c.runTTL = dur
 	}
 
 	if _, err := os.Stat(c.file); os.IsNotExist(err) {
-		return nil, errors.Wrap(err, "procfs")
+		return nil, errors.Wrap(err, "procfs.cpu")
 	}
 
 	return &c, nil

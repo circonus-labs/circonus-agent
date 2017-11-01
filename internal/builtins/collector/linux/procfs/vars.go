@@ -17,8 +17,8 @@ import (
 
 // pfscommon defines ProcFS metrics common elements
 type pfscommon struct {
-	file                string          // OPT proc file path, may be overriden in config file
 	id                  string          // OPT id of the collector (used as metric name prefix)
+	file                string          // OPT proc file path, may be overriden in config file
 	lastEnd             time.Time       // last collection end time
 	lastError           string          // last collection error
 	lastMetrics         cgm.Metrics     // last metrics collected
