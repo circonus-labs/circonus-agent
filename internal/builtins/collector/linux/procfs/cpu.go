@@ -150,27 +150,13 @@ func (c *CPU) Collect() error {
 		return collector.ErrAlreadyRunning
 	}
 
-	resetStatus := func(err error) {
-		c.Lock()
-		c.lastEnd = time.Now()
-		c.lastRunDuration = time.Since(c.lastStart)
-		if err != nil {
-			c.lastError = err.Error()
-			// on error, ensure metrics are reset
-			// do not keep returning a stale set of metrics
-			c.lastMetrics = cgm.Metrics{}
-		}
-		c.running = false
-		c.Unlock()
-	}
-
 	c.running = true
 	c.lastStart = time.Now()
 	c.Unlock()
 
 	f, err := os.Open(c.file)
 	if err != nil {
-		resetStatus(err)
+		c.setStatus(metrics, err)
 		return errors.Wrap(err, "procfs.cpu")
 	}
 	defer f.Close()
@@ -184,80 +170,36 @@ func (c *CPU) Collect() error {
 
 		switch {
 		case fields[0] == "processes":
-			metricName := fields[0]
-			found, active := c.metricStatus[metricName]
-			if found && !active {
-				continue
-			}
-			if !found && !c.metricDefaultActive {
-				continue
-			}
 			v, err := strconv.ParseUint(fields[1], 10, 64)
 			if err != nil {
-				resetStatus(err)
+				c.setStatus(metrics, err)
 				return errors.Wrapf(err, "parsing %s", fields[0])
 			}
-			metrics[metricName] = cgm.Metric{
-				Type:  "L",
-				Value: v,
-			}
+			c.addMetric(&metrics, c.id, fields[0], "L", v)
 
 		case fields[0] == "procs_running":
-			metricName := "procs_runnable"
-			found, active := c.metricStatus[metricName]
-			if found && !active {
-				continue
-			}
-			if !found && !c.metricDefaultActive {
-				continue
-			}
 			v, err := strconv.ParseUint(fields[1], 10, 64)
 			if err != nil {
-				resetStatus(err)
+				c.setStatus(metrics, err)
 				return errors.Wrapf(err, "parsing %s", fields[0])
 			}
-			metrics[metricName] = cgm.Metric{
-				Type:  "L",
-				Value: v,
-			}
+			c.addMetric(&metrics, c.id, "procs_runnable", "L", v)
 
 		case fields[0] == "procs_blocked":
-			metricName := fields[0]
-			found, active := c.metricStatus[metricName]
-			if found && !active {
-				continue
-			}
-			if !found && !c.metricDefaultActive {
-				continue
-			}
 			v, err := strconv.ParseUint(fields[1], 10, 64)
 			if err != nil {
-				resetStatus(err)
+				c.setStatus(metrics, err)
 				return errors.Wrapf(err, "parsing %s", fields[0])
 			}
-			metrics[metricName] = cgm.Metric{
-				Type:  "L",
-				Value: v,
-			}
+			c.addMetric(&metrics, c.id, fields[0], "L", v)
 
 		case fields[0] == "ctxt":
-			metricName := "context_switch"
-			found, active := c.metricStatus[metricName]
-			if found && !active {
-				continue
-			}
-			if !found && !c.metricDefaultActive {
-				continue
-			}
 			v, err := strconv.ParseUint(fields[1], 10, 64)
 			if err != nil {
-				resetStatus(err)
+				c.setStatus(metrics, err)
 				return errors.Wrapf(err, "parsing %s", fields[0])
 			}
-			metrics[metricName] = cgm.Metric{
-				Type:  "L",
-				Value: v,
-			}
+			c.addMetric(&metrics, c.id, "context_switch", "L", v)
 
 		case strings.HasPrefix(fields[0], "cpu"):
 			if fields[0] != "cpu" && !c.reportAllCPUs {
@@ -265,32 +207,21 @@ func (c *CPU) Collect() error {
 			}
 			cpuMetrics, err := c.parseCPU(fields)
 			if err != nil {
-				resetStatus(err)
+				c.setStatus(metrics, err)
 				return errors.Wrapf(err, "parsing %s", fields[0])
 			}
 			for mn, mv := range *cpuMetrics {
-				found, active := c.metricStatus[mn]
-				if found && !active {
-					continue
-				}
-				if !found && !c.metricDefaultActive {
-					continue
-				}
-				metrics[mn] = mv
+				c.addMetric(&metrics, c.id, mn, mv.Type, mv.Value)
 			}
 		}
 	}
 
 	if err := scanner.Err(); err != nil {
-		resetStatus(err)
+		c.setStatus(metrics, err)
 		return errors.Wrapf(err, "parsing %s", f.Name())
 	}
 
-	c.Lock()
-	c.lastMetrics = metrics
-	c.Unlock()
-
-	resetStatus(nil)
+	c.setStatus(metrics, nil)
 	return nil
 }
 
@@ -299,10 +230,10 @@ func (c *CPU) parseCPU(fields []string) (*cgm.Metrics, error) {
 	var metricBase string
 
 	if fields[0] == "cpu" {
-		metricBase = c.id + "`all"
+		metricBase = "total"
 		numCPU = c.numCPU // aggregate cpu metrics
 	} else {
-		metricBase = c.id + "`" + fields[0]
+		metricBase = fields[0]
 		numCPU = 1 // individual cpu metrics
 	}
 

@@ -63,7 +63,7 @@ func (c *pfscommon) cleanName(name string) string {
 
 // addMetric to internal buffer if metric is active
 func (c *pfscommon) addMetric(metrics *cgm.Metrics, prefix string, mname, mtype string, mval interface{}) {
-	mname = c.cleanName(mname)
+	//mname = c.cleanName(mname)
 	active, found := c.metricStatus[mname]
 
 	metricName := ""
