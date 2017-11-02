@@ -40,7 +40,7 @@ type diskOptions struct {
 	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
-type mdstat struct {
+type dstats struct {
 	id              string
 	readsCompleted  uint64
 	readsMerged     uint64
@@ -167,9 +167,6 @@ func (c *Disk) Collect() error {
 	c.lastStart = time.Now()
 	c.Unlock()
 
-	// aggregate stats for raids, if applicable
-	mdList, mdStats := c.readmdstat()
-
 	f, err := os.Open(c.file)
 	if err != nil {
 		c.setStatus(metrics, err)
@@ -177,13 +174,11 @@ func (c *Disk) Collect() error {
 	}
 	defer f.Close()
 
+	var stats map[string]*dstats
 	scanner := bufio.NewScanner(f)
-
-	metricType := "L" // uint64
-
 	for scanner.Scan() {
 
-		line := scanner.Text()
+		line := strings.TrimSpace(scanner.Text())
 		fields := strings.Fields(line)
 
 		//  1 major                ignore
@@ -204,107 +199,11 @@ func (c *Disk) Collect() error {
 			continue
 		}
 
-		devName := fields[2]
-		if c.exclude.MatchString(devName) || !c.include.MatchString(devName) {
-			continue
-		}
-
-		pfx := c.id + metricNameSeparator + devName
-
-		readsCompleted, err := strconv.ParseUint(fields[3], 10, 64)
+		ds, err := c.parse(fields)
 		if err != nil {
-			c.setStatus(metrics, err)
-			return errors.Wrap(err, "procfs.disk parsing field reads completed")
+			continue // parser logs error
 		}
-		c.addMetric(&metrics, pfx, "rd_completed", metricType, readsCompleted)
-
-		readsMerged, err := strconv.ParseUint(fields[4], 10, 64)
-		if err != nil {
-			c.setStatus(metrics, err)
-			return errors.Wrap(err, "procfs.disk parsing field reads merged")
-		}
-		c.addMetric(&metrics, pfx, "rd_merged", metricType, readsMerged)
-
-		sectorsRead, err := strconv.ParseUint(fields[5], 10, 64)
-		if err != nil {
-			c.setStatus(metrics, err)
-			return errors.Wrap(err, "procfs.disk parsing field sectors read")
-		}
-		c.addMetric(&metrics, pfx, "rd_sectors", metricType, sectorsRead)
-
-		readms, err := strconv.ParseUint(fields[6], 10, 64)
-		if err != nil {
-			c.setStatus(metrics, err)
-			return errors.Wrap(err, "procfs.disk parsing field read ms")
-		}
-		c.addMetric(&metrics, pfx, "rd_ms", metricType, readms)
-
-		writesCompleted, err := strconv.ParseUint(fields[7], 10, 64)
-		if err != nil {
-			c.setStatus(metrics, err)
-			return errors.Wrap(err, "procfs.disk parsing field writes completed")
-		}
-		c.addMetric(&metrics, pfx, "wr_completed", metricType, writesCompleted)
-
-		writesMerged, err := strconv.ParseUint(fields[8], 10, 64)
-		if err != nil {
-			c.setStatus(metrics, err)
-			return errors.Wrap(err, "procfs.disk parsing field writes merged")
-		}
-		c.addMetric(&metrics, pfx, "wr_merged", metricType, writesMerged)
-
-		sectorsWritten, err := strconv.ParseUint(fields[9], 10, 64)
-		if err != nil {
-			c.setStatus(metrics, err)
-			return errors.Wrap(err, "procfs.disk parsing field sectors written")
-		}
-		c.addMetric(&metrics, pfx, "wr_sectors", metricType, sectorsWritten)
-
-		writems, err := strconv.ParseUint(fields[10], 10, 64)
-		if err != nil {
-			c.setStatus(metrics, err)
-			return errors.Wrap(err, "procfs.disk parsing field write ms")
-		}
-		c.addMetric(&metrics, pfx, "wr_ms", metricType, writems)
-
-		currIO, err := strconv.ParseUint(fields[11], 10, 64)
-		if err != nil {
-			c.setStatus(metrics, err)
-			return errors.Wrap(err, "procfs.disk parsing field IO ops in progress")
-		}
-		c.addMetric(&metrics, pfx, "io_in_progress", metricType, currIO)
-
-		ioms, err := strconv.ParseUint(fields[12], 10, 64)
-		if err != nil {
-			c.setStatus(metrics, err)
-			return errors.Wrap(err, "procfs.disk parsing field IO ms")
-		}
-		c.addMetric(&metrics, pfx, "io_ms", metricType, ioms)
-
-		iomsWeighted, err := strconv.ParseUint(fields[13], 10, 64)
-		if err != nil {
-			c.setStatus(metrics, err)
-			return errors.Wrap(err, "procfs.disk parsing field weighted IO ms")
-		}
-		c.addMetric(&metrics, pfx, "io_ms_weighted", metricType, iomsWeighted)
-
-		if mdID, ok := mdList[devName]; ok {
-			if md, ok := mdStats[mdID]; ok {
-				md.readsCompleted += readsCompleted
-				md.readsMerged += readsMerged
-				md.sectorsRead += sectorsRead
-				md.readms += readms
-
-				md.writesCompleted += writesCompleted
-				md.writesMerged += writesMerged
-				md.sectorsWritten += sectorsWritten
-				md.writems += writems
-
-				md.currIO += currIO
-				md.ioms += ioms
-				md.iomsWeighted += iomsWeighted
-			}
-		}
+		stats[ds.id] = ds
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -312,33 +211,204 @@ func (c *Disk) Collect() error {
 		return errors.Wrapf(err, "procfs.disk parsing %s", f.Name())
 	}
 
-	for _, md := range mdStats {
-		pfx := c.id + metricNameSeparator + md.id
-		c.addMetric(&metrics, pfx, "rd_completed", metricType, md.readsCompleted)
-		c.addMetric(&metrics, pfx, "rd_merged", metricType, md.readsMerged)
-		c.addMetric(&metrics, pfx, "rd_sectors", metricType, md.sectorsRead)
-		c.addMetric(&metrics, pfx, "rd_ms", metricType, md.readms)
-		c.addMetric(&metrics, pfx, "wr_completed", metricType, md.writesCompleted)
-		c.addMetric(&metrics, pfx, "wr_merged", metricType, md.writesMerged)
-		c.addMetric(&metrics, pfx, "wr_sectors", metricType, md.sectorsWritten)
-		c.addMetric(&metrics, pfx, "wr_ms", metricType, md.writems)
-		c.addMetric(&metrics, pfx, "io_in_progress", metricType, md.currIO)
-		c.addMetric(&metrics, pfx, "io_ms", metricType, md.ioms)
-		c.addMetric(&metrics, pfx, "io_ms_weighted", metricType, md.iomsWeighted)
+	// get list of devices for each entry in mdstats (if it exists)
+	mdList := c.parsemdstat()
+	mdrx := regexp.MustCompile(`^md[0-9]+`)
+	pfx := c.id + metricNameSeparator
+	metricType := "L" // uint64
+	for devID, devStats := range stats {
+		if mdrx.MatchString(devID) { // is it an md device?
+			if devList, ok := mdList[devID]; ok { // have device list for it?
+				for _, dev := range devList {
+					if ds, found := stats[dev]; found { // have stats for the device?
+						//
+						// original diskstats.sh only aggregates a subset of metrics
+						//
+						// unclear why _only_ these specific metrics, seems logical that
+						// it would be an all or nothing scenario.
+						//
+						// seeking documentation supporting only the aggregation
+						// of a subset of the metrics
+
+						// devStats.readsCompleted += ds.readsCompleted
+						// devStats.readsMerged += ds.readsMerged
+						// devStats.sectorsRead += ds.sectorsRead
+						devStats.readms += ds.readms
+
+						// devStats.writesCompleted += ds.writesCompleted
+						// devStats.writesMerged += ds.writesMerged
+						// devStats.sectorsWritten += ds.sectorsWritten
+						devStats.writems += ds.writems
+
+						devStats.currIO += ds.currIO
+						devStats.ioms += ds.ioms
+						// devStats.iomsWeighted += ds.iomsWeighted
+					}
+				}
+			}
+		}
+
+		// do the exclusions here, if the device is part of an md its
+		// metrics need to be included in the aggregation
+		if c.exclude.MatchString(devID) || !c.include.MatchString(devID) {
+			c.logger.Debug().Str("device", devID).Msg("excluded device name, ignoring")
+			continue
+		}
+
+		c.addMetric(&metrics, pfx+devID, "rd_completed", metricType, devStats.readsCompleted)
+		c.addMetric(&metrics, pfx+devID, "rd_merged", metricType, devStats.readsMerged)
+		c.addMetric(&metrics, pfx+devID, "rd_sectors", metricType, devStats.sectorsRead)
+		c.addMetric(&metrics, pfx+devID, "rd_ms", metricType, devStats.readms)
+		c.addMetric(&metrics, pfx+devID, "wr_completed", metricType, devStats.writesCompleted)
+		c.addMetric(&metrics, pfx+devID, "wr_merged", metricType, devStats.writesMerged)
+		c.addMetric(&metrics, pfx+devID, "wr_sectors", metricType, devStats.sectorsWritten)
+		c.addMetric(&metrics, pfx+devID, "wr_ms", metricType, devStats.writems)
+		c.addMetric(&metrics, pfx+devID, "io_in_progress", metricType, devStats.currIO)
+		c.addMetric(&metrics, pfx+devID, "io_ms", metricType, devStats.ioms)
+		c.addMetric(&metrics, pfx+devID, "io_ms_weighted", metricType, devStats.iomsWeighted)
 	}
 
 	c.setStatus(metrics, nil)
 	return nil
 }
 
-func (c *Disk) readmdstat() (map[string]string, map[string]*mdstat) {
+func (c *Disk) parse(fields []string) (*dstats, error) {
+	devName := fields[2]
+	if devName == "" {
+		c.logger.Debug().Msg("invalid device name (empty), ignoring")
+		return nil, errors.New("invalid device name (empty)")
+	}
+
+	pe := errors.New("parsing field")
+	d := dstats{
+		id: devName,
+	}
+
+	if v, err := strconv.ParseUint(fields[3], 10, 64); err == nil {
+		d.readsCompleted = v
+	} else {
+		c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field reads completed")
+		return nil, pe
+	}
+
+	if v, err := strconv.ParseUint(fields[4], 10, 64); err == nil {
+		d.readsMerged = v
+	} else {
+		c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field reads merged")
+		return nil, pe
+	}
+
+	if v, err := strconv.ParseUint(fields[5], 10, 64); err == nil {
+		d.sectorsRead = v
+	} else {
+		c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field sectors read")
+		return nil, pe
+	}
+
+	if v, err := strconv.ParseUint(fields[6], 10, 64); err == nil {
+		d.readms = v
+	} else {
+		c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field read ms")
+		return nil, pe
+	}
+
+	if v, err := strconv.ParseUint(fields[7], 10, 64); err == nil {
+		d.writesCompleted = v
+	} else {
+		c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field writes completed")
+		return nil, pe
+	}
+
+	if v, err := strconv.ParseUint(fields[8], 10, 64); err == nil {
+		d.writesMerged = v
+	} else {
+		c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field writes merged")
+		return nil, pe
+	}
+
+	if v, err := strconv.ParseUint(fields[9], 10, 64); err == nil {
+		d.sectorsWritten = v
+	} else {
+		c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field sectors written")
+		return nil, pe
+	}
+
+	if v, err := strconv.ParseUint(fields[10], 10, 64); err == nil {
+		d.writems = v
+	} else {
+		c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field write ms")
+		return nil, pe
+	}
+
+	if v, err := strconv.ParseUint(fields[11], 10, 64); err == nil {
+		d.currIO = v
+	} else {
+		c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field IO ops in progress")
+		return nil, pe
+	}
+
+	if v, err := strconv.ParseUint(fields[12], 10, 64); err == nil {
+		d.ioms = v
+	} else {
+		c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field IO ms")
+		return nil, pe
+	}
+
+	if v, err := strconv.ParseUint(fields[13], 10, 64); err == nil {
+		d.iomsWeighted = v
+	} else {
+		c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field weighted IO ms")
+		return nil, pe
+	}
+
+	return &d, nil
+}
+
+func (c *Disk) parsemdstat() map[string][]string {
 	mdstatPath := strings.Replace(c.file, "diskstats", "mdstat", -1)
-	mdList := make(map[string]string)
-	mdStats := make(map[string]*mdstat)
+	mdList := make(map[string][]string)
 	f, err := os.Open(mdstatPath)
 	if err != nil {
-		return mdList, mdStats
+		c.logger.Debug().Err(err).Str("mdstats", mdstatPath).Msg("loading mdstats, ignoring")
+		return mdList
 	}
 	defer f.Close()
-	return mdList, mdStats
+
+	scanner := bufio.NewScanner(f)
+	mdrx := regexp.MustCompile(`^md[0-9]+`)
+	devrx := regexp.MustCompile(`^([^\[]+)\[.+$`)
+	for scanner.Scan() {
+
+		line := strings.TrimSpace(scanner.Text())
+		fields := strings.Fields(line)
+
+		if !mdrx.MatchString(fields[0]) {
+			continue
+		}
+		mdID := fields[0]
+		// md0 : active raid1 sdb1[1] sda1[0]
+		// 1 md name
+		// 2 colon
+		// 3 status
+		// 4 type
+		// 5+ devices
+		if len(fields) < 5 {
+			continue
+		}
+
+		// extract list of devices in the md
+		devList := []string{}
+		for i := 4; i < len(fields); i++ {
+			devID := devrx.ReplaceAllString(fields[i], `$1`)
+			devList = append(devList, devID)
+		}
+
+		mdList[mdID] = devList
+	}
+
+	if err := scanner.Err(); err != nil {
+		c.logger.Debug().Err(err).Str("mdstats", mdstatPath).Msg("loading mdstats, ignoring")
+		return map[string][]string{}
+	}
+	return mdList
 }
