@@ -81,21 +81,21 @@ func TestNewCPUCollector(t *testing.T) {
 		}
 	}
 
-	t.Log("config (file setting)")
+	t.Log("config (procfs path setting)")
 	{
-		c, err := NewCPUCollector(filepath.Join("testdata", "config_file_valid_setting"))
+		c, err := NewCPUCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"))
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		expect := "testdata/centos-7.2.stat"
-		if c.(*CPU).file != expect {
-			t.Fatalf("expected (%s), got (%s)", expect, c.(*CPU).file)
+		expect := "testdata"
+		if c.(*CPU).procFSPath != expect {
+			t.Fatalf("expected (%s), got (%s)", expect, c.(*CPU).procFSPath)
 		}
 	}
 
-	t.Log("config (file setting invalid)")
+	t.Log("config (procfs path setting invalid)")
 	{
-		_, err := NewCPUCollector(filepath.Join("testdata", "config_file_invalid_setting"))
+		_, err := NewCPUCollector(filepath.Join("testdata", "config_procfs_path_invalid_setting"))
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -263,7 +263,7 @@ func TestCPUCollect(t *testing.T) {
 
 	t.Log("already running")
 	{
-		c, err := NewCPUCollector(filepath.Join("testdata", "config_file_valid_setting"))
+		c, err := NewCPUCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"))
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -281,7 +281,7 @@ func TestCPUCollect(t *testing.T) {
 
 	t.Log("ttl not expired")
 	{
-		c, err := NewCPUCollector(filepath.Join("testdata", "config_file_valid_setting"))
+		c, err := NewCPUCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"))
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -300,7 +300,7 @@ func TestCPUCollect(t *testing.T) {
 
 	t.Log("good")
 	{
-		c, err := NewCPUCollector(filepath.Join("testdata", "config_file_valid_setting"))
+		c, err := NewCPUCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"))
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}

@@ -9,6 +9,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -30,14 +31,17 @@ type Disk struct {
 
 // diskOptions defines what elements can be overriden in a config file
 type diskOptions struct {
+	// common
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	File                 string   `json:"proc_file" toml:"proc_file" yaml:"proc_file"`
-	IncludeRegex         string   `json:"inlcude_regex" toml:"inlcude_regex" yaml:"inlcude_regex"`
-	ExcludeRegex         string   `json:"exclude_regex" toml:"exclude_regex" yaml:"exclude_regex"`
+	ProcFSPath           string   `json:"procfs_path" toml:"procfs_path" yaml:"procfs_path"`
 	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
 	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
 	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
 	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
+
+	// collector specific
+	IncludeRegex string `json:"inlcude_regex" toml:"inlcude_regex" yaml:"inlcude_regex"`
+	ExcludeRegex string `json:"exclude_regex" toml:"exclude_regex" yaml:"exclude_regex"`
 }
 
 type dstats struct {
@@ -59,7 +63,8 @@ type dstats struct {
 func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 	c := Disk{}
 	c.id = "disk"
-	c.file = "/proc/diskstats"
+	c.procFSPath = "/proc"
+	c.file = filepath.Join(c.procFSPath, "diskstats")
 	c.logger = log.With().Str("pkg", "procfs.disk").Logger()
 	c.metricStatus = map[string]bool{}
 	c.metricDefaultActive = true
@@ -74,8 +79,8 @@ func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 		return &c, nil
 	}
 
-	var cfg diskOptions
-	err := config.LoadConfigFile(cfgBaseName, &cfg)
+	var opts diskOptions
+	err := config.LoadConfigFile(cfgBaseName, &opts)
 	if err != nil {
 		if strings.Contains(err.Error(), "no config found matching") {
 			return &c, nil
@@ -84,53 +89,54 @@ func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 		return nil, errors.Wrap(err, "procfs.disk config")
 	}
 
-	c.logger.Debug().Interface("config", cfg).Msg("loaded config")
+	c.logger.Debug().Interface("config", opts).Msg("loaded config")
 
-	if cfg.File != "" {
-		c.file = cfg.File
-	}
-
-	if cfg.IncludeRegex != "" {
-		rx, err := regexp.Compile(fmt.Sprintf(regexPat, cfg.IncludeRegex))
+	if opts.IncludeRegex != "" {
+		rx, err := regexp.Compile(fmt.Sprintf(regexPat, opts.IncludeRegex))
 		if err != nil {
 			return nil, errors.Wrap(err, "procfs.disk compiling include regex")
 		}
 		c.include = rx
 	}
 
-	if cfg.ExcludeRegex != "" {
-		rx, err := regexp.Compile(fmt.Sprintf(regexPat, cfg.ExcludeRegex))
+	if opts.ExcludeRegex != "" {
+		rx, err := regexp.Compile(fmt.Sprintf(regexPat, opts.ExcludeRegex))
 		if err != nil {
 			return nil, errors.Wrap(err, "procfs.disk compiling exclude regex")
 		}
 		c.exclude = rx
 	}
 
-	if cfg.ID != "" {
-		c.id = cfg.ID
+	if opts.ID != "" {
+		c.id = opts.ID
 	}
 
-	if len(cfg.MetricsEnabled) > 0 {
-		for _, name := range cfg.MetricsEnabled {
+	if opts.ProcFSPath != "" {
+		c.procFSPath = opts.ProcFSPath
+		c.file = filepath.Join(c.procFSPath, "diskstats")
+	}
+
+	if len(opts.MetricsEnabled) > 0 {
+		for _, name := range opts.MetricsEnabled {
 			c.metricStatus[name] = true
 		}
 	}
-	if len(cfg.MetricsDisabled) > 0 {
-		for _, name := range cfg.MetricsDisabled {
+	if len(opts.MetricsDisabled) > 0 {
+		for _, name := range opts.MetricsDisabled {
 			c.metricStatus[name] = false
 		}
 	}
 
-	if cfg.MetricsDefaultStatus != "" {
-		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == metricStatusEnabled
+	if opts.MetricsDefaultStatus != "" {
+		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(opts.MetricsDefaultStatus)); ok {
+			c.metricDefaultActive = strings.ToLower(opts.MetricsDefaultStatus) == metricStatusEnabled
 		} else {
-			return nil, errors.Errorf("procfs.disk invalid metric default status (%s)", cfg.MetricsDefaultStatus)
+			return nil, errors.Errorf("procfs.disk invalid metric default status (%s)", opts.MetricsDefaultStatus)
 		}
 	}
 
-	if cfg.RunTTL != "" {
-		dur, err := time.ParseDuration(cfg.RunTTL)
+	if opts.RunTTL != "" {
+		dur, err := time.ParseDuration(opts.RunTTL)
 		if err != nil {
 			return nil, errors.Wrap(err, "procfs.disk parsing run_ttl")
 		}

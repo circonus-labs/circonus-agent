@@ -8,6 +8,7 @@ package procfs
 import (
 	"bufio"
 	"os"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -27,25 +28,30 @@ type CPU struct {
 	numCPU        float64 // number of cpus
 	clockHZ       float64 // OPT getconf CLK_TCK, may be overriden in config file
 	reportAllCPUs bool    // OPT report all cpus (vs just total) may be overriden in config file
+	file          string
 }
 
 // cpuOptions defines what elements can be overriden in a config file
 type cpuOptions struct {
+	// common
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	File                 string   `json:"proc_file" toml:"proc_file" yaml:"proc_file"`
-	ClockHZ              string   `json:"clock_hz" toml:"clock_hz" yaml:"clock_hz"`
-	AllCPU               string   `json:"report_all_cpus" toml:"report_all_cpus" yaml:"report_all_cpus"`
+	ProcFSPath           string   `json:"procfs_path" toml:"procfs_path" yaml:"procfs_path"`
 	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
 	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
 	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
 	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
+
+	// collector specific
+	ClockHZ string `json:"clock_hz" toml:"clock_hz" yaml:"clock_hz"`
+	AllCPU  string `json:"report_all_cpus" toml:"report_all_cpus" yaml:"report_all_cpus"`
 }
 
 // NewCPUCollector creates new procfs cpu collector
 func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
 	c := CPU{}
 	c.id = "cpu"
-	c.file = "/proc/stat"
+	c.procFSPath = "/proc"
+	c.file = filepath.Join(c.procFSPath, "stat")
 	c.logger = log.With().Str("pkg", "procfs.cpu").Logger()
 	c.metricStatus = map[string]bool{}
 	c.metricDefaultActive = true
@@ -61,8 +67,8 @@ func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
 		return &c, nil
 	}
 
-	var cfg cpuOptions
-	err := config.LoadConfigFile(cfgBaseName, &cfg)
+	var opts cpuOptions
+	err := config.LoadConfigFile(cfgBaseName, &opts)
 	if err != nil {
 		if strings.Contains(err.Error(), "no config found matching") {
 			return &c, nil
@@ -71,53 +77,54 @@ func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
 		return nil, errors.Wrap(err, "procfs.cpu config")
 	}
 
-	c.logger.Debug().Interface("config", cfg).Msg("loaded config")
+	c.logger.Debug().Interface("config", opts).Msg("loaded config")
 
-	if cfg.File != "" {
-		c.file = cfg.File
-	}
-
-	if cfg.ClockHZ != "" {
-		v, err := strconv.ParseFloat(cfg.ClockHZ, 64)
+	if opts.ClockHZ != "" {
+		v, err := strconv.ParseFloat(opts.ClockHZ, 64)
 		if err != nil {
 			return nil, errors.Wrap(err, "procfs.cpu parsing clock_hz")
 		}
 		c.clockHZ = v
 	}
 
-	if cfg.AllCPU != "" {
-		rpt, err := strconv.ParseBool(cfg.AllCPU)
+	if opts.AllCPU != "" {
+		rpt, err := strconv.ParseBool(opts.AllCPU)
 		if err != nil {
 			return nil, errors.Wrap(err, "procfs.cpu parsing report_all_cpus")
 		}
 		c.reportAllCPUs = rpt
 	}
 
-	if cfg.ID != "" {
-		c.id = cfg.ID
+	if opts.ID != "" {
+		c.id = opts.ID
 	}
 
-	if len(cfg.MetricsEnabled) > 0 {
-		for _, name := range cfg.MetricsEnabled {
+	if opts.ProcFSPath != "" {
+		c.procFSPath = opts.ProcFSPath
+		c.file = filepath.Join(c.procFSPath, "stat")
+	}
+
+	if len(opts.MetricsEnabled) > 0 {
+		for _, name := range opts.MetricsEnabled {
 			c.metricStatus[name] = true
 		}
 	}
-	if len(cfg.MetricsDisabled) > 0 {
-		for _, name := range cfg.MetricsDisabled {
+	if len(opts.MetricsDisabled) > 0 {
+		for _, name := range opts.MetricsDisabled {
 			c.metricStatus[name] = false
 		}
 	}
 
-	if cfg.MetricsDefaultStatus != "" {
-		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == metricStatusEnabled
+	if opts.MetricsDefaultStatus != "" {
+		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(opts.MetricsDefaultStatus)); ok {
+			c.metricDefaultActive = strings.ToLower(opts.MetricsDefaultStatus) == metricStatusEnabled
 		} else {
-			return nil, errors.Errorf("procfs.cpu invalid metric default status (%s)", cfg.MetricsDefaultStatus)
+			return nil, errors.Errorf("procfs.cpu invalid metric default status (%s)", opts.MetricsDefaultStatus)
 		}
 	}
 
-	if cfg.RunTTL != "" {
-		dur, err := time.ParseDuration(cfg.RunTTL)
+	if opts.RunTTL != "" {
+		dur, err := time.ParseDuration(opts.RunTTL)
 		if err != nil {
 			return nil, errors.Wrap(err, "procfs.cpu parsing run_ttl")
 		}
