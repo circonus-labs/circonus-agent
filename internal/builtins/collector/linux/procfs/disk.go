@@ -40,7 +40,7 @@ type diskOptions struct {
 	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 
 	// collector specific
-	IncludeRegex string `json:"inlcude_regex" toml:"inlcude_regex" yaml:"inlcude_regex"`
+	IncludeRegex string `json:"include_regex" toml:"include_regex" yaml:"include_regex"`
 	ExcludeRegex string `json:"exclude_regex" toml:"exclude_regex" yaml:"exclude_regex"`
 }
 
@@ -89,7 +89,7 @@ func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 		return nil, errors.Wrap(err, "procfs.disk config")
 	}
 
-	c.logger.Debug().Interface("config", opts).Msg("loaded config")
+	c.logger.Debug().Str("base", cfgBaseName).Interface("config", opts).Msg("loaded config")
 
 	if opts.IncludeRegex != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, opts.IncludeRegex))
@@ -180,7 +180,7 @@ func (c *Disk) Collect() error {
 	}
 	defer f.Close()
 
-	var stats map[string]*dstats
+	stats := make(map[string]*dstats)
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 
@@ -227,28 +227,11 @@ func (c *Disk) Collect() error {
 			if devList, ok := mdList[devID]; ok { // have device list for it?
 				for _, dev := range devList {
 					if ds, found := stats[dev]; found { // have stats for the device?
-						//
-						// original diskstats.sh only aggregates a subset of metrics
-						//
-						// unclear why _only_ these specific metrics, seems logical that
-						// it would be an all or nothing scenario.
-						//
-						// seeking documentation supporting only the aggregation
-						// of a subset of the metrics
-
-						// devStats.readsCompleted += ds.readsCompleted
-						// devStats.readsMerged += ds.readsMerged
-						// devStats.sectorsRead += ds.sectorsRead
+						// aggregate timings from disks included in raid
 						devStats.readms += ds.readms
-
-						// devStats.writesCompleted += ds.writesCompleted
-						// devStats.writesMerged += ds.writesMerged
-						// devStats.sectorsWritten += ds.sectorsWritten
 						devStats.writems += ds.writems
-
 						devStats.currIO += ds.currIO
 						devStats.ioms += ds.ioms
-						// devStats.iomsWeighted += ds.iomsWeighted
 					}
 				}
 			}

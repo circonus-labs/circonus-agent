@@ -8,10 +8,18 @@ package procfs
 import (
 	"runtime"
 	"testing"
+
+	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/spf13/viper"
 )
 
 func TestNew(t *testing.T) {
 	t.Log("Testing New")
+
+	viper.Set(config.KeyCollectors, []string{
+		"cpu",
+		"disk",
+	})
 
 	c, err := New()
 	if err != nil {

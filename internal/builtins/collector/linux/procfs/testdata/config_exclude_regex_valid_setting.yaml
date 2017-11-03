@@ -1,0 +1,3 @@
+---
+exclude_regex: ^foo
+procfs_path: testdata/
