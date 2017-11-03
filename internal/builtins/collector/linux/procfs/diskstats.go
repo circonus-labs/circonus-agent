@@ -22,15 +22,15 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Disk metrics from the Linux ProcFS
-type Disk struct {
+// Diskstats metrics from the Linux ProcFS
+type Diskstats struct {
 	pfscommon
 	include *regexp.Regexp
 	exclude *regexp.Regexp
 }
 
-// diskOptions defines what elements can be overriden in a config file
-type diskOptions struct {
+// diskstatsOptions defines what elements can be overriden in a config file
+type diskstatsOptions struct {
 	// common
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
 	ProcFSPath           string   `json:"procfs_path" toml:"procfs_path" yaml:"procfs_path"`
@@ -59,13 +59,13 @@ type dstats struct {
 	iomsWeighted    uint64
 }
 
-// NewDiskCollector creates new procfs cpu collector
-func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
-	c := Disk{}
-	c.id = "disk"
+// NewDiskstatsCollector creates new procfs cpu collector
+func NewDiskstatsCollector(cfgBaseName string) (collector.Collector, error) {
+	c := Diskstats{}
+	c.id = "diskstats"
 	c.procFSPath = "/proc"
 	c.file = filepath.Join(c.procFSPath, "diskstats")
-	c.logger = log.With().Str("pkg", "procfs.disk").Logger()
+	c.logger = log.With().Str("pkg", "procfs.diskstats").Logger()
 	c.metricStatus = map[string]bool{}
 	c.metricDefaultActive = true
 
@@ -74,19 +74,19 @@ func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if cfgBaseName == "" {
 		if _, err := os.Stat(c.file); os.IsNotExist(err) {
-			return nil, errors.Wrap(err, "procfs.disk")
+			return nil, errors.Wrap(err, "procfs.diskstats")
 		}
 		return &c, nil
 	}
 
-	var opts diskOptions
+	var opts diskstatsOptions
 	err := config.LoadConfigFile(cfgBaseName, &opts)
 	if err != nil {
 		if strings.Contains(err.Error(), "no config found matching") {
 			return &c, nil
 		}
 		c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-		return nil, errors.Wrap(err, "procfs.disk config")
+		return nil, errors.Wrap(err, "procfs.diskstats config")
 	}
 
 	c.logger.Debug().Str("base", cfgBaseName).Interface("config", opts).Msg("loaded config")
@@ -94,7 +94,7 @@ func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 	if opts.IncludeRegex != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, opts.IncludeRegex))
 		if err != nil {
-			return nil, errors.Wrap(err, "procfs.disk compiling include regex")
+			return nil, errors.Wrap(err, "procfs.diskstats compiling include regex")
 		}
 		c.include = rx
 	}
@@ -102,7 +102,7 @@ func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 	if opts.ExcludeRegex != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, opts.ExcludeRegex))
 		if err != nil {
-			return nil, errors.Wrap(err, "procfs.disk compiling exclude regex")
+			return nil, errors.Wrap(err, "procfs.diskstats compiling exclude regex")
 		}
 		c.exclude = rx
 	}
@@ -131,27 +131,27 @@ func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(opts.MetricsDefaultStatus)); ok {
 			c.metricDefaultActive = strings.ToLower(opts.MetricsDefaultStatus) == metricStatusEnabled
 		} else {
-			return nil, errors.Errorf("procfs.disk invalid metric default status (%s)", opts.MetricsDefaultStatus)
+			return nil, errors.Errorf("procfs.diskstats invalid metric default status (%s)", opts.MetricsDefaultStatus)
 		}
 	}
 
 	if opts.RunTTL != "" {
 		dur, err := time.ParseDuration(opts.RunTTL)
 		if err != nil {
-			return nil, errors.Wrap(err, "procfs.disk parsing run_ttl")
+			return nil, errors.Wrap(err, "procfs.diskstats parsing run_ttl")
 		}
 		c.runTTL = dur
 	}
 
 	if _, err := os.Stat(c.file); os.IsNotExist(err) {
-		return nil, errors.Wrap(err, "procfs.disk")
+		return nil, errors.Wrap(err, "procfs.diskstats")
 	}
 
 	return &c, nil
 }
 
 // Collect metrics from the procfs resource
-func (c *Disk) Collect() error {
+func (c *Diskstats) Collect() error {
 	metrics := cgm.Metrics{}
 
 	c.Lock()
@@ -176,7 +176,7 @@ func (c *Disk) Collect() error {
 	f, err := os.Open(c.file)
 	if err != nil {
 		c.setStatus(metrics, err)
-		return errors.Wrap(err, "procfs.disk")
+		return errors.Wrap(err, "procfs.diskstats")
 	}
 	defer f.Close()
 
@@ -214,7 +214,7 @@ func (c *Disk) Collect() error {
 
 	if err := scanner.Err(); err != nil {
 		c.setStatus(cgm.Metrics{}, err)
-		return errors.Wrapf(err, "procfs.disk parsing %s", f.Name())
+		return errors.Wrapf(err, "procfs.diskstats parsing %s", f.Name())
 	}
 
 	// get list of devices for each entry in mdstats (if it exists)
@@ -261,7 +261,7 @@ func (c *Disk) Collect() error {
 	return nil
 }
 
-func (c *Disk) parse(fields []string) (*dstats, error) {
+func (c *Diskstats) parse(fields []string) (*dstats, error) {
 	devName := fields[2]
 	if devName == "" {
 		c.logger.Debug().Msg("invalid device name (empty), ignoring")
@@ -353,7 +353,7 @@ func (c *Disk) parse(fields []string) (*dstats, error) {
 	return &d, nil
 }
 
-func (c *Disk) parsemdstat() map[string][]string {
+func (c *Diskstats) parsemdstat() map[string][]string {
 	mdstatPath := strings.Replace(c.file, "diskstats", "mdstat", -1)
 	mdList := make(map[string][]string)
 	f, err := os.Open(mdstatPath)
