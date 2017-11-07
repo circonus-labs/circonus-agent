@@ -33,45 +33,43 @@ func New() ([]collector.Collector, error) {
 	}
 
 	collectors := make([]collector.Collector, len(enbledCollectors))
+	initErrMsg := "initializing builtin collector"
 	for _, name := range enbledCollectors {
 		switch name {
 		case "cpu":
-			c, err := NewCPUCollector(path.Join(defaults.EtcPath, "cpu"))
+			c, err := NewCPUCollector(path.Join(defaults.EtcPath, name))
 			if err != nil {
-				l.Error().
-					Str("name", name).
-					Err(err).
-					Msg("initializing builtin collector")
-			} else {
-				collectors = append(collectors, c)
+				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
+				continue
 			}
+			collectors = append(collectors, c)
 
 		case "diskstats":
-			c, err := NewDiskstatsCollector(path.Join(defaults.EtcPath, "diskstats"))
+			c, err := NewDiskstatsCollector(path.Join(defaults.EtcPath, name))
 			if err != nil {
-				l.Error().
-					Str("name", name).
-					Err(err).
-					Msg("initializing builtin collector")
-			} else {
-				collectors = append(collectors, c)
+				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
+				continue
 			}
+			collectors = append(collectors, c)
 
 		case "if":
-			c, err := NewIFCollector(path.Join(defaults.EtcPath, "if"))
+			c, err := NewIFCollector(path.Join(defaults.EtcPath, name))
 			if err != nil {
-				l.Error().
-					Str("name", name).
-					Err(err).
-					Msg("initializing builtin collector")
-			} else {
-				collectors = append(collectors, c)
+				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
+				continue
 			}
+			collectors = append(collectors, c)
+
+		case "vm":
+			c, err := NewVMCollector(path.Join(defaults.EtcPath, name))
+			if err != nil {
+				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
+				continue
+			}
+			collectors = append(collectors, c)
 
 		default:
-			l.Warn().
-				Str("name", name).
-				Msg("unknown builtin collector, ignoring")
+			l.Warn().Str("name", name).Msg("unknown builtin collector, ignoring")
 		}
 	}
 
