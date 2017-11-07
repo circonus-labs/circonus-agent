@@ -167,6 +167,9 @@ func init() {
 	case "linux":
 		Collectors = []string{
 			"cpu",
+			"diskstats",
+			"if",
+			"vm",
 		}
 	case "windows":
 		Collectors = []string{
