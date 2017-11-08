@@ -12,6 +12,7 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	cgm "github.com/circonus-labs/circonus-gometrics"
+	"github.com/pkg/errors"
 )
 
 // Define stubs to satisfy the collector.Collector interface.
@@ -64,20 +65,34 @@ func (c *wmicommon) cleanName(name string) string {
 }
 
 // addMetric to internal buffer if metric is active
-func (c *wmicommon) addMetric(metrics *cgm.Metrics, prefix string, mname, mtype string, mval interface{}) {
+func (c *wmicommon) addMetric(metrics *cgm.Metrics, prefix string, mname, mtype string, mval interface{}) error {
+	if metrics == nil {
+		return errors.New("invalid metric submission")
+	}
+
+	if mname == "" {
+		return errors.New("invalid metric, no name")
+	}
+
+	if mtype == "" {
+		return errors.New("invalid metric, no type")
+	}
+
+	// cleanup the raw metric name, if needed
 	mname = c.cleanName(mname)
+	// check status of cleaned metric name
 	active, found := c.metricStatus[mname]
 
-	metricName := ""
-	if prefix != "" {
-		metricName = prefix + "`" + mname
-	} else {
-		metricName = mname
+	if (found && active) || (!found && c.metricDefaultActive) {
+		metricName := mname
+		if prefix != "" {
+			metricName = prefix + metricNameSeparator + mname
+		}
+		(*metrics)[metricName] = cgm.Metric{Type: mtype, Value: mval}
+		return nil
 	}
 
-	if (found && active) || (!found && c.metricDefaultActive) {
-		(*metrics)[metricName] = cgm.Metric{Type: mtype, Value: mval}
-	}
+	return errors.Errorf("metric (%s) not active", mname)
 }
 
 // setStatus is used in Collect to set the collector status
@@ -93,7 +108,9 @@ func (c *wmicommon) setStatus(metrics cgm.Metrics, err error) {
 		c.lastMetrics = cgm.Metrics{}
 	}
 	c.lastEnd = time.Now()
-	c.lastRunDuration = time.Since(c.lastStart)
+	if !c.lastStart.IsZero() {
+		c.lastRunDuration = time.Since(c.lastStart)
+	}
 	c.running = false
 	c.Unlock()
 }
