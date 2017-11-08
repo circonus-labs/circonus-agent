@@ -3,6 +3,8 @@
 // license that can be found in the LICENSE file.
 //
 
+// +build linux
+
 package procfs
 
 import (
@@ -10,6 +12,7 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	cgm "github.com/circonus-labs/circonus-gometrics"
+	"github.com/pkg/errors"
 )
 
 // Define stubs to satisfy the collector.Collector interface.
@@ -58,24 +61,42 @@ func (c *pfscommon) Inventory() collector.InventoryStats {
 
 // cleanName is used to clean the metric name
 func (c *pfscommon) cleanName(name string) string {
-	return c.metricNameRegex.ReplaceAllString(name, c.metricNameChar)
+	// metric names are not dynamic for linux procfs - reintroduce cleaner if
+	// procfs sources used return dirty dynamic names.
+	//
+	// return c.metricNameRegex.ReplaceAllString(name, c.metricNameChar)
+	return name
 }
 
 // addMetric to internal buffer if metric is active
-func (c *pfscommon) addMetric(metrics *cgm.Metrics, prefix string, mname, mtype string, mval interface{}) {
-	//mname = c.cleanName(mname)
+func (c *pfscommon) addMetric(metrics *cgm.Metrics, prefix string, mname, mtype string, mval interface{}) error {
+	if metrics == nil {
+		return errors.New("invalid metric submission")
+	}
+
+	if mname == "" {
+		return errors.New("invalid metric, no name")
+	}
+
+	if mtype == "" {
+		return errors.New("invalid metric, no type")
+	}
+
+	// cleanup the raw metric name, if needed
+	mname = c.cleanName(mname)
+	// check status of cleaned metric name
 	active, found := c.metricStatus[mname]
 
-	metricName := ""
-	if prefix != "" {
-		metricName = prefix + "`" + mname
-	} else {
-		metricName = mname
+	if (found && active) || (!found && c.metricDefaultActive) {
+		metricName := mname
+		if prefix != "" {
+			metricName = prefix + metricNameSeparator + mname
+		}
+		(*metrics)[metricName] = cgm.Metric{Type: mtype, Value: mval}
+		return nil
 	}
 
-	if (found && active) || (!found && c.metricDefaultActive) {
-		(*metrics)[metricName] = cgm.Metric{Type: mtype, Value: mval}
-	}
+	return errors.Errorf("metric (%s) not active", mname)
 }
 
 // setStatus is used in Collect to set the collector status
@@ -91,7 +112,9 @@ func (c *pfscommon) setStatus(metrics cgm.Metrics, err error) {
 		c.lastMetrics = cgm.Metrics{}
 	}
 	c.lastEnd = time.Now()
-	c.lastRunDuration = time.Since(c.lastStart)
+	if !c.lastStart.IsZero() {
+		c.lastRunDuration = time.Since(c.lastStart)
+	}
 	c.running = false
 	c.Unlock()
 }
