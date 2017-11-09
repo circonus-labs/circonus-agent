@@ -28,7 +28,7 @@ import (
 type CPU struct {
 	pfscommon
 	numCPU        float64 // number of cpus
-	clockHZ       float64 // OPT getconf CLK_TCK, may be overriden in config file
+	clockNorm     float64 // cpu clock normalized to 100Hz tick rate
 	reportAllCPUs bool    // OPT report all cpus (vs just total) may be overriden in config file
 	file          string
 }
@@ -59,8 +59,9 @@ func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
 	c.metricDefaultActive = true
 
 	c.numCPU = float64(runtime.NumCPU())
-	c.clockHZ = 100
-	c.reportAllCPUs = true
+	clockHZ := float64(100)
+	c.clockNorm = clockHZ / 100
+	c.reportAllCPUs = false
 
 	if cfgBaseName == "" {
 		if _, err := os.Stat(c.file); os.IsNotExist(err) {
@@ -86,7 +87,8 @@ func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "procfs.cpu parsing clock_hz")
 		}
-		c.clockHZ = v
+		clockHZ = v
+		c.clockNorm = clockHZ / 100
 	}
 
 	if opts.AllCPU != "" {
@@ -239,10 +241,10 @@ func (c *CPU) parseCPU(fields []string) (*cgm.Metrics, error) {
 	var metricBase string
 
 	if fields[0] == "cpu" {
-		metricBase = "total"
+		metricBase = ""
 		numCPU = c.numCPU // aggregate cpu metrics
 	} else {
-		metricBase = fields[0]
+		metricBase = fields[0] + metricNameSeparator
 		numCPU = 1 // individual cpu metrics
 	}
 
@@ -311,20 +313,20 @@ func (c *CPU) parseCPU(fields []string) (*cgm.Metrics, error) {
 	}
 
 	metrics := cgm.Metrics{
-		metricBase + "`user":              cgm.Metric{Type: metricType, Value: ((userNormal + userNice) / numCPU) / c.clockHZ},
-		metricBase + "`user`normal":       cgm.Metric{Type: metricType, Value: (userNormal / numCPU) / c.clockHZ},
-		metricBase + "`user`nice":         cgm.Metric{Type: metricType, Value: (userNice / numCPU) / c.clockHZ},
-		metricBase + "`kernel":            cgm.Metric{Type: metricType, Value: ((sys + guest + guestNice) / numCPU) / c.clockHZ},
-		metricBase + "`kernel`sys":        cgm.Metric{Type: metricType, Value: (sys / numCPU) / c.clockHZ},
-		metricBase + "`kernel`guest":      cgm.Metric{Type: metricType, Value: (guest / numCPU) / c.clockHZ},
-		metricBase + "`kernel`guest_nice": cgm.Metric{Type: metricType, Value: (guestNice / numCPU) / c.clockHZ},
-		metricBase + "`idle":              cgm.Metric{Type: metricType, Value: ((idleNormal + steal) / numCPU) / c.clockHZ},
-		metricBase + "`idle`normal":       cgm.Metric{Type: metricType, Value: (idleNormal / numCPU) / c.clockHZ},
-		metricBase + "`idle`steal":        cgm.Metric{Type: metricType, Value: (steal / numCPU) / c.clockHZ},
-		metricBase + "`wait_io":           cgm.Metric{Type: metricType, Value: (waitIO / numCPU) / c.clockHZ},
-		metricBase + "`intr":              cgm.Metric{Type: metricType, Value: ((irq + softIRQ) / numCPU) / c.clockHZ},
-		metricBase + "`intr`soft":         cgm.Metric{Type: metricType, Value: (irq / numCPU) / c.clockHZ},
-		metricBase + "`intr`hard":         cgm.Metric{Type: metricType, Value: (softIRQ / numCPU) / c.clockHZ},
+		metricBase + "user":                                        cgm.Metric{Type: metricType, Value: ((userNormal + userNice) / numCPU) / c.clockNorm},
+		metricBase + "user" + metricNameSeparator + "normal":       cgm.Metric{Type: metricType, Value: (userNormal / numCPU) / c.clockNorm},
+		metricBase + "user" + metricNameSeparator + "nice":         cgm.Metric{Type: metricType, Value: (userNice / numCPU) / c.clockNorm},
+		metricBase + "kernel":                                      cgm.Metric{Type: metricType, Value: ((sys + guest + guestNice) / numCPU) / c.clockNorm},
+		metricBase + "kernel" + metricNameSeparator + "sys":        cgm.Metric{Type: metricType, Value: (sys / numCPU) / c.clockNorm},
+		metricBase + "kernel" + metricNameSeparator + "guest":      cgm.Metric{Type: metricType, Value: (guest / numCPU) / c.clockNorm},
+		metricBase + "kernel" + metricNameSeparator + "guest_nice": cgm.Metric{Type: metricType, Value: (guestNice / numCPU) / c.clockNorm},
+		metricBase + "idle":                                        cgm.Metric{Type: metricType, Value: ((idleNormal + steal) / numCPU) / c.clockNorm},
+		metricBase + "idle" + metricNameSeparator + "normal":       cgm.Metric{Type: metricType, Value: (idleNormal / numCPU) / c.clockNorm},
+		metricBase + "idle" + metricNameSeparator + "steal":        cgm.Metric{Type: metricType, Value: (steal / numCPU) / c.clockNorm},
+		metricBase + "wait_io":                                     cgm.Metric{Type: metricType, Value: (waitIO / numCPU) / c.clockNorm},
+		metricBase + "intr":                                        cgm.Metric{Type: metricType, Value: ((irq + softIRQ) / numCPU) / c.clockNorm},
+		metricBase + "intr" + metricNameSeparator + "soft":         cgm.Metric{Type: metricType, Value: (irq / numCPU) / c.clockNorm},
+		metricBase + "intr" + metricNameSeparator + "hard":         cgm.Metric{Type: metricType, Value: (softIRQ / numCPU) / c.clockNorm},
 	}
 
 	return &metrics, nil

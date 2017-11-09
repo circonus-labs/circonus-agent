@@ -109,9 +109,9 @@ func TestNewCPUCollector(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		expect := float64(300)
-		if c.(*CPU).clockHZ != expect {
-			t.Fatalf("expected (%v), got (%v)", expect, c.(*CPU).clockHZ)
+		expect := float64(3)
+		if c.(*CPU).clockNorm != expect {
+			t.Fatalf("expected (%v), got (%v)", expect, c.(*CPU).clockNorm)
 		}
 	}
 
