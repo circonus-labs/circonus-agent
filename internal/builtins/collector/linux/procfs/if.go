@@ -302,8 +302,6 @@ func (c *IF) snmpCollect(metrics *cgm.Metrics) error {
 	stats := make(map[string][]rawstat)
 
 	scanner := bufio.NewScanner(f)
-	pfx := c.id + metricNameSeparator
-	metricType := "L" // uint64
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		fields := strings.Fields(line)
@@ -324,6 +322,8 @@ func (c *IF) snmpCollect(metrics *cgm.Metrics) error {
 		}
 	}
 
+	pfx := c.id + metricNameSeparator + "tcp"
+	metricType := "L" // uint64
 	for _, n := range stats["tcp"] {
 		if n.name == "RetransSegs" {
 			v, err := strconv.ParseUint(n.val, 10, 64)
@@ -331,7 +331,7 @@ func (c *IF) snmpCollect(metrics *cgm.Metrics) error {
 				c.logger.Warn().Err(err).Msg("parsing tcp field " + n.name)
 				break
 			}
-			c.addMetric(metrics, pfx+metricNameSeparator+"tcp", "segments_retransmitted", metricType, v)
+			c.addMetric(metrics, pfx, "segments_retransmitted", metricType, v)
 			break
 		}
 	}
@@ -346,8 +346,6 @@ func (c *IF) snmpCollect(metrics *cgm.Metrics) error {
 // sockstatCollect gets metrics from /proc/net/sockstat and /proc/net/sockstat6
 func (c *IF) sockstatCollect(metrics *cgm.Metrics) error {
 
-	pfx := c.id + metricNameSeparator
-	metricType := "L" // uint64
 	conns := uint64(0)
 
 	{
@@ -611,7 +609,9 @@ func (c *IF) sockstatCollect(metrics *cgm.Metrics) error {
 		}
 	}
 
-	c.addMetric(metrics, pfx+metricNameSeparator+"tcp", "connections", metricType, conns)
+	pfx := c.id + metricNameSeparator + "tcp"
+	metricType := "L" // uint64
+	c.addMetric(metrics, pfx, "connections", metricType, conns)
 
 	return nil
 }
