@@ -34,7 +34,7 @@ func New() ([]collector.Collector, error) {
 		return none, nil
 	}
 
-	collectors := make([]collector.Collector, len(enbledCollectors))
+	collectors := make([]collector.Collector, 0, len(enbledCollectors))
 	initErrMsg := "initializing builtin collector"
 	for _, name := range enbledCollectors {
 		switch name {
@@ -56,6 +56,14 @@ func New() ([]collector.Collector, error) {
 
 		case "if":
 			c, err := NewIFCollector(path.Join(defaults.EtcPath, name))
+			if err != nil {
+				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
+				continue
+			}
+			collectors = append(collectors, c)
+
+		case "loadavg":
+			c, err := NewLoadavgCollector(path.Join(defaults.EtcPath, name))
 			if err != nil {
 				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
 				continue

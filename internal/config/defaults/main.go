@@ -169,6 +169,7 @@ func init() {
 			"cpu",
 			"diskstats",
 			"if",
+			"loadavg",
 			"vm",
 		}
 	case "windows":
