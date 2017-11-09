@@ -7,6 +7,11 @@
 
 package builtins
 
+import (
+	appstats "github.com/maier/go-appstats"
+)
+
 func (b *Builtins) configure() error {
+	appstats.MapAddInt("builtins", "total", 0)
 	return nil
 }

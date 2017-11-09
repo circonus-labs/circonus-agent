@@ -9,14 +9,21 @@ package builtins
 
 import (
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector/linux/procfs"
+	appstats "github.com/maier/go-appstats"
+	"github.com/rs/zerolog/log"
 )
 
 func (b *Builtins) configure() error {
+	l := log.With().Str("pkg", "builtins").Logger()
+
+	l.Debug().Msg("calling procfs.New")
 	collectors, err := procfs.New()
 	if err != nil {
 		return err
 	}
+	l.Debug().Interface("collectors", collectors).Msg("loading collectors")
 	for _, c := range collectors {
+		appstats.MapIncrementInt("builtins", "total")
 		b.collectors[c.ID()] = c
 	}
 	return nil

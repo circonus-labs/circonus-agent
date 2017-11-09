@@ -9,6 +9,7 @@ package builtins
 
 import (
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector/windows/wmi"
+	appstats "github.com/maier/go-appstats"
 	"github.com/rs/zerolog/log"
 )
 
@@ -22,6 +23,7 @@ func (b *Builtins) configure() error {
 	}
 	l.Debug().Interface("collectors", collectors).Msg("loading collectors")
 	for _, c := range collectors {
+		appstats.MapIncrementInt("builtins", "total")
 		b.collectors[c.ID()] = c
 	}
 	return nil
