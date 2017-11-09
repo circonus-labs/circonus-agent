@@ -58,6 +58,10 @@ func TestRouter(t *testing.T) {
 	{
 		viper.Set(config.KeyListen, ":2609")
 		viper.Set(config.KeyPluginDir, "testdata/")
+		b, berr := builtins.New()
+		if berr != nil {
+			t.Fatalf("expected no error, got (%s)", berr)
+		}
 		p, perr := plugins.New(context.Background())
 		if perr != nil {
 			t.Fatalf("expected NO error, got (%s)", perr)
@@ -73,7 +77,7 @@ func TestRouter(t *testing.T) {
 			{"PUT", "/invalid"},
 			{"PUT", "/write/"}, // /write/ must be followed by an id/name to use as "plugin namespace"
 		}
-		s, err := New(nil, p, nil)
+		s, err := New(b, p, nil)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -146,11 +150,15 @@ func TestRouter(t *testing.T) {
 		viper.Set(config.KeyListen, ":2609")
 		viper.Set(config.KeyStatsdDisabled, true)
 		viper.Set(config.KeyPluginDir, "testdata/")
+		b, berr := builtins.New()
+		if berr != nil {
+			t.Fatalf("expected no error, got (%s)", berr)
+		}
 		p, perr := plugins.New(context.Background())
 		if perr != nil {
 			t.Fatalf("expected NO error, got (%s)", perr)
 		}
-		s, err := New(nil, p, nil)
+		s, err := New(b, p, nil)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
