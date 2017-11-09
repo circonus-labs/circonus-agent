@@ -196,100 +196,52 @@ func (c *VM) parseMemstats(metrics *cgm.Metrics) error {
 
 	var memTotal, memFree, memCached, memBuffers, swapTotal, swapFree uint64
 	for metricName, mval := range stats {
-		pfx := c.id + metricNameSeparator + "memory"
-		mname := strings.ToLower(metricName)
+		pfx := c.id + metricNameSeparator + "meminfo"
+		mname := metricName
 		mtype := "L"
 		switch metricName {
 		case "MemTotal":
-			mname = "total"
 			memTotal = mval
-		case "MemFree": // see memTotalFree below
-			mname = "unused"
+		case "MemFree":
 			memFree = mval
-		case "MemAvailable":
-			mname = "available"
-		case "Buffers":
-			memBuffers = mval
-		case "Cached":
-			memCached = mval
-		case "SwapCached":
-			pfx = c.id + metricNameSeparator + "swap"
-			mname = "cached"
-		case "Active(anon)":
-			mname = "active_anon"
-		case "Inactive(anon)":
-			mname = "inactive_anon"
-		case "Active(file)":
-			mname = "active_file"
-		case "Inactive(file)":
-			mname = "inactive_file"
 		case "SwapTotal":
-			pfx = c.id + metricNameSeparator + "swap"
-			mname = "total"
 			swapTotal = mval
 		case "SwapFree":
-			pfx = c.id + metricNameSeparator + "swap"
-			mname = "free"
 			swapFree = mval
-		case "AnonPages":
-			mname = "anon_pages"
-		case "SReclaimable":
-			mname = "slab_reclaimable"
-		case "SUnreclaim":
-			mname = "slab_unreclaimable"
-		case "KernelStack":
-			mname = "kernel_stack"
-		case "PageTables":
-			mname = "page_tables"
-		case "WritebackTmp":
-			mname = "writeback_tmp"
-		case "CommitLimit":
-			mname = "commit_limit"
-		case "VmallocTotal":
-			mname = "vmalloc_total"
-		case "VmallocUsed":
-			mname = "vmalloc_used"
-		case "VmallocChunk":
-			mname = "vmalloc_chunk"
-		case "HardwareCorrupted":
-			mname = "hardware_corrupted"
-		case "AnonHugePages":
-			mname = "hugepages_anon"
-		case "Hugepagesize":
-			mname = "hugepage_size"
-		case "DirectMap4k":
-			mname = "direct_map_4K"
-		case "DirectMap2M":
-			mname = "direct_map_2M"
 		}
-		if mname != "" {
-			c.addMetric(metrics, pfx, mname, mtype, mval)
-		}
+		c.addMetric(metrics, pfx, mname, mtype, mval)
 	}
 
 	memFreeTotal := memFree + memBuffers + memCached
 	memUsed := memTotal - memFreeTotal
-	memFreePct := (float64(memFreeTotal) / float64(memTotal)) * 100
-	memUsedPct := (float64(memUsed) / float64(memTotal)) * 100
+	memFreePct := (float64(memFreeTotal) / float64(memTotal))
+	memUsedPct := (float64(memUsed) / float64(memTotal))
 
 	swapUsed := swapTotal - swapFree
 	swapFreePct := 0.0
 	swapUsedPct := 0.0
 	if swapTotal > 0 {
-		swapFreePct = (float64(swapFree) / float64(swapTotal)) * 100
-		swapUsedPct = (float64(swapUsed) / float64(swapTotal)) * 100
+		swapFreePct = (float64(swapFree) / float64(swapTotal))
+		swapUsedPct = (float64(swapUsed) / float64(swapTotal))
 	}
 
 	pfx := c.id + metricNameSeparator + "memory"
 	c.addMetric(metrics, pfx, "free", "L", memFreeTotal)
+	c.addMetric(metrics, pfx, "free_percent", "n", memFreePct*100)
+	c.addMetric(metrics, pfx, "percent_free", "n", memFreePct)
+	c.addMetric(metrics, pfx, "percent_used", "n", memUsedPct)
+	c.addMetric(metrics, pfx, "total", "L", memTotal)
 	c.addMetric(metrics, pfx, "used", "L", memUsed)
-	c.addMetric(metrics, pfx, "free_percent", "n", memFreePct)
-	c.addMetric(metrics, pfx, "used_percent", "n", memUsedPct)
+	c.addMetric(metrics, pfx, "used_percent", "n", memUsedPct*100)
 
 	pfx = c.id + metricNameSeparator + "swap"
+	c.addMetric(metrics, pfx, "free", "L", swapTotal-swapUsed)
+	c.addMetric(metrics, pfx, "free_percent", "n", swapFreePct*100)
+	c.addMetric(metrics, pfx, "percent_free", "n", swapFreePct)
+	c.addMetric(metrics, pfx, "percent_used", "n", swapUsedPct)
+	c.addMetric(metrics, pfx, "total", "L", swapTotal)
 	c.addMetric(metrics, pfx, "used", "L", swapUsed)
-	c.addMetric(metrics, pfx, "free_percent", "n", swapFreePct)
-	c.addMetric(metrics, pfx, "used_percent", "n", swapUsedPct)
+	c.addMetric(metrics, pfx, "used_percent", "n", swapUsedPct*100)
 
 	return nil
 }
@@ -306,7 +258,6 @@ func (c *VM) parseVMstats(metrics *cgm.Metrics) error {
 	scanner := bufio.NewScanner(f)
 
 	var pgFaults, pgMajorFaults, pgScan uint64
-	pfx := c.id + metricNameSeparator + "info"
 	for scanner.Scan() {
 
 		line := strings.TrimSpace(scanner.Text())
@@ -324,6 +275,7 @@ func (c *VM) parseVMstats(metrics *cgm.Metrics) error {
 				continue
 			}
 			pgFaults = v
+
 		case fields[0] == "pgmajfault":
 			v, err := strconv.ParseUint(fields[1], 10, 64)
 			if err != nil {
@@ -331,13 +283,15 @@ func (c *VM) parseVMstats(metrics *cgm.Metrics) error {
 				continue
 			}
 			pgMajorFaults = v
+
 		case strings.HasPrefix(fields[0], "pswp"):
 			v, err := strconv.ParseUint(fields[1], 10, 64)
 			if err != nil {
 				c.logger.Warn().Err(err).Msg(pkgID + " parsing field " + fields[0])
 				continue
 			}
-			c.addMetric(metrics, pfx, fields[0], "L", v)
+			c.addMetric(metrics, c.id+metricNameSeparator+"vmstat", fields[0], "L", v)
+
 		case strings.HasPrefix(fields[0], "pgscan"):
 			v, err := strconv.ParseUint(fields[1], 10, 64)
 			if err != nil {
@@ -345,6 +299,7 @@ func (c *VM) parseVMstats(metrics *cgm.Metrics) error {
 				continue
 			}
 			pgScan += v
+
 		default:
 			// ignore
 		}
@@ -354,10 +309,11 @@ func (c *VM) parseVMstats(metrics *cgm.Metrics) error {
 		return errors.Wrapf(err, pkgID+" parsing %s", f.Name())
 	}
 
+	pfx := c.id + metricNameSeparator + "info"
 	c.addMetric(metrics, pfx, "page_fault", "L", pgFaults)
-	c.addMetric(metrics, pfx, "page_fault"+metricNameSeparator+"minor", "L", pgFaults-pgMajorFaults)
 	c.addMetric(metrics, pfx, "page_fault"+metricNameSeparator+"major", "L", pgMajorFaults)
-	c.addMetric(metrics, pfx, "pg_scan", "L", pgScan)
+	c.addMetric(metrics, pfx, "page_fault"+metricNameSeparator+"minor", "L", pgFaults-pgMajorFaults)
+	c.addMetric(metrics, pfx, "page_scan", "L", pgScan)
 
 	return nil
 }
