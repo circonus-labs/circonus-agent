@@ -10,7 +10,9 @@ package procfs
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -27,8 +29,10 @@ import (
 // Diskstats metrics from the Linux ProcFS
 type Diskstats struct {
 	pfscommon
-	include *regexp.Regexp
-	exclude *regexp.Regexp
+	include           *regexp.Regexp
+	exclude           *regexp.Regexp
+	sectorSizeDefault uint64
+	sectorSizeCache   map[string]uint64
 }
 
 // diskstatsOptions defines what elements can be overriden in a config file
@@ -42,8 +46,9 @@ type diskstatsOptions struct {
 	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 
 	// collector specific
-	IncludeRegex string `json:"include_regex" toml:"include_regex" yaml:"include_regex"`
-	ExcludeRegex string `json:"exclude_regex" toml:"exclude_regex" yaml:"exclude_regex"`
+	IncludeRegex      string `json:"include_regex" toml:"include_regex" yaml:"include_regex"`
+	ExcludeRegex      string `json:"exclude_regex" toml:"exclude_regex" yaml:"exclude_regex"`
+	DefaultSectorSize string `json:"default_sector_size" toml:"default_sector_size" yaml:"default_sector_size"`
 }
 
 type dstats struct {
@@ -51,10 +56,12 @@ type dstats struct {
 	readsCompleted  uint64
 	readsMerged     uint64
 	sectorsRead     uint64
+	bytesRead       uint64
 	readms          uint64
 	writesCompleted uint64
 	writesMerged    uint64
 	sectorsWritten  uint64
+	bytesWritten    uint64
 	writems         uint64
 	currIO          uint64
 	ioms            uint64
@@ -70,9 +77,11 @@ func NewDiskstatsCollector(cfgBaseName string) (collector.Collector, error) {
 	c.logger = log.With().Str("pkg", "procfs.diskstats").Logger()
 	c.metricStatus = map[string]bool{}
 	c.metricDefaultActive = true
+	c.sectorSizeCache = make(map[string]uint64)
 
 	c.include = defaultIncludeRegex
 	c.exclude = defaultExcludeRegex
+	c.sectorSizeDefault = 512
 
 	if cfgBaseName == "" {
 		if _, err := os.Stat(c.file); os.IsNotExist(err) {
@@ -107,6 +116,14 @@ func NewDiskstatsCollector(cfgBaseName string) (collector.Collector, error) {
 			return nil, errors.Wrap(err, "procfs.diskstats compiling exclude regex")
 		}
 		c.exclude = rx
+	}
+
+	if opts.DefaultSectorSize != "" {
+		v, err := strconv.ParseUint(opts.DefaultSectorSize, 10, 64)
+		if err != nil {
+			return nil, errors.Wrap(err, "procfs.diskstats parsing default sector size")
+		}
+		c.sectorSizeDefault = v
 	}
 
 	if opts.ID != "" {
@@ -249,10 +266,12 @@ func (c *Diskstats) Collect() error {
 		c.addMetric(&metrics, pfx+devID, "rd_completed", metricType, devStats.readsCompleted)
 		c.addMetric(&metrics, pfx+devID, "rd_merged", metricType, devStats.readsMerged)
 		c.addMetric(&metrics, pfx+devID, "rd_sectors", metricType, devStats.sectorsRead)
+		c.addMetric(&metrics, pfx+devID, "rd_bytes", metricType, devStats.bytesRead)
 		c.addMetric(&metrics, pfx+devID, "rd_ms", metricType, devStats.readms)
 		c.addMetric(&metrics, pfx+devID, "wr_completed", metricType, devStats.writesCompleted)
 		c.addMetric(&metrics, pfx+devID, "wr_merged", metricType, devStats.writesMerged)
 		c.addMetric(&metrics, pfx+devID, "wr_sectors", metricType, devStats.sectorsWritten)
+		c.addMetric(&metrics, pfx+devID, "wr_bytes", metricType, devStats.bytesWritten)
 		c.addMetric(&metrics, pfx+devID, "wr_ms", metricType, devStats.writems)
 		c.addMetric(&metrics, pfx+devID, "io_in_progress", metricType, devStats.currIO)
 		c.addMetric(&metrics, pfx+devID, "io_ms", metricType, devStats.ioms)
@@ -263,12 +282,38 @@ func (c *Diskstats) Collect() error {
 	return nil
 }
 
+func (c *Diskstats) getSectorSize(dev string) uint64 {
+	if sz, have := c.sectorSizeCache[dev]; have {
+		return sz
+	}
+
+	fn := path.Join("sys", "block", dev, "queue", "physical_block_size")
+
+	data, err := ioutil.ReadFile(fn)
+	if err != nil {
+		c.logger.Debug().Err(err).Str("device", dev).Msg("reading block size, using default")
+		c.sectorSizeCache[dev] = c.sectorSizeDefault
+		return c.sectorSizeDefault
+	}
+	v, err := strconv.ParseUint(string(data), 10, 32)
+	if err != nil {
+		c.logger.Debug().Err(err).Str("device", dev).Str("block_size", string(data)).Msg("parsing block size, using default")
+		c.sectorSizeCache[dev] = c.sectorSizeDefault
+		return c.sectorSizeDefault
+	}
+
+	c.sectorSizeCache[dev] = v
+	return v
+}
+
 func (c *Diskstats) parse(fields []string) (*dstats, error) {
 	devName := fields[2]
 	if devName == "" {
 		c.logger.Debug().Msg("invalid device name (empty), ignoring")
 		return nil, errors.New("invalid device name (empty)")
 	}
+
+	sectorSz := c.getSectorSize(devName)
 
 	pe := errors.New("parsing field")
 	d := dstats{
@@ -291,6 +336,7 @@ func (c *Diskstats) parse(fields []string) (*dstats, error) {
 
 	if v, err := strconv.ParseUint(fields[5], 10, 64); err == nil {
 		d.sectorsRead = v
+		d.bytesRead = v * sectorSz
 	} else {
 		c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field sectors read")
 		return nil, pe
@@ -319,6 +365,7 @@ func (c *Diskstats) parse(fields []string) (*dstats, error) {
 
 	if v, err := strconv.ParseUint(fields[9], 10, 64); err == nil {
 		d.sectorsWritten = v
+		d.bytesWritten = v * sectorSz
 	} else {
 		c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field sectors written")
 		return nil, pe
