@@ -123,6 +123,8 @@ func (b *Builtins) Flush(id string) *cgm.Metrics {
 	b.Lock()
 	defer b.Unlock()
 
+	appstats.MapSet("builtins", "last_flush", time.Now())
+
 	metrics := cgm.Metrics{}
 
 	if len(b.collectors) == 0 {
