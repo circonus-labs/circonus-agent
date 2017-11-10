@@ -10,14 +10,12 @@ import (
 	"context"
 	"os"
 	"path"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	cgm "github.com/circonus-labs/circonus-gometrics"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
@@ -30,13 +28,9 @@ func TestNew(t *testing.T) {
 	{
 		viper.Set(config.KeyPluginDir, "")
 
-		expectErr := errors.Errorf("Invalid plugin directory (none)")
 		_, err := New(context.Background())
 		if err == nil {
 			t.Fatal("expected error")
-		}
-		if expectErr.Error() != err.Error() {
-			t.Fatalf("expected (%s) got (%s)", expectErr, err)
 		}
 	}
 
@@ -44,13 +38,9 @@ func TestNew(t *testing.T) {
 	{
 		viper.Set(config.KeyPluginDir, "testdata/test.sh")
 
-		expect := "Invalid plugin directory (/"
 		_, err := New(context.Background())
 		if err == nil {
 			t.Fatal("expected error")
-		}
-		if !strings.HasPrefix(err.Error(), expect) {
-			t.Fatalf("expected (^%s) got (%s)", expect, err)
 		}
 	}
 
@@ -58,17 +48,9 @@ func TestNew(t *testing.T) {
 	{
 		viper.Set(config.KeyPluginDir, "testdata/noaccess")
 
-		expect := "Invalid plugin directory: open /"
 		_, err := New(context.Background())
 		if err == nil {
 			t.Fatal("expected error")
-		}
-		if !strings.HasPrefix(err.Error(), expect) {
-			t.Fatalf("expected (^%s) got (%s)", expect, err)
-		}
-		expect = "permission denied"
-		if !strings.Contains(err.Error(), expect) {
-			t.Fatalf("expected (*%s*) got (%s)", expect, err)
 		}
 	}
 
@@ -114,26 +96,18 @@ func TestRun(t *testing.T) {
 	t.Log("Invalid (already running)")
 	{
 		p.running = true
-		expectedErr := errors.New("plugin run already in progress")
 		err := p.Run("invalid")
 		if err == nil {
 			t.Fatal("expected error")
-		}
-		if err.Error() != expectedErr.Error() {
-			t.Fatalf("expected (%s) got (%s)", expectedErr, err)
 		}
 		p.running = false
 	}
 
 	t.Log("Invalid (unknown plugin)")
 	{
-		expectedErr := errors.New("invalid plugin (invalid)")
 		err := p.Run("invalid")
 		if err == nil {
 			t.Fatal("expected error")
-		}
-		if err.Error() != expectedErr.Error() {
-			t.Fatalf("expected (%s) got (%s)", expectedErr, err)
 		}
 	}
 

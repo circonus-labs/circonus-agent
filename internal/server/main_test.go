@@ -91,10 +91,6 @@ func TestNew(t *testing.T) {
 			if err == nil {
 				t.Fatal("expected error")
 			}
-			expect := "HTTP Server: resolving listen: lookup 127.0.0.a: no such host"
-			if err.Error() != expect {
-				t.Fatalf("expected (%s) got (%s)", expect, err)
-			}
 			viper.Reset()
 		}
 
@@ -205,10 +201,6 @@ func TestNew(t *testing.T) {
 			if err == nil {
 				t.Fatal("expected error")
 			}
-			expect := "HTTP Server: resolving listen: lookup foo.bar: no such host"
-			if err.Error() != expect {
-				t.Fatalf("expected (%s) got (%s)", expect, err)
-			}
 			viper.Reset()
 		}
 
@@ -245,10 +237,6 @@ func TestNew(t *testing.T) {
 			if s != nil {
 				t.Fatal("expected nil")
 			}
-			expectedErr := errors.New("SSL server cert file: stat : no such file or directory")
-			if err.Error() != expectedErr.Error() {
-				t.Fatalf("expected (%s) got (%v)", expectedErr, err)
-			}
 			viper.Reset()
 		}
 
@@ -262,10 +250,6 @@ func TestNew(t *testing.T) {
 			}
 			if s != nil {
 				t.Fatal("expected nil")
-			}
-			expectedErr := errors.New("SSL server cert file: stat testdata/missing.crt: no such file or directory")
-			if err.Error() != expectedErr.Error() {
-				t.Fatalf("expected (%s) got (%v)", expectedErr, err)
 			}
 			viper.Reset()
 		}
@@ -281,10 +265,6 @@ func TestNew(t *testing.T) {
 			if s != nil {
 				t.Fatal("expected nil")
 			}
-			expectedErr := errors.New("SSL server key file: stat : no such file or directory")
-			if err.Error() != expectedErr.Error() {
-				t.Fatalf("expected (%s) got (%v)", expectedErr, err)
-			}
 			viper.Reset()
 		}
 
@@ -299,10 +279,6 @@ func TestNew(t *testing.T) {
 			}
 			if s != nil {
 				t.Fatal("expected nil")
-			}
-			expectedErr := errors.New("SSL server key file: stat testdata/missing.key: no such file or directory")
-			if err.Error() != expectedErr.Error() {
-				t.Fatalf("expected (%s) got (%v)", expectedErr, err)
 			}
 			viper.Reset()
 		}
@@ -401,11 +377,6 @@ func TestStartHTTPS(t *testing.T) {
 		}
 		if err := s.startHTTPS(); err == nil {
 			t.Fatal("expected error")
-		} else {
-			expected := errors.New("SSL server: tls: failed to find any PEM data in certificate input")
-			if err.Error() != expected.Error() {
-				t.Fatalf("expected (%s) got (%s)", expected, err)
-			}
 		}
 		viper.Reset()
 	}
@@ -432,10 +403,6 @@ func TestStartSocket(t *testing.T) {
 		_, err := New(nil, nil, nil)
 		if err == nil {
 			t.Fatal("expected error")
-		}
-		expect := errors.New("creating socket: listen unix nodir/test.sock: bind: no such file or directory")
-		if err.Error() != expect.Error() {
-			t.Fatalf("expected (%s) got (%v)", expect, err)
 		}
 		viper.Reset()
 	}
@@ -473,13 +440,9 @@ func TestStartSocket(t *testing.T) {
 		time.AfterFunc(1*time.Second, func() {
 			s.svrSockets[0].listener.Close()
 		})
-		expect := errors.New("socket server: accept unix testdata/test.sock: use of closed network connection")
 		serr := s.startSocket(s.svrSockets[0])
 		if serr == nil {
 			t.Fatal("expected error")
-		}
-		if serr.Error() != expect.Error() {
-			t.Fatalf("expected (%s) got (%v)", expect, serr)
 		}
 
 		viper.Reset()

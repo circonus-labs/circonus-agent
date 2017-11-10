@@ -63,6 +63,10 @@ func (c *Connection) processor() error {
 		case <-c.t.Dying():
 			return nil
 		case nc := <-c.cmdCh:
+			if nc == nil {
+				c.logger.Warn().Str("cmd", "nil").Msg("ignoring nil command")
+				break
+			}
 			if nc.command != noitCmdConnect {
 				c.logger.Debug().Str("cmd", nc.command).Msg("ignoring command")
 				break
