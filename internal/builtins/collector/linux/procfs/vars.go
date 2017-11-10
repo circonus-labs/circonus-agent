@@ -18,6 +18,7 @@ import (
 // pfscommon defines ProcFS metrics common elements
 type pfscommon struct {
 	id                  string          // OPT id of the collector (used as metric name prefix)
+	pkgID               string          // package prefix used for logging and errors
 	procFSPath          string          // OPT procfs mount point path
 	file                string          // the file in procfs
 	lastEnd             time.Time       // last collection end time

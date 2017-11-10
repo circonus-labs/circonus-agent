@@ -145,7 +145,7 @@ func (c *Connection) connect() *connError {
 		return nil
 	}
 
-	c.logger.Info().Str("host", c.reverseURL.Host).Msg("Connecting")
+	c.logger.Debug().Str("host", c.reverseURL.Host).Msg("connecting")
 	c.Lock()
 	c.connAttempts++
 	c.Unlock()
@@ -157,6 +157,7 @@ func (c *Connection) connect() *connError {
 		}
 		return &connError{fatal: false, err: errors.Wrapf(err, "connecting to %s", c.reverseURL.Host)}
 	}
+	c.logger.Info().Str("host", c.reverseURL.Host).Msg("connected")
 
 	conn.SetDeadline(time.Now().Add(c.commTimeout))
 	introReq := "REVERSE " + c.reverseURL.Path

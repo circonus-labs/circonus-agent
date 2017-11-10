@@ -70,11 +70,14 @@ type dstats struct {
 
 // NewDiskstatsCollector creates new procfs cpu collector
 func NewDiskstatsCollector(cfgBaseName string) (collector.Collector, error) {
+	procFile := "diskstats"
+
 	c := Diskstats{}
 	c.id = "diskstats"
+	c.pkgID = "builtins.linux.procfs." + c.id
 	c.procFSPath = "/proc"
-	c.file = filepath.Join(c.procFSPath, "diskstats")
-	c.logger = log.With().Str("pkg", "procfs.diskstats").Logger()
+	c.file = filepath.Join(c.procFSPath, procFile)
+	c.logger = log.With().Str("pkg", c.pkgID).Logger()
 	c.metricStatus = map[string]bool{}
 	c.metricDefaultActive = true
 	c.sectorSizeCache = make(map[string]uint64)
@@ -85,7 +88,7 @@ func NewDiskstatsCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if cfgBaseName == "" {
 		if _, err := os.Stat(c.file); os.IsNotExist(err) {
-			return nil, errors.Wrap(err, "procfs.diskstats")
+			return nil, errors.Wrap(err, c.pkgID)
 		}
 		return &c, nil
 	}
@@ -97,7 +100,7 @@ func NewDiskstatsCollector(cfgBaseName string) (collector.Collector, error) {
 			return &c, nil
 		}
 		c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-		return nil, errors.Wrap(err, "procfs.diskstats config")
+		return nil, errors.Wrapf(err, "%s config", c.pkgID)
 	}
 
 	c.logger.Debug().Str("base", cfgBaseName).Interface("config", opts).Msg("loaded config")
@@ -105,7 +108,7 @@ func NewDiskstatsCollector(cfgBaseName string) (collector.Collector, error) {
 	if opts.IncludeRegex != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, opts.IncludeRegex))
 		if err != nil {
-			return nil, errors.Wrap(err, "procfs.diskstats compiling include regex")
+			return nil, errors.Wrapf(err, "%s compiling include regex", c.pkgID)
 		}
 		c.include = rx
 	}
@@ -113,7 +116,7 @@ func NewDiskstatsCollector(cfgBaseName string) (collector.Collector, error) {
 	if opts.ExcludeRegex != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, opts.ExcludeRegex))
 		if err != nil {
-			return nil, errors.Wrap(err, "procfs.diskstats compiling exclude regex")
+			return nil, errors.Wrapf(err, "%s compiling exclude regex", c.pkgID)
 		}
 		c.exclude = rx
 	}
@@ -121,7 +124,7 @@ func NewDiskstatsCollector(cfgBaseName string) (collector.Collector, error) {
 	if opts.DefaultSectorSize != "" {
 		v, err := strconv.ParseUint(opts.DefaultSectorSize, 10, 64)
 		if err != nil {
-			return nil, errors.Wrap(err, "procfs.diskstats parsing default sector size")
+			return nil, errors.Wrapf(err, "%s parsing default sector size", c.pkgID)
 		}
 		c.sectorSizeDefault = v
 	}
@@ -132,7 +135,7 @@ func NewDiskstatsCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if opts.ProcFSPath != "" {
 		c.procFSPath = opts.ProcFSPath
-		c.file = filepath.Join(c.procFSPath, "diskstats")
+		c.file = filepath.Join(c.procFSPath, procFile)
 	}
 
 	if len(opts.MetricsEnabled) > 0 {
@@ -150,20 +153,20 @@ func NewDiskstatsCollector(cfgBaseName string) (collector.Collector, error) {
 		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(opts.MetricsDefaultStatus)); ok {
 			c.metricDefaultActive = strings.ToLower(opts.MetricsDefaultStatus) == metricStatusEnabled
 		} else {
-			return nil, errors.Errorf("procfs.diskstats invalid metric default status (%s)", opts.MetricsDefaultStatus)
+			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, opts.MetricsDefaultStatus)
 		}
 	}
 
 	if opts.RunTTL != "" {
 		dur, err := time.ParseDuration(opts.RunTTL)
 		if err != nil {
-			return nil, errors.Wrap(err, "procfs.diskstats parsing run_ttl")
+			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
 		}
 		c.runTTL = dur
 	}
 
 	if _, err := os.Stat(c.file); os.IsNotExist(err) {
-		return nil, errors.Wrap(err, "procfs.diskstats")
+		return nil, errors.Wrap(err, c.pkgID)
 	}
 
 	return &c, nil
@@ -195,7 +198,7 @@ func (c *Diskstats) Collect() error {
 	f, err := os.Open(c.file)
 	if err != nil {
 		c.setStatus(metrics, err)
-		return errors.Wrap(err, "procfs.diskstats")
+		return errors.Wrap(err, c.pkgID)
 	}
 	defer f.Close()
 
@@ -233,7 +236,7 @@ func (c *Diskstats) Collect() error {
 
 	if err := scanner.Err(); err != nil {
 		c.setStatus(cgm.Metrics{}, err)
-		return errors.Wrapf(err, "procfs.diskstats parsing %s", f.Name())
+		return errors.Wrapf(err, "%s parsing %s", c.pkgID, f.Name())
 	}
 
 	// get list of devices for each entry in mdstats (if it exists)
@@ -287,7 +290,9 @@ func (c *Diskstats) getSectorSize(dev string) uint64 {
 		return sz
 	}
 
-	fn := path.Join("sys", "block", dev, "queue", "physical_block_size")
+	fn := path.Join(string(os.PathSeparator), "sys", "block", dev, "queue", "physical_block_size")
+
+	c.logger.Debug().Str("fn", fn).Msg("checking for sector size")
 
 	data, err := ioutil.ReadFile(fn)
 	if err != nil {
@@ -295,7 +300,7 @@ func (c *Diskstats) getSectorSize(dev string) uint64 {
 		c.sectorSizeCache[dev] = c.sectorSizeDefault
 		return c.sectorSizeDefault
 	}
-	v, err := strconv.ParseUint(string(data), 10, 32)
+	v, err := strconv.ParseUint(strings.TrimSpace(string(data)), 10, 32)
 	if err != nil {
 		c.logger.Debug().Err(err).Str("device", dev).Str("block_size", string(data)).Msg("parsing block size, using default")
 		c.sectorSizeCache[dev] = c.sectorSizeDefault

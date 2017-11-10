@@ -50,11 +50,14 @@ type cpuOptions struct {
 
 // NewCPUCollector creates new procfs cpu collector
 func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
+	procFile := "stat"
+
 	c := CPU{}
 	c.id = "cpu"
+	c.pkgID = "builtins.linux.procfs." + c.id
 	c.procFSPath = "/proc"
-	c.file = filepath.Join(c.procFSPath, "stat")
-	c.logger = log.With().Str("pkg", "procfs.cpu").Logger()
+	c.file = filepath.Join(c.procFSPath, procFile)
+	c.logger = log.With().Str("pkg", c.pkgID).Logger()
 	c.metricStatus = map[string]bool{}
 	c.metricDefaultActive = true
 
@@ -65,7 +68,7 @@ func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if cfgBaseName == "" {
 		if _, err := os.Stat(c.file); os.IsNotExist(err) {
-			return nil, errors.Wrap(err, "procfs.cpu")
+			return nil, errors.Wrap(err, c.pkgID)
 		}
 		return &c, nil
 	}
@@ -77,7 +80,7 @@ func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
 			return &c, nil
 		}
 		c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-		return nil, errors.Wrap(err, "procfs.cpu config")
+		return nil, errors.Wrapf(err, "%s config", c.pkgID)
 	}
 
 	c.logger.Debug().Interface("config", opts).Msg("loaded config")
@@ -85,7 +88,7 @@ func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
 	if opts.ClockHZ != "" {
 		v, err := strconv.ParseFloat(opts.ClockHZ, 64)
 		if err != nil {
-			return nil, errors.Wrap(err, "procfs.cpu parsing clock_hz")
+			return nil, errors.Wrapf(err, "%s parsing clock_hz", c.pkgID)
 		}
 		clockHZ = v
 		c.clockNorm = clockHZ / 100
@@ -94,7 +97,7 @@ func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
 	if opts.AllCPU != "" {
 		rpt, err := strconv.ParseBool(opts.AllCPU)
 		if err != nil {
-			return nil, errors.Wrap(err, "procfs.cpu parsing report_all_cpus")
+			return nil, errors.Wrapf(err, "%s parsing report_all_cpus", c.pkgID)
 		}
 		c.reportAllCPUs = rpt
 	}
@@ -105,7 +108,7 @@ func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if opts.ProcFSPath != "" {
 		c.procFSPath = opts.ProcFSPath
-		c.file = filepath.Join(c.procFSPath, "stat")
+		c.file = filepath.Join(c.procFSPath, procFile)
 	}
 
 	if len(opts.MetricsEnabled) > 0 {
@@ -123,20 +126,20 @@ func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
 		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(opts.MetricsDefaultStatus)); ok {
 			c.metricDefaultActive = strings.ToLower(opts.MetricsDefaultStatus) == metricStatusEnabled
 		} else {
-			return nil, errors.Errorf("procfs.cpu invalid metric default status (%s)", opts.MetricsDefaultStatus)
+			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, opts.MetricsDefaultStatus)
 		}
 	}
 
 	if opts.RunTTL != "" {
 		dur, err := time.ParseDuration(opts.RunTTL)
 		if err != nil {
-			return nil, errors.Wrap(err, "procfs.cpu parsing run_ttl")
+			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
 		}
 		c.runTTL = dur
 	}
 
 	if _, err := os.Stat(c.file); os.IsNotExist(err) {
-		return nil, errors.Wrap(err, "procfs.cpu")
+		return nil, errors.Wrap(err, c.pkgID)
 	}
 
 	return &c, nil
@@ -168,7 +171,7 @@ func (c *CPU) Collect() error {
 	f, err := os.Open(c.file)
 	if err != nil {
 		c.setStatus(metrics, err)
-		return errors.Wrap(err, "procfs.cpu")
+		return errors.Wrap(err, c.pkgID)
 	}
 	defer f.Close()
 
@@ -184,7 +187,7 @@ func (c *CPU) Collect() error {
 			v, err := strconv.ParseUint(fields[1], 10, 64)
 			if err != nil {
 				c.setStatus(metrics, err)
-				return errors.Wrapf(err, "parsing %s", fields[0])
+				return errors.Wrapf(err, "%s parsing %s", c.pkgID, fields[0])
 			}
 			c.addMetric(&metrics, c.id, fields[0], "L", v)
 
@@ -192,7 +195,7 @@ func (c *CPU) Collect() error {
 			v, err := strconv.ParseUint(fields[1], 10, 64)
 			if err != nil {
 				c.setStatus(metrics, err)
-				return errors.Wrapf(err, "parsing %s", fields[0])
+				return errors.Wrapf(err, "%s parsing %s", c.pkgID, fields[0])
 			}
 			c.addMetric(&metrics, c.id, "procs_runnable", "L", v)
 
@@ -200,7 +203,7 @@ func (c *CPU) Collect() error {
 			v, err := strconv.ParseUint(fields[1], 10, 64)
 			if err != nil {
 				c.setStatus(metrics, err)
-				return errors.Wrapf(err, "parsing %s", fields[0])
+				return errors.Wrapf(err, "%s parsing %s", c.pkgID, fields[0])
 			}
 			c.addMetric(&metrics, c.id, fields[0], "L", v)
 
@@ -208,7 +211,7 @@ func (c *CPU) Collect() error {
 			v, err := strconv.ParseUint(fields[1], 10, 64)
 			if err != nil {
 				c.setStatus(metrics, err)
-				return errors.Wrapf(err, "parsing %s", fields[0])
+				return errors.Wrapf(err, "%s parsing %s", c.pkgID, fields[0])
 			}
 			c.addMetric(&metrics, c.id, "context_switch", "L", v)
 
@@ -219,7 +222,7 @@ func (c *CPU) Collect() error {
 			cpuMetrics, err := c.parseCPU(fields)
 			if err != nil {
 				c.setStatus(metrics, err)
-				return errors.Wrapf(err, "parsing %s", fields[0])
+				return errors.Wrapf(err, "%s parsing %s", c.pkgID, fields[0])
 			}
 			for mn, mv := range *cpuMetrics {
 				c.addMetric(&metrics, c.id, mn, mv.Type, mv.Value)
@@ -229,7 +232,7 @@ func (c *CPU) Collect() error {
 
 	if err := scanner.Err(); err != nil {
 		c.setStatus(metrics, err)
-		return errors.Wrapf(err, "parsing %s", f.Name())
+		return errors.Wrapf(err, "%s parsing %s", c.pkgID, f.Name())
 	}
 
 	c.setStatus(metrics, nil)

@@ -24,6 +24,7 @@ func (b *Builtins) configure() error {
 	l.Debug().Interface("collectors", collectors).Msg("loading collectors")
 	for _, c := range collectors {
 		appstats.MapIncrementInt("builtins", "total")
+		b.logger.Info().Str("id", c.ID()).Msg("enabled builtin")
 		b.collectors[c.ID()] = c
 	}
 	return nil

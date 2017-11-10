@@ -42,17 +42,20 @@ type loadavgOptions struct {
 
 // NewLoadavgCollector creates new procfs cpu collector
 func NewLoadavgCollector(cfgBaseName string) (collector.Collector, error) {
+	procFile := "loadavg"
+
 	c := Loadavg{}
 	c.id = "loadavg"
+	c.pkgID = "builtins.linux.procfs." + c.id
 	c.procFSPath = "/proc"
-	c.file = filepath.Join(c.procFSPath, "loadavg")
-	c.logger = log.With().Str("pkg", "procfs.loadavg").Logger()
+	c.file = filepath.Join(c.procFSPath, procFile)
+	c.logger = log.With().Str("pkg", c.pkgID).Logger()
 	c.metricStatus = map[string]bool{}
 	c.metricDefaultActive = true
 
 	if cfgBaseName == "" {
 		if _, err := os.Stat(c.file); os.IsNotExist(err) {
-			return nil, errors.Wrap(err, "procfs.loadavg")
+			return nil, errors.Wrap(err, c.pkgID)
 		}
 		return &c, nil
 	}
@@ -64,7 +67,7 @@ func NewLoadavgCollector(cfgBaseName string) (collector.Collector, error) {
 			return &c, nil
 		}
 		c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-		return nil, errors.Wrap(err, "procfs.loadavg config")
+		return nil, errors.Wrapf(err, "%s config", c.pkgID)
 	}
 
 	c.logger.Debug().Interface("config", opts).Msg("loaded config")
@@ -75,7 +78,7 @@ func NewLoadavgCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if opts.ProcFSPath != "" {
 		c.procFSPath = opts.ProcFSPath
-		c.file = filepath.Join(c.procFSPath, "loadavg")
+		c.file = filepath.Join(c.procFSPath, procFile)
 	}
 
 	if len(opts.MetricsEnabled) > 0 {
@@ -93,20 +96,20 @@ func NewLoadavgCollector(cfgBaseName string) (collector.Collector, error) {
 		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(opts.MetricsDefaultStatus)); ok {
 			c.metricDefaultActive = strings.ToLower(opts.MetricsDefaultStatus) == metricStatusEnabled
 		} else {
-			return nil, errors.Errorf("procfs.loadavg invalid metric default status (%s)", opts.MetricsDefaultStatus)
+			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, opts.MetricsDefaultStatus)
 		}
 	}
 
 	if opts.RunTTL != "" {
 		dur, err := time.ParseDuration(opts.RunTTL)
 		if err != nil {
-			return nil, errors.Wrap(err, "procfs.loadavg parsing run_ttl")
+			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
 		}
 		c.runTTL = dur
 	}
 
 	if _, err := os.Stat(c.file); os.IsNotExist(err) {
-		return nil, errors.Wrap(err, "procfs.loadavg")
+		return nil, errors.Wrap(err, c.pkgID)
 	}
 
 	return &c, nil
@@ -138,7 +141,7 @@ func (c *Loadavg) Collect() error {
 	f, err := os.Open(c.file)
 	if err != nil {
 		c.setStatus(metrics, err)
-		return errors.Wrap(err, "procfs.cpu")
+		return errors.Wrap(err, c.pkgID)
 	}
 	defer f.Close()
 
@@ -149,26 +152,26 @@ func (c *Loadavg) Collect() error {
 		fields := strings.Fields(line)
 
 		if len(fields) < 3 {
-			c.logger.Warn().Int("fields", len(fields)).Msg("procfs.loadavg invalid number of fields")
+			c.logger.Warn().Int("fields", len(fields)).Msg("invalid number of fields")
 			continue
 		}
 
 		if v, err := strconv.ParseFloat(fields[0], 64); err != nil {
-			c.logger.Warn().Err(err).Msg("procfs.loadavg parsing 1min field")
+			c.logger.Warn().Err(err).Msg("parsing 1min field")
 			continue
 		} else {
 			c.addMetric(&metrics, c.id, "1", metricType, v)
 		}
 
 		if v, err := strconv.ParseFloat(fields[1], 64); err != nil {
-			c.logger.Warn().Err(err).Msg("procfs.loadavg parsing 5min field")
+			c.logger.Warn().Err(err).Msg("parsing 5min field")
 			continue
 		} else {
 			c.addMetric(&metrics, c.id, "5", metricType, v)
 		}
 
 		if v, err := strconv.ParseFloat(fields[2], 64); err != nil {
-			c.logger.Warn().Err(err).Msg("procfs.loadavg parsing 15min field")
+			c.logger.Warn().Err(err).Msg("parsing 15min field")
 			continue
 		} else {
 			c.addMetric(&metrics, c.id, "15", metricType, v)
@@ -177,7 +180,7 @@ func (c *Loadavg) Collect() error {
 
 	if err := scanner.Err(); err != nil {
 		c.setStatus(metrics, err)
-		return errors.Wrapf(err, "parsing %s", f.Name())
+		return errors.Wrapf(err, "%s parsing %s", c.pkgID, f.Name())
 	}
 
 	c.setStatus(metrics, nil)

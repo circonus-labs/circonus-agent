@@ -41,19 +41,20 @@ type vmOptions struct {
 
 // NewVMCollector creates new procfs cpu collector
 func NewVMCollector(cfgBaseName string) (collector.Collector, error) {
-	pkgID := "procfs.vm"
 	procFile := "meminfo"
+
 	c := VM{}
 	c.id = "vm"
+	c.pkgID = "builtins.linux.procfs." + c.id
 	c.procFSPath = "/proc"
 	c.file = filepath.Join(c.procFSPath, procFile)
-	c.logger = log.With().Str("pkg", pkgID).Logger()
+	c.logger = log.With().Str("pkg", c.pkgID).Logger()
 	c.metricStatus = map[string]bool{}
 	c.metricDefaultActive = true
 
 	if cfgBaseName == "" {
 		if _, err := os.Stat(c.file); err != nil {
-			return nil, errors.Wrap(err, pkgID)
+			return nil, errors.Wrap(err, c.pkgID)
 		}
 		return &c, nil
 	}
@@ -65,7 +66,7 @@ func NewVMCollector(cfgBaseName string) (collector.Collector, error) {
 			return &c, nil
 		}
 		c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-		return nil, errors.Wrap(err, pkgID+" config")
+		return nil, errors.Wrapf(err, "%s config", c.pkgID)
 	}
 
 	c.logger.Debug().Str("base", cfgBaseName).Interface("config", opts).Msg("loaded config")
@@ -94,20 +95,20 @@ func NewVMCollector(cfgBaseName string) (collector.Collector, error) {
 		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(opts.MetricsDefaultStatus)); ok {
 			c.metricDefaultActive = strings.ToLower(opts.MetricsDefaultStatus) == metricStatusEnabled
 		} else {
-			return nil, errors.Errorf(pkgID+" invalid metric default status (%s)", opts.MetricsDefaultStatus)
+			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, opts.MetricsDefaultStatus)
 		}
 	}
 
 	if opts.RunTTL != "" {
 		dur, err := time.ParseDuration(opts.RunTTL)
 		if err != nil {
-			return nil, errors.Wrap(err, pkgID+" parsing run_ttl")
+			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
 		}
 		c.runTTL = dur
 	}
 
 	if _, err := os.Stat(c.file); os.IsNotExist(err) {
-		return nil, errors.Wrap(err, pkgID)
+		return nil, errors.Wrap(err, c.pkgID)
 	}
 
 	return &c, nil
@@ -115,7 +116,6 @@ func NewVMCollector(cfgBaseName string) (collector.Collector, error) {
 
 // Collect metrics from the procfs resource
 func (c *VM) Collect() error {
-	pkgID := "procfs.vm"
 	metrics := cgm.Metrics{}
 
 	c.Lock()
@@ -139,12 +139,12 @@ func (c *VM) Collect() error {
 
 	if err := c.parseMemstats(&metrics); err != nil {
 		c.setStatus(metrics, err)
-		return errors.Wrap(err, pkgID)
+		return errors.Wrap(err, c.pkgID)
 	}
 
 	if err := c.parseVMstats(&metrics); err != nil {
 		c.setStatus(metrics, err)
-		return errors.Wrap(err, pkgID)
+		return errors.Wrap(err, c.pkgID)
 	}
 
 	c.setStatus(metrics, nil)
@@ -152,17 +152,15 @@ func (c *VM) Collect() error {
 }
 
 func (c *VM) parseMemstats(metrics *cgm.Metrics) error {
-	pkgID := "procfs.vm"
 	f, err := os.Open(c.file)
 	if err != nil {
-		return errors.Wrap(err, pkgID)
+		return err
 	}
 	defer f.Close()
 
 	scanner := bufio.NewScanner(f)
 	stats := make(map[string]uint64)
 	for scanner.Scan() {
-
 		line := strings.TrimSpace(scanner.Text())
 		fields := strings.Fields(line)
 
@@ -179,7 +177,7 @@ func (c *VM) parseMemstats(metrics *cgm.Metrics) error {
 
 		v, err := strconv.ParseUint(vs, 10, 64)
 		if err != nil {
-			c.logger.Warn().Err(err).Msg(pkgID + " parsing field " + name)
+			c.logger.Warn().Err(err).Msg("parsing field " + name)
 			continue
 		}
 
@@ -191,7 +189,7 @@ func (c *VM) parseMemstats(metrics *cgm.Metrics) error {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return errors.Wrapf(err, pkgID+" parsing %s", f.Name())
+		return errors.Wrapf(err, "parsing %s", f.Name())
 	}
 
 	var memTotal, memFree, memCached, memBuffers, swapTotal, swapFree uint64
@@ -247,11 +245,10 @@ func (c *VM) parseMemstats(metrics *cgm.Metrics) error {
 }
 
 func (c *VM) parseVMstats(metrics *cgm.Metrics) error {
-	pkgID := "procfs.vm"
 	file := strings.Replace(c.file, "meminfo", "vmstat", -1)
 	f, err := os.Open(file)
 	if err != nil {
-		return errors.Wrap(err, pkgID)
+		return err
 	}
 	defer f.Close()
 
@@ -271,7 +268,7 @@ func (c *VM) parseVMstats(metrics *cgm.Metrics) error {
 		case fields[0] == "pgfault":
 			v, err := strconv.ParseUint(fields[1], 10, 64)
 			if err != nil {
-				c.logger.Warn().Err(err).Msg(pkgID + " parsing field " + fields[0])
+				c.logger.Warn().Err(err).Msg("parsing field " + fields[0])
 				continue
 			}
 			pgFaults = v
@@ -279,7 +276,7 @@ func (c *VM) parseVMstats(metrics *cgm.Metrics) error {
 		case fields[0] == "pgmajfault":
 			v, err := strconv.ParseUint(fields[1], 10, 64)
 			if err != nil {
-				c.logger.Warn().Err(err).Msg(pkgID + " parsing field " + fields[0])
+				c.logger.Warn().Err(err).Msg("parsing field " + fields[0])
 				continue
 			}
 			pgMajorFaults = v
@@ -287,7 +284,7 @@ func (c *VM) parseVMstats(metrics *cgm.Metrics) error {
 		case strings.HasPrefix(fields[0], "pswp"):
 			v, err := strconv.ParseUint(fields[1], 10, 64)
 			if err != nil {
-				c.logger.Warn().Err(err).Msg(pkgID + " parsing field " + fields[0])
+				c.logger.Warn().Err(err).Msg("parsing field " + fields[0])
 				continue
 			}
 			c.addMetric(metrics, c.id+metricNameSeparator+"vmstat", fields[0], "L", v)
@@ -295,7 +292,7 @@ func (c *VM) parseVMstats(metrics *cgm.Metrics) error {
 		case strings.HasPrefix(fields[0], "pgscan"):
 			v, err := strconv.ParseUint(fields[1], 10, 64)
 			if err != nil {
-				c.logger.Warn().Err(err).Msg(pkgID + " parsing field " + fields[0])
+				c.logger.Warn().Err(err).Msg("parsing field " + fields[0])
 				continue
 			}
 			pgScan += v
@@ -306,7 +303,7 @@ func (c *VM) parseVMstats(metrics *cgm.Metrics) error {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return errors.Wrapf(err, pkgID+" parsing %s", f.Name())
+		return errors.Wrapf(err, "parsing %s", f.Name())
 	}
 
 	pfx := c.id + metricNameSeparator + "info"

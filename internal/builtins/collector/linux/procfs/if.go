@@ -48,11 +48,14 @@ type ifOptions struct {
 
 // NewIFCollector creates new procfs cpu collector
 func NewIFCollector(cfgBaseName string) (collector.Collector, error) {
+	procFile := filepath.Join("net", "dev")
+
 	c := IF{}
 	c.id = "if"
+	c.pkgID = "builtins.linux.procfs." + c.id
 	c.procFSPath = "/proc"
-	c.file = filepath.Join(c.procFSPath, "net", "dev")
-	c.logger = log.With().Str("pkg", "procfs.if").Logger()
+	c.file = filepath.Join(c.procFSPath, procFile)
+	c.logger = log.With().Str("pkg", c.pkgID).Logger()
 	c.metricStatus = map[string]bool{}
 	c.metricDefaultActive = true
 
@@ -61,7 +64,7 @@ func NewIFCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if cfgBaseName == "" {
 		if _, err := os.Stat(c.file); os.IsNotExist(err) {
-			return nil, errors.Wrap(err, "procfs.if")
+			return nil, errors.Wrap(err, c.pkgID)
 		}
 		return &c, nil
 	}
@@ -73,7 +76,7 @@ func NewIFCollector(cfgBaseName string) (collector.Collector, error) {
 			return &c, nil
 		}
 		c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-		return nil, errors.Wrap(err, "procfs.if config")
+		return nil, errors.Wrapf(err, "%s config", c.pkgID)
 	}
 
 	c.logger.Debug().Str("base", cfgBaseName).Interface("config", opts).Msg("loaded config")
@@ -81,7 +84,7 @@ func NewIFCollector(cfgBaseName string) (collector.Collector, error) {
 	if opts.IncludeRegex != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, opts.IncludeRegex))
 		if err != nil {
-			return nil, errors.Wrap(err, "procfs.if compiling include regex")
+			return nil, errors.Wrapf(err, "%s compiling include regex", c.pkgID)
 		}
 		c.include = rx
 	}
@@ -89,7 +92,7 @@ func NewIFCollector(cfgBaseName string) (collector.Collector, error) {
 	if opts.ExcludeRegex != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, opts.ExcludeRegex))
 		if err != nil {
-			return nil, errors.Wrap(err, "procfs.if compiling exclude regex")
+			return nil, errors.Wrapf(err, "%s compiling exclude regex", c.pkgID)
 		}
 		c.exclude = rx
 	}
@@ -100,7 +103,7 @@ func NewIFCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if opts.ProcFSPath != "" {
 		c.procFSPath = opts.ProcFSPath
-		c.file = filepath.Join(c.procFSPath, "net", "dev")
+		c.file = filepath.Join(c.procFSPath, procFile)
 	}
 
 	if len(opts.MetricsEnabled) > 0 {
@@ -118,20 +121,20 @@ func NewIFCollector(cfgBaseName string) (collector.Collector, error) {
 		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(opts.MetricsDefaultStatus)); ok {
 			c.metricDefaultActive = strings.ToLower(opts.MetricsDefaultStatus) == metricStatusEnabled
 		} else {
-			return nil, errors.Errorf("procfs.if invalid metric default status (%s)", opts.MetricsDefaultStatus)
+			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, opts.MetricsDefaultStatus)
 		}
 	}
 
 	if opts.RunTTL != "" {
 		dur, err := time.ParseDuration(opts.RunTTL)
 		if err != nil {
-			return nil, errors.Wrap(err, "procfs.if parsing run_ttl")
+			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
 		}
 		c.runTTL = dur
 	}
 
 	if _, err := os.Stat(c.file); os.IsNotExist(err) {
-		return nil, errors.Wrap(err, "procfs.if")
+		return nil, errors.Wrap(err, c.pkgID)
 	}
 
 	return &c, nil
@@ -162,7 +165,7 @@ func (c *IF) Collect() error {
 
 	if err := c.ifCollect(&metrics); err != nil {
 		c.setStatus(cgm.Metrics{}, err)
-		return errors.Wrap(err, "procfs.if")
+		return errors.Wrap(err, c.pkgID)
 	}
 
 	if err := c.snmpCollect(&metrics); err != nil {
@@ -277,7 +280,7 @@ type rawstat struct {
 
 // snmpCollect gets metrics from /proc/net/snmp
 func (c *IF) snmpCollect(metrics *cgm.Metrics) error {
-	snmpFile := filepath.Join(c.procFSPath, "net", "snmp")
+	snmpFile := strings.Replace(c.file, "dev", "snmp", -1)
 	f, err := os.Open(snmpFile)
 	if err != nil {
 		return errors.Wrap(err, "snmpCollect")
@@ -350,7 +353,7 @@ func (c *IF) sockstatCollect(metrics *cgm.Metrics) error {
 
 	{
 		emsg := "sockstat - invalid number of fields"
-		sockstatFile := filepath.Join(c.procFSPath, "net", "sockstat")
+		sockstatFile := strings.Replace(c.file, "dev", "sockstat", -1)
 		f, err := os.Open(sockstatFile)
 		if err != nil {
 			return errors.Wrap(err, "sockstatCollect")
@@ -497,7 +500,7 @@ func (c *IF) sockstatCollect(metrics *cgm.Metrics) error {
 
 	{
 		emsg := "sockstat6 - invalid number of fields"
-		sockstatFile := filepath.Join(c.procFSPath, "net", "sockstat6")
+		sockstatFile := strings.Replace(c.file, "dev", "sockstat6", -1)
 		f, err := os.Open(sockstatFile)
 		if err != nil {
 			return errors.Wrap(err, "sockstat6Collect")

@@ -47,9 +47,10 @@ func (p *Plugins) Scan(b *builtins.Builtins) error {
 		return nil
 	}
 
-	if err := p.Stop(); err != nil {
-		return errors.Wrap(err, "stopping plugin(s)")
-	}
+	// only applicable if dynamic reloading implemented
+	// if err := p.Stop(); err != nil {
+	// 	return errors.Wrap(err, "stopping plugin(s)")
+	// }
 
 	if err := p.scanPluginDirectory(b); err != nil {
 		return errors.Wrap(err, "plugin directory scan")

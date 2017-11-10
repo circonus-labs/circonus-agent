@@ -102,11 +102,11 @@ func (p *Plugins) Stop() error {
 // Run one or all plugins
 func (p *Plugins) Run(pluginName string) error {
 	p.Lock()
-	defer p.Unlock()
 
 	if p.running {
 		msg := "plugin run already in progress"
 		p.logger.Info().Msg(msg)
+		p.Unlock()
 		return errors.Errorf(msg)
 	}
 
@@ -114,6 +114,7 @@ func (p *Plugins) Run(pluginName string) error {
 	appstats.MapSet("plugins", "last_run_start", start)
 
 	p.running = true
+	p.Unlock()
 
 	var wg sync.WaitGroup
 
@@ -153,7 +154,9 @@ func (p *Plugins) Run(pluginName string) error {
 	appstats.MapSet("plugins", "last_run_end", time.Now())
 	appstats.MapSet("plugins", "last_run_duration", time.Since(start))
 
+	p.Lock()
 	p.running = false
+	p.Unlock()
 
 	return nil
 }
