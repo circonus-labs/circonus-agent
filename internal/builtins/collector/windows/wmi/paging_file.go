@@ -52,7 +52,8 @@ type pagingFileOptions struct {
 func NewPagingFileCollector(cfgBaseName string) (collector.Collector, error) {
 	c := PagingFile{}
 	c.id = "paging_file"
-	c.logger = log.With().Str("pkg", "builtins.wmi."+c.id).Logger()
+	c.pkgID = "builtins.windows.wmi." + c.id
+	c.logger = log.With().Str("pkg", c.pkgID).Logger()
 	c.metricDefaultActive = true
 	c.metricNameChar = defaultMetricChar
 	c.metricNameRegex = defaultMetricNameRegex
@@ -72,7 +73,7 @@ func NewPagingFileCollector(cfgBaseName string) (collector.Collector, error) {
 			return &c, nil
 		}
 		c.logger.Debug().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-		return nil, errors.Wrap(err, "wmi.paging_file config")
+		return nil, errors.Wrapf(err, "%s config", c.pkgID)
 	}
 
 	c.logger.Debug().Interface("config", cfg).Msg("loaded config")
@@ -81,7 +82,7 @@ func NewPagingFileCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.IncludeRegex != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, cfg.IncludeRegex))
 		if err != nil {
-			return nil, errors.Wrap(err, "wmi.paging_file compiling include regex")
+			return nil, errors.Wrapf(err, "%s compiling include regex", c.pkgID)
 		}
 		c.include = rx
 	}
@@ -90,7 +91,7 @@ func NewPagingFileCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.ExcludeRegex != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, cfg.ExcludeRegex))
 		if err != nil {
-			return nil, errors.Wrap(err, "wmi.paging_file compiling exclude regex")
+			return nil, errors.Wrapf(err, "%s compiling exclude regex", c.pkgID)
 		}
 		c.exclude = rx
 	}
@@ -114,14 +115,14 @@ func NewPagingFileCollector(cfgBaseName string) (collector.Collector, error) {
 		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
 			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == metricStatusEnabled
 		} else {
-			return nil, errors.Errorf("wmi.paging_file invalid metric default status (%s)", cfg.MetricsDefaultStatus)
+			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, cfg.MetricsDefaultStatus)
 		}
 	}
 
 	if cfg.MetricNameRegex != "" {
 		rx, err := regexp.Compile(cfg.MetricNameRegex)
 		if err != nil {
-			return nil, errors.Wrapf(err, "wmi.paging_file compile metric_name_regex")
+			return nil, errors.Wrapf(err, "%s compile metric_name_regex", c.pkgID)
 		}
 		c.metricNameRegex = rx
 	}
@@ -133,7 +134,7 @@ func NewPagingFileCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.RunTTL != "" {
 		dur, err := time.ParseDuration(cfg.RunTTL)
 		if err != nil {
-			return nil, errors.Wrap(err, "wmi.paging_file parsing run_ttl")
+			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
 		}
 		c.runTTL = dur
 	}
@@ -167,9 +168,9 @@ func (c *PagingFile) Collect() error {
 	var dst []Win32_PerfFormattedData_PerfOS_PagingFile
 	qry := wmi.CreateQuery(dst, "")
 	if err := wmi.Query(qry, &dst); err != nil {
-		c.logger.Error().Err(err).Str("query", qry).Msg("wmi error")
+		c.logger.Error().Err(err).Str("query", qry).Msg("wmi query error")
 		c.setStatus(metrics, err)
-		return errors.Wrap(err, "wmi.paging_file")
+		return errors.Wrap(err, c.pkgID)
 	}
 
 	for _, item := range dst {

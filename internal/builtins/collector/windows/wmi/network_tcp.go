@@ -72,7 +72,8 @@ type NetTCPOptions struct {
 func NewNetTCPCollector(cfgBaseName string) (collector.Collector, error) {
 	c := NetTCP{}
 	c.id = "net_tcp"
-	c.logger = log.With().Str("pkg", "builtins.wmi."+c.id).Logger()
+	c.pkgID = "builtins.windows.wmi." + c.id
+	c.logger = log.With().Str("pkg", c.pkgID).Logger()
 	c.metricDefaultActive = true
 	c.metricNameChar = defaultMetricChar
 	c.metricNameRegex = defaultMetricNameRegex
@@ -92,7 +93,7 @@ func NewNetTCPCollector(cfgBaseName string) (collector.Collector, error) {
 			return &c, nil
 		}
 		c.logger.Debug().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-		return nil, errors.Wrap(err, "wmi.net_tcp config")
+		return nil, errors.Wrapf(err, "%s config", c.pkgID)
 	}
 
 	c.logger.Debug().Interface("config", cfg).Msg("loaded config")
@@ -100,7 +101,7 @@ func NewNetTCPCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.EnableIPv4 != "" {
 		ipv4, err := strconv.ParseBool(cfg.EnableIPv4)
 		if err != nil {
-			return nil, errors.Wrap(err, "wmi.processor parsing enable_ipv4")
+			return nil, errors.Wrapf(err, "%s parsing enable_ipv4", c.pkgID)
 		}
 		c.ipv4Enabled = ipv4
 	}
@@ -108,7 +109,7 @@ func NewNetTCPCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.EnableIPv6 != "" {
 		ipv6, err := strconv.ParseBool(cfg.EnableIPv6)
 		if err != nil {
-			return nil, errors.Wrap(err, "wmi.processor parsing enable_ipv6")
+			return nil, errors.Wrapf(err, "%s parsing enable_ipv6", c.pkgID)
 		}
 		c.ipv6Enabled = ipv6
 	}
@@ -132,14 +133,14 @@ func NewNetTCPCollector(cfgBaseName string) (collector.Collector, error) {
 		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
 			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == metricStatusEnabled
 		} else {
-			return nil, errors.Errorf("wmi.net_tcp invalid metric default status (%s)", cfg.MetricsDefaultStatus)
+			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, cfg.MetricsDefaultStatus)
 		}
 	}
 
 	if cfg.MetricNameRegex != "" {
 		rx, err := regexp.Compile(cfg.MetricNameRegex)
 		if err != nil {
-			return nil, errors.Wrapf(err, "wmi.net_tcp compile metric_name_regex")
+			return nil, errors.Wrapf(err, "%s compile metric_name_regex", c.pkgID)
 		}
 		c.metricNameRegex = rx
 	}
@@ -151,7 +152,7 @@ func NewNetTCPCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.RunTTL != "" {
 		dur, err := time.ParseDuration(cfg.RunTTL)
 		if err != nil {
-			return nil, errors.Wrap(err, "wmi.net_tcp parsing run_ttl")
+			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
 		}
 		c.runTTL = dur
 	}
@@ -186,9 +187,9 @@ func (c *NetTCP) Collect() error {
 		var dst []Win32_PerfRawData_Tcpip_TCPv4
 		qry := wmi.CreateQuery(dst, "")
 		if err := wmi.Query(qry, &dst); err != nil {
-			c.logger.Error().Err(err).Str("query", qry).Msg("wmi error")
+			c.logger.Error().Err(err).Str("query", qry).Msg("wmi query error")
 			c.setStatus(metrics, err)
-			return errors.Wrap(err, "wmi.net_tcp")
+			return errors.Wrap(err, c.pkgID)
 		}
 
 		for _, item := range dst {
@@ -208,9 +209,9 @@ func (c *NetTCP) Collect() error {
 		var dst []Win32_PerfRawData_Tcpip_TCPv6
 		qry := wmi.CreateQuery(dst, "")
 		if err := wmi.Query(qry, &dst); err != nil {
-			c.logger.Error().Err(err).Str("query", qry).Msg("wmi error")
+			c.logger.Error().Err(err).Str("query", qry).Msg("wmi query error")
 			c.setStatus(metrics, err)
-			return errors.Wrap(err, "wmi.net_tcp")
+			return errors.Wrap(err, c.pkgID)
 		}
 
 		for _, item := range dst {

@@ -24,6 +24,8 @@ func New() (*Builtins, error) {
 		logger:     log.With().Str("pkg", "builtins").Logger(),
 	}
 
+	b.logger.Info().Msg("configuring builtins")
+
 	err := b.configure()
 	if err != nil {
 		return nil, errors.Wrap(err, "configuring builtins")

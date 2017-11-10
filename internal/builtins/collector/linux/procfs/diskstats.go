@@ -245,6 +245,12 @@ func (c *Diskstats) Collect() error {
 	pfx := c.id + metricNameSeparator
 	metricType := "L" // uint64
 	for devID, devStats := range stats {
+
+		if c.exclude.MatchString(devID) || !c.include.MatchString(devID) {
+			c.logger.Debug().Str("device", devID).Msg("excluded device name, ignoring")
+			continue
+		}
+
 		if mdrx.MatchString(devID) { // is it an md device?
 			if devList, ok := mdList[devID]; ok { // have device list for it?
 				for _, dev := range devList {
@@ -257,13 +263,6 @@ func (c *Diskstats) Collect() error {
 					}
 				}
 			}
-		}
-
-		// do the exclusions here, if the device is part of an md its
-		// metrics need to be included in the aggregation
-		if c.exclude.MatchString(devID) || !c.include.MatchString(devID) {
-			c.logger.Debug().Str("device", devID).Msg("excluded device name, ignoring")
-			continue
 		}
 
 		c.addMetric(&metrics, pfx+devID, "rd_completed", metricType, devStats.readsCompleted)
