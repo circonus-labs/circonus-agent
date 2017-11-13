@@ -28,7 +28,7 @@ func TestNew(t *testing.T) {
 
 	t.Log("valid w/defaults")
 	{
-		viper.Set(config.KeyPluginDir, "testdata/")
+		viper.Set(config.KeyPluginDir, "testdata")
 		viper.Set(config.KeyStatsdDisabled, true)
 		a, err := New()
 		if err != nil {
@@ -51,7 +51,7 @@ func TestStop(t *testing.T) {
 
 	t.Log("valid w/defaults")
 	{
-		viper.Set(config.KeyPluginDir, "testdata/")
+		viper.Set(config.KeyPluginDir, "testdata")
 		viper.Set(config.KeyStatsdDisabled, true)
 		a, err := New()
 		if err != nil {
