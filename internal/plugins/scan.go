@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -158,12 +159,16 @@ func (p *Plugins) scanPluginDirectory(b *builtins.Builtins) error {
 			continue // just ignore it
 		}
 
-		if perm := fi.Mode().Perm() & 0111; perm != 73 {
-			p.logger.Warn().
-				Str("file", cmdName).
-				Str("perms", fmt.Sprintf("%q", fi.Mode().Perm())).
-				Msg("executable bit not set, ignoring")
-			continue
+		if runtime.GOOS != "windows" {
+			// windows doesn't have an e'x'ecutable bit, all files are
+			// 'potentially' executable - binary exe, interpreted scripts, etc.
+			if perm := fi.Mode().Perm() & 0111; perm != 73 {
+				p.logger.Warn().
+					Str("file", cmdName).
+					Str("perms", fmt.Sprintf("%q", fi.Mode().Perm())).
+					Msg("executable bit not set, ignoring")
+				continue
+			}
 		}
 
 		if b != nil && b.IsBuiltin(fileBase) {
