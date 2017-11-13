@@ -10,6 +10,7 @@ import (
 	"context"
 	"os"
 	"path"
+	"runtime"
 	"testing"
 	"time"
 
@@ -36,7 +37,7 @@ func TestNew(t *testing.T) {
 
 	t.Log("invalid - not a directory")
 	{
-		viper.Set(config.KeyPluginDir, "testdata/test.sh")
+		viper.Set(config.KeyPluginDir, path.Join("testdata", "test.sh"))
 
 		_, err := New(context.Background())
 		if err == nil {
@@ -44,19 +45,21 @@ func TestNew(t *testing.T) {
 		}
 	}
 
-	t.Log("invalid - no access")
-	{
-		viper.Set(config.KeyPluginDir, "testdata/noaccess")
+	if runtime.GOOS != "windows" {
+		t.Log("invalid - no access")
+		{
+			viper.Set(config.KeyPluginDir, path.Join("testdata", "noaccess"))
 
-		_, err := New(context.Background())
-		if err == nil {
-			t.Fatal("expected error")
+			_, err := New(context.Background())
+			if err == nil {
+				t.Fatal("expected error")
+			}
 		}
 	}
 
 	t.Log("valid plugin directory")
 	{
-		viper.Set(config.KeyPluginDir, "testdata/")
+		viper.Set(config.KeyPluginDir, "testdata")
 
 		_, err := New(context.Background())
 		if err != nil {
@@ -150,6 +153,7 @@ func TestFlush(t *testing.T) {
 	if err := p.Run("test"); err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
+
 	time.Sleep(2 * time.Second)
 
 	t.Log("Invalid")
@@ -165,13 +169,34 @@ func TestFlush(t *testing.T) {
 
 	t.Log("Valid")
 	{
-		data := p.Flush("test")
-		if len(*data) == 0 {
-			t.Fatalf("expected metrics got (%#v)", data)
+		id := "test"
+		if runtime.GOOS == "windows" {
+			id = "testwin"
 		}
-		metrics := (*data)["test"].(*cgm.Metrics)
-		if len(*metrics) == 0 {
-			t.Fatalf("expected metrics, got (%#v)", metrics)
+		data := p.Flush(id)
+		if data == nil {
+			t.Fatal("expected not nil")
+		}
+		if len(*data) == 0 {
+			t.Fatalf("expected metrics got none (%#v)", data)
+		}
+		var metrics *cgm.Metrics
+		if runtime.GOOS == "windows" {
+			if _, ok := (*data)["testwin"]; !ok {
+				t.Fatalf("expected 'testwin' plugin id got (%#v)", *data)
+			}
+			metrics = (*data)["testwin"].(*cgm.Metrics)
+			if len(*metrics) == 0 {
+				t.Fatalf("expected metric 'testwin', got (%#v)", *metrics)
+			}
+		} else {
+			if _, ok := (*data)["test"]; !ok {
+				t.Fatalf("expected 'test' plugin id got (%#v)", *data)
+			}
+			metrics = (*data)["test"].(*cgm.Metrics)
+			if len(*metrics) == 0 {
+				t.Fatalf("expected metric 'test', got (%#v)", *metrics)
+			}
 		}
 		metric, ok := (*metrics)["metric"]
 		if !ok {
@@ -191,7 +216,7 @@ func TestIsValid(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	viper.Set(config.KeyPluginDir, "testdata/")
+	viper.Set(config.KeyPluginDir, "testdata")
 	p, nerr := New(context.Background())
 	if nerr != nil {
 		t.Fatalf("new err %s", nerr)
@@ -237,7 +262,7 @@ func TestIsInternal(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	viper.Set(config.KeyPluginDir, "testdata/")
+	viper.Set(config.KeyPluginDir, "testdata")
 
 	p, nerr := New(context.Background())
 	if nerr != nil {
@@ -292,7 +317,7 @@ func TestInventory(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	viper.Set(config.KeyPluginDir, "testdata/")
+	viper.Set(config.KeyPluginDir, "testdata")
 
 	p, nerr := New(context.Background())
 	if nerr != nil {
@@ -304,7 +329,7 @@ func TestInventory(t *testing.T) {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
 
-	p.pluginDir = "testdata/" // set it back to relative so absolute path does not make test fail below
+	p.pluginDir = "testdata" // set it back to relative so absolute path does not make test fail below
 
 	if err := p.Scan(b); err != nil {
 		t.Fatalf("expected no error, got %s", err)
@@ -317,7 +342,7 @@ func TestInventory(t *testing.T) {
 			t.Fatalf("expected not nil")
 		}
 
-		expect := []byte(`"test":{"name":"test","instance":"","command":"testdata/test.sh","args":null`)
+		expect := []byte(`"test":{"name":"test","instance":"","command":"`)
 		if !bytes.Contains(data, expect) {
 			t.Fatalf("expected (%s) got (%s)", string(expect), string(data))
 		}
