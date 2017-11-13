@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -95,7 +96,7 @@ func New(b *builtins.Builtins, p *plugins.Plugins, ss *statsd.Server) (*Server, 
 	}
 
 	// Socket listener (1-n)
-	{
+	if runtime.GOOS != "windows" {
 		socketList := viper.GetStringSlice(config.KeyListenSocket)
 		for idx, addr := range socketList {
 			ua, err := net.ResolveUnixAddr("unix", addr)
@@ -147,11 +148,13 @@ func (s *Server) Start() error {
 	}
 
 	s.t.Go(s.startHTTPS)
+
 	for _, svrHTTP := range s.svrHTTP {
 		s.t.Go(func() error {
 			return s.startHTTP(svrHTTP)
 		})
 	}
+
 	for _, svrSocket := range s.svrSockets {
 		s.t.Go(func() error {
 			return s.startSocket(svrSocket)
@@ -263,6 +266,10 @@ func (s *Server) startSocket(svr *socketServer) error {
 	}
 	if svr.address == nil || svr.listener == nil || svr.server == nil {
 		s.logger.Debug().Msg("socket not configured, skipping")
+		return nil
+	}
+	if runtime.GOOS == "windows" {
+		s.logger.Warn().Msg("platform does not support unix sockets")
 		return nil
 	}
 
