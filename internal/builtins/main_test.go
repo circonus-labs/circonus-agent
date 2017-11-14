@@ -63,6 +63,7 @@ func (f *foo) Inventory() collector.InventoryStats {
 
 func TestNew(t *testing.T) {
 	t.Log("Testing New")
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	b, err := New()
 	if err != nil {
@@ -185,6 +186,7 @@ func TestRun(t *testing.T) {
 
 func TestIsBuiltIn(t *testing.T) {
 	t.Log("Testing IsBuiltIn")
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	t.Log("w/o id")
 	{
@@ -235,6 +237,7 @@ func TestIsBuiltIn(t *testing.T) {
 
 func TestFlush(t *testing.T) {
 	t.Log("Testing Flush")
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	t.Log("w/o id")
 	{
@@ -295,5 +298,4 @@ func TestFlush(t *testing.T) {
 			t.Fatalf("expected at least 1 metric, got %#v", *metrics)
 		}
 	}
-
 }

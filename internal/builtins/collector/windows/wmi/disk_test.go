@@ -124,7 +124,7 @@ func TestNewDiskCollector(t *testing.T) {
 		}
 		expect := fmt.Sprintf(regexPat, `^foo`)
 		if c.(*Disk).include.String() != expect {
-			t.Fatalf("expected (%s) got (%s)", expect, c.(*Disk).metricNameRegex.String())
+			t.Fatalf("expected (%s) got (%s)", expect, c.(*Disk).include.String())
 		}
 	}
 
@@ -144,7 +144,7 @@ func TestNewDiskCollector(t *testing.T) {
 		}
 		expect := fmt.Sprintf(regexPat, `^foo`)
 		if c.(*Disk).exclude.String() != expect {
-			t.Fatalf("expected (%s) got (%s)", expect, c.(*Disk).metricNameRegex.String())
+			t.Fatalf("expected (%s) got (%s)", expect, c.(*Disk).exclude.String())
 		}
 	}
 

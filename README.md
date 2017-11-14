@@ -10,9 +10,12 @@
 
 # Features
 
+1. Builtin metric [collectors](#builtin-collectors) (on supported platforms)
 1. [Plugin](#plugins) architecture for local metric collection
 1. Local HTTP [Receiver](#receiver) for POST/PUT metric collection
 1. Local [StatsD](#statsd) listener for application metrics
+
+
 
 # Quick Start
 
@@ -40,6 +43,8 @@ key = "cosi" # use cosi api configuration
 
 #debug = true
 ```
+
+
 
 # Options
 
@@ -89,220 +94,25 @@ Flags:
   -V, --version                              Show version and exit
  ```
 
-# Config
 
-YAML
-```yaml
----
-debug: false
-debug_cgm: false
-listen: ":2609"
-listen_socket_path: ""
-plugin-dir: "/opt/circonus/agent/plugins"
 
-api:
-  app: circonus-agent
-  ca_file: ''
-  key: ''
-  url: https://api.circonus.com/v2/
+# Configuration
 
-log:
-  level: info
-  pretty: false
+The Circonus agent can be configured via the command line, environment variables, and/or a configuration file. For details on using configuration files, see the configuration section of [etc/README.md](etc/README.md#main-configuration)
 
-reverse:
-  enabled: false
-  broker_ca_file: ''
-  check_bundle_id: ''
-  check_target: localhost
-  create_check: false
-  check:
-    broker: select
-    tags: ''
-    title: localhost /agent
-
-ssl:
-  cert_file: "/opt/circonus/agent/etc/circonus-agent.pem"
-  key_file: "/opt/circonus/agent/etc/circonus-agent.key"
-  listen: ''
-  verify: true
-
-statsd:
-  disabled: false
-  port: '8125'
-  group:
-    check_bundle_id: ''
-    counters: sum
-    gauges: average
-    metric_prefix: group.
-    sets: sum
-  host:
-    category: statsd
-    metric_prefix: host.
-
-```
-
-TOML
-```toml
-debug = false
-debug_cgm = false
-listen = ":2609"
-listen_socket_path = ""
-plugin-dir = "/opt/circonus/agent/plugins"
-
-[api]
-app = "circonus-agent"
-ca_file = ""
-key = ""
-url = "https://api.circonus.com/v2/"
-
-[log]
-level = "info"
-pretty = false
-
-[reverse]
-enabled = false
-broker_ca_file = ""
-check_bundle_id = ""
-check_target = "localhost"
-create_check = false
-[reverse.check]
-broker = "select"
-tags = ""
-title = "localhost /agent"
-
-[ssl]
-cert_file = "/opt/circonus/agent/etc/circonus-agent.pem"
-key_file = "/opt/circonus/agent/etc/circonus-agent.key"
-listen = ""
-verify = true
-
-[statsd]
-disabled = false
-port = '8125'
-
-[statsd.group]
-check_bundle_id = ""
-counters = "sum"
-gauges = "average"
-metric_prefix = "group."
-sets = "sum"
-
-[statsd.host]
-category = "statsd"
-metric_prefix = "host."
-```
-
-JSON
-```json
-{
-   "api": {
-     "app": "circonus-agent",
-     "ca_file": "",
-     "key": "",
-     "url": "https://api.circonus.com/v2/"
-   },
-   "debug": false,
-   "debug_cgm": false,
-   "listen": ":2609",
-   "listen_socket_path": "",
-   "log": {
-     "level": "info",
-     "pretty": false
-   },
-   "plugin-dir": "/opt/circonus/agent/plugins",
-   "reverse": {
-     "broker_ca_file": "",
-     "check": {
-       "broker": "select",
-       "tags": "",
-       "title": "localhost /agent"
-     },
-     "check_bundle_id": "",
-     "check_target": "localhost",
-     "create_check": false,
-     "enabled": false
-   },
-   "ssl": {
-     "cert_file": "/opt/circonus/agent/etc/circonus-agent.pem",
-     "key_file": "/opt/circonus/agent/etc/circonus-agent.key",
-     "listen": "",
-     "verify": true
-   },
-   "statsd": {
-     "disabled": false,
-     "group": {
-       "check_bundle_id": "",
-       "counters": "sum",
-       "gauges": "average",
-       "metric_prefix": "group.",
-       "sets": "sum"
-     },
-     "host": {
-       "category": "statsd",
-       "metric_prefix": "host."
-     },
-     "port": "8125"
-   }
- }
-```
 
 
 # Plugins
 
-* Go in the `--plugin-dir`.
-* Must be regular files or symlinks.
-* Must be executable (e.g. `0755`)
-* Files are expected to be named matching a pattern of: `<base_name>.<ext>` (e.g. `foo.sh`)
-* Directories are ignored.
-* Configuration files are ignored.
-    * Configuration files are defined as files with extensions of `.json` or `.conf`
-    * A `.json` file is assumed to be a configuration for a plugin with the same `base_name` (e.g. `foo.json` is a configuration for `foo.sh`, `foo.elf`, etc.)
-        * JSON config files are loaded and arguments defined are passed to the plugin instance(s).
-        * The format for JSON config files is: `{"instance_id": ["arg1", "arg2", ...], ...}`.
-        * One instance of the plugin will be run for each distinct `instance_id` found in the JSON.
-        * The format of the resulting metric names would be: **plugin\`instance_id\`metric_name**
-    * A `.conf` file is assumed to be a shell configuration file which is loaded by the plugin itself.
-* All other directory entries are ignored.
+For documentation on plugins please refer to [plugins/README.md](plugins/README.md).
 
-## Running plugin environment
 
-When plugins are executed, the _current working directory_ will be set to the `--plugin-dir`, for relative path references to find configs or data files. Scripts may safely reference `$PWD`. See `plugin_test/write_test/wtest1.sh` for example. In `plugin_test`, run `ln -s write_test/wtest1.sh`, start the agent (e.g. `go run main.go -p plugin_test`), then `curl localhost:2609/` to see it in action.
-
-## Plugin Output
-
-Output from plugins is expected on `stdout` either tab-delimited or json.
-
-### Tab delimited
-
-`metric_name<TAB>metric_type<TAB>metric_value`
-
-### JSON
-
-```json
-{
-    "metric_name": {
-        "_type": "metric_type",
-        "_value": "metric_value"
-    },
-    ...
-}
-```
-
-### Metric types
-
-| Type | Description             |
-| ---- | ----------------------- |
-| `i`  | signed 32-bit integer   |
-| `I`  | unsigned 32-bit integer |
-| `l`  | signed 64-bit integer   |
-| `L`  | unsigned 64-bit integer |
-| `n`  | double/float            |
-| `s`  | string/text             |
 
 # Receiver
 
-The circonus-agent listens at a special endpoint `/write` for HTTP POST and HTTP PUT requests containing structured JSON. The structure of the JSON expected follows the plugin [JSON](https://github.com/maier/circonus-agent#json) format.
+The Circonus agent provides a special handler for the endpoint `/write` which will accept HTTP POST and HTTP PUT requests containing structured JSON.
+
+The structure of the JSON expected by the receiver is the same as the JSON format accepted from plugins. See the [JSON](plugins/README.md#json) section of the [plugin documentation](plugins/README.md) for details on the structure.
 
 The URL syntax for sending metrics is `/write/ID` where `ID` is a prefix for all of the metrics being sent in the request.
 
@@ -330,9 +140,11 @@ test`t1 numeric 32
 test`t2 text "foo"
 ```
 
+
+
 # StatsD
 
-The circonus-agent provides a StatsD listener by default (disable: `--no-statsd`, configure port: `--statsd-port`). It accepts the basic [StatsD metric types](https://github.com/etsy/statsd/blob/master/docs/metric_types.md#statsd-metric-types) as well as, Circonus specific metric types `h` and `t`.
+The Circonus  agent provides a StatsD listener by default (disable: `--no-statsd`, configure port: `--statsd-port`). It accepts the basic [StatsD metric types](https://github.com/etsy/statsd/blob/master/docs/metric_types.md#statsd-metric-types) as well as, Circonus specific metric types `h` and `t`.
 
 | Type | Note                            |
 | ---- | ------------------------------- |
@@ -343,11 +155,11 @@ The circonus-agent provides a StatsD listener by default (disable: `--no-statsd`
 | `s`  | Sets - treated as a Counter     |
 | `t`  | Text - Circonus specific        |
 
->NOTE: the derivative metrics automatically generated with some StatsD types are not created by Circonus, as the data is already available.
+>NOTE: the derivative metrics automatically generated with some StatsD types are not created by Circonus, as the data is already available within the Circonus UI.
+
+
 
 # Builtin collectors
-
-> Currently available on Windows **only**
 
 Configuration:
 
@@ -355,70 +167,12 @@ Configuration:
 * Environment `CA_COLLECTORS` (space delimited list)
 * Config file `collectors` (array of strings)
 
-Each collector can be configured via a configuration file. The default location for a collector configuration file is relative to the agent binary `../etc` and the base name of the configuration is the collector name. Supported configuration file formats are `json`, `toml`, and `yaml`. For example, given a collector named `foo`, valid configuration files would be `../etc/foo.(json|toml|yaml)`.
+* Windows default WMI collectors: `['cache', 'disk', 'ip', 'interface', 'memory', 'object', 'paging_file' 'processor', 'tcp', 'udp']`
+* Linux default ProcFS collectors: `['cpu']`
 
-Common options (applicable to all WMI collectors):
-* `id` (string) of the collector - default is name of collector
-* `metrics_enabled` (array of strings) list of metrics which are enabled (to be collected) - default is empty
-* `metrics_disabled` (array of strings) list of metrics which are disabled (should NOT be collected) - default is empty
-* `metrics_default_status` (string(enabled|disabled)) how a metric NOT in the enabled/disabled lists should be handled - default is `enabled`
-* `metric_name_regex` (string) regular expression of valid characters for the metric names - default is `[^a-zA-Z0-9.-_:]`
-* `metric_name_char` (char|string) to use for replacing invalid characters in a metric name - default is `_`
-* `run_ttl` (string) indicating collector will run no more frequently than TTL (e.g. "10s", "5m", etc. - for expensive collectors) - default is broker request cadence, once per minute
+For complete list of collectors and details on collector specific configuration see [etc/README.md](etc/README.md#collector-configurations).
 
-Available WMI collectors and options:
-* `cache`
-    * config file `../etc/cache.(json|toml|yaml)`
-    * options: only common
-* `disk` (logical and physical, can be controlled via config file)
-    * config file `../etc/disk.(json|toml|yaml)`
-    * options:
-        * `logical_disks` string(true|false), include logical disks (default "true")
-        * `physical_disks` string(true|false), include physical disks (default "true")
-        * `include_regex` string, regular expression for disk inclusion - default `.+`
-        * `exclude_regex` string, regular expression for disk exclusion - default empty
-* `memory`
-    * config file `../etc/memory.(json|toml|yaml)`
-    * options: only common
-* `interface`
-    * config file `../etc/interface.(json|toml|yaml)`
-    * options:
-        * `include_regex` string, regular expression for interface inclusion - default `.+`
-        * `exclude_regex` string, regular expression for interface exclusion - default empty
-* `ip` (ipv4 and ipv6, can be controlled via config file)
-    * config file `../etc/ip.(json|toml|yaml)`
-    * options:
-        * `enable_ipv4` string(true|false), include IPv4 metrics - default "true"
-        * `enable_ipv6` string(true|false), include IPv6 metrics - default "true"
-* `tcp` (ipv4 and ipv6, can be controlled via config file)
-    * config file `../etc/tcp.(json|toml|yaml)`
-    * options:
-        * `enable_ipv4` string(true|false), include IPv4 metrics - default "true"
-        * `enable_ipv6` string(true|false), include IPv6 metrics - default "true"
-* `udp` (ipv4 and ipv6, can be controlled via config file)
-    * config file `../etc/udp.(json|toml|yaml)`
-    * options:
-        * `enable_ipv4` string(true|false), include IPv4 metrics - default "true"
-        * `enable_ipv6` string(true|false), include IPv6 metrics - default "true"
-* `objects`
-    * config file `../etc/objects.(json|toml|yaml)`
-    * options: only common
-* `paging_file`
-    * config file `../etc/paging_file.(json|toml|yaml)`
-    * options:
-        * `include_regex` string, regular expression for file inclusion - default `.+`
-        * `exclude_regex` string, regular expression for file exclusion - default empty
-* `processor`
-    * config file `../etc/processor.(json|toml|yaml)`
-    * options:
-        * `report_all_cpus` string, include all cpus, not just total (default "true")
-* `processes` disabled by default (generates 28 metrics per process)
-    * config file `../etc/processes.(json|toml|yaml)`
-    * options:
-        * `include_regex` string, regular expression for process inclusion - default `.+`
-        * `exclude_regex` string, regular expression for process exclusion - default empty
 
-Windows default WMI collectors: `['cache', 'disk', 'ip', 'interface', 'memory', 'object', 'paging_file' 'processor', 'tcp', 'udp']`
 
 # Manual build
 

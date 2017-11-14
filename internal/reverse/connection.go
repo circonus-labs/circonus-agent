@@ -63,6 +63,10 @@ func (c *Connection) processor() error {
 		case <-c.t.Dying():
 			return nil
 		case nc := <-c.cmdCh:
+			if nc == nil {
+				c.logger.Warn().Str("cmd", "nil").Msg("ignoring nil command")
+				break
+			}
 			if nc.command != noitCmdConnect {
 				c.logger.Debug().Str("cmd", nc.command).Msg("ignoring command")
 				break
@@ -145,7 +149,7 @@ func (c *Connection) connect() *connError {
 		return nil
 	}
 
-	c.logger.Info().Str("host", c.reverseURL.Host).Msg("Connecting")
+	c.logger.Debug().Str("host", c.reverseURL.Host).Msg("connecting")
 	c.Lock()
 	c.connAttempts++
 	c.Unlock()
@@ -157,6 +161,7 @@ func (c *Connection) connect() *connError {
 		}
 		return &connError{fatal: false, err: errors.Wrapf(err, "connecting to %s", c.reverseURL.Host)}
 	}
+	c.logger.Info().Str("host", c.reverseURL.Host).Msg("connected")
 
 	conn.SetDeadline(time.Now().Add(c.commTimeout))
 	introReq := "REVERSE " + c.reverseURL.Path

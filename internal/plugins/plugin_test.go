@@ -9,6 +9,7 @@ import (
 	"context"
 	"os"
 	"path"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -28,7 +29,7 @@ func TestDrain(t *testing.T) {
 		id:         "test",
 		instanceID: "",
 		name:       "test",
-		command:    "testdata/test.sh",
+		command:    path.Join("testdata", "test.sh"),
 	}
 
 	t.Log("blank w/o prevMetrics")
@@ -61,7 +62,7 @@ func TestParsePluginOutput(t *testing.T) {
 		id:         "test",
 		instanceID: "",
 		name:       "test",
-		command:    "testdata/test.sh",
+		command:    path.Join("testdata", "test.sh"),
 	}
 
 	t.Log("blank")
@@ -155,7 +156,7 @@ func TestExec(t *testing.T) {
 		id:         "test",
 		instanceID: "",
 		name:       "test",
-		command:    "testdata/test.sh",
+		command:    path.Join("testdata", "test.sh"),
 	}
 
 	dir, err := os.Getwd()
@@ -195,46 +196,38 @@ func TestExec(t *testing.T) {
 
 	t.Log("not found")
 	{
-		p.command = "testdata/invalid"
-		expectedErr := errors.Errorf("cmd start: fork/exec testdata/invalid: no such file or directory")
+		p.command = path.Join("testdata", "invalid")
 		err := p.exec()
 		if err == nil {
 			t.Fatalf("expected error")
-		}
-		if err.Error() != expectedErr.Error() {
-			t.Fatalf("expected (%s) got (%s)", expectedErr, err)
 		}
 	}
 
 	t.Log("not found (in $PATH)")
 	{
 		p.command = "invalid"
-		expectedErr := errors.Errorf(`cmd start: exec: "invalid": executable file not found in $PATH`)
 		err := p.exec()
 		if err == nil {
 			t.Fatalf("expected error")
-		}
-		if err.Error() != expectedErr.Error() {
-			t.Fatalf("expected (%s) got (%s)", expectedErr, err)
 		}
 	}
 
 	t.Log("error (exit)")
 	{
 		p.command = path.Join(testDir, "error.sh")
-		expectedErr := errors.Errorf(`cmd err (foo bar ): exit status 1`)
 		err := p.exec()
 		if err == nil {
 			t.Fatalf("expected error")
-		}
-		if err.Error() != expectedErr.Error() {
-			t.Fatalf("expected (%s) got (%s)", expectedErr, err)
 		}
 	}
 
 	t.Log("args")
 	{
-		p.command = path.Join(testDir, "args.sh")
+		if runtime.GOOS == "windows" {
+			p.command = path.Join(testDir, "argswin.bat")
+		} else {
+			p.command = path.Join(testDir, "args.sh")
+		}
 		p.instanceArgs = []string{"foo", "bar"}
 		err := p.exec()
 		if err != nil {

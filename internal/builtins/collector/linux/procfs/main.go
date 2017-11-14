@@ -3,6 +3,8 @@
 // license that can be found in the LICENSE file.
 //
 
+// +build linux
+
 package procfs
 
 import (
@@ -32,23 +34,52 @@ func New() ([]collector.Collector, error) {
 		return none, nil
 	}
 
-	collectors := make([]collector.Collector, len(enbledCollectors))
+	collectors := make([]collector.Collector, 0, len(enbledCollectors))
+	initErrMsg := "initializing builtin collector"
 	for _, name := range enbledCollectors {
 		switch name {
 		case "cpu":
-			c, err := NewCPUCollector(path.Join(defaults.EtcPath, "cpu"))
+			c, err := NewCPUCollector(path.Join(defaults.EtcPath, name))
 			if err != nil {
-				l.Error().
-					Str("name", name).
-					Err(err).
-					Msg("initializing builtin collector")
-			} else {
-				collectors = append(collectors, c)
+				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
+				continue
 			}
+			collectors = append(collectors, c)
+
+		case "diskstats":
+			c, err := NewDiskstatsCollector(path.Join(defaults.EtcPath, name))
+			if err != nil {
+				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
+				continue
+			}
+			collectors = append(collectors, c)
+
+		case "if":
+			c, err := NewIFCollector(path.Join(defaults.EtcPath, name))
+			if err != nil {
+				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
+				continue
+			}
+			collectors = append(collectors, c)
+
+		case "loadavg":
+			c, err := NewLoadavgCollector(path.Join(defaults.EtcPath, name))
+			if err != nil {
+				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
+				continue
+			}
+			collectors = append(collectors, c)
+
+		case "vm":
+			c, err := NewVMCollector(path.Join(defaults.EtcPath, name))
+			if err != nil {
+				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
+				continue
+			}
+			collectors = append(collectors, c)
+
 		default:
-			l.Warn().
-				Str("name", name).
-				Msg("unknown builtin collector, ignoring")
+			l.Warn().Str("name", name).Msg("unknown builtin collector, ignoring")
 		}
 	}
 

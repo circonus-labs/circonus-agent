@@ -51,7 +51,8 @@ type objectsOptions struct {
 func NewObjectsCollector(cfgBaseName string) (collector.Collector, error) {
 	c := Objects{}
 	c.id = "objects"
-	c.logger = log.With().Str("pkg", "builtins.wmi."+c.id).Logger()
+	c.pkgID = "builtins.windows.wmi." + c.id
+	c.logger = log.With().Str("pkg", c.pkgID).Logger()
 	c.metricDefaultActive = true
 	c.metricNameChar = defaultMetricChar
 	c.metricNameRegex = defaultMetricNameRegex
@@ -68,7 +69,7 @@ func NewObjectsCollector(cfgBaseName string) (collector.Collector, error) {
 			return &c, nil
 		}
 		c.logger.Debug().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-		return nil, errors.Wrap(err, "wmi.objects config")
+		return nil, errors.Wrapf(err, "%s config", c.pkgID)
 	}
 
 	c.logger.Debug().Interface("config", cfg).Msg("loaded config")
@@ -92,14 +93,14 @@ func NewObjectsCollector(cfgBaseName string) (collector.Collector, error) {
 		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
 			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == metricStatusEnabled
 		} else {
-			return nil, errors.Errorf("wmi.objects invalid metric default status (%s)", cfg.MetricsDefaultStatus)
+			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, cfg.MetricsDefaultStatus)
 		}
 	}
 
 	if cfg.MetricNameRegex != "" {
 		rx, err := regexp.Compile(cfg.MetricNameRegex)
 		if err != nil {
-			return nil, errors.Wrapf(err, "wmi.objects compile metric_name_regex")
+			return nil, errors.Wrapf(err, "%s compile metric_name_regex", c.pkgID)
 		}
 		c.metricNameRegex = rx
 	}
@@ -111,7 +112,7 @@ func NewObjectsCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.RunTTL != "" {
 		dur, err := time.ParseDuration(cfg.RunTTL)
 		if err != nil {
-			return nil, errors.Wrap(err, "wmi.objects parsing run_ttl")
+			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
 		}
 		c.runTTL = dur
 	}
@@ -145,9 +146,9 @@ func (c *Objects) Collect() error {
 	var dst []Win32_PerfFormattedData_PerfOS_Objects
 	qry := wmi.CreateQuery(dst, "")
 	if err := wmi.Query(qry, &dst); err != nil {
-		c.logger.Error().Err(err).Str("query", qry).Msg("wmi error")
+		c.logger.Error().Err(err).Str("query", qry).Msg("wmi query error")
 		c.setStatus(metrics, err)
-		return errors.Wrap(err, "wmi.objects")
+		return errors.Wrap(err, c.pkgID)
 	}
 
 	for _, item := range dst {

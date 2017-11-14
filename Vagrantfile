@@ -18,7 +18,7 @@ Vagrant.configure('2') do |config|
             echo "Installing needed packages (e.g. git, go, etc.)"
             yum -q install -y git
             if [[ ! -x /usr/local/go/bin/go ]]; then
-                go_ver="1.9"
+                go_ver="1.9.2"
                 go_tgz="go${go_ver}.linux-amd64.tar.gz"
                 [[ -f /vagrant/${go_tgz} ]] || {
                     curl -sSL "https://storage.googleapis.com/golang/${go_tgz}" -o /home/vagrant/$go_tgz

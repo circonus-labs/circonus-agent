@@ -32,13 +32,11 @@ func TestRouter(t *testing.T) {
 			"OPTIONS",
 			"TRACE",
 		}
+		viper.Reset()
 		viper.Set(config.KeyListen, ":2609")
 		s, err := New(nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if s == nil {
-			t.Fatal("expected NOT nil")
 		}
 
 		for _, method := range methods {
@@ -51,13 +49,17 @@ func TestRouter(t *testing.T) {
 				t.Fatalf("expected %d, got %d", http.StatusMethodNotAllowed, resp.StatusCode)
 			}
 		}
-		viper.Reset()
 	}
 
 	t.Log("invalid paths")
 	{
+		viper.Reset()
 		viper.Set(config.KeyListen, ":2609")
 		viper.Set(config.KeyPluginDir, "testdata/")
+		b, berr := builtins.New()
+		if berr != nil {
+			t.Fatalf("expected no error, got (%s)", berr)
+		}
 		p, perr := plugins.New(context.Background())
 		if perr != nil {
 			t.Fatalf("expected NO error, got (%s)", perr)
@@ -73,12 +75,9 @@ func TestRouter(t *testing.T) {
 			{"PUT", "/invalid"},
 			{"PUT", "/write/"}, // /write/ must be followed by an id/name to use as "plugin namespace"
 		}
-		s, err := New(nil, p, nil)
+		s, err := New(b, p, nil)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if s == nil {
-			t.Fatal("expected NOT nil")
 		}
 		for _, reqtest := range reqtests {
 			t.Logf("Invalid path (%s %s)", reqtest.method, reqtest.path)
@@ -90,11 +89,11 @@ func TestRouter(t *testing.T) {
 				t.Fatalf("expected %d, got %d", http.StatusNotFound, resp.StatusCode)
 			}
 		}
-		viper.Reset()
 	}
 
 	t.Log("valid")
 	{
+		viper.Reset()
 		viper.Set(config.KeyListen, ":2609")
 		viper.Set(config.KeyStatsdDisabled, true)
 		viper.Set(config.KeyPluginDir, "testdata/")
@@ -109,9 +108,6 @@ func TestRouter(t *testing.T) {
 		s, err := New(b, p, nil)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if s == nil {
-			t.Fatal("expected NOT nil")
 		}
 		reqtests := []struct {
 			method string
@@ -138,24 +134,25 @@ func TestRouter(t *testing.T) {
 				t.Fatalf("expected %d, got %d", reqtest.code, resp.StatusCode)
 			}
 		}
-		viper.Reset()
 	}
 
 	t.Log("invalid (PUT /write/foo) w/o data")
 	{
+		viper.Reset()
 		viper.Set(config.KeyListen, ":2609")
 		viper.Set(config.KeyStatsdDisabled, true)
 		viper.Set(config.KeyPluginDir, "testdata/")
+		b, berr := builtins.New()
+		if berr != nil {
+			t.Fatalf("expected no error, got (%s)", berr)
+		}
 		p, perr := plugins.New(context.Background())
 		if perr != nil {
 			t.Fatalf("expected NO error, got (%s)", perr)
 		}
-		s, err := New(nil, p, nil)
+		s, err := New(b, p, nil)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if s == nil {
-			t.Fatal("expected NOT nil")
 		}
 
 		req := httptest.NewRequest("PUT", "/write/foo", nil)
@@ -170,13 +167,11 @@ func TestRouter(t *testing.T) {
 
 	t.Log("OK (PUT /write/foo) w/data")
 	{
+		viper.Reset()
 		viper.Set(config.KeyListen, ":2609")
 		s, err := New(nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if s == nil {
-			t.Fatal("expected NOT nil")
 		}
 		reqBody := bytes.NewReader([]byte(`{"test":{"_type":"i", "_value":1}}`))
 		req := httptest.NewRequest("PUT", "/write/foo", reqBody)

@@ -74,7 +74,8 @@ type cacheOptions struct {
 func NewCacheCollector(cfgBaseName string) (collector.Collector, error) {
 	c := Cache{}
 	c.id = "cache"
-	c.logger = log.With().Str("pkg", "builtins.wmi."+c.id).Logger()
+	c.pkgID = "builtins.windows.wmi." + c.id
+	c.logger = log.With().Str("pkg", c.pkgID).Logger()
 	c.metricDefaultActive = true
 	c.metricNameChar = defaultMetricChar
 	c.metricNameRegex = defaultMetricNameRegex
@@ -91,7 +92,7 @@ func NewCacheCollector(cfgBaseName string) (collector.Collector, error) {
 			return &c, nil
 		}
 		c.logger.Debug().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-		return nil, errors.Wrap(err, "wmi.cache config")
+		return nil, errors.Wrapf(err, "%s config", c.pkgID)
 	}
 
 	c.logger.Debug().Interface("config", cfg).Msg("loaded config")
@@ -115,14 +116,14 @@ func NewCacheCollector(cfgBaseName string) (collector.Collector, error) {
 		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
 			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == metricStatusEnabled
 		} else {
-			return nil, errors.Errorf("wmi.cache invalid metric default status (%s)", cfg.MetricsDefaultStatus)
+			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, cfg.MetricsDefaultStatus)
 		}
 	}
 
 	if cfg.MetricNameRegex != "" {
 		rx, err := regexp.Compile(cfg.MetricNameRegex)
 		if err != nil {
-			return nil, errors.Wrapf(err, "wmi.cache compile metric_name_regex")
+			return nil, errors.Wrapf(err, "%s compile metric_name_regex", c.pkgID)
 		}
 		c.metricNameRegex = rx
 	}
@@ -134,7 +135,7 @@ func NewCacheCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.RunTTL != "" {
 		dur, err := time.ParseDuration(cfg.RunTTL)
 		if err != nil {
-			return nil, errors.Wrap(err, "wmi.cache parsing run_ttl")
+			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
 		}
 		c.runTTL = dur
 	}
@@ -168,9 +169,9 @@ func (c *Cache) Collect() error {
 	var dst []Win32_PerfFormattedData_PerfOS_Cache
 	qry := wmi.CreateQuery(dst, "")
 	if err := wmi.Query(qry, &dst); err != nil {
-		c.logger.Error().Err(err).Str("query", qry).Msg("wmi error")
+		c.logger.Error().Err(err).Str("query", qry).Msg("wmi query error")
 		c.setStatus(metrics, err)
-		return errors.Wrap(err, "wmi.cache")
+		return errors.Wrap(err, c.pkgID)
 	}
 
 	for _, item := range dst {

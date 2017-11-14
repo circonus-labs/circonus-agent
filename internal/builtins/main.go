@@ -8,9 +8,11 @@ package builtins
 
 import (
 	"sync"
+	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	cgm "github.com/circonus-labs/circonus-gometrics"
+	appstats "github.com/maier/go-appstats"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
@@ -21,6 +23,8 @@ func New() (*Builtins, error) {
 		collectors: make(map[string]collector.Collector),
 		logger:     log.With().Str("pkg", "builtins").Logger(),
 	}
+
+	b.logger.Info().Msg("configuring builtins")
 
 	err := b.configure()
 	if err != nil {
@@ -40,7 +44,7 @@ func (b *Builtins) Run(id string) error {
 	}
 
 	if b.running {
-		b.logger.Warn().Msg("already running")
+		b.logger.Warn().Msg("already in progress")
 		b.Unlock()
 		return nil
 	}
@@ -48,11 +52,15 @@ func (b *Builtins) Run(id string) error {
 	b.running = true
 	b.Unlock()
 
+	start := time.Now()
+	appstats.MapSet("builtins", "last_start", start)
+
 	var wg sync.WaitGroup
 
 	if id == "" {
 		wg.Add(len(b.collectors))
 		for id, c := range b.collectors {
+			b.logger.Debug().Str("builtin", id).Msg("collecting")
 			go func(id string, c collector.Collector) {
 				err := c.Collect()
 				if err != nil {
@@ -65,6 +73,7 @@ func (b *Builtins) Run(id string) error {
 		c, ok := b.collectors[id]
 		if ok {
 			wg.Add(1)
+			b.logger.Debug().Str("builtin", id).Msg("collecting")
 			go func(id string, c collector.Collector) {
 				err := c.Collect()
 				if err != nil {
@@ -78,6 +87,11 @@ func (b *Builtins) Run(id string) error {
 	}
 
 	wg.Wait()
+
+	b.logger.Debug().Msg("all builtins done")
+
+	appstats.MapSet("builtins", "last_end", time.Now())
+	appstats.MapSet("builtins", "last_duration", time.Since(start))
 
 	b.Lock()
 	b.running = false
@@ -108,6 +122,8 @@ func (b *Builtins) IsBuiltin(id string) bool {
 func (b *Builtins) Flush(id string) *cgm.Metrics {
 	b.Lock()
 	defer b.Unlock()
+
+	appstats.MapSet("builtins", "last_flush", time.Now())
 
 	metrics := cgm.Metrics{}
 

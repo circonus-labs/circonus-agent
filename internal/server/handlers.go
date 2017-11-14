@@ -24,15 +24,33 @@ import (
 // run handles requests to execute plugins and return metrics emitted
 // handles /, /run, or /run/plugin_name
 func (s *Server) run(w http.ResponseWriter, r *http.Request) {
-	plugin := ""
+	id := ""
 
-	if strings.HasPrefix(r.URL.Path, "/run/") { // run specific plugin
-		plugin = strings.Replace(r.URL.Path, "/run/", "", -1)
-		if plugin != "" {
-			if !s.plugins.IsInternal(plugin) && !s.plugins.IsValid(plugin) {
+	if strings.HasPrefix(r.URL.Path, "/run/") { // run specific item
+		id = strings.Replace(r.URL.Path, "/run/", "", -1)
+		if id != "" {
+			idOK := false
+
+			// highest priority, internal servers (receiver, statsd, etc.)
+			if !idOK {
+				s.logger.Debug().Str("id", id).Msg("checking internals")
+				idOK = s.plugins.IsInternal(id)
+			}
+			// check builtins before plugins, builtins offer better efficiency
+			if !idOK {
+				s.logger.Debug().Str("id", id).Msg("checking bulitins")
+				idOK = s.builtins.IsBuiltin(id)
+			}
+			// lastly, check active plugins, if any
+			if !idOK {
+				s.logger.Debug().Str("id", id).Msg("checking plugins")
+				idOK = s.plugins.IsValid(id)
+			}
+
+			if !idOK {
 				s.logger.Warn().
-					Str("plugin", plugin).
-					Msg("Unknown plugin requested")
+					Str("id", id).
+					Msg("unknown item requested")
 				http.NotFound(w, r)
 				return
 			}
@@ -44,33 +62,53 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 
 	metrics := map[string]interface{}{}
 
-	if plugin == "" || !s.plugins.IsInternal(plugin) {
-		s.builtins.Run(plugin)
-		builtinMetrics := s.builtins.Flush(plugin)
+	// default to true if id is blank, otherwise set all to false
+	runBuiltins := id == ""
+	runPlugins := id == ""
+	flushReceiver := id == ""
+	flushStatsd := id == ""
+
+	if id != "" {
+		// identify _what_ to run based on the id
+		switch {
+		case id == "write":
+			flushReceiver = true
+		case id == "statsd":
+			flushStatsd = true
+		case s.builtins.IsBuiltin(id):
+			runBuiltins = true
+		default:
+			runPlugins = true
+		}
+	}
+
+	if runBuiltins {
+		s.builtins.Run(id)
+		builtinMetrics := s.builtins.Flush(id)
 		for metricName, metric := range *builtinMetrics {
 			metrics[metricName] = metric
 		}
 	}
 
-	if plugin == "" || !s.plugins.IsInternal(plugin) {
+	if runPlugins {
 		// NOTE: errors are ignored from plugins.Run
 		//       1. errors are already logged by Run
 		//       2. do not expose execution state to callers
-		s.plugins.Run(plugin)
-		pluginMetrics := s.plugins.Flush(plugin)
+		s.plugins.Run(id)
+		pluginMetrics := s.plugins.Flush(id)
 		for metricName, metric := range *pluginMetrics {
 			metrics[metricName] = metric
 		}
 	}
 
-	if plugin == "" || plugin == "write" {
+	if flushReceiver {
 		receiverMetrics := receiver.Flush()
 		for metricName, metric := range *receiverMetrics {
 			metrics[metricName] = metric
 		}
 	}
 
-	if plugin == "" || plugin == "statsd" {
+	if flushStatsd {
 		if s.statsdSvr != nil {
 			statsdMetrics := s.statsdSvr.Flush()
 			if statsdMetrics != nil {

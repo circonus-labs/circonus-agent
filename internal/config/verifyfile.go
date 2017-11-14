@@ -29,11 +29,7 @@ func verifyFile(fileName string) (string, error) {
 	fileName = absFileName
 
 	fi, err = os.Stat(fileName)
-	if os.IsNotExist(err) {
-		return "", err
-	}
-
-	if os.IsPermission(err) {
+	if err != nil {
 		return "", err
 	}
 

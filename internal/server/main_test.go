@@ -7,7 +7,9 @@ package server
 
 import (
 	"errors"
+	"path"
 	"regexp"
+	"runtime"
 	"testing"
 	"time"
 
@@ -18,13 +20,13 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	viper.Reset()
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	t.Log("Testing New w/HTTP")
 	{
 		t.Log("\tno config")
 		{
+			viper.Reset()
 			s, err := New(nil, nil, nil)
 			if err != nil {
 				t.Fatalf("expected no error, got (%s)", err)
@@ -36,6 +38,7 @@ func TestNew(t *testing.T) {
 
 		t.Log("\tempty config")
 		{
+			viper.Reset()
 			viper.Set(config.KeyListen, []string{""})
 			s, err := New(nil, nil, nil)
 			if err != nil {
@@ -44,192 +47,159 @@ func TestNew(t *testing.T) {
 			if len(s.svrHTTP) == 0 {
 				t.Fatal("expected at least 1 http server")
 			}
-			viper.Reset()
 		}
 
 		t.Log("\tport config1 (colon)")
 		{
+			viper.Reset()
 			viper.Set(config.KeyListen, []string{":2609"})
 			s, err := New(nil, nil, nil)
 			if err != nil {
 				t.Fatalf("expected NO error, got (%s)", err)
 			}
-			if s == nil {
-				t.Fatal("expected NOT nil")
+			if len(s.svrHTTP) == 0 {
+				t.Fatal("expected at least 1 http server")
 			}
-			if s.svrHTTP == nil {
-				t.Fatal("expected NOT nil")
-			}
-			viper.Reset()
 		}
 
 		t.Log("\tport config2 (no colon)")
 		{
+			viper.Reset()
 			viper.Set(config.KeyListen, []string{"2609"})
 			s, err := New(nil, nil, nil)
 			if err != nil {
 				t.Fatalf("expected NO error, got (%s)", err)
 			}
-			if s == nil {
-				t.Fatal("expected NOT nil")
-			}
-			if s.svrHTTP == nil {
-				t.Fatal("expected NOT nil")
+			if len(s.svrHTTP) == 0 {
+				t.Fatal("expected at least 1 http server")
 			}
 			expect := defaults.Listen
 			if s.svrHTTP[0].address.String() != expect {
 				t.Fatalf("expected (%s) got (%s)", expect, s.svrHTTP[0].address.String())
 			}
-			viper.Reset()
 		}
 
 		t.Log("\taddress ipv4 config - invalid")
 		{
 			addr := "127.0.0.a"
+			viper.Reset()
 			viper.Set(config.KeyListen, []string{addr})
 			_, err := New(nil, nil, nil)
 			if err == nil {
 				t.Fatal("expected error")
 			}
-			expect := "HTTP Server: resolving listen: lookup 127.0.0.a: no such host"
-			if err.Error() != expect {
-				t.Fatalf("expected (%s) got (%s)", expect, err)
-			}
-			viper.Reset()
 		}
 
 		t.Log("\taddress ipv4 config")
 		{
 			addr := "127.0.0.1"
+			viper.Reset()
 			viper.Set(config.KeyListen, []string{addr})
 			s, err := New(nil, nil, nil)
 			if err != nil {
 				t.Fatalf("expected NO error, got (%s)", err)
 			}
-			if s == nil {
-				t.Fatal("expected NOT nil")
-			}
-			if s.svrHTTP == nil {
-				t.Fatal("expected NOT nil")
+			if len(s.svrHTTP) == 0 {
+				t.Fatal("expected at least 1 http server")
 			}
 			expect := addr + defaults.Listen
 			if s.svrHTTP[0].address.String() != expect {
 				t.Fatalf("expected (%s) got (%s)", expect, s.svrHTTP[0].address.String())
 			}
-			viper.Reset()
 		}
 
 		t.Log("\taddress:port ipv4 config")
 		{
 			addr := "127.0.0.1:2610"
+			viper.Reset()
 			viper.Set(config.KeyListen, []string{addr})
 			s, err := New(nil, nil, nil)
 			if err != nil {
 				t.Fatalf("expected NO error, got (%s)", err)
 			}
-			if s == nil {
-				t.Fatal("expected NOT nil")
-			}
-			if s.svrHTTP == nil {
-				t.Fatal("expected NOT nil")
+			if len(s.svrHTTP) == 0 {
+				t.Fatal("expected at least 1 http server")
 			}
 			expect := addr
 			if s.svrHTTP[0].address.String() != expect {
 				t.Fatalf("expected (%s) got (%s)", expect, s.svrHTTP[0].address.String())
 			}
-			viper.Reset()
 		}
 
 		t.Log("\taddress ipv6 config - invalid format")
 		{
 			addr := "::1"
+			viper.Reset()
 			viper.Set(config.KeyListen, []string{addr})
 			_, err := New(nil, nil, nil)
 			if err == nil {
 				t.Fatal("expected error")
 			}
-			expect := "HTTP Server: parsing listen: address ::1: too many colons in address"
-			if err.Error() != expect {
-				t.Fatalf("expected (%s) got (%s)", expect, err)
-			}
-			viper.Reset()
 		}
 
 		t.Log("\taddress ipv6 config - valid format")
 		{
 			addr := "[::1]"
+			viper.Reset()
 			viper.Set(config.KeyListen, []string{addr})
 			s, err := New(nil, nil, nil)
 			if err != nil {
 				t.Fatalf("expected NO error, got (%s)", err)
 			}
-			if s == nil {
-				t.Fatal("expected NOT nil")
-			}
-			if s.svrHTTP == nil {
-				t.Fatal("expected NOT nil")
+			if len(s.svrHTTP) == 0 {
+				t.Fatal("expected at least 1 http server")
 			}
 			expect := addr + defaults.Listen
 			if s.svrHTTP[0].address.String() != expect {
 				t.Fatalf("expected (%s) got (%s)", expect, s.svrHTTP[0].address.String())
 			}
-			viper.Reset()
 		}
 
 		t.Log("\taddress:port ipv6 config")
 		{
 			addr := "[::1]:2610"
+			viper.Reset()
 			viper.Set(config.KeyListen, []string{addr})
 			s, err := New(nil, nil, nil)
 			if err != nil {
 				t.Fatalf("expected NO error, got (%s)", err)
 			}
-			if s == nil {
-				t.Fatal("expected NOT nil")
-			}
-			if s.svrHTTP == nil {
-				t.Fatal("expected NOT nil")
+			if len(s.svrHTTP) == 0 {
+				t.Fatal("expected at least 1 http server")
 			}
 			expect := addr
 			if s.svrHTTP[0].address.String() != expect {
 				t.Fatalf("expected (%s) got (%s)", expect, s.svrHTTP[0].address.String())
 			}
-			viper.Reset()
 		}
 
 		t.Log("\tfqdn config - unknown name")
 		{
 			addr := "foo.bar"
+			viper.Reset()
 			viper.Set(config.KeyListen, []string{addr})
 			_, err := New(nil, nil, nil)
 			if err == nil {
 				t.Fatal("expected error")
 			}
-			expect := "HTTP Server: resolving listen: lookup foo.bar: no such host"
-			if err.Error() != expect {
-				t.Fatalf("expected (%s) got (%s)", expect, err)
-			}
-			viper.Reset()
 		}
 
 		t.Log("\tfqdn config")
 		{
+			// simply verifying it can resolve a FQDN to an IP address correctly
 			addr := "www.google.com"
+			viper.Reset()
 			viper.Set(config.KeyListen, []string{addr})
 			s, err := New(nil, nil, nil)
 			if err != nil {
 				t.Fatalf("expected NO error, got (%s)", err)
 			}
-			if s == nil {
-				t.Fatal("expected NOT nil")
-			}
-			if s.svrHTTP == nil {
-				t.Fatal("expected NOT nil")
+			if len(s.svrHTTP) == 0 {
+				t.Fatal("expected at least 1 http server")
 			}
 			if ok, _ := regexp.MatchString(`^\d{1,3}(\.\d{1,3}){3}:[0-9]+$`, s.svrHTTP[0].address.String()); !ok {
 				t.Fatalf("expected (ipv4:port) got (%s)", s.svrHTTP[0].address.String())
 			}
-			viper.Reset()
 		}
 	}
 
@@ -237,117 +207,87 @@ func TestNew(t *testing.T) {
 	{
 		t.Log("\taddress, no cert/key")
 		{
+			viper.Reset()
 			viper.Set(config.KeySSLListen, ":2610")
-			s, err := New(nil, nil, nil)
+			_, err := New(nil, nil, nil)
 			if err == nil {
 				t.Fatal("expecting error")
 			}
-			if s != nil {
-				t.Fatal("expected nil")
-			}
-			expectedErr := errors.New("SSL server cert file: stat : no such file or directory")
-			if err.Error() != expectedErr.Error() {
-				t.Fatalf("expected (%s) got (%v)", expectedErr, err)
-			}
-			viper.Reset()
 		}
 
 		t.Log("\taddress, bad cert, no key")
 		{
+			viper.Reset()
 			viper.Set(config.KeySSLListen, ":2610")
 			viper.Set(config.KeySSLCertFile, "testdata/missing.crt")
-			s, err := New(nil, nil, nil)
+			_, err := New(nil, nil, nil)
 			if err == nil {
 				t.Fatal("expecting error")
 			}
-			if s != nil {
-				t.Fatal("expected nil")
-			}
-			expectedErr := errors.New("SSL server cert file: stat testdata/missing.crt: no such file or directory")
-			if err.Error() != expectedErr.Error() {
-				t.Fatalf("expected (%s) got (%v)", expectedErr, err)
-			}
-			viper.Reset()
 		}
 
 		t.Log("\taddress, cert, no key")
 		{
+			viper.Reset()
 			viper.Set(config.KeySSLListen, ":2610")
 			viper.Set(config.KeySSLCertFile, "testdata/cert.crt")
-			s, err := New(nil, nil, nil)
+			_, err := New(nil, nil, nil)
 			if err == nil {
 				t.Fatal("expecting error")
 			}
-			if s != nil {
-				t.Fatal("expected nil")
-			}
-			expectedErr := errors.New("SSL server key file: stat : no such file or directory")
-			if err.Error() != expectedErr.Error() {
-				t.Fatalf("expected (%s) got (%v)", expectedErr, err)
-			}
-			viper.Reset()
 		}
 
 		t.Log("\taddress, cert, bad key")
 		{
+			viper.Reset()
 			viper.Set(config.KeySSLListen, ":2610")
 			viper.Set(config.KeySSLCertFile, "testdata/cert.crt")
 			viper.Set(config.KeySSLKeyFile, "testdata/missing.key")
-			s, err := New(nil, nil, nil)
+			_, err := New(nil, nil, nil)
 			if err == nil {
 				t.Fatal("expecting error")
 			}
-			if s != nil {
-				t.Fatal("expected nil")
-			}
-			expectedErr := errors.New("SSL server key file: stat testdata/missing.key: no such file or directory")
-			if err.Error() != expectedErr.Error() {
-				t.Fatalf("expected (%s) got (%v)", expectedErr, err)
-			}
-			viper.Reset()
 		}
 	}
 
-	t.Log("Testing New w/Socket")
-	{
-		t.Log("\tw/config (file exists)")
+	if runtime.GOOS != "windows" {
+		t.Log("Testing New w/Socket")
 		{
-			viper.Set(config.KeyListenSocket, []string{"testdata/exists.sock"})
-			expected := errors.New("Socket server file (testdata/exists.sock) exists")
-			_, err := New(nil, nil, nil)
-			if err == nil {
-				t.Fatal("expected error")
+			t.Log("\tw/config (file exists)")
+			{
+				viper.Reset()
+				viper.Set(config.KeyListenSocket, []string{"testdata/exists.sock"})
+				_, err := New(nil, nil, nil)
+				if err == nil {
+					t.Fatal("expected error")
+				}
 			}
-			if err.Error() != expected.Error() {
-				t.Fatalf("expected (%s) got (%s)", expected, err)
-			}
-			viper.Reset()
-		}
 
-		t.Log("\tw/valid config")
-		{
-			viper.Set(config.KeyListenSocket, []string{"testdata/test.sock"})
-			s, err := New(nil, nil, nil)
-			if err != nil {
-				t.Fatalf("expected no error, got (%s)", err)
+			t.Log("\tw/valid config")
+			{
+				viper.Reset()
+				viper.Set(config.KeyListenSocket, []string{path.Join("testdata", "test.sock")})
+				s, err := New(nil, nil, nil)
+				if err != nil {
+					t.Fatalf("expected no error, got (%s)", err)
+				}
+				if len(s.svrSockets) != 1 {
+					t.Fatal("expected 1 sockets")
+				}
+				s.svrSockets[0].listener.Close()
 			}
-			if len(s.svrSockets) != 1 {
-				t.Fatal("expected 1 sockets")
-			}
-			s.svrSockets[0].listener.Close()
-			viper.Reset()
 		}
 	}
 }
 
 func TestStartHTTP(t *testing.T) {
-	viper.Reset()
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	t.Log("Testing startHTTP")
 
 	t.Log("\tno config")
 	{
+		viper.Reset()
 		s := &Server{}
 		err := s.startHTTP(&httpServer{})
 		if err != nil {
@@ -355,34 +295,40 @@ func TestStartHTTP(t *testing.T) {
 		}
 	}
 
+	done := make(chan int)
 	t.Log("\tw/config")
 	{
+		viper.Reset()
 		viper.Set(config.KeyListen, []string{":65111"})
 		s, err := New(nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
+			done <- 1
 		}
 		if len(s.svrHTTP) != 1 {
 			t.Fatal("expected 1 server")
+			done <- 1
 		}
 		time.AfterFunc(1*time.Second, func() {
 			s.svrHTTP[0].server.Close()
+			done <- 1
 		})
 		if err := s.startHTTP(s.svrHTTP[0]); err != nil {
 			t.Fatalf("expected NO error, got (%v)", err)
+			done <- 1
 		}
-		viper.Reset()
 	}
+	<-done
 }
 
 func TestStartHTTPS(t *testing.T) {
-	viper.Reset()
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	t.Log("Testing startHTTPS")
 
 	t.Log("\tno config")
 	{
+		viper.Reset()
 		s := &Server{}
 		err := s.startHTTPS()
 		if err != nil {
@@ -392,6 +338,7 @@ func TestStartHTTPS(t *testing.T) {
 
 	t.Log("\tw/config (empty cert)")
 	{
+		viper.Reset()
 		viper.Set(config.KeySSLListen, ":65225")
 		viper.Set(config.KeySSLCertFile, "testdata/cert.crt")
 		viper.Set(config.KeySSLKeyFile, "testdata/key.key")
@@ -401,24 +348,23 @@ func TestStartHTTPS(t *testing.T) {
 		}
 		if err := s.startHTTPS(); err == nil {
 			t.Fatal("expected error")
-		} else {
-			expected := errors.New("SSL server: tls: failed to find any PEM data in certificate input")
-			if err.Error() != expected.Error() {
-				t.Fatalf("expected (%s) got (%s)", expected, err)
-			}
 		}
-		viper.Reset()
 	}
 }
 
 func TestStartSocket(t *testing.T) {
-	viper.Reset()
+	if runtime.GOOS == "windows" {
+		t.Skip("unix sockets not availble on " + runtime.GOOS)
+		return
+	}
+
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	t.Log("Testing startSocket")
 
 	t.Log("\tno config")
 	{
+		viper.Reset()
 		s := &Server{}
 		err := s.startSocket(&socketServer{})
 		if err != nil {
@@ -428,72 +374,75 @@ func TestStartSocket(t *testing.T) {
 
 	t.Log("\tw/bad config - invalid file")
 	{
+		viper.Reset()
 		viper.Set(config.KeyListenSocket, []string{"nodir/test.sock"})
 		_, err := New(nil, nil, nil)
 		if err == nil {
 			t.Fatal("expected error")
 		}
-		expect := errors.New("creating socket: listen unix nodir/test.sock: bind: no such file or directory")
-		if err.Error() != expect.Error() {
-			t.Fatalf("expected (%s) got (%v)", expect, err)
-		}
-		viper.Reset()
 	}
+
+	done := make(chan int)
 
 	t.Log("\tw/config (server close)")
 	{
-		viper.Set(config.KeyListenSocket, []string{"testdata/test.sock"})
+		viper.Reset()
+		viper.Set(config.KeyListenSocket, []string{path.Join("testdata", "test.sock")})
 		s, err := New(nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
+			done <- 1
 		}
 		if len(s.svrSockets) != 1 {
 			t.Fatal("expected 1 socket")
+			done <- 1
 		}
 		time.AfterFunc(1*time.Second, func() {
 			s.svrSockets[0].server.Close()
+			done <- 1
 		})
 		serr := s.startSocket(s.svrSockets[0])
 		if serr != nil {
 			t.Fatalf("expected NO error, got (%v)", serr)
+			done <- 1
 		}
-		viper.Reset()
 	}
+	<-done
 
 	t.Log("\tw/config (listener close)")
 	{
-		viper.Set(config.KeyListenSocket, []string{"testdata/test.sock"})
+		viper.Reset()
+		viper.Set(config.KeyListenSocket, []string{path.Join("testdata", "test.sock")})
 		s, err := New(nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
+			done <- 1
 		}
 		if len(s.svrSockets) != 1 {
 			t.Fatal("expected 1 socket")
+			done <- 1
 		}
 		time.AfterFunc(1*time.Second, func() {
 			s.svrSockets[0].listener.Close()
+			done <- 1
 		})
-		expect := errors.New("socket server: accept unix testdata/test.sock: use of closed network connection")
 		serr := s.startSocket(s.svrSockets[0])
 		if serr == nil {
 			t.Fatal("expected error")
+			done <- 1
 		}
-		if serr.Error() != expect.Error() {
-			t.Fatalf("expected (%s) got (%v)", expect, serr)
-		}
-
-		viper.Reset()
 	}
+	<-done
 }
 
 func TestStart(t *testing.T) {
-	viper.Reset()
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	t.Log("Testing Start")
 
 	t.Log("\tno servers")
 	{
+		viper.Reset()
 		s, err := New(nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
@@ -505,6 +454,7 @@ func TestStart(t *testing.T) {
 
 	t.Log("\tvalid http, invalid https")
 	{
+		viper.Reset()
 		viper.Set(config.KeyListen, []string{":65226"})
 		viper.Set(config.KeySSLListen, ":65227")
 		viper.Set(config.KeySSLCertFile, "testdata/cert.crt")
@@ -521,18 +471,16 @@ func TestStart(t *testing.T) {
 		if serr.Error() != expected.Error() {
 			t.Fatalf("expected (%s) got (%s)", expected, serr)
 		}
-		viper.Reset()
 	}
 }
 
 func TestStop(t *testing.T) {
-	viper.Reset()
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	t.Log("Testing Stop")
 
-	t.Log("\tno servers")
-	{
+	t.Run("no servers", func(t *testing.T) {
+		viper.Reset()
 		s, err := New(nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
@@ -540,26 +488,54 @@ func TestStop(t *testing.T) {
 		if len(s.svrHTTP) == 0 {
 			t.Fatal("expected at least 1 http server")
 		}
-	}
+	})
 
-	t.Log("\tvalid http, valid socket")
-	{
+	t.Run("valid http, no socket", func(t *testing.T) {
+		done := make(chan int)
+		viper.Reset()
 		viper.Set(config.KeyListen, []string{":65226"})
-		viper.Set(config.KeyListenSocket, "testdata/test.sock")
 		s, err := New(nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
+			done <- 1
 		}
 
 		time.AfterFunc(2*time.Second, func() {
 			s.Stop()
+			done <- 1
 		})
 
 		serr := s.Start()
 		if serr != nil {
-			t.Fatalf("expected no error, got (%s)", err)
+			t.Fatalf("expected no error, got (%s)", serr)
+			done <- 1
 		}
+		<-done
+	})
 
-		viper.Reset()
+	if runtime.GOOS != "windows" {
+		t.Run("valid http, valid socket", func(t *testing.T) {
+			done := make(chan int)
+			viper.Reset()
+			viper.Set(config.KeyListen, []string{"localhost:"})
+			viper.Set(config.KeyListenSocket, path.Join("testdata", "test.sock"))
+			s, err := New(nil, nil, nil)
+			if err != nil {
+				t.Fatalf("expected no error, got (%s)", err)
+				done <- 1
+			}
+
+			time.AfterFunc(2*time.Second, func() {
+				s.Stop()
+				done <- 1
+			})
+
+			serr := s.Start()
+			if serr != nil {
+				t.Fatalf("expected no error, got (%s)", serr)
+				done <- 1
+			}
+			<-done
+		})
 	}
 }

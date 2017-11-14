@@ -11,7 +11,6 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins"
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
@@ -73,26 +72,18 @@ func TestScanPluginDirectory(t *testing.T) {
 	t.Log("No plugin directory")
 	{
 		p.pluginDir = ""
-		expectErr := errors.Errorf("invalid plugin directory (none)")
 		err := p.scanPluginDirectory(b)
 		if err == nil {
 			t.Fatal("expected error")
-		}
-		if expectErr.Error() != err.Error() {
-			t.Fatalf("expected (%s) got (%s)", expectErr, err)
 		}
 	}
 
 	t.Log("No access plugin directory")
 	{
 		p.pluginDir = "testdata/noaccess"
-		expectErr := errors.Errorf("open plugin directory: open %s: permission denied", p.pluginDir)
 		err := p.scanPluginDirectory(b)
 		if err == nil {
 			t.Fatalf("expected error (verify %s owned by root and mode 0700)", p.pluginDir)
-		}
-		if expectErr.Error() != err.Error() {
-			t.Fatalf("expected (%s) got (%s)", expectErr, err)
 		}
 	}
 

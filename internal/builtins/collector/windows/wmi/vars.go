@@ -18,6 +18,7 @@ import (
 // wmicommon defines WMI metrics common elements
 type wmicommon struct {
 	id                  string          // id of the collector (used as metric name prefix)
+	pkgID               string          // package prefix used for logging and errors
 	lastEnd             time.Time       // last collection end time
 	lastError           string          // last collection error
 	lastMetrics         cgm.Metrics     // last metrics collected

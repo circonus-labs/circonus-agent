@@ -45,6 +45,8 @@ archive:
         - LICENSE
         - README.md
         - CHANGELOG.md
+        - etc/README.md
+        - plugins/README.md
 
 release:
     github:
