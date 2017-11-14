@@ -7,6 +7,7 @@ package server
 
 import (
 	"errors"
+	"path"
 	"regexp"
 	"runtime"
 	"testing"
@@ -265,7 +266,7 @@ func TestNew(t *testing.T) {
 			t.Log("\tw/valid config")
 			{
 				viper.Reset()
-				viper.Set(config.KeyListenSocket, []string{"testdata/test.sock"})
+				viper.Set(config.KeyListenSocket, []string{path.Join("testdata", "test.sock")})
 				s, err := New(nil, nil, nil)
 				if err != nil {
 					t.Fatalf("expected no error, got (%s)", err)
@@ -302,9 +303,11 @@ func TestStartHTTP(t *testing.T) {
 		s, err := New(nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
+			done <- 1
 		}
 		if len(s.svrHTTP) != 1 {
 			t.Fatal("expected 1 server")
+			done <- 1
 		}
 		time.AfterFunc(1*time.Second, func() {
 			s.svrHTTP[0].server.Close()
@@ -312,6 +315,7 @@ func TestStartHTTP(t *testing.T) {
 		})
 		if err := s.startHTTP(s.svrHTTP[0]); err != nil {
 			t.Fatalf("expected NO error, got (%v)", err)
+			done <- 1
 		}
 	}
 	<-done
@@ -383,13 +387,15 @@ func TestStartSocket(t *testing.T) {
 	t.Log("\tw/config (server close)")
 	{
 		viper.Reset()
-		viper.Set(config.KeyListenSocket, []string{"testdata/test.sock"})
+		viper.Set(config.KeyListenSocket, []string{path.Join("testdata", "test.sock")})
 		s, err := New(nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
+			done <- 1
 		}
 		if len(s.svrSockets) != 1 {
 			t.Fatal("expected 1 socket")
+			done <- 1
 		}
 		time.AfterFunc(1*time.Second, func() {
 			s.svrSockets[0].server.Close()
@@ -398,6 +404,7 @@ func TestStartSocket(t *testing.T) {
 		serr := s.startSocket(s.svrSockets[0])
 		if serr != nil {
 			t.Fatalf("expected NO error, got (%v)", serr)
+			done <- 1
 		}
 	}
 	<-done
@@ -405,13 +412,15 @@ func TestStartSocket(t *testing.T) {
 	t.Log("\tw/config (listener close)")
 	{
 		viper.Reset()
-		viper.Set(config.KeyListenSocket, []string{"testdata/test.sock"})
+		viper.Set(config.KeyListenSocket, []string{path.Join("testdata", "test.sock")})
 		s, err := New(nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
+			done <- 1
 		}
 		if len(s.svrSockets) != 1 {
 			t.Fatal("expected 1 socket")
+			done <- 1
 		}
 		time.AfterFunc(1*time.Second, func() {
 			s.svrSockets[0].listener.Close()
@@ -420,6 +429,7 @@ func TestStartSocket(t *testing.T) {
 		serr := s.startSocket(s.svrSockets[0])
 		if serr == nil {
 			t.Fatal("expected error")
+			done <- 1
 		}
 	}
 	<-done
@@ -480,14 +490,14 @@ func TestStop(t *testing.T) {
 		}
 	})
 
-	done := make(chan int)
-
 	t.Run("valid http, no socket", func(t *testing.T) {
+		done := make(chan int)
 		viper.Reset()
 		viper.Set(config.KeyListen, []string{":65226"})
 		s, err := New(nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
+			done <- 1
 		}
 
 		time.AfterFunc(2*time.Second, func() {
@@ -498,18 +508,21 @@ func TestStop(t *testing.T) {
 		serr := s.Start()
 		if serr != nil {
 			t.Fatalf("expected no error, got (%s)", serr)
+			done <- 1
 		}
+		<-done
 	})
-	<-done
 
 	if runtime.GOOS != "windows" {
 		t.Run("valid http, valid socket", func(t *testing.T) {
+			done := make(chan int)
 			viper.Reset()
 			viper.Set(config.KeyListen, []string{"localhost:"})
-			viper.Set(config.KeyListenSocket, "testdata/test.sock")
+			viper.Set(config.KeyListenSocket, path.Join("testdata", "test.sock"))
 			s, err := New(nil, nil, nil)
 			if err != nil {
 				t.Fatalf("expected no error, got (%s)", err)
+				done <- 1
 			}
 
 			time.AfterFunc(2*time.Second, func() {
@@ -520,8 +533,9 @@ func TestStop(t *testing.T) {
 			serr := s.Start()
 			if serr != nil {
 				t.Fatalf("expected no error, got (%s)", serr)
+				done <- 1
 			}
+			<-done
 		})
-		<-done
 	}
 }
