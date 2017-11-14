@@ -1,0 +1,13 @@
+{
+    "urls": [
+        {
+            "id": "foo",
+            "url": "http://localhost/foo/",
+            "ttl": "10s"
+        },
+        {
+            "id": "bar",
+            "url": "http://localhost/bar/"
+        }
+    ]
+}
