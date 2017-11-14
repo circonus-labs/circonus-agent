@@ -1,0 +1,12 @@
+---
+
+metrics_disabled:
+    - foo
+    - bar
+
+urls:
+    - id: foo
+      url: http://localhost/foo
+      ttl: 30s
+    - id: bar
+      url: http://localhost/bar

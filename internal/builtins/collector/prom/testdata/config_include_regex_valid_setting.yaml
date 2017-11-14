@@ -1,0 +1,8 @@
+---
+include_regex: ^foo
+urls:
+    - id: foo
+      url: http://localhost/foo
+      ttl: 30s
+    - id: bar
+      url: http://localhost/bar

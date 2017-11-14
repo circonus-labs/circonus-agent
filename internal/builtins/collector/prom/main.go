@@ -28,7 +28,7 @@ func New(cfgBaseName string) (collector.Collector, error) {
 		include:             defaultIncludeRegex,
 		exclude:             defaultExcludeRegex,
 	}
-	c.pkgID = "builtins.promfetc"
+	c.pkgID = "builtins.promfetch"
 	c.logger = log.With().Str("pkg", c.pkgID).Logger()
 
 	// Prom is a special builtin, it requires a configuration file,
