@@ -1,3 +1,24 @@
+# v0.8.0
+
+* fix: socket server test to fail correctly when on a linux vagrant mounted fs
+* fix: various tests for cross platform differences
+* fix: several tests to accommodate differences in os error messages across platforms
+* add: bytes read/written to procfs.diskstats (eliminate need for nad:linux/disk.sh)
+* fix: normalize procfs.cpu clockHZ
+* fix: double backtick procfs.if tcp metrics
+* upd: expose all procfs.vm meminfo metrics as raw names
+* add: linux default collectors `['cpu', 'diskstats', 'if', 'loadavg', 'vm']`
+* add: procfs.loadavg collect (nad:common/loadavg.elf)
+* add: procfs.vm collector (nad:linux/vm.sh)
+* add: procfs.if collector (nad:linux/if.sh)
+* add: procfs.diskstats collector (nad:linux/diskstats.sh)
+* add: procfs.cpu collector (nad:linux/cpu.sh)
+* doc: `etc/README.md` and `plugins/README.md` to releases
+* doc: reorganize documentation
+* doc: add `plugins/README.md` with documentation about plugins
+* doc: add `etc/README.md` with documentation specifically about configuring the Circonus agent and builtin collectors
+* upd: vendor deps
+
 # v0.7.0
 
 * add: builtin collector framework
