@@ -182,4 +182,22 @@ func TestRouter(t *testing.T) {
 			t.Fatalf("expected %d, got %d", http.StatusNoContent, resp.StatusCode)
 		}
 	}
+
+	t.Log("OK (PUT /prom) w/data")
+	{
+		viper.Reset()
+		viper.Set(config.KeyListen, ":2609")
+		s, err := New(nil, nil, nil)
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
+		reqBody := bytes.NewReader([]byte("test 1234\n")) // NOTE: a CR is *required* otherwise there's a parsing error
+		req := httptest.NewRequest("PUT", "/prom", reqBody)
+		w := httptest.NewRecorder()
+		s.router(w, req)
+		resp := w.Result()
+		if resp.StatusCode != http.StatusNoContent {
+			t.Fatalf("expected %d, got %d", http.StatusNoContent, resp.StatusCode)
+		}
+	}
 }

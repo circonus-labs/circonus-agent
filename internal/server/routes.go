@@ -43,6 +43,8 @@ func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 	case "PUT":
 		if writePathRx.MatchString(r.URL.Path) {
 			s.write(w, r)
+		} else if promPathRx.MatchString(r.URL.Path) {
+			s.promReceiver(w, r)
 		} else {
 			appstats.IncrementInt("requests_bad")
 			s.logger.Warn().
