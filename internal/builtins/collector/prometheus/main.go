@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 //
 
-package prom
+package prometheus
 
 import (
 	"context"
@@ -37,13 +37,14 @@ func New(cfgBaseName string) (collector.Collector, error) {
 		exclude:             defaultExcludeRegex,
 		metricNameRegex:     regexp.MustCompile("[\r\n\"']"), // used to strip unwanted characters
 	}
-	c.pkgID = "builtins.promfetch"
+	c.pkgID = "builtins.prometheus"
 	c.logger = log.With().Str("pkg", c.pkgID).Logger()
 
 	// Prom is a special builtin, it requires a configuration file,
-	// it does not work if there are no prom urls to pull metrics from.
-	// default config is a file named promfetch.(json|toml|yaml) in the
-	// agent's default etc path.
+	// it obviously would not work if there are no urls from which
+	// to pull metrics. The default config is a file named
+	// prometheus_collector.(json|toml|yaml) located in the agent's
+	// default etc path. (e.g. /opt/circonus/agent/etc/prometheus_collector.yaml)
 	if cfgBaseName == "" {
 		cfgBaseName = path.Join(defaults.EtcPath, "prometheus_collector")
 	}

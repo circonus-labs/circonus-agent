@@ -8,12 +8,12 @@
 package builtins
 
 import (
-	"github.com/circonus-labs/circonus-agent/internal/builtins/collector/prom"
+	"github.com/circonus-labs/circonus-agent/internal/builtins/collector/prometheus"
 	appstats "github.com/maier/go-appstats"
 )
 
 func (b *Builtins) configure() error {
-	prom, err := prom.New("")
+	prom, err := prometheus.New("")
 	if err != nil {
 		appstats.MapAddInt("builtins", "total", 0)
 		b.logger.Warn().Err(err).Msg("prom collector, disabling")
