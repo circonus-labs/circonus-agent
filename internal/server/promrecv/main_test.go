@@ -7,7 +7,6 @@ package promrecv
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"testing"
 
@@ -139,10 +138,6 @@ func TestParse(t *testing.T) {
 		expect := float64(1234)
 		if testMetric.Value.(float64) != expect {
 			t.Fatalf("expected %v got %v", expect, testMetric.Value)
-		}
-
-		for mn, mv := range *m {
-			fmt.Printf("%s = %v\n", mn, mv)
 		}
 	}
 }
