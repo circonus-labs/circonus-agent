@@ -87,16 +87,16 @@ func Parse(data io.ReadCloser) error {
 				metricName += metricNameSeparator + strings.Join(labels, metricNameSeparator)
 			}
 			if mf.GetType() == dto.MetricType_SUMMARY {
-				metrics.Gauge(metricName+metricNameSeparator+"count", float64(m.GetSummary().GetSampleCount()))
-				metrics.Gauge(metricName+metricNameSeparator+"sum", float64(m.GetSummary().GetSampleSum()))
+				metrics.Gauge(metricName+"_count", float64(m.GetSummary().GetSampleCount()))
+				metrics.Gauge(metricName+"_sum", float64(m.GetSummary().GetSampleSum()))
 				for qn, qv := range getQuantiles(m) {
-					metrics.Gauge(metricName+metricNameSeparator+qn, qv)
+					metrics.Gauge(metricName+"_"+qn, qv)
 				}
 			} else if mf.GetType() == dto.MetricType_HISTOGRAM {
-				metrics.Gauge(metricName+metricNameSeparator+"count", float64(m.GetHistogram().GetSampleCount()))
-				metrics.Gauge(metricName+metricNameSeparator+"sum", float64(m.GetHistogram().GetSampleSum()))
+				metrics.Gauge(metricName+"_count", float64(m.GetHistogram().GetSampleCount()))
+				metrics.Gauge(metricName+"_sum", float64(m.GetHistogram().GetSampleSum()))
 				for bn, bv := range getBuckets(m) {
-					metrics.Gauge(metricName+metricNameSeparator+bn, bv)
+					metrics.Gauge(metricName+"_"+bn, bv)
 				}
 			} else {
 				if m.Gauge != nil {
