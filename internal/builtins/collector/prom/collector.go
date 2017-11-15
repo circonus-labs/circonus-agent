@@ -43,11 +43,7 @@ func (c *Prom) Inventory() collector.InventoryStats {
 
 // cleanName is used to clean the metric name
 func (c *Prom) cleanName(name string) string {
-	// metric names are not dynamic for linux procfs - reintroduce cleaner if
-	// procfs sources used return dirty dynamic names.
-	//
-	// return c.metricNameRegex.ReplaceAllString(name, c.metricNameChar)
-	return name
+	return c.metricNameRegex.ReplaceAllString(name, "")
 }
 
 // addMetric to internal buffer if metric is active

@@ -17,9 +17,10 @@ import (
 
 // URLDef defines a url to fetch text formatted prom metrics from
 type URLDef struct {
-	ID  string `json:"id" toml:"id" yaml:"id"`
-	URL string `json:"url" toml:"url" yaml:"url"`
-	TTL string `json:"ttl" toml:"ttl" yaml:"ttl"`
+	ID   string `json:"id" toml:"id" yaml:"id"`
+	URL  string `json:"url" toml:"url" yaml:"url"`
+	TTL  string `json:"ttl" toml:"ttl" yaml:"ttl"`
+	uttl time.Duration
 }
 
 // Prom defines prom collector
@@ -33,7 +34,6 @@ type Prom struct {
 	lastStart           time.Time       // last collection start time
 	logger              zerolog.Logger  // collector logging instance
 	metricDefaultActive bool            // OPT default status for metrics NOT explicitly in metricStatus
-	metricNameChar      string          // OPT character(s) used as replacement for metricNameRegex
 	metricNameRegex     *regexp.Regexp  // OPT regex for cleaning names, may be overriden in config
 	metricStatus        map[string]bool // OPT list of metrics and whether they should be collected or not
 	running             bool            // is collector currently running

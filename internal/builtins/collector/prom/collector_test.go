@@ -8,6 +8,7 @@ package prom
 import (
 	"errors"
 	"reflect"
+	"regexp"
 	"testing"
 	"time"
 
@@ -61,7 +62,9 @@ func TestAddMetric(t *testing.T) {
 
 	t.Log("Testing invalid states/submissions")
 	{
-		c := &Prom{}
+		c := &Prom{
+			metricNameRegex: regexp.MustCompile("[\r\n\"']"),
+		}
 		if err := c.addMetric(nil, "", "", "", ""); err == nil {
 			t.Fatal("expected error")
 		} else {
@@ -106,6 +109,7 @@ func TestAddMetric(t *testing.T) {
 		c := &Prom{
 			metricStatus:        make(map[string]bool),
 			metricDefaultActive: true,
+			metricNameRegex:     regexp.MustCompile("[\r\n\"']"),
 		}
 		m := cgm.Metrics{}
 		if err := c.addMetric(&m, "", "foo", "t", ""); err != nil {
