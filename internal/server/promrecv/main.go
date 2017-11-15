@@ -14,6 +14,7 @@ import (
 	stdlog "log"
 	"math"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
@@ -80,8 +81,8 @@ func Parse(data io.ReadCloser) error {
 	}
 
 	for mn, mf := range metricFamilies {
-		metricName := id + metricNameSeparator + nameCleanerRx.ReplaceAllString(mn, "")
 		for _, m := range mf.Metric {
+			metricName := id + metricNameSeparator + nameCleanerRx.ReplaceAllString(mn, "")
 			labels := getLabels(m)
 			if len(labels) > 0 {
 				metricName += metricNameSeparator + strings.Join(labels, metricNameSeparator)
@@ -121,12 +122,23 @@ func Parse(data io.ReadCloser) error {
 
 func getLabels(m *dto.Metric) []string {
 	ret := []string{}
+
+	// sort for predictive metric names
+	var keys []string
+	labels := make(map[string]string)
 	for _, label := range m.Label {
 		if label.Name != nil && label.Value != nil {
 			ln := nameCleanerRx.ReplaceAllString(*label.Name, "")
 			lv := nameCleanerRx.ReplaceAllString(*label.Value, "")
-			ret = append(ret, ln+"="+lv)
+			labels[ln] = lv
+			keys = append(keys, ln)
 		}
+	}
+
+	sort.Strings(keys)
+
+	for _, label := range keys {
+		ret = append(ret, label+"="+labels[label])
 	}
 	return ret
 }

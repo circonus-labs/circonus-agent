@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"path"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -216,8 +217,8 @@ func (c *Prom) parse(id string, data io.ReadCloser, metrics *cgm.Metrics) error 
 
 	pfx := id
 	for mn, mf := range metricFamilies {
-		metricName := mn
 		for _, m := range mf.Metric {
+			metricName := mn
 			labels := c.getLabels(m)
 			if len(labels) > 0 {
 				metricName += metricNameSeparator + strings.Join(labels, metricNameSeparator)
@@ -257,12 +258,22 @@ func (c *Prom) parse(id string, data io.ReadCloser, metrics *cgm.Metrics) error 
 
 func (c *Prom) getLabels(m *dto.Metric) []string {
 	ret := []string{}
+	// sort for predictive metric names
+	var keys []string
+	labels := make(map[string]string)
 	for _, label := range m.Label {
 		if label.Name != nil && label.Value != nil {
 			ln := c.metricNameRegex.ReplaceAllString(*label.Name, "")
 			lv := c.metricNameRegex.ReplaceAllString(*label.Value, "")
-			ret = append(ret, ln+"="+lv)
+			labels[ln] = lv
+			keys = append(keys, ln)
 		}
+	}
+
+	sort.Strings(keys)
+
+	for _, label := range keys {
+		ret = append(ret, label+"="+labels[label])
 	}
 	return ret
 }
