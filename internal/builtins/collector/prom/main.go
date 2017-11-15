@@ -45,7 +45,7 @@ func New(cfgBaseName string) (collector.Collector, error) {
 	// default config is a file named promfetch.(json|toml|yaml) in the
 	// agent's default etc path.
 	if cfgBaseName == "" {
-		cfgBaseName = path.Join(defaults.EtcPath, "promfetch")
+		cfgBaseName = path.Join(defaults.EtcPath, "prometheus_collector")
 	}
 
 	var opts promOptions
