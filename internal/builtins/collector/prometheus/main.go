@@ -52,7 +52,6 @@ func New(cfgBaseName string) (collector.Collector, error) {
 	var opts promOptions
 	err := config.LoadConfigFile(cfgBaseName, &opts)
 	if err != nil {
-		c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
 		return nil, errors.Wrapf(err, "%s config", c.pkgID)
 	}
 
@@ -63,25 +62,27 @@ func New(cfgBaseName string) (collector.Collector, error) {
 	}
 	for i, u := range opts.URLs {
 		if u.ID == "" {
-			c.logger.Warn().Int("item", i).Interface("url", u).Msg("invalid id (empty), ignoring")
+			c.logger.Warn().Int("item", i).Interface("url", u).Msg("invalid id (empty), ignoring URL entry")
 			continue
 		}
 		if u.URL == "" {
-			c.logger.Warn().Int("item", i).Interface("url", u).Msg("invalid URL (empty), ignoring")
+			c.logger.Warn().Int("item", i).Interface("url", u).Msg("invalid URL (empty), ignoring URL entry")
 			continue
 		}
 		_, err := url.Parse(u.URL)
 		if err != nil {
-			c.logger.Warn().Err(err).Int("item", i).Interface("url", u).Msg("invalid URL, ignoring")
+			c.logger.Warn().Err(err).Int("item", i).Interface("url", u).Msg("invalid URL, ignoring URL entry")
 			continue
 		}
 		if u.TTL != "" {
 			ttl, err := time.ParseDuration(u.TTL)
 			if err != nil {
 				c.logger.Warn().Err(err).Int("item", i).Interface("url", u).Msg("invalid TTL, ignoring")
+			} else {
+				u.uttl = ttl
 			}
-			u.uttl = ttl
-		} else {
+		}
+		if u.uttl == time.Duration(0) {
 			u.uttl = 30 * time.Second
 		}
 		c.logger.Debug().Int("item", i).Interface("url", u).Msg("enabling prom collection URL")
