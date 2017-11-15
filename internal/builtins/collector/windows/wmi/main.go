@@ -60,9 +60,10 @@ func New() ([]collector.Collector, error) {
 
 	collectors := make([]collector.Collector, 0, len(enbledCollectors))
 	for _, name := range enbledCollectors {
+		cfgBase := name + "_collector"
 		switch name {
 		case "cache":
-			c, err := NewCacheCollector(path.Join(defaults.EtcPath, "cache"))
+			c, err := NewCacheCollector(path.Join(defaults.EtcPath, cfgBase))
 			if err != nil {
 				logError(name, err)
 				continue
@@ -70,7 +71,7 @@ func New() ([]collector.Collector, error) {
 			collectors = append(collectors, c)
 
 		case "disk":
-			c, err := NewDiskCollector(path.Join(defaults.EtcPath, "disk"))
+			c, err := NewDiskCollector(path.Join(defaults.EtcPath, cfgBase))
 			if err != nil {
 				logError(name, err)
 				continue
@@ -78,7 +79,7 @@ func New() ([]collector.Collector, error) {
 			collectors = append(collectors, c)
 
 		case "memory":
-			c, err := NewMemoryCollector(path.Join(defaults.EtcPath, "memory"))
+			c, err := NewMemoryCollector(path.Join(defaults.EtcPath, cfgBase))
 			if err != nil {
 				logError(name, err)
 				continue
@@ -86,7 +87,7 @@ func New() ([]collector.Collector, error) {
 			collectors = append(collectors, c)
 
 		case "interface":
-			c, err := NewNetInterfaceCollector(path.Join(defaults.EtcPath, "interface"))
+			c, err := NewNetInterfaceCollector(path.Join(defaults.EtcPath, cfgBase))
 			if err != nil {
 				logError(name, err)
 				continue
@@ -94,7 +95,7 @@ func New() ([]collector.Collector, error) {
 			collectors = append(collectors, c)
 
 		case "ip":
-			c, err := NewNetIPCollector(path.Join(defaults.EtcPath, "ip"))
+			c, err := NewNetIPCollector(path.Join(defaults.EtcPath, cfgBase))
 			if err != nil {
 				logError(name, err)
 				continue
@@ -102,7 +103,7 @@ func New() ([]collector.Collector, error) {
 			collectors = append(collectors, c)
 
 		case "tcp":
-			c, err := NewNetTCPCollector(path.Join(defaults.EtcPath, "tcp"))
+			c, err := NewNetTCPCollector(path.Join(defaults.EtcPath, cfgBase))
 			if err != nil {
 				logError(name, err)
 				continue
@@ -110,7 +111,7 @@ func New() ([]collector.Collector, error) {
 			collectors = append(collectors, c)
 
 		case "udp":
-			c, err := NewNetUDPCollector(path.Join(defaults.EtcPath, "udp"))
+			c, err := NewNetUDPCollector(path.Join(defaults.EtcPath, cfgBase))
 			if err != nil {
 				logError(name, err)
 				continue
@@ -118,7 +119,7 @@ func New() ([]collector.Collector, error) {
 			collectors = append(collectors, c)
 
 		case "objects":
-			c, err := NewObjectsCollector(path.Join(defaults.EtcPath, "objects"))
+			c, err := NewObjectsCollector(path.Join(defaults.EtcPath, cfgBase))
 			if err != nil {
 				logError(name, err)
 				continue
@@ -126,7 +127,7 @@ func New() ([]collector.Collector, error) {
 			collectors = append(collectors, c)
 
 		case "paging_file":
-			c, err := NewPagingFileCollector(path.Join(defaults.EtcPath, "paging_file"))
+			c, err := NewPagingFileCollector(path.Join(defaults.EtcPath, cfgBase))
 			if err != nil {
 				logError(name, err)
 				continue
@@ -134,7 +135,7 @@ func New() ([]collector.Collector, error) {
 			collectors = append(collectors, c)
 
 		case "processes":
-			c, err := NewProcessesCollector(path.Join(defaults.EtcPath, "processes"))
+			c, err := NewProcessesCollector(path.Join(defaults.EtcPath, cfgBase))
 			if err != nil {
 				logError(name, err)
 				continue
@@ -142,7 +143,7 @@ func New() ([]collector.Collector, error) {
 			collectors = append(collectors, c)
 
 		case "processor":
-			c, err := NewProcessorCollector(path.Join(defaults.EtcPath, "processor"))
+			c, err := NewProcessorCollector(path.Join(defaults.EtcPath, cfgBase))
 			if err != nil {
 				logError(name, err)
 				continue
