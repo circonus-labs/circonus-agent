@@ -8,6 +8,7 @@
 package builtins
 
 import (
+	"github.com/circonus-labs/circonus-agent/internal/builtins/collector/prom"
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector/windows/wmi"
 	appstats "github.com/maier/go-appstats"
 	"github.com/rs/zerolog/log"
@@ -25,6 +26,13 @@ func (b *Builtins) configure() error {
 		appstats.MapIncrementInt("builtins", "total")
 		b.logger.Info().Str("id", c.ID()).Msg("enabled builtin")
 		b.collectors[c.ID()] = c
+	}
+	prom, err := prom.New("")
+	if err != nil {
+		b.logger.Warn().Err(err).Msg("prom collector, disabling")
+	} else {
+		appstats.MapIncrementInt("builtins", "total")
+		b.collectors[prom.ID()] = prom
 	}
 	return nil
 }
