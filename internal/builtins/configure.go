@@ -8,13 +8,18 @@
 package builtins
 
 import (
-	"runtime"
-
+	"github.com/circonus-labs/circonus-agent/internal/builtins/collector/prometheus"
 	appstats "github.com/maier/go-appstats"
 )
 
 func (b *Builtins) configure() error {
-	appstats.MapAddInt("builtins", "total", 0)
-	b.logger.Info().Msg("no builtins available for " + runtime.GOOS)
+	prom, err := prometheus.New("")
+	if err != nil {
+		appstats.MapAddInt("builtins", "total", 0)
+		b.logger.Warn().Err(err).Msg("prom collector, disabling")
+	} else {
+		b.collectors[prom.ID()] = prom
+		appstats.MapIncrementInt("builtins", "total")
+	}
 	return nil
 }

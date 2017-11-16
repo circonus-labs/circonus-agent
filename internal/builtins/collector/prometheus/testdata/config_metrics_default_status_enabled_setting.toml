@@ -1,0 +1,10 @@
+metrics_default_status = "enabled"
+
+[[urls]]
+id = "foo"
+url = "http://localhost/foo"
+ttl = "30s"
+
+[[urls]]
+id = "bar"
+url = "http://localhost/bar"

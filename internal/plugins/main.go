@@ -27,7 +27,7 @@ func New(ctx context.Context) (*Plugins, error) {
 		ctx:           ctx,
 		running:       false,
 		logger:        log.With().Str("pkg", "plugins").Logger(),
-		reservedNames: map[string]bool{"write": true, "statsd": true},
+		reservedNames: map[string]bool{"prom": true, "write": true, "statsd": true},
 		active:        make(map[string]*plugin),
 	}
 

@@ -1,0 +1,9 @@
+---
+run_ttl: 5m
+
+urls:
+    - id: foo
+      url: http://localhost/foo
+      ttl: 30s
+    - id: bar
+      url: http://localhost/bar

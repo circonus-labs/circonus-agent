@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/server/promrecv"
 	"github.com/circonus-labs/circonus-agent/internal/server/receiver"
 	cgm "github.com/circonus-labs/circonus-gometrics"
 	appstats "github.com/maier/go-appstats"
@@ -65,12 +66,15 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 	// default to true if id is blank, otherwise set all to false
 	runBuiltins := id == ""
 	runPlugins := id == ""
+	flushProm := id == ""
 	flushReceiver := id == ""
 	flushStatsd := id == ""
 
 	if id != "" {
 		// identify _what_ to run based on the id
 		switch {
+		case id == "prom":
+			flushProm = true
 		case id == "write":
 			flushReceiver = true
 		case id == "statsd":
@@ -114,6 +118,13 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 			if statsdMetrics != nil {
 				metrics[viper.GetString(config.KeyStatsdHostCategory)] = statsdMetrics
 			}
+		}
+	}
+
+	if flushProm {
+		promMetrics := promrecv.Flush()
+		for metricName, metric := range *promMetrics {
+			metrics[metricName] = metric
 		}
 	}
 
@@ -178,11 +189,27 @@ func (s *Server) write(w http.ResponseWriter, r *http.Request) {
 	// in other words, a "plugin name", all metrics for that write will appear
 	// _under_ the metric group id (aka plugin name)
 	if id == "" {
+		s.logger.Warn().Msg("write recevier - invalid id (empty)")
 		http.NotFound(w, r)
 		return
 	}
 
 	if err := receiver.Parse(id, r.Body); err != nil {
+		s.logger.Warn().Err(err).Msg("write recevier")
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// promReceiver handles PUT/POST requests with prometheus TEXT formatted metrics
+// https://prometheus.io/docs/instrumenting/exposition_formats/
+func (s *Server) promReceiver(w http.ResponseWriter, r *http.Request) {
+	s.logger.Debug().Str("path", r.URL.Path).Msg("prom metrics recevied")
+
+	if err := promrecv.Parse(r.Body); err != nil {
+		s.logger.Warn().Err(err).Msg("prom recevier")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

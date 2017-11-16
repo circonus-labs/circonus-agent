@@ -1,6 +1,6 @@
 # Circonus Agent
 
-The `etc` directory is used for the main configuration file for the Circonus agent as well as, the optional, configuration files for builtin collectors.
+The `etc` directory is used for the main configuration of the Circonus agent, as well as, configuration files for builtin collectors.
 
 # Main configuration
 
@@ -26,11 +26,59 @@ sbin\cirocnus-agentd.exe --show-config=toml > etc\circonus-agent.toml
 sbin\cirocnus-agentd.exe --show-config=yaml > etc\circonus-agent.yaml
 ```
 
-## Collector configurations
+---
 
-The same three formats (json, toml, yaml) are supported for collector configurations. The name of the collector configuration file is the name used to enable the collector in the `--collectors` command line argument, `collectors` item in the main configuration file, or `CA_COLLECTORS` environment variable.
+# Collector configurations
 
-All collectors have a basic set of configuration options:
+Three formats are supported (json, toml, yaml) for collector configurations. Collector configurations should be stored in the `etc` directory where the agent was installed (for example: `/opt/circonus/agent/etc` or `C:\circonus-agent\etc`).
+
+# Linux
+
+## ProcFS collectors
+
+All ProcFS collectors have a basic set of configuration options:
+
+| Option                   | Type             | Default            | Description |
+| ------------------------ | ---------------- | ------------------ | ----------- |
+| `id`                     | string           | name of collector  | ID/Name of the collector (used as prefix for metrics). |
+| `metrics_enabled`        | array of strings | empty              | list of metrics which are enabled (to be collected) |
+| `metrics_disabled`       | array of strings | empty              | list of metrics which are disabled (should NOT be collected) |
+| `metrics_default_status` | string           | `enabled`          | how a metric NOT in the enabled/disabled lists should be handled ("enabled" or "disabled") |
+| `run_ttl`                | string           | empty              | indicating collector will run no more frequently than TTL (e.g. "10s", "5m", etc. - for expensive collectors) |
+
+Additionally, each collector may have more configuration options specific to _what_ is being collected. (e.g. include/exclude regular expression for items such as network interfaces, disks, etc.)
+
+* CPU
+    * ID: `cpu`
+    * Config file: `cpu_collector.(json|toml|yaml)`
+    * Options:
+        * `report_all_cpus` string, include all cpus, not just total (default "false")
+* Disk stats
+    * ID: `diskstats`
+    * Config file: `diskstats_collector.(json|toml|yaml)`
+    * Options:
+        * `include_regex` string, regular expression for disk inclusion - default `.+`
+        * `exclude_regex` string, regular expression for disk exclusion - default empty
+* Network interfaces
+    * ID: `if`
+    * Config file: `if_collector.(json|toml|yaml)`
+    * Options:
+        * `include_regex` string, regular expression for interface inclusion - default `.+`
+        * `exclude_regex` string, regular expression for interface exclusion - default `lo`
+* Memory
+    * ID: `vm`
+    * Config file: `vm_collector.(json|toml|yaml)`
+    * Options: only the common options
+* System load
+    * ID: `loadavg`
+    * Config file: `loadavg_collector.(json|toml|yaml)`
+    * Options: only the common options
+
+# Windows
+
+## WMI
+
+All WMI collectors have a basic set of configuration options:
 
 | Option                   | Type             | Default            | Description |
 | ------------------------ | ---------------- | ------------------ | ----------- |
@@ -44,62 +92,87 @@ All collectors have a basic set of configuration options:
 
 Additionally, each collector may have more configuration options specific to _what_ is being collected. (e.g. include/exclude regular expression for items such as network interfaces, disks, processes, file systems, etc.)
 
-### Windows WMI collectors
-
-* `cache`
-    * config file `cache.(json|toml|yaml)`
-    * options: only the common options
-* `disk`
-    * config file `disk.(json|toml|yaml)`
-    * options:
+* Cache
+    * ID: `cache`
+    * Config file: `cache_collector.(json|toml|yaml)`
+    * Options: only the common options
+* Disk
+    * ID: `disk`
+    * Config file: `disk_collector.(json|toml|yaml)`
+    * Options:
         * `logical_disks` string(true|false), include logical disks (default "true")
         * `physical_disks` string(true|false), include physical disks (default "true")
         * `include_regex` string, regular expression for disk inclusion - default `.+`
         * `exclude_regex` string, regular expression for disk exclusion - default empty
-* `memory`
-    * config file `memory.(json|toml|yaml)`
-    * options: only the common options
-* `interface`
-    * config file `interface.(json|toml|yaml)`
-    * options:
+* Memory
+    * ID: `memory`
+    * Config file: `memory_collector.(json|toml|yaml)`
+    * Options: only the common options
+* Network interfaces
+    * ID: `interface`
+    * Config file: `interface_collector.(json|toml|yaml)`
+    * Options:
         * `include_regex` string, regular expression for interface inclusion - default `.+`
         * `exclude_regex` string, regular expression for interface exclusion - default empty
-* `ip`
-    * config file `ip.(json|toml|yaml)`
-    * options:
+* IP network protocol
+    * ID: `ip`
+    * Config file: `ip_collector.(json|toml|yaml)`
+    * Options:
         * `enable_ipv4` string(true|false), include IPv4 metrics - default "true"
         * `enable_ipv6` string(true|false), include IPv6 metrics - default "true"
-* `tcp`
-    * config file `tcp.(json|toml|yaml)`
-    * options:
+* TCP network protocol
+    * ID: `tcp`
+    * Config file: `tcp_collector.(json|toml|yaml)`
+    * Options:
         * `enable_ipv4` string(true|false), include IPv4 metrics - default "true"
         * `enable_ipv6` string(true|false), include IPv6 metrics - default "true"
-* `udp`
-    * config file `udp.(json|toml|yaml)`
-    * options:
+* UDP network protocol
+    * ID: `udp`
+    * Config file: `udp_collector.(json|toml|yaml)`
+    * Options:
         * `enable_ipv4` string(true|false), include IPv4 metrics - default "true"
         * `enable_ipv6` string(true|false), include IPv6 metrics - default "true"
-* `objects`
-    * config file `objects.(json|toml|yaml)`
-    * options: only the common options
-* `paging_file`
-    * config file `paging_file.(json|toml|yaml)`
-    * options:
+* Objects
+    * ID: `objects`
+    * Config file: `objects_collector.(json|toml|yaml)`
+    * Options: only the common options
+* Paging file
+    * ID: `paging_file`
+    * Config file: `paging_file_collector.(json|toml|yaml)`
+    * Options:
         * `include_regex` string, regular expression for file inclusion - default `.+`
         * `exclude_regex` string, regular expression for file exclusion - default empty
-* `processor`
-    * config file `processor.(json|toml|yaml)`
-    * options:
+* Processors
+    * ID: `processor`
+    * Config file: `processor_collector.(json|toml|yaml)`
+    * Options:
         * `report_all_cpus` string, include all cpus, not just total (default "true")
-* `processes`
-    * disabled by default (28 metrics _per_ process)
-    * config file `processes.(json|toml|yaml)`
-    * options:
+* Processes
+    * ID: `processes`
+    * NOTE: disabled by default (28 metrics _per_ process)
+    * Config file: `processes_collector.(json|toml|yaml)`
+    * Options:
         * `include_regex` string, regular expression for process inclusion - default `.+`
         * `exclude_regex` string, regular expression for process exclusion - default empty
 
-### Linux ProcFS collectors
+# Common
 
-WIP
+## Prometheus collector
 
-* `cpu`
+Collect from endpoints exposing prometheus formatted metrics. The Prometheus collector is enabled by default. It is automatically disabled if no configuration file is found.
+
+ID: `prometheus`
+Config file: `prometheus_collector.(json|toml|yaml)`
+Options:
+
+| Option                   | Type             | Default            | Description |
+| ------------------------ | ---------------- | ------------------ | ----------- |
+| `metrics_enabled`        | array of strings | empty              | list of metrics which are enabled (to be collected) |
+| `metrics_disabled`       | array of strings | empty              | list of metrics which are disabled (should NOT be collected) |
+| `metrics_default_status` | string           | `enabled`          | how a metric NOT in the enabled/disabled lists should be handled ("enabled" or "disabled") |
+| `run_ttl`                | string           | empty              | indicating collector will run no more frequently than TTL (e.g. "10s", "5m", etc. - for expensive collectors) |
+| `urls`                   | array of urldefs | empty              | required, without any URLs the collector is disabled |
+| URL definition (urldefs) |||
+| `id`                     | string           | empty              | required, used as prefix for metrics from this URL |
+| `url`                    | string           | url                | required, URL which responds with Prometheus text format metrics |
+| `ttl`                    | string           | `30s`              | optional, timeout for the request |

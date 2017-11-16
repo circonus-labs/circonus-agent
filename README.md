@@ -10,7 +10,7 @@
 
 # Features
 
-1. Builtin metric [collectors](#builtin-collectors) (on supported platforms)
+1. Builtin metric [collectors](#builtin-collectors)
 1. [Plugin](#plugins) architecture for local metric collection
 1. Local HTTP [Receiver](#receiver) for POST/PUT metric collection
 1. Local [StatsD](#statsd) listener for application metrics
@@ -161,6 +161,8 @@ The Circonus  agent provides a StatsD listener by default (disable: `--no-statsd
 
 # Builtin collectors
 
+The circonus-agent has builtin collectors offering a higher level of efficiency over executing plugins. The circonus-agent `--collectors` command line option controls which collectors are enabled. Builtin collectors take precedence over plugins - if a builtin collector exists with the same ID as a plugin, the plugin will not be activated. Configuration files for builtins are located in the circonus-agent `etc` directory (e.g. `/opt/circonus/agent/etc` or `C:\circonus-agent\etc`).
+
 Configuration:
 
 * Command line `--collectors` (space delimited list)
@@ -169,9 +171,9 @@ Configuration:
 
 * Windows default WMI collectors: `['cache', 'disk', 'ip', 'interface', 'memory', 'object', 'paging_file' 'processor', 'tcp', 'udp']`
 * Linux default ProcFS collectors: `['cpu']`
+* Common `prometheus` (disabled if no configuration file exists)
 
 For complete list of collectors and details on collector specific configuration see [etc/README.md](etc/README.md#collector-configurations).
-
 
 
 # Manual build
