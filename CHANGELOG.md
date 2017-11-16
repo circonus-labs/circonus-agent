@@ -1,3 +1,8 @@
+# v0.9.0
+
+* add: initial mvp prometheus collector (pull prometheus text formatted metrics from an endpoint)
+* add: initial mvp prometheus receiver (accept pushed prometheus text formatted metrics)
+
 # v0.8.0
 
 * fix: socket server test to fail correctly when on a linux vagrant mounted fs
