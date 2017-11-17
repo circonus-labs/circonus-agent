@@ -274,7 +274,7 @@ func (p *Plugins) scanPluginDirectory(b *builtins.Builtins) error {
 	}
 
 	if len(p.active) == 0 {
-		return errors.New("No active plugins found")
+		p.logger.Warn().Msg("no active plugins found")
 	}
 
 	return nil
