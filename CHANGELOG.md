@@ -1,3 +1,8 @@
+# v0.9.1
+
+* upd: constrain IDs provided in /run and /write URLs to [a-zA-Z0-9-]; ensure clean metric name prefixes
+* fix: make plugins optional, do _not_ fatal error if no plugins are found
+
 # v0.9.0
 
 * add: initial mvp prometheus collector (pull prometheus text formatted metrics from an endpoint)
