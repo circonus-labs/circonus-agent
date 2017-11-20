@@ -12,19 +12,22 @@ An example configuration, with default values, can be retrieved using the `--sho
 
 Run one of the following and edit the resulting configuration file:
 
+
 ```
-sbin/circonus-agentd --show-config=json > etc/circonus-agent.json
-sbin/circonus-agentd --show-config=toml > etc/circonus-agent.toml
-sbin/circonus-agentd --show-config=yaml > etc/circonus-agent.yaml
+sbin/circonus-agentd --show-config=json > etc/circonus-agent.json.tmp
+sbin/circonus-agentd --show-config=toml > etc/circonus-agent.toml.tmp
+sbin/circonus-agentd --show-config=yaml > etc/circonus-agent.yaml.tmp
 ```
 
 or, on Windows:
 
 ```
-sbin\circonus-agentd.exe --show-config=json > etc\circonus-agent.json
-sbin\circonus-agentd.exe --show-config=toml > etc\circonus-agent.toml
-sbin\circonus-agentd.exe --show-config=yaml > etc\circonus-agent.yaml
+sbin\circonus-agentd.exe --show-config=json > etc\circonus-agent.json.tmp
+sbin\circonus-agentd.exe --show-config=toml > etc\circonus-agent.toml.tmp
+sbin\circonus-agentd.exe --show-config=yaml > etc\circonus-agent.yaml.tmp
 ```
+
+Edit the resulting file to customize configuration settings. When done, rename file to remove the `.tmp` extension. (e.g. `mv etc/circonus-agent.json.tmp` `etc/circonus-agent.json`)
 
 ---
 
