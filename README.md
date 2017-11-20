@@ -25,7 +25,7 @@
 1. Download [latest release](../../releases/latest) from repository (or [build manually](#manual-build))
 1. If downloaded, extract archive into `/opt/circonus/agent`
 1. Stop NAD (e.g. `systemctl stop nad`)
-1. Create a [config](#config) or use command line parameters
+1. Create a [config](https://github.com/circonus-labs/circonus-agent/blob/master/etc/README.md#main-configuration) or use command line parameters
 1. Run `sbin/circonus-agentd`
 
 Example, minimal, configuration using existing cosi install `/opt/circonus/agent/etc/circonus-agent.toml`:
