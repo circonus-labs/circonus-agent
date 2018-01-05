@@ -23,7 +23,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
-	"xi2.org/x/httpgzip"
+	"github.com/xi2/httpgzip"
 )
 
 // New creates a new instance of the listening servers

@@ -70,7 +70,7 @@ required = ["github.com/go-ole/go-ole"]
 
 [[constraint]]
   branch = "master"
-  name = "xi2.org/x/httpgzip"
+  name = "github.com/xi2/httpgzip"
 
 # need to add a constraint on go-ole for wmi
 # wmi uses "master" rather than the semver release of go-ole
