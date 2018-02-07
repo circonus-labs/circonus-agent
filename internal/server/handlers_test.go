@@ -43,9 +43,9 @@ func TestRun(t *testing.T) {
 		{"/run/statsd", http.StatusOK},
 	}
 
-	dir, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("unable to get cwd (%s)", err)
+	dir, derr := os.Getwd()
+	if derr != nil {
+		t.Fatalf("unable to get cwd (%s)", derr)
 	}
 	testDir := path.Join(dir, "testdata")
 
@@ -60,8 +60,8 @@ func TestRun(t *testing.T) {
 	if perr != nil {
 		t.Fatalf("expected NO error, got (%s)", perr)
 	}
-	if err := p.Scan(b); err != nil {
-		t.Fatalf("expected no error, got (%s)", err)
+	if serr := p.Scan(b); serr != nil {
+		t.Fatalf("expected no error, got (%s)", serr)
 	}
 
 	s, err := New(b, p, nil)
