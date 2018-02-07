@@ -251,7 +251,7 @@ func TestCollect(t *testing.T) {
 	if err != nil {
 		t.Fatal("expected NO error, got (%s)", err)
 	}
-	c.(*Prom).urls = []URLDef{URLDef{ID: "foo", URL: ts.URL}}
+	c.(*Prom).urls = []URLDef{{ID: "foo", URL: ts.URL}}
 
 	if err := c.Collect(); err != nil {
 		t.Fatal("expected no error, got (%s)", err)
