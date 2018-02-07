@@ -508,11 +508,11 @@ func TestParseHistogram(t *testing.T) {
 		Expect      []histSample
 		ShouldFail  bool
 	}{
-		{"valid1", []float64{1}, []histSample{histSample{bucket: false, count: 0, value: 1}}, false},
-		{"valid2", []float64{1.2}, []histSample{histSample{bucket: false, count: 0, value: 1.2}}, false},
-		{"valid hist", []string{"H[1.2]=1"}, []histSample{histSample{bucket: true, count: 1, value: 1.2}}, false},
-		{"valid, string1", []string{fmt.Sprintf("%v", 1)}, []histSample{histSample{bucket: false, count: 0, value: 1}}, false},
-		{"valid, string2", []string{fmt.Sprintf("%v", 1.2)}, []histSample{histSample{bucket: false, count: 0, value: 1.2}}, false},
+		{"valid1", []float64{1}, []histSample{{bucket: false, count: 0, value: 1}}, false},
+		{"valid2", []float64{1.2}, []histSample{{bucket: false, count: 0, value: 1.2}}, false},
+		{"valid hist", []string{"H[1.2]=1"}, []histSample{{bucket: true, count: 1, value: 1.2}}, false},
+		{"valid, string1", []string{fmt.Sprintf("%v", 1)}, []histSample{{bucket: false, count: 0, value: 1}}, false},
+		{"valid, string2", []string{fmt.Sprintf("%v", 1.2)}, []histSample{{bucket: false, count: 0, value: 1.2}}, false},
 		{"bad conversion", []string{fmt.Sprintf("%v", "1a")}, []histSample{}, true},
 		{"bad data type - metric", true, []histSample{}, true},
 		{"bad data type - metric sample", []bool{true}, []histSample{}, true},
