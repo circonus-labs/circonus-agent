@@ -272,3 +272,36 @@ func TestCollect(t *testing.T) {
 	}
 
 }
+
+func TestCollectTimeout(t *testing.T) {
+	t.Log("Testing Collect w/timeout")
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+
+	//
+	// collection timing out should be benign
+	// return 0 metrics, not throw or cause an error
+	// the fact that the timeout was exceeded is logged
+	//
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(1 * time.Second)
+		fmt.Fprintf(w, promData)
+	}))
+	defer ts.Close()
+
+	c, err := New(path.Join("testdata", "valid"))
+	if err != nil {
+		t.Fatalf("expected NO error, got (%s)", err)
+	}
+	c.(*Prom).urls = []URLDef{{ID: "foo", URL: ts.URL, uttl: 10 * time.Millisecond}}
+
+	if err := c.Collect(); err != nil {
+		t.Fatalf("expected no error, got (%s)", err)
+	}
+
+	m := c.Flush()
+	numExpected := 0
+	if len(m) != numExpected {
+		t.Fatalf("expected %d metrics, got %d", numExpected, len(m))
+	}
+}
