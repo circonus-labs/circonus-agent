@@ -104,7 +104,7 @@ func TestParse(t *testing.T) {
 		r := ioutil.NopCloser(bytes.NewReader(data))
 		err := Parse(r)
 		if err != nil {
-			t.Fatal("expected NO error, got (%s)", err)
+			t.Fatalf("expected NO error, got (%s)", err)
 		}
 	}
 
@@ -114,7 +114,7 @@ func TestParse(t *testing.T) {
 		r := ioutil.NopCloser(bytes.NewReader(data))
 		err := Parse(r)
 		if err != nil {
-			t.Fatal("expected NO error, got (%s)", err)
+			t.Fatalf("expected NO error, got (%s)", err)
 		}
 	}
 
