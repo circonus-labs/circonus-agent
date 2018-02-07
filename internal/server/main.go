@@ -105,7 +105,7 @@ func New(b *builtins.Builtins, p *plugins.Plugins, ss *statsd.Server) (*Server, 
 				return nil, errors.Wrap(err, "Socket server")
 			}
 
-			if _, err := os.Stat(ua.String()); err == nil || !os.IsNotExist(err) {
+			if _, serr := os.Stat(ua.String()); serr == nil || !os.IsNotExist(serr) {
 				s.logger.Error().Int("id", idx).Str("socket_file", ua.String()).Msg("already exists")
 				return nil, errors.Errorf("Socket server file (%s) exists", ua.String())
 			}
@@ -166,25 +166,26 @@ func (s *Server) Start() error {
 	// listen with context (yet) and will block waiting for a request
 	// in order to receive <-s.t.Dying. this is more 'immediate'.
 	go func() {
-		select {
-		case <-s.t.Dying():
-			if s.t.Err() == nil { // don't fire if a normal s.Stop() was initiated
-				return
-			}
-			if s.svrHTTPS != nil && s.svrHTTPS.server != nil {
-				s.svrHTTPS.server.Close()
-			}
-			for _, svr := range s.svrHTTP {
+
+		<-s.t.Dying()
+
+		if s.t.Err() == nil { // don't fire if a normal s.Stop() was initiated
+			return
+		}
+		if s.svrHTTPS != nil && s.svrHTTPS.server != nil {
+			s.svrHTTPS.server.Close()
+		}
+		for _, svr := range s.svrHTTP {
+			svr.server.Close()
+		}
+		for _, svr := range s.svrSockets {
+			if svr.server != nil {
 				svr.server.Close()
-			}
-			for _, svr := range s.svrSockets {
-				if svr.server != nil {
-					svr.server.Close()
-				} else if svr.listener != nil {
-					svr.listener.Close()
-				}
+			} else if svr.listener != nil {
+				svr.listener.Close()
 			}
 		}
+
 	}()
 
 	return s.t.Wait()
