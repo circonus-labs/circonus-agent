@@ -229,7 +229,7 @@ func TestNew(t *testing.T) {
 	{
 		c, err := New(path.Join("testdata", "valid"))
 		if err != nil {
-			t.Fatal("expected NO error, got (%s)", err)
+			t.Fatalf("expected NO error, got (%s)", err)
 		}
 		if len(c.(*Prom).urls) != 2 {
 			t.Fatalf("expected 2 URLs, got (%#v)", c.(*Prom).urls)
@@ -249,12 +249,12 @@ func TestCollect(t *testing.T) {
 
 	c, err := New(path.Join("testdata", "valid"))
 	if err != nil {
-		t.Fatal("expected NO error, got (%s)", err)
+		t.Fatalf("expected NO error, got (%s)", err)
 	}
 	c.(*Prom).urls = []URLDef{{ID: "foo", URL: ts.URL}}
 
 	if err := c.Collect(); err != nil {
-		t.Fatal("expected no error, got (%s)", err)
+		t.Fatalf("expected no error, got (%s)", err)
 	}
 
 	m := c.Flush()
