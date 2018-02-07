@@ -354,7 +354,7 @@ func TestStartHTTPS(t *testing.T) {
 
 func TestStartSocket(t *testing.T) {
 	if runtime.GOOS == "windows" {
-		t.Skip("unix sockets not availble on " + runtime.GOOS)
+		t.Skip("unix sockets not available on " + runtime.GOOS)
 		return
 	}
 
