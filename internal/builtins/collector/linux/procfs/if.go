@@ -385,7 +385,7 @@ func (c *IF) sockstatCollect(metrics *cgm.Metrics) error {
 					continue
 				}
 				stats[statType] = []rawstat{
-					rawstat{
+					{
 						name: fields[1], // used
 						val:  fields[2],
 					},
@@ -397,23 +397,23 @@ func (c *IF) sockstatCollect(metrics *cgm.Metrics) error {
 					continue
 				}
 				stats[statType] = []rawstat{
-					rawstat{
+					{
 						name: fields[1], // inuse
 						val:  fields[2],
 					},
-					rawstat{
+					{
 						name: fields[3], // orphan
 						val:  fields[4],
 					},
-					rawstat{
+					{
 						name: fields[5], // tw
 						val:  fields[6],
 					},
-					rawstat{
+					{
 						name: fields[7], // alloc
 						val:  fields[8],
 					},
-					rawstat{
+					{
 						name: fields[9], // mem
 						val:  fields[10],
 					},
@@ -425,11 +425,11 @@ func (c *IF) sockstatCollect(metrics *cgm.Metrics) error {
 					continue
 				}
 				stats[statType] = []rawstat{
-					rawstat{
+					{
 						name: fields[1], // inuse
 						val:  fields[2],
 					},
-					rawstat{
+					{
 						name: fields[3], // mem
 						val:  fields[4],
 					},
@@ -441,7 +441,7 @@ func (c *IF) sockstatCollect(metrics *cgm.Metrics) error {
 					continue
 				}
 				stats[statType] = []rawstat{
-					rawstat{
+					{
 						name: fields[1], // inuse
 						val:  fields[2],
 					},
@@ -453,7 +453,7 @@ func (c *IF) sockstatCollect(metrics *cgm.Metrics) error {
 					continue
 				}
 				stats[statType] = []rawstat{
-					rawstat{
+					{
 						name: fields[1], // inuse
 						val:  fields[2],
 					},
@@ -465,11 +465,11 @@ func (c *IF) sockstatCollect(metrics *cgm.Metrics) error {
 					continue
 				}
 				stats[statType] = []rawstat{
-					rawstat{
+					{
 						name: fields[1], // inuse
 						val:  fields[2],
 					},
-					rawstat{
+					{
 						name: fields[3], // mem
 						val:  fields[4],
 					},
@@ -531,7 +531,7 @@ func (c *IF) sockstatCollect(metrics *cgm.Metrics) error {
 					continue
 				}
 				stats[statType] = []rawstat{
-					rawstat{
+					{
 						name: fields[1], // inuse
 						val:  fields[2],
 					},
@@ -543,7 +543,7 @@ func (c *IF) sockstatCollect(metrics *cgm.Metrics) error {
 					continue
 				}
 				stats[statType] = []rawstat{
-					rawstat{
+					{
 						name: fields[1], // inuse
 						val:  fields[2],
 					},
@@ -555,7 +555,7 @@ func (c *IF) sockstatCollect(metrics *cgm.Metrics) error {
 					continue
 				}
 				stats[statType] = []rawstat{
-					rawstat{
+					{
 						name: fields[1], // inuse
 						val:  fields[2],
 					},
@@ -567,7 +567,7 @@ func (c *IF) sockstatCollect(metrics *cgm.Metrics) error {
 					continue
 				}
 				stats[statType] = []rawstat{
-					rawstat{
+					{
 						name: fields[1], // inuse
 						val:  fields[2],
 					},
@@ -579,11 +579,11 @@ func (c *IF) sockstatCollect(metrics *cgm.Metrics) error {
 					continue
 				}
 				stats[statType] = []rawstat{
-					rawstat{
+					{
 						name: fields[1], // inuse
 						val:  fields[2],
 					},
-					rawstat{
+					{
 						name: fields[3], // memory
 						val:  fields[4],
 					},
