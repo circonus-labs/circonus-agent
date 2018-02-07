@@ -175,7 +175,8 @@ func (c *Prom) fetchPromMetrics(u URLDef, metrics *cgm.Metrics) error {
 	if err != nil {
 		return err
 	}
-	ctx, _ := context.WithTimeout(context.Background(), u.uttl)
+	ctx, cancel := context.WithTimeout(context.Background(), u.uttl)
+	defer cancel()
 
 	err = c.httpDoRequest(ctx, req, func(resp *http.Response, err error) error {
 		if err != nil {
