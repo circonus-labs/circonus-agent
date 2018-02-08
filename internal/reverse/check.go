@@ -158,7 +158,7 @@ func (c *Connection) createCheckBundle(client *api.API) (*api.CheckBundle, error
 	cfg.Type = "json:nad"
 	cfg.Config = api.CheckBundleConfig{apiconf.URL: "http://" + addr + "/"}
 	cfg.Metrics = []api.CheckBundleMetric{
-		api.CheckBundleMetric{Name: "placeholder", Type: "text", Status: "active"}, // one metric is required again
+		{Name: "placeholder", Type: "text", Status: "active"}, // one metric is required again
 	}
 
 	tags := viper.GetString(config.KeyReverseCreateCheckTags)

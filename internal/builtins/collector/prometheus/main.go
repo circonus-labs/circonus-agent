@@ -175,7 +175,18 @@ func (c *Prom) fetchPromMetrics(u URLDef, metrics *cgm.Metrics) error {
 	if err != nil {
 		return err
 	}
-	ctx, _ := context.WithTimeout(context.Background(), u.uttl)
+
+	var ctx context.Context
+	var cancel context.CancelFunc
+
+	if u.uttl > time.Duration(0) {
+		ctx, cancel = context.WithTimeout(context.Background(), u.uttl)
+	} else {
+		ctx, cancel = context.WithCancel(context.Background())
+	}
+
+	req = req.WithContext(ctx)
+	defer cancel()
 
 	err = c.httpDoRequest(ctx, req, func(resp *http.Response, err error) error {
 		if err != nil {
@@ -191,15 +202,13 @@ func (c *Prom) fetchPromMetrics(u URLDef, metrics *cgm.Metrics) error {
 }
 
 func (c *Prom) httpDoRequest(ctx context.Context, req *http.Request, respHandler func(*http.Response, error) error) error {
-	tr := &http.Transport{DisableCompression: false, DisableKeepAlives: true, MaxIdleConnsPerHost: 1}
-	client := &http.Client{Transport: tr}
+	client := &http.Client{Transport: &http.Transport{DisableCompression: false, DisableKeepAlives: true, MaxIdleConnsPerHost: 1}}
 	ec := make(chan error, 1)
 
 	go func() { ec <- respHandler(client.Do(req)) }()
 
 	select {
 	case <-ctx.Done():
-		tr.CancelRequest(req)
 		<-ec
 		return ctx.Err()
 	case err := <-ec:

@@ -34,7 +34,7 @@ type Prom struct {
 	lastStart           time.Time       // last collection start time
 	logger              zerolog.Logger  // collector logging instance
 	metricDefaultActive bool            // OPT default status for metrics NOT explicitly in metricStatus
-	metricNameRegex     *regexp.Regexp  // OPT regex for cleaning names, may be overriden in config
+	metricNameRegex     *regexp.Regexp  // OPT regex for cleaning names, may be overridden in config
 	metricStatus        map[string]bool // OPT list of metrics and whether they should be collected or not
 	running             bool            // is collector currently running
 	runTTL              time.Duration   // OPT ttl for collector (default is for every request)
@@ -43,7 +43,7 @@ type Prom struct {
 	sync.Mutex
 }
 
-// promOptions defines what elements can be overriden in a config file
+// promOptions defines what elements can be overridden in a config file
 type promOptions struct {
 	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
 	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`

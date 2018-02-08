@@ -291,7 +291,7 @@ func TestStartHTTP(t *testing.T) {
 		s := &Server{}
 		err := s.startHTTP(&httpServer{})
 		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", nil)
+			t.Fatalf("expected NO error, got (%s)", err)
 		}
 	}
 
@@ -332,7 +332,7 @@ func TestStartHTTPS(t *testing.T) {
 		s := &Server{}
 		err := s.startHTTPS()
 		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", nil)
+			t.Fatalf("expected NO error, got (%s)", err)
 		}
 	}
 
@@ -354,7 +354,7 @@ func TestStartHTTPS(t *testing.T) {
 
 func TestStartSocket(t *testing.T) {
 	if runtime.GOOS == "windows" {
-		t.Skip("unix sockets not availble on " + runtime.GOOS)
+		t.Skip("unix sockets not available on " + runtime.GOOS)
 		return
 	}
 
@@ -368,7 +368,7 @@ func TestStartSocket(t *testing.T) {
 		s := &Server{}
 		err := s.startSocket(&socketServer{})
 		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", nil)
+			t.Fatalf("expected NO error, got (%s)", err)
 		}
 	}
 

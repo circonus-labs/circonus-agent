@@ -99,7 +99,7 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(200)
 				fmt.Fprintln(w, "[]")
 			} else if strings.Contains(reqURL, "multiple") {
-				c := []api.CheckBundle{api.CheckBundle{}, api.CheckBundle{}}
+				c := []api.CheckBundle{{}, {}}
 				ret, err := json.Marshal(c)
 				if err != nil {
 					panic(err)

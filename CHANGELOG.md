@@ -1,3 +1,19 @@
+# v0.9.2
+
+* upd: add circleci for integration testing
+* upd: add linux arm release FOR TESTING (e.g. raspbian on pi3)
+* upd: replace deprecated tr.CancelRequest w/context
+* upd: defer context cancel() call
+* fix: several test t.Fatalf calls
+* upd: simplify (gofmt -s)
+* fix: var shadow instances
+* fix: typos in messages and comments
+* doc: fix configuration link in main README.md
+* doc: clarify configuration file quick start instructions in etc/README.md
+* doc: fix typo (cirocnus) etc/README.md
+* upd: dependencies
+* upd: import path for httpgzip
+
 # v0.9.1
 
 * upd: constrain IDs provided in /run and /write URLs to [a-zA-Z0-9-]; ensure clean metric name prefixes
