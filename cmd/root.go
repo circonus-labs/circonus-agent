@@ -536,6 +536,20 @@ func init() {
 
 	{
 		const (
+			key         = config.KeyDisableGzip
+			longOpt     = "no-gzip"
+			envVar      = release.ENVPREFIX + "_NO_GZIP"
+			description = "Disable gzip HTTP responses"
+		)
+
+		RootCmd.Flags().Bool(longOpt, defaults.DisableGzip, description)
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+		viper.SetDefault(key, defaults.DisableGzip)
+	}
+
+	{
+		const (
 			key         = config.KeyDebug
 			longOpt     = "debug"
 			shortOpt    = "d"

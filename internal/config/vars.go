@@ -205,6 +205,9 @@ const (
 	// KeyCollectors defines the builtin collectors to enable
 	KeyCollectors = "collectors"
 
+	// KeyDisableGzip disables gzip on http responses
+	KeyDisableGzip = "server.disable_gzip"
+
 	cosiName = "cosi"
 )
 
