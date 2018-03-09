@@ -6,6 +6,8 @@
 package server
 
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -131,12 +133,64 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 	lastMetrics.metrics = metrics
 	lastMetrics.ts = time.Now()
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(metrics); err != nil {
-		s.logger.Error().
-			Err(err).
-			Msg("Writing metrics to response")
+	s.encodeResponse(&metrics, w, r)
+}
+
+// encodeResponse takes care of encoding the response to an HTTP request for metrics.
+// The broker does not handle chunk encoded data correctly and will emit an error if
+// it receives it. The agent does support gzip compression when the correct header
+// is supplied (Accept-Encoding: * or Accept-Encoding: gzip). The command line option
+// --no-gzip overrides and will result in unencoded respones regardless of what the
+// Accept-Encoding header specifies.
+func (s *Server) encodeResponse(m *map[string]interface{}, w http.ResponseWriter, r *http.Request) {
+	//
+	// if an error occurs, it is logged and empty {} metrics are returned
+	//
+
+	var data []byte
+	var err error
+	var useGzip bool
+
+	if viper.GetBool(config.KeyDisableGzip) {
+		useGzip = false
+	} else {
+		acceptedEncodings := r.Header.Get("Accept-Encoding")
+		useGzip = strings.Contains(acceptedEncodings, "*") || strings.Contains(acceptedEncodings, "gzip")
+
+		s.logger.Debug().Bool("use_gzip", useGzip).Str("accept_encoding", acceptedEncodings).Msg("encode state")
 	}
+
+	if useGzip {
+		var buf bytes.Buffer
+		gz := gzip.NewWriter(&buf)
+		err = json.NewEncoder(gz).Encode(m)
+		gz.Close()
+
+		if err != nil {
+			// log the error and respond with empty metrics
+			s.logger.Error().
+				Err(err).
+				Msg("Writing metrics to response")
+			data = []byte("{}")
+		} else {
+			w.Header().Set("Content-Encoding", "gzip")
+			data = buf.Bytes()
+		}
+	} else {
+		data, err = json.Marshal(m)
+		if err != nil {
+			// log the error and respond with empty metrics
+			s.logger.Error().
+				Err(err).
+				Interface("metrics", m).
+				Msg("Encoding metrics to JSON for response")
+			data = []byte("{}")
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
+	w.Write(data)
 }
 
 // inventory returns the current, active plugin inventory

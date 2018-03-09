@@ -23,7 +23,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
-	"github.com/xi2/httpgzip"
 )
 
 // New creates a new instance of the listening servers
@@ -52,7 +51,7 @@ func New(b *builtins.Builtins, p *plugins.Plugins, ss *statsd.Server) (*Server, 
 				address: ta,
 				server: &http.Server{
 					Addr:    ta.String(),
-					Handler: httpgzip.NewHandler(http.HandlerFunc(s.router), []string{"application/json"}),
+					Handler: http.HandlerFunc(s.router),
 				},
 			}
 			svr.server.SetKeepAlivesEnabled(false)
@@ -87,7 +86,8 @@ func New(b *builtins.Builtins, p *plugins.Plugins, ss *statsd.Server) (*Server, 
 			keyFile:  keyFile,
 			server: &http.Server{
 				Addr:    ta.String(),
-				Handler: httpgzip.NewHandler(http.HandlerFunc(s.router), []string{"application/json"}),
+				Handler: http.HandlerFunc(s.router),
+				// Handler: httpgzip.NewHandler(http.HandlerFunc(s.router), []string{"application/json"}),
 			},
 		}
 
