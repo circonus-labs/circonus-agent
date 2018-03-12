@@ -124,7 +124,7 @@ func TestRouter(t *testing.T) {
 			{"GET", "/prom", http.StatusNoContent},
 			{"GET", "/prom/", http.StatusNoContent},
 		}
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		// zerolog.SetGlobalLevel(zerolog.DebugLevel)
 
 		for _, reqtest := range reqtests {
 			t.Logf("OK path (%s %s)", reqtest.method, reqtest.path)
@@ -137,7 +137,7 @@ func TestRouter(t *testing.T) {
 			}
 		}
 
-		zerolog.SetGlobalLevel(zerolog.Disabled)
+		// zerolog.SetGlobalLevel(zerolog.Disabled)
 	}
 
 	t.Log("invalid (PUT /write/foo) w/o data")
