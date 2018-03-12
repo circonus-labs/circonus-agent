@@ -140,12 +140,16 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 // The broker does not handle chunk encoded data correctly and will emit an error if
 // it receives it. The agent does support gzip compression when the correct header
 // is supplied (Accept-Encoding: * or Accept-Encoding: gzip). The command line option
-// --no-gzip overrides and will result in unencoded respones regardless of what the
+// --no-gzip overrides and will result in unencoded response regardless of what the
 // Accept-Encoding header specifies.
 func (s *Server) encodeResponse(m *map[string]interface{}, w http.ResponseWriter, r *http.Request) {
 	//
 	// if an error occurs, it is logged and empty {} metrics are returned
 	//
+
+	// basically, turn off chunking
+	w.Header().Set("Transfer-Encoding", "identity")
+	w.Header().Set("Content-Type", "application/json")
 
 	var data []byte
 	var err error
@@ -156,8 +160,6 @@ func (s *Server) encodeResponse(m *map[string]interface{}, w http.ResponseWriter
 	} else {
 		acceptedEncodings := r.Header.Get("Accept-Encoding")
 		useGzip = strings.Contains(acceptedEncodings, "*") || strings.Contains(acceptedEncodings, "gzip")
-
-		s.logger.Debug().Bool("use_gzip", useGzip).Str("accept_encoding", acceptedEncodings).Msg("encode state")
 	}
 
 	if useGzip {
@@ -188,7 +190,6 @@ func (s *Server) encodeResponse(m *map[string]interface{}, w http.ResponseWriter
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
 	w.Write(data)
 }
