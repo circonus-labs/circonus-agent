@@ -11,6 +11,7 @@ import (
 	"os/signal"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins"
+	"github.com/circonus-labs/circonus-agent/internal/check"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
 	"github.com/circonus-labs/circonus-agent/internal/release"
@@ -53,7 +54,12 @@ func New() (*Agent, error) {
 		return nil, err
 	}
 
-	a.listenServer, err = server.New(a.builtins, a.plugins, a.statsdServer)
+	a.check, err = check.New()
+	if err != nil {
+		return nil, err
+	}
+
+	a.listenServer, err = server.New(a.check, a.builtins, a.plugins, a.statsdServer)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +68,7 @@ func New() (*Agent, error) {
 	if err != nil {
 		return nil, err
 	}
-	a.reverseConn, err = reverse.New(agentAddress)
+	a.reverseConn, err = reverse.New(a.check, agentAddress)
 	if err != nil {
 		return nil, err
 	}
