@@ -190,90 +190,6 @@ func init() {
 
 	{
 		const (
-			key          = config.KeyReverseCID
-			longOpt      = "reverse-cid"
-			defaultValue = ""
-			envVar       = release.ENVPREFIX + "_REVERSE_CID"
-			description  = "Check Bundle ID for reverse connection"
-		)
-
-		RootCmd.Flags().String(longOpt, defaultValue, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
-	}
-
-	{
-		const (
-			key         = config.KeyReverseTarget
-			longOpt     = "reverse-target"
-			envVar      = release.ENVPREFIX + "_REVERSE_TARGET"
-			description = "Target host"
-		)
-
-		RootCmd.Flags().String(longOpt, defaults.ReverseTarget, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
-		viper.SetDefault(key, defaults.ReverseTarget)
-
-	}
-
-	{
-		const (
-			key         = config.KeyReverseCreateCheck
-			longOpt     = "reverse-create-check"
-			envVar      = release.ENVPREFIX + "_REVERSE_CREATE_CHECK"
-			description = "Create check bundle for reverse if one cannot be found"
-		)
-
-		RootCmd.Flags().Bool(longOpt, defaults.ReverseCreateCheck, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
-		viper.SetDefault(key, defaults.ReverseCreateCheck)
-	}
-
-	{
-		const (
-			key         = config.KeyReverseCreateCheckBroker
-			longOpt     = "reverse-create-check-broker"
-			envVar      = release.ENVPREFIX + "_REVERSE_CREATE_CHECK_BROKER"
-			description = "ID of Broker to use or 'select' for random selection of valid broker, if creating a check bundle"
-		)
-
-		RootCmd.Flags().String(longOpt, defaults.ReverseCreateCheckBroker, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
-		viper.SetDefault(key, defaults.ReverseCreateCheckBroker)
-	}
-
-	{
-		const (
-			key         = config.KeyReverseCreateCheckTitle
-			longOpt     = "reverse-create-check-title"
-			envVar      = release.ENVPREFIX + "_REVERSE_CREATE_CHECK_TITLE"
-			description = "Title [display name] to use, if creating a check bundle"
-		)
-
-		RootCmd.Flags().String(longOpt, "", desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
-	}
-
-	{
-		const (
-			key         = config.KeyReverseCreateCheckTags
-			longOpt     = "reverse-create-check-tags"
-			envVar      = release.ENVPREFIX + "_REVERSE_CREATE_CHECK_TAGS"
-			description = "Tags [comma separated list] to use, if creating a check bundle"
-		)
-
-		RootCmd.Flags().String(longOpt, defaults.ReverseCreateCheckTags, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
-		viper.SetDefault(key, defaults.ReverseCreateCheckTags)
-	}
-
-	{
-		const (
 			key          = config.KeyReverseBrokerCAFile
 			longOpt      = "reverse-broker-ca-file"
 			defaultValue = ""
@@ -284,6 +200,124 @@ func init() {
 		RootCmd.Flags().String(longOpt, defaultValue, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
+	}
+
+	//
+	// Check
+	//
+	{
+		const (
+			key          = config.KeyCheckBundleID
+			longOpt      = "check-id"
+			defaultValue = ""
+			shortOpt     = "I"
+			envVar       = release.ENVPREFIX + "_CHECK_ID"
+			description  = "Check Bundle ID or 'cosi' for cosi system check (for reverse and auto enable new metrics)"
+		)
+
+		RootCmd.Flags().StringP(longOpt, shortOpt, defaultValue, desc(description, envVar))
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+	}
+
+	{
+		const (
+			key         = config.KeyCheckCreate
+			longOpt     = "check-create"
+			shortOpt    = "C"
+			envVar      = release.ENVPREFIX + "_CHECK_CREATE"
+			description = "Create check bundle (for reverse and auto enable new metrics)"
+		)
+
+		RootCmd.Flags().BoolP(longOpt, shortOpt, defaults.CheckCreate, desc(description, envVar))
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+		viper.SetDefault(key, defaults.CheckCreate)
+	}
+
+	{
+		const (
+			key         = config.KeyCheckTarget
+			longOpt     = "check-target"
+			shortOpt    = "T"
+			envVar      = release.ENVPREFIX + "_CHECK_TARGET"
+			description = "Check target host (for creating a new check)"
+		)
+
+		RootCmd.Flags().StringP(longOpt, shortOpt, defaults.CheckTarget, desc(description, envVar))
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+		viper.SetDefault(key, defaults.CheckTarget)
+
+	}
+
+	{
+		const (
+			key         = config.KeyCheckTitle
+			longOpt     = "check-title"
+			envVar      = release.ENVPREFIX + "_CHECK_TITLE"
+			description = "Title [display name] to use, if creating a check bundle (default \"<check-target> /agent\")"
+		)
+
+		RootCmd.Flags().String(longOpt, "", desc(description, envVar))
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+	}
+
+	{
+		const (
+			key         = config.KeyCheckBroker
+			longOpt     = "check-broker"
+			envVar      = release.ENVPREFIX + "_CHECK_BROKER"
+			description = "ID of Broker to use or 'select' for random selection of valid broker, if creating a check bundle"
+		)
+
+		RootCmd.Flags().String(longOpt, defaults.CheckBroker, desc(description, envVar))
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+		viper.SetDefault(key, defaults.CheckBroker)
+	}
+
+	{
+		const (
+			key         = config.KeyCheckTags
+			longOpt     = "check-tags"
+			envVar      = release.ENVPREFIX + "_CHECK_TAGS"
+			description = "Tags [comma separated list] to use, if creating a check bundle"
+		)
+
+		RootCmd.Flags().String(longOpt, defaults.CheckTags, desc(description, envVar))
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+		viper.SetDefault(key, defaults.CheckTags)
+	}
+
+	{
+		const (
+			key         = config.KeyCheckEnableNewMetrics
+			longOpt     = "check-enable-new-metrics"
+			envVar      = release.ENVPREFIX + "_CHECK_ENABLE_NEW_METRICS"
+			description = "Automatically enable all new metrics"
+		)
+
+		RootCmd.Flags().Bool(longOpt, defaults.CheckEnableNewMetrics, desc(description, envVar))
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+		viper.SetDefault(key, defaults.CheckEnableNewMetrics)
+	}
+
+	{
+		const (
+			key         = config.KeyCheckMetricRefreshTTL
+			longOpt     = "check-metric-refresh-ttl"
+			envVar      = release.ENVPREFIX + "_CHECK_METRIC_REFRESH_TTL"
+			description = "Refresh check metrics TTL"
+		)
+
+		RootCmd.Flags().String(longOpt, defaults.CheckMetricRefreshTTL, desc(description, envVar))
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+		viper.SetDefault(key, defaults.CheckMetricRefreshTTL)
 	}
 
 	//

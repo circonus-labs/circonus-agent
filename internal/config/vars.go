@@ -32,14 +32,26 @@ type ReverseCreateCheckOptions struct {
 	Title  string `json:"title" yaml:"title" toml:"title"`
 }
 
+// Check defines the check parameters
+type Check struct {
+	BundleID         string `mapstructure:"bundle_id" json:"bundle_id" yaml:"bundle_id" toml:"bundle_id"`
+	Target           string `mapstructure:"target" json:"target" yaml:"target" toml:"target"`
+	Create           bool   `mapstructure:"create" json:"create" yaml:"create" toml:"create"`
+	Broker           string `json:"broker" yaml:"broker" toml:"broker"`
+	Tags             string `json:"tags" yaml:"tags" toml:"tags"`
+	Title            string `json:"title" yaml:"title" toml:"title"`
+	EnableNewMetrics bool   `mapstructure:"enable_new_metrics" json:"enable_new_metrics" yaml:"enable_new_metrics" toml:"enable_new_metrics"`
+	MetricRefreshTTL string `mapstructure:"metric_refresh_ttl" json:"metric_refresh_ttl" yaml:"metric_refresh_ttl" toml:"metric_refresh_ttl"`
+}
+
 // Reverse defines the running config.reverse structure
 type Reverse struct {
-	Enabled            bool                      `json:"enabled" yaml:"enabled" toml:"enabled"`
-	BrokerCAFile       string                    `mapstructure:"broker_ca_file" json:"broker_ca_file" yaml:"broker_ca_file" toml:"broker_ca_file"`
-	CheckBundleID      string                    `mapstructure:"check_bundle_id" json:"check_bundle_id" yaml:"check_bundle_id" toml:"check_bundle_id"`
-	CheckTarget        string                    `mapstructure:"check_target" json:"check_target" yaml:"check_target" toml:"check_target"`
-	CreateCheck        bool                      `mapstructure:"create_check" json:"create_check" yaml:"create_check" toml:"create_check"`
-	CreateCheckOptions ReverseCreateCheckOptions `json:"check" yaml:"check" toml:"check"`
+	Enabled      bool   `json:"enabled" yaml:"enabled" toml:"enabled"`
+	BrokerCAFile string `mapstructure:"broker_ca_file" json:"broker_ca_file" yaml:"broker_ca_file" toml:"broker_ca_file"`
+	// CheckBundleID      string                    `mapstructure:"check_bundle_id" json:"check_bundle_id" yaml:"check_bundle_id" toml:"check_bundle_id"`
+	// CheckTarget        string                    `mapstructure:"check_target" json:"check_target" yaml:"check_target" toml:"check_target"`
+	// CreateCheck        bool                      `mapstructure:"create_check" json:"create_check" yaml:"create_check" toml:"create_check"`
+	// CreateCheckOptions ReverseCreateCheckOptions `json:"check" yaml:"check" toml:"check"`
 }
 
 // SSL defines the running config.ssl structure
@@ -84,6 +96,7 @@ type Config struct {
 	PluginDir      string   `mapstructure:"plugin_dir" json:"plugin_dir" yaml:"plugin_dir" toml:"plugin_dir"`
 	PluginTTLUnits string   `mapstructure:"plugin_ttl_units" json:"plugin_ttl_units" yaml:"plugin_ttl_units" toml:"plugin_ttl_units"`
 	Reverse        Reverse  `json:"reverse" yaml:"reverse" toml:"reverse"`
+	Check          Check    `json:"check" yaml:"check" toml:"check"`
 	SSL            SSL      `json:"ssl" yaml:"ssl" toml:"ssl"`
 	StatsD         StatsD   `json:"statsd" yaml:"statsd" toml:"statsd"`
 	Collectors     []string `json:"collectors" yaml:"collectors" toml:"collectors"`
@@ -140,22 +153,22 @@ const (
 	KeyReverseBrokerCAFile = "reverse.broker_ca_file"
 
 	// KeyReverseCID circonus check bundle id for reverse
-	KeyReverseCID = "reverse.check_bundle_id"
+	// KeyReverseCID = "reverse.check_bundle_id"
 
 	// KeyReverseTarget custom target|host to use for reverse (searching for a check) default os.Hostname()
-	KeyReverseTarget = "reverse.check_target"
+	// KeyReverseTarget = "reverse.check_target"
 
 	// KeyReverseCreateCheck indicates whether a check should be created if one cannot be found for the target
-	KeyReverseCreateCheck = "reverse.create_check"
+	// KeyReverseCreateCheck = "reverse.create_check"
 
 	// KeyReverseCreateCheckBroker cid to use if creating a check
-	KeyReverseCreateCheckBroker = "reverse.check.broker"
+	// KeyReverseCreateCheckBroker = "reverse.check.broker"
 
 	// KeyReverseCreateCheckTitle to use if creating a check
-	KeyReverseCreateCheckTitle = "reverse.check.title"
+	// KeyReverseCreateCheckTitle = "reverse.check.title"
 
 	// KeyReverseCreateCheckTags to add if creating a check
-	KeyReverseCreateCheckTags = "reverse.check.tags"
+	// KeyReverseCreateCheckTags = "reverse.check.tags"
 
 	// KeyShowConfig - show configuration and exit
 	KeyShowConfig = "show-config"
@@ -207,6 +220,30 @@ const (
 
 	// KeyDisableGzip disables gzip on http responses
 	KeyDisableGzip = "server.disable_gzip"
+
+	// KeyCheckBundleID the check bundle id to use
+	KeyCheckBundleID = "check.bundle_id"
+
+	// KeyCheckTarget the check bundle target to use to search for or create a check bundle
+	// note: if not using reverse, this must be an IP address reachable by the broker
+	KeyCheckTarget = "check.target"
+
+	// KeyCheckEnableNewMetrics toggles automatically enabling new metrics
+	KeyCheckEnableNewMetrics = "check.enable_new_metrics"
+	// KeyCheckMetricRefreshTTL determines how often to refresh check bundle metrics from API when enable new metrics is turned on
+	KeyCheckMetricRefreshTTL = "check.metric_refresh_ttl"
+
+	// KeyCheckCreate toggles creating a new check bundle when a check bundle id is not supplied
+	KeyCheckCreate = "check.create"
+
+	// KeyCheckBroker a specific broker ID to use when creating a new check bundle
+	KeyCheckBroker = "check.broker"
+
+	// KeyCheckTitle a specific title to use when creating a new check bundle
+	KeyCheckTitle = "check.title"
+
+	// KeyCheckTags a specific set of tags to use when creating a new check bundle
+	KeyCheckTags = "check.tags"
 
 	cosiName = "cosi"
 )

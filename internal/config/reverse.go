@@ -16,7 +16,7 @@ import (
 
 func validateReverseOptions() error {
 
-	cid := viper.GetString(KeyReverseCID)
+	cid := viper.GetString(KeyCheckBundleID)
 
 	// 1. cid = 'cosi' - try to load system check registration
 	if strings.ToLower(cid) == cosiName {
@@ -25,7 +25,7 @@ func validateReverseOptions() error {
 			return err
 		}
 		cid = cosiCID
-		viper.Set(KeyReverseCID, cid)
+		viper.Set(KeyCheckBundleID, cid)
 		log.Debug().Str("cid", cid).Msg("reverse, cosi cid")
 	}
 

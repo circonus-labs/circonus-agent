@@ -72,17 +72,17 @@ const (
 	StatsdGroupSets = "sum"
 
 	// ReverseCreateCheck flags whether a check, for reverse, should be created if one cannot be found
-	ReverseCreateCheck = false
+	// ReverseCreateCheck = false
 
 	// ReverseCreateCheckBroker to use if creating a check, 'select' or '' will
 	// result in the first broker which meets some basic criteria being selected.
 	// 1. Active status
 	// 2. Supports the required check type
 	// 3. Responds within reverse.brokerMaxResponseTime
-	ReverseCreateCheckBroker = "select"
+	// ReverseCreateCheckBroker = "select"
 
 	// ReverseCreateCheckTags to use if creating a check (comma separated list)
-	ReverseCreateCheckTags = ""
+	// ReverseCreateCheckTags = ""
 
 	// MetricNameSeparator defines character used to delimit metric name parts
 	MetricNameSeparator = "`"
@@ -93,6 +93,24 @@ const (
 
 	// DisableGzip disables gzip compression on responses
 	DisableGzip = false
+
+	// CheckEnableNewMetrics toggles enabling new metrics
+	CheckEnableNewMetrics = false
+	// CheckMetricRefreshTTL determines how often to refresh check bundle metrics from API
+	CheckMetricRefreshTTL = "5m"
+
+	// CheckCreate toggles creating a check if a check bundle id is not supplied
+	CheckCreate = false
+
+	// CheckBroker to use if creating a check, 'select' or '' will
+	// result in the first broker which meets some basic criteria being selected.
+	// 1. Active status
+	// 2. Supports the required check type
+	// 3. Responds within reverse.brokerMaxResponseTime
+	CheckBroker = "select"
+
+	// CheckTags to use if creating a check (comma separated list)
+	CheckTags = ""
 )
 
 var (
@@ -124,8 +142,11 @@ var (
 	// PluginPath returns the default plugin path
 	PluginPath = "" // (e.g. /opt/circonus/agent/plugins)
 
-	// ReverseTarget defaults to return from os.Hostname()
-	ReverseTarget = ""
+	// CheckTarget defaults to return from os.Hostname()
+	CheckTarget = ""
+
+	// CheckTitle defaults to '<CheckTarget> /agent'
+	CheckTitle = ""
 
 	// SSLCertFile returns the deefault ssl cert file name
 	SSLCertFile = "" // (e.g. /opt/circonus/agent/etc/agent.pem)
@@ -160,11 +181,12 @@ func init() {
 	SSLCertFile = filepath.Join(EtcPath, release.NAME+".pem")
 	SSLKeyFile = filepath.Join(EtcPath, release.NAME+".key")
 
-	ReverseTarget, err = os.Hostname()
+	CheckTarget, err = os.Hostname()
 	if err != nil {
 		fmt.Printf("Unable to determine hostname for target %v\n", err)
 		os.Exit(1)
 	}
+	CheckTitle = CheckTarget + " /agent"
 
 	switch runtime.GOOS {
 	case "linux":
