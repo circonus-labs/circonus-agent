@@ -120,7 +120,7 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 			if statsdMetrics != nil {
 				pfx := viper.GetString(config.KeyStatsdHostCategory)
 				for metricName, metric := range *statsdMetrics {
-					metrics[fmt.Sprintf("%s`%s", pfx, metricName)] = metric
+					metrics[pfx+config.MetricNameSeparator+metricName] = metric
 				}
 				// metrics[viper.GetString(config.KeyStatsdHostCategory)] = statsdMetrics
 			}
