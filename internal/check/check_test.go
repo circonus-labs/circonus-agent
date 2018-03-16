@@ -31,7 +31,7 @@ func TestFetchCheck(t *testing.T) {
 
 		c := Check{client: genMockClient()}
 
-		err := c.fetchCheck(cid)
+		_, err := c.fetchCheck(cid)
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -54,7 +54,7 @@ func TestFetchCheck(t *testing.T) {
 
 		c := Check{client: genMockClient()}
 
-		err := c.fetchCheck(cid)
+		_, err := c.fetchCheck(cid)
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -77,7 +77,7 @@ func TestFetchCheck(t *testing.T) {
 
 		c := Check{client: genMockClient()}
 
-		err := c.fetchCheck(cid)
+		_, err := c.fetchCheck(cid)
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -100,7 +100,7 @@ func TestFetchCheck(t *testing.T) {
 
 		c := Check{client: genMockClient()}
 
-		err := c.fetchCheck(cid)
+		_, err := c.fetchCheck(cid)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -125,7 +125,7 @@ func TestFindCheck(t *testing.T) {
 
 		c := Check{client: genMockClient()}
 
-		found, err := c.findCheck()
+		_, found, err := c.findCheck()
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -151,7 +151,7 @@ func TestFindCheck(t *testing.T) {
 
 		c := Check{client: genMockClient()}
 
-		found, err := c.findCheck()
+		_, found, err := c.findCheck()
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -177,7 +177,7 @@ func TestFindCheck(t *testing.T) {
 
 		c := Check{client: genMockClient()}
 
-		found, err := c.findCheck()
+		_, found, err := c.findCheck()
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -203,7 +203,7 @@ func TestFindCheck(t *testing.T) {
 
 		c := Check{client: genMockClient()}
 
-		found, err := c.findCheck()
+		_, found, err := c.findCheck()
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -229,7 +229,7 @@ func TestFindCheck(t *testing.T) {
 
 		c := Check{client: genMockClient()}
 
-		found, err := c.findCheck()
+		_, found, err := c.findCheck()
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -257,7 +257,7 @@ func TestCreateCheck(t *testing.T) {
 
 		c := Check{client: genMockClient()}
 
-		err := c.createCheck()
+		_, err := c.createCheck()
 		if err == nil {
 			t.Fatal("expected error")
 		}

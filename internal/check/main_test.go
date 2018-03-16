@@ -176,7 +176,7 @@ func TestNew(t *testing.T) {
 		viper.Set(config.KeyAPITokenApp, "")
 		viper.Set(config.KeyAPIURL, "")
 
-		_, err := New()
+		_, err := New(nil)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
