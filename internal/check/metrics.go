@@ -5,11 +5,20 @@
 
 package check
 
-import "time"
+import (
+	"strings"
+	"time"
+
+	"github.com/circonus-labs/circonus-gometrics/api"
+	"github.com/pkg/errors"
+)
 
 func (c *Check) refreshMetrics() error {
 	if !c.manage { // not managing metrics
 		return nil
+	}
+	if c.bundle == nil {
+		return errors.New("invalid state (bundle is nil)")
 	}
 	if c.refreshTTL == time.Duration(0) { // never refresh
 		return nil
@@ -21,9 +30,20 @@ func (c *Check) refreshMetrics() error {
 	c.Lock()
 	defer c.Unlock()
 
-	// 1. fetch a new copy of the check bundle metrics using the API
-	// 2. rebuild metric state list
-	// 3. update last refresh timestamp
+	cid := strings.Replace(c.bundle.CID, "check_bundle", "check_bundle_metrics", -1)
+
+	metrics, err := c.client.FetchCheckBundleMetrics(api.CIDType(&cid))
+	if err != nil {
+		return errors.Wrap(err, "refresh check bundle metrics")
+	}
+
+	newMetrics := make(map[string]api.CheckBundleMetric)
+
+	for _, m := range (*metrics).Metrics {
+		newMetrics[m.Name] = m
+	}
+
+	c.metrics = &newMetrics
 	c.lastRefresh = time.Now()
 
 	return nil
