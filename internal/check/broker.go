@@ -320,12 +320,6 @@ func (c *Check) isValidBroker(broker *api.Broker, checkType string) (time.Durati
 func brokerSupportsCheckType(checkType string, details *api.BrokerDetail) bool {
 	baseType := string(checkType)
 
-	for _, module := range details.Modules {
-		if module == baseType {
-			return true
-		}
-	}
-
 	if idx := strings.Index(baseType, ":"); idx > 0 {
 		baseType = baseType[0:idx]
 	}

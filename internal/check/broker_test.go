@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-gometrics/api"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
@@ -129,6 +130,38 @@ func TestBrokerTLSConfig(t *testing.T) {
 
 		if err != nil {
 			t.Fatalf("expected NO error got (%s)", err)
+		}
+	}
+}
+
+func TestBrokerSupportsCheckType(t *testing.T) {
+	t.Log("Testing brokerSupportsCheckType")
+
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+
+	details := api.BrokerDetail{Modules: []string{"json", "httptrap"}}
+
+	t.Log("unsupported (foo)")
+	{
+		checkType := "foo"
+		if brokerSupportsCheckType(checkType, &details) {
+			t.Fatal("expected unsupported")
+		}
+	}
+
+	t.Log("supported (json:nad)")
+	{
+		checkType := "json:nad"
+		if !brokerSupportsCheckType(checkType, &details) {
+			t.Fatal("expected supported")
+		}
+	}
+
+	t.Log("supported (httptrap)")
+	{
+		checkType := "httptrap"
+		if !brokerSupportsCheckType(checkType, &details) {
+			t.Fatal("expected supported")
 		}
 	}
 }
