@@ -64,7 +64,7 @@ func TestRun(t *testing.T) {
 	if serr := p.Scan(b); serr != nil {
 		t.Fatalf("expected no error, got (%s)", serr)
 	}
-	c, cerr := check.New()
+	c, cerr := check.New(nil)
 	if cerr != nil {
 		t.Fatalf("expected no error, got (%s)", cerr)
 	}
@@ -107,7 +107,7 @@ func TestInventory(t *testing.T) {
 	if perr != nil {
 		t.Fatalf("expected NO error, got (%s)", perr)
 	}
-	c, cerr := check.New()
+	c, cerr := check.New(nil)
 	if cerr != nil {
 		t.Fatalf("expected no error, got (%s)", cerr)
 	}
@@ -138,7 +138,7 @@ func TestWrite(t *testing.T) {
 
 	viper.Reset()
 	viper.Set(config.KeyListen, ":2609")
-	c, cerr := check.New()
+	c, cerr := check.New(nil)
 	if cerr != nil {
 		t.Fatalf("expected no error, got (%s)", cerr)
 	}
@@ -261,7 +261,7 @@ func TestPromReceiver(t *testing.T) {
 
 	viper.Reset()
 	viper.Set(config.KeyListen, ":2609")
-	c, cerr := check.New()
+	c, cerr := check.New(nil)
 	if cerr != nil {
 		t.Fatalf("expected no error, got (%s)", cerr)
 	}
@@ -294,7 +294,7 @@ func TestSocketHandler(t *testing.T) {
 
 	viper.Reset()
 	viper.Set(config.KeyListen, ":2609")
-	c, cerr := check.New()
+	c, cerr := check.New(nil)
 	if cerr != nil {
 		t.Fatalf("expected no error, got (%s)", cerr)
 	}
@@ -379,7 +379,7 @@ func TestPromOutput(t *testing.T) {
 
 	viper.Reset()
 	viper.Set(config.KeyListen, ":2609")
-	c, cerr := check.New()
+	c, cerr := check.New(nil)
 	if cerr != nil {
 		t.Fatalf("expected no error, got (%s)", cerr)
 	}
@@ -439,7 +439,7 @@ func TestMetricsToPromFormat(t *testing.T) {
 
 	viper.Reset()
 	viper.Set(config.KeyListen, ":2609")
-	c, cerr := check.New()
+	c, cerr := check.New(nil)
 	if cerr != nil {
 		t.Fatalf("expected no error, got (%s)", cerr)
 	}
