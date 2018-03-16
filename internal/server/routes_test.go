@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins"
+	"github.com/circonus-labs/circonus-agent/internal/check"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
 	"github.com/rs/zerolog"
@@ -34,7 +35,12 @@ func TestRouter(t *testing.T) {
 		}
 		viper.Reset()
 		viper.Set(config.KeyListen, ":2609")
-		s, err := New(nil, nil, nil)
+		c, cerr := check.New()
+		if cerr != nil {
+			t.Fatalf("expected no error, got (%s)", cerr)
+		}
+
+		s, err := New(c, nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -75,7 +81,12 @@ func TestRouter(t *testing.T) {
 			{"PUT", "/invalid"},
 			{"PUT", "/write/"}, // /write/ must be followed by an id/name to use as "plugin namespace"
 		}
-		s, err := New(b, p, nil)
+		c, cerr := check.New()
+		if cerr != nil {
+			t.Fatalf("expected no error, got (%s)", cerr)
+		}
+
+		s, err := New(c, b, p, nil)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -105,7 +116,12 @@ func TestRouter(t *testing.T) {
 		if perr != nil {
 			t.Fatalf("expected NO error, got (%s)", perr)
 		}
-		s, err := New(b, p, nil)
+		c, cerr := check.New()
+		if cerr != nil {
+			t.Fatalf("expected no error, got (%s)", cerr)
+		}
+
+		s, err := New(c, b, p, nil)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -154,7 +170,12 @@ func TestRouter(t *testing.T) {
 		if perr != nil {
 			t.Fatalf("expected NO error, got (%s)", perr)
 		}
-		s, err := New(b, p, nil)
+		c, cerr := check.New()
+		if cerr != nil {
+			t.Fatalf("expected no error, got (%s)", cerr)
+		}
+
+		s, err := New(c, b, p, nil)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -173,7 +194,12 @@ func TestRouter(t *testing.T) {
 	{
 		viper.Reset()
 		viper.Set(config.KeyListen, ":2609")
-		s, err := New(nil, nil, nil)
+		c, cerr := check.New()
+		if cerr != nil {
+			t.Fatalf("expected no error, got (%s)", cerr)
+		}
+
+		s, err := New(c, nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -191,7 +217,12 @@ func TestRouter(t *testing.T) {
 	{
 		viper.Reset()
 		viper.Set(config.KeyListen, ":2609")
-		s, err := New(nil, nil, nil)
+		c, cerr := check.New()
+		if cerr != nil {
+			t.Fatalf("expected no error, got (%s)", cerr)
+		}
+
+		s, err := New(c, nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}

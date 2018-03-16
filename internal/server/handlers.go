@@ -133,6 +133,10 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 	lastMetrics.metrics = metrics
 	lastMetrics.ts = time.Now()
 
+	if err := s.check.EnableNewMetrics(&metrics); err != nil {
+		s.logger.Warn().Err(err).Msg("unable to update check metrics")
+	}
+
 	s.encodeResponse(&metrics, w, r)
 }
 
