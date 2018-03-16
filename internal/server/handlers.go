@@ -118,7 +118,11 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 		if s.statsdSvr != nil {
 			statsdMetrics := s.statsdSvr.Flush()
 			if statsdMetrics != nil {
-				metrics[viper.GetString(config.KeyStatsdHostCategory)] = statsdMetrics
+				pfx := viper.GetString(config.KeyStatsdHostCategory)
+				for metricName, metric := range *statsdMetrics {
+					metrics[fmt.Sprintf("%s`%s", pfx, metricName)] = metric
+				}
+				// metrics[viper.GetString(config.KeyStatsdHostCategory)] = statsdMetrics
 			}
 		}
 	}
