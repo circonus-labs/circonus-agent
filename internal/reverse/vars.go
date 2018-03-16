@@ -13,12 +13,14 @@ import (
 
 	tomb "gopkg.in/tomb.v2"
 
+	"github.com/circonus-labs/circonus-agent/internal/check"
 	"github.com/rs/zerolog"
 )
 
 // Connection defines a reverse connection
 type Connection struct {
 	agentAddress  string
+	check         *check.Check
 	checkCID      string
 	cmdCh         chan *noitCommand
 	commTimeout   time.Duration

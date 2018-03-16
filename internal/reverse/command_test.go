@@ -10,6 +10,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/circonus-labs/circonus-agent/internal/check"
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/rs/zerolog"
 )
@@ -21,7 +22,11 @@ func TestGetCommandFromBroker(t *testing.T) {
 
 	t.Log("valid")
 	{
-		s, err := New(defaults.Listen)
+		chk, cerr := check.New()
+		if cerr != nil {
+			t.Fatalf("expected no error, got (%s)", cerr)
+		}
+		s, err := New(chk, defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -50,7 +55,11 @@ func TestGetCommandFromBroker(t *testing.T) {
 
 	t.Log("invalid (data before command)")
 	{
-		s, err := New(defaults.Listen)
+		chk, cerr := check.New()
+		if cerr != nil {
+			t.Fatalf("expected no error, got (%s)", cerr)
+		}
+		s, err := New(chk, defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -72,7 +81,11 @@ func TestGetCommandFromBroker(t *testing.T) {
 
 	t.Log("invalid (two commands)")
 	{
-		s, err := New(defaults.Listen)
+		chk, cerr := check.New()
+		if cerr != nil {
+			t.Fatalf("expected no error, got (%s)", cerr)
+		}
+		s, err := New(chk, defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -121,7 +134,11 @@ func TestGetFrameFromBroker(t *testing.T) {
 
 	for _, tst := range tt {
 		t.Log(tst.description)
-		s, err := New(defaults.Listen)
+		chk, cerr := check.New()
+		if cerr != nil {
+			t.Fatalf("expected no error, got (%s)", cerr)
+		}
+		s, err := New(chk, defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}

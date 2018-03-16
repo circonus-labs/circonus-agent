@@ -139,9 +139,15 @@ func (c *Connection) connect() *connError {
 		// fatal, no attempt is made to resolve.
 		if c.connAttempts%configRetryLimit == 0 {
 			c.logger.Info().Int("attempts", c.connAttempts).Msg("reconfig triggered")
-			if err := c.setCheckConfig(); err != nil {
+			if err := c.check.RefreshCheckConfig(); err != nil {
+				return &connError{fatal: true, err: errors.Wrap(err, "refreshing check configuration")}
+			}
+			rc, err := c.check.GetReverseConfig()
+			if err != nil {
 				return &connError{fatal: true, err: errors.Wrap(err, "reconfiguring reverse connection")}
 			}
+			c.reverseURL = rc.ReverseURL
+			c.tlsConfig = rc.TLSConfig
 		}
 	}
 

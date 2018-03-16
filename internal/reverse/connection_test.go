@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/circonus-labs/circonus-agent/internal/check"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/pkg/errors"
@@ -94,7 +95,11 @@ func TestConnect(t *testing.T) {
 			}(conn)
 		}()
 
-		s, err := New(defaults.Listen)
+		chk, cerr := check.New()
+		if cerr != nil {
+			t.Fatalf("expected no error, got (%s)", cerr)
+		}
+		s, err := New(chk, defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error got (%s)", err)
 		}
@@ -127,7 +132,11 @@ func TestConnect(t *testing.T) {
 
 		// basically, just don't accept any connections
 
-		s, err := New(defaults.Listen)
+		chk, cerr := check.New()
+		if cerr != nil {
+			t.Fatalf("expected no error, got (%s)", cerr)
+		}
+		s, err := New(chk, defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error got (%s)", err)
 		}
@@ -145,12 +154,12 @@ func TestConnect(t *testing.T) {
 		s.dialerTimeout = 2 * time.Second
 
 		expect := errors.Errorf("connecting to %s: tls: DialWithDialer timed out", l.Addr().String())
-		cerr := s.connect()
-		if cerr == nil {
+		connErr := s.connect()
+		if connErr == nil {
 			t.Fatal("expected error")
 		}
-		if cerr.Error() != expect.Error() {
-			t.Fatalf("expected (%s) got (%s)", expect, cerr)
+		if connErr.Error() != expect.Error() {
+			t.Fatalf("expected (%s) got (%s)", expect, connErr)
 		}
 		s.Stop()
 	}
@@ -173,7 +182,11 @@ func TestConnect(t *testing.T) {
 			}(conn)
 		}()
 
-		s, err := New(defaults.Listen)
+		chk, cerr := check.New()
+		if cerr != nil {
+			t.Fatalf("expected no error, got (%s)", cerr)
+		}
+		s, err := New(chk, defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error got (%s)", err)
 		}
@@ -190,12 +203,12 @@ func TestConnect(t *testing.T) {
 		s.reverseURL = tsURL
 		s.dialerTimeout = 2 * time.Second
 
-		cerr := s.connect()
-		if cerr == nil {
+		connErr := s.connect()
+		if connErr == nil {
 			t.Fatal("expected error")
 		}
-		if !strings.Contains(cerr.Error(), l.Addr().String()) {
-			t.Fatalf("expected (%s) got (%s)", l.Addr().String(), cerr)
+		if !strings.Contains(connErr.Error(), l.Addr().String()) {
+			t.Fatalf("expected (%s) got (%s)", l.Addr().String(), connErr)
 		}
 		s.Stop()
 	}
@@ -210,7 +223,11 @@ func TestSetNextDelay(t *testing.T) {
 	t.Log("delay == max")
 	{
 		viper.Set(config.KeyReverse, false)
-		c, err := New(defaults.Listen)
+		chk, cerr := check.New()
+		if cerr != nil {
+			t.Fatalf("expected no error, got (%s)", cerr)
+		}
+		c, err := New(chk, defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -225,7 +242,11 @@ func TestSetNextDelay(t *testing.T) {
 	t.Log("valid change")
 	{
 		viper.Set(config.KeyReverse, false)
-		c, err := New(defaults.Listen)
+		chk, cerr := check.New()
+		if cerr != nil {
+			t.Fatalf("expected no error, got (%s)", cerr)
+		}
+		c, err := New(chk, defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -254,7 +275,11 @@ func TestSetNextDelay(t *testing.T) {
 	t.Log("reset to max")
 	{
 		viper.Set(config.KeyReverse, false)
-		c, err := New(defaults.Listen)
+		chk, cerr := check.New()
+		if cerr != nil {
+			t.Fatalf("expected no error, got (%s)", cerr)
+		}
+		c, err := New(chk, defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -275,7 +300,11 @@ func TestResetConnectionAttempts(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	viper.Set(config.KeyReverse, false)
-	c, err := New(defaults.Listen)
+	chk, cerr := check.New()
+	if cerr != nil {
+		t.Fatalf("expected no error, got (%s)", cerr)
+	}
+	c, err := New(chk, defaults.Listen)
 	if err != nil {
 		t.Fatalf("expected no error, got (%s)", err)
 	}
