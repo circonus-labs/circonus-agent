@@ -103,7 +103,13 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 		s.plugins.Run(id)
 		pluginMetrics := s.plugins.Flush(id)
 		for metricName, metric := range *pluginMetrics {
-			metrics[metricName] = metric
+			if v, ok := metric.(*cgm.Metrics); ok {
+				for mn, mv := range *v {
+					metrics[metricName+config.MetricNameSeparator+mn] = mv
+				}
+			} else {
+				metrics[metricName] = metric
+			}
 		}
 	}
 
