@@ -22,14 +22,15 @@ type metricState struct {
 
 // Check exposes the check bundle management interface
 type Check struct {
-	lastRefresh time.Time
-	refreshTTL  time.Duration
-	manage      bool
-	bundle      *api.CheckBundle
-	metrics     *map[string]api.CheckBundleMetric
-	revConfig   *ReverseConfig
-	client      API
-	logger      zerolog.Logger
+	lastRefresh  time.Time
+	refreshTTL   time.Duration
+	manage       bool
+	bundle       *api.CheckBundle
+	checkMetrics map[string]api.CheckBundleMetric
+	knownMetrics map[string]string
+	revConfig    *ReverseConfig
+	client       API
+	logger       zerolog.Logger
 	sync.Mutex
 }
 

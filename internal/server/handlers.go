@@ -100,8 +100,12 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 		// NOTE: errors are ignored from plugins.Run
 		//       1. errors are already logged by Run
 		//       2. do not expose execution state to callers
+		s.logger.Debug().Msg("calling plugin run")
 		s.plugins.Run(id)
+		s.logger.Debug().Msg("plugin run done")
+		s.logger.Debug().Msg("calling plugin flush")
 		pluginMetrics := s.plugins.Flush(id)
+		s.logger.Debug().Msg("plugin flush done")
 		for metricName, metric := range *pluginMetrics {
 			if v, ok := metric.(*cgm.Metrics); ok {
 				for mn, mv := range *v {
@@ -114,7 +118,9 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if flushReceiver {
+		s.logger.Debug().Msg("calling receiver flush")
 		receiverMetrics := receiver.Flush()
+		s.logger.Debug().Msg("receiver flush done")
 		for metricName, metric := range *receiverMetrics {
 			metrics[metricName] = metric
 		}
@@ -122,7 +128,9 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 
 	if flushStatsd {
 		if s.statsdSvr != nil {
+			s.logger.Debug().Msg("calling statsd flush")
 			statsdMetrics := s.statsdSvr.Flush()
+			s.logger.Debug().Msg("statsd flush done")
 			if statsdMetrics != nil {
 				pfx := viper.GetString(config.KeyStatsdHostCategory)
 				for metricName, metric := range *statsdMetrics {
@@ -134,20 +142,28 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if flushProm {
+		s.logger.Debug().Msg("calling prom flush")
 		promMetrics := promrecv.Flush()
+		s.logger.Debug().Msg("prom flush done")
 		for metricName, metric := range *promMetrics {
 			metrics[metricName] = metric
 		}
 	}
 
+	s.logger.Debug().Msg("update lastMetrics")
 	lastMetrics.metrics = metrics
 	lastMetrics.ts = time.Now()
+	s.logger.Debug().Msg("update lastMetrics done")
 
+	s.logger.Debug().Msg("calling enable new metrics")
 	if err := s.check.EnableNewMetrics(&metrics); err != nil {
 		s.logger.Warn().Err(err).Msg("unable to update check metrics")
 	}
+	s.logger.Debug().Msg("enable new metrics done")
 
+	s.logger.Debug().Msg("encoding metrics")
 	s.encodeResponse(&metrics, w, r)
+	s.logger.Debug().Msg("encoding done")
 }
 
 // encodeResponse takes care of encoding the response to an HTTP request for metrics.

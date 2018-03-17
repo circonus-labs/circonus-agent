@@ -23,7 +23,9 @@ func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		if pluginPathRx.MatchString(r.URL.Path) { // run plugin(s)
+			s.logger.Debug().Msg("calling run")
 			s.run(w, r)
+			s.logger.Debug().Msg("run complete")
 		} else if inventoryPathRx.MatchString(r.URL.Path) { // plugin inventory
 			s.inventory(w, r)
 		} else if statsPathRx.MatchString(r.URL.Path) { // app stats

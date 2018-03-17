@@ -149,13 +149,13 @@ func (p *Plugins) Run(pluginName string) error {
 	}
 
 	wg.Wait()
-	p.logger.Debug().Msg("all plugins done")
 
 	appstats.MapSet("plugins", "last_run_end", time.Now())
 	appstats.MapSet("plugins", "last_run_duration", time.Since(start))
 
 	p.Lock()
 	p.running = false
+	p.logger.Debug().Msg("all plugins done")
 	p.Unlock()
 
 	return nil

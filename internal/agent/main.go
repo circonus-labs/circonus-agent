@@ -54,7 +54,7 @@ func New() (*Agent, error) {
 		return nil, err
 	}
 
-	a.check, err = check.New()
+	a.check, err = check.New(nil)
 	if err != nil {
 		return nil, err
 	}

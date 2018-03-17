@@ -6,45 +6,26 @@
 package check
 
 import (
+	"encoding/json"
 	"strings"
-	"time"
 
 	"github.com/circonus-labs/circonus-gometrics/api"
 	"github.com/pkg/errors"
 )
 
-func (c *Check) refreshMetrics() error {
-	if !c.manage { // not managing metrics
-		return nil
-	}
-	if c.bundle == nil {
-		return errors.New("invalid state (bundle is nil)")
-	}
-	if c.refreshTTL == time.Duration(0) { // never refresh
-		return nil
-	}
-	if c.metrics != nil && c.refreshTTL > time.Since(c.lastRefresh) {
-		return nil
-	}
+func (c *Check) getFullCheckMetrics() ([]api.CheckBundleMetric, error) {
+	cbmPath := strings.Replace(c.bundle.CID, "check_bundle", "check_bundle_metrics", -1)
+	cbmPath += "?query_broker=1" // force for full set of metrics (active and available)
 
-	c.Lock()
-	defer c.Unlock()
-
-	cid := strings.Replace(c.bundle.CID, "check_bundle", "check_bundle_metrics", -1)
-
-	metrics, err := c.client.FetchCheckBundleMetrics(api.CIDType(&cid))
+	data, err := c.client.Get(cbmPath)
 	if err != nil {
-		return errors.Wrap(err, "refresh check bundle metrics")
+		return nil, errors.Wrap(err, "fetching check bundle metrics")
 	}
 
-	newMetrics := make(map[string]api.CheckBundleMetric)
-
-	for _, m := range (*metrics).Metrics {
-		newMetrics[m.Name] = m
+	var metrics api.CheckBundleMetrics
+	if err := json.Unmarshal(data, &metrics); err != nil {
+		return nil, errors.Wrap(err, "parsing check bundle metrics")
 	}
 
-	c.metrics = &newMetrics
-	c.lastRefresh = time.Now()
-
-	return nil
+	return metrics.Metrics, nil
 }

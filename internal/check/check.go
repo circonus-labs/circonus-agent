@@ -53,8 +53,6 @@ func (c *Check) setCheck() error {
 	}
 
 	c.bundle = bundle
-
-	// ensure metrics are empty - no need to keep/maintain two copies
 	c.bundle.Metrics = []api.CheckBundleMetric{}
 
 	if isReverse {
