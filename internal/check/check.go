@@ -11,7 +11,10 @@ import (
 	"strings"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
+	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-gometrics/api"
+	apiconf "github.com/circonus-labs/circonus-gometrics/api/config"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
@@ -53,6 +56,13 @@ func (c *Check) setCheck() error {
 	}
 
 	c.bundle = bundle
+	// initialize the currently active metrics
+	for _, m := range c.bundle.Metrics {
+		if m.Status == activeMetricStatus {
+			c.activeMetrics[m.Name] = m.Status
+		}
+	}
+	c.updateActiveMetrics = false
 	c.bundle.Metrics = []api.CheckBundleMetric{}
 
 	if isReverse {
@@ -113,10 +123,26 @@ func (c *Check) findCheck() (*api.CheckBundle, int, error) {
 }
 
 func (c *Check) createCheck() (*api.CheckBundle, error) {
-	// addr := c.agentAddress
-	// if addr[0:1] == ":" {
-	// 	addr = "localhost" + addr
-	// }
+
+	// parse the first listen address to use as the required
+	// URL in the check config
+	var targetAddr string
+	{
+		serverList := viper.GetStringSlice(config.KeyListen)
+		if len(serverList) == 0 {
+			serverList = []string{defaults.Listen}
+		}
+		if serverList[0][0:1] == ":" {
+			serverList[0] = "localhost" + serverList[0]
+		}
+		ta, err := config.ParseListen(serverList[0])
+		if err != nil {
+			c.logger.Error().Err(err).Str("addr", serverList[0]).Msg("resolving address")
+			return nil, errors.Wrap(err, "parsing listen address")
+		}
+		targetAddr = ta.String()
+	}
+
 	target := viper.GetString(config.KeyCheckTarget)
 	if target == "" {
 		return nil, errors.New("invalid check target (empty)")
@@ -128,12 +154,12 @@ func (c *Check) createCheck() (*api.CheckBundle, error) {
 	if cfg.DisplayName == "" {
 		cfg.DisplayName = cfg.Target + " /agent"
 	}
+	note := fmt.Sprintf("created by %s %s", release.NAME, release.VERSION)
+	cfg.Notes = &note
 	cfg.Type = "json:nad"
-	// cfg.Config = api.CheckBundleConfig{apiconf.URL: "http://" + addr + "/"}
-	// cfg.Config = api.CheckBundleConfig{apiconf.URL: "http://" + cfg.Target + "/"}
-	cfg.Config = api.CheckBundleConfig{}
+	cfg.Config = api.CheckBundleConfig{apiconf.URL: "http://" + targetAddr + "/"}
 	cfg.Metrics = []api.CheckBundleMetric{
-		{Name: "placeholder", Type: "text", Status: "active"}, // one metric is required again
+		{Name: "placeholder", Type: "text", Status: activeMetricStatus}, // one metric is required again
 	}
 
 	tags := viper.GetString(config.KeyCheckTags)

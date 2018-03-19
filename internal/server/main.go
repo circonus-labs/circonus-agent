@@ -10,9 +10,7 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"regexp"
 	"runtime"
-	"strings"
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins"
@@ -43,7 +41,7 @@ func New(c *check.Check, b *builtins.Builtins, p *plugins.Plugins, ss *statsd.Se
 			serverList = []string{defaults.Listen}
 		}
 		for idx, addr := range serverList {
-			ta, err := parseListen(addr)
+			ta, err := config.ParseListen(addr)
 			if err != nil {
 				s.logger.Error().Err(err).Int("id", idx).Str("addr", addr).Msg("resolving address")
 				return nil, errors.Wrap(err, "HTTP Server")
@@ -286,34 +284,34 @@ func (s *Server) startSocket(svr *socketServer) error {
 	return nil
 }
 
-// parseListen parses and fixes listen spec
-func parseListen(spec string) (*net.TCPAddr, error) {
-	// empty, default
-	if spec == "" {
-		spec = defaults.Listen
-	}
-	// only a port, prefix with colon
-	if ok, _ := regexp.MatchString(`^[0-9]+$`, spec); ok {
-		spec = ":" + spec
-	}
-	// ipv4 w/o port, add default
-	if strings.Contains(spec, ".") && !strings.Contains(spec, ":") {
-		spec += defaults.Listen
-	}
-	// ipv6 w/o port, add default
-	if ok, _ := regexp.MatchString(`^\[[a-f0-9:]+\]$`, spec); ok {
-		spec += defaults.Listen
-	}
-
-	host, port, err := net.SplitHostPort(spec)
-	if err != nil {
-		return nil, errors.Wrap(err, "parsing listen")
-	}
-
-	addr, err := net.ResolveTCPAddr("tcp", net.JoinHostPort(host, port))
-	if err != nil {
-		return nil, errors.Wrap(err, "resolving listen")
-	}
-
-	return addr, nil
-}
+// // parseListen parses and fixes listen spec
+// func parseListen(spec string) (*net.TCPAddr, error) {
+// 	// empty, default
+// 	if spec == "" {
+// 		spec = defaults.Listen
+// 	}
+// 	// only a port, prefix with colon
+// 	if ok, _ := regexp.MatchString(`^[0-9]+$`, spec); ok {
+// 		spec = ":" + spec
+// 	}
+// 	// ipv4 w/o port, add default
+// 	if strings.Contains(spec, ".") && !strings.Contains(spec, ":") {
+// 		spec += defaults.Listen
+// 	}
+// 	// ipv6 w/o port, add default
+// 	if ok, _ := regexp.MatchString(`^\[[a-f0-9:]+\]$`, spec); ok {
+// 		spec += defaults.Listen
+// 	}
+//
+// 	host, port, err := net.SplitHostPort(spec)
+// 	if err != nil {
+// 		return nil, errors.Wrap(err, "parsing listen")
+// 	}
+//
+// 	addr, err := net.ResolveTCPAddr("tcp", net.JoinHostPort(host, port))
+// 	if err != nil {
+// 		return nil, errors.Wrap(err, "resolving listen")
+// 	}
+//
+// 	return addr, nil
+// }
