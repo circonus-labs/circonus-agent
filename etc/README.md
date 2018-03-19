@@ -10,7 +10,7 @@ An example configuration, with default values, can be retrieved using the `--sho
 
 ## Configuration file quick start
 
-Run one of the following and edit the resulting configuration file:
+Run one of the following (from the base directory where the agent was installed) and edit the resulting configuration file:
 
 
 ```

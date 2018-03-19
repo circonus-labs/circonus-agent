@@ -8,7 +8,7 @@
 > * No service configurations provided. (e.g. systemd, upstart, init, svc)
 > * Native plugins (.js) do not work. Unless modified to run `node` independently and follow [plugin output guidelines](#output)
 
-> :warning: **v0.10.0 configuration options have changed.** Update command line and configuration files accordingly. See `circonus-agentd -h` and/or `circonus-agentd --show-config=<format>` for details.
+> :warning: **v0.10.0 BREAKING changes** -- Update command line and configuration files accordingly. See `circonus-agentd -h` and/or `circonus-agentd --show-config=<format>` for details. Notably, the check configuration options are in a dedicated *check* section in the configuration now (no longer under *reverse*). Additionally, automatic enabling of new metrics **requires** that a `state` directory be present and it must be owned by the user `circonus-agentd` runs as (i.e. *nobody*).
 
 # Features
 
@@ -18,34 +18,36 @@
 1. Local [StatsD](#statsd) listener for application metrics
 
 
-
 # Quick Start
 
 > Installing on a system which has already had [cosi](https://github.com/circonus-labs/circonus-one-step-install) install and configure NAD.
 
-1. `mkdir -p /opt/circonus/agent/{sbin,etc}`
-1. Download [latest release](../../releases/latest) from repository (or [build manually](#manual-build))
-1. If downloaded, extract archive into `/opt/circonus/agent`
-1. Stop NAD (e.g. `systemctl stop nad`)
+1. `mkdir -p /opt/circonus/agent`
+1. Download [latest release](../../releases/latest) from repository
+1. Extract archive into `/opt/circonus/agent`
+1. If planning to use `--check-enable-new-metrics`, ensure the `state` directory is owned by the user `circonus-agentd` will run as
+1. If NAD installed, stop (e.g. `systemctl stop nad`)
 1. Create a [config](https://github.com/circonus-labs/circonus-agent/blob/master/etc/README.md#main-configuration) or use command line parameters
-1. Run `sbin/circonus-agentd`
+1. Run `sbin/circonus-agentd` (optionally, for systems with `systemd`, edit and use `service/circonus-agent.service`.)
 
-Example, minimal, configuration using existing cosi install `/opt/circonus/agent/etc/circonus-agent.toml`:
+Example, minimal, configuration using existing cosi install, configuration would be placed into `/opt/circonus/agent/etc/circonus-agent.toml`:
 
 ```toml
-# set the plugin directory to NAD's
-plugin-dir = "/opt/circonus/nad/etc/node-agent.d"
+# enable debug for more verbose messages
+#debug = true
 
-[reverse]
-enabled = true
-cid = "cosi" # use cosi system check bundle
+# set the plugin directory to NAD's plugins
+plugin-dir = "/opt/circonus/nad/etc/node-agent.d"
 
 [api]
 key = "cosi" # use cosi api configuration
 
-#debug = true
-```
+[check]
+bundle_id = "cosi" # use cosi system check bundle
 
+[reverse]
+enabled = true
+```
 
 
 # Options

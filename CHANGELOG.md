@@ -1,9 +1,10 @@
 # v0.10.0
 
+* add: state directory requirement for enabling new metrics
 * add: ability to automatically enable new metrics
 * add: create new check when not using reverse
 * upd: reorganize check handling into dedicated package
-* upd: :warning: configuration options changed/reorganized
+* upd: :warning: **BREAKING** changes to configuration options *check* configuration options changed/reorganized
 * add: systemd service to release tarball
 
 # v0.9.2
