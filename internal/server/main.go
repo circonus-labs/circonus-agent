@@ -10,12 +10,11 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"regexp"
 	"runtime"
-	"strings"
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins"
+	"github.com/circonus-labs/circonus-agent/internal/check"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
@@ -23,16 +22,16 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
-	"github.com/xi2/httpgzip"
 )
 
 // New creates a new instance of the listening servers
-func New(b *builtins.Builtins, p *plugins.Plugins, ss *statsd.Server) (*Server, error) {
+func New(c *check.Check, b *builtins.Builtins, p *plugins.Plugins, ss *statsd.Server) (*Server, error) {
 	s := Server{
 		logger:    log.With().Str("pkg", "server").Logger(),
 		builtins:  b,
 		plugins:   p,
 		statsdSvr: ss,
+		check:     c,
 	}
 
 	// HTTP listener (1-n)
@@ -42,7 +41,7 @@ func New(b *builtins.Builtins, p *plugins.Plugins, ss *statsd.Server) (*Server, 
 			serverList = []string{defaults.Listen}
 		}
 		for idx, addr := range serverList {
-			ta, err := parseListen(addr)
+			ta, err := config.ParseListen(addr)
 			if err != nil {
 				s.logger.Error().Err(err).Int("id", idx).Str("addr", addr).Msg("resolving address")
 				return nil, errors.Wrap(err, "HTTP Server")
@@ -52,7 +51,7 @@ func New(b *builtins.Builtins, p *plugins.Plugins, ss *statsd.Server) (*Server, 
 				address: ta,
 				server: &http.Server{
 					Addr:    ta.String(),
-					Handler: httpgzip.NewHandler(http.HandlerFunc(s.router), []string{"application/json"}),
+					Handler: http.HandlerFunc(s.router),
 				},
 			}
 			svr.server.SetKeepAlivesEnabled(false)
@@ -87,7 +86,8 @@ func New(b *builtins.Builtins, p *plugins.Plugins, ss *statsd.Server) (*Server, 
 			keyFile:  keyFile,
 			server: &http.Server{
 				Addr:    ta.String(),
-				Handler: httpgzip.NewHandler(http.HandlerFunc(s.router), []string{"application/json"}),
+				Handler: http.HandlerFunc(s.router),
+				// Handler: httpgzip.NewHandler(http.HandlerFunc(s.router), []string{"application/json"}),
 			},
 		}
 
@@ -284,34 +284,34 @@ func (s *Server) startSocket(svr *socketServer) error {
 	return nil
 }
 
-// parseListen parses and fixes listen spec
-func parseListen(spec string) (*net.TCPAddr, error) {
-	// empty, default
-	if spec == "" {
-		spec = defaults.Listen
-	}
-	// only a port, prefix with colon
-	if ok, _ := regexp.MatchString(`^[0-9]+$`, spec); ok {
-		spec = ":" + spec
-	}
-	// ipv4 w/o port, add default
-	if strings.Contains(spec, ".") && !strings.Contains(spec, ":") {
-		spec += defaults.Listen
-	}
-	// ipv6 w/o port, add default
-	if ok, _ := regexp.MatchString(`^\[[a-f0-9:]+\]$`, spec); ok {
-		spec += defaults.Listen
-	}
-
-	host, port, err := net.SplitHostPort(spec)
-	if err != nil {
-		return nil, errors.Wrap(err, "parsing listen")
-	}
-
-	addr, err := net.ResolveTCPAddr("tcp", net.JoinHostPort(host, port))
-	if err != nil {
-		return nil, errors.Wrap(err, "resolving listen")
-	}
-
-	return addr, nil
-}
+// // parseListen parses and fixes listen spec
+// func parseListen(spec string) (*net.TCPAddr, error) {
+// 	// empty, default
+// 	if spec == "" {
+// 		spec = defaults.Listen
+// 	}
+// 	// only a port, prefix with colon
+// 	if ok, _ := regexp.MatchString(`^[0-9]+$`, spec); ok {
+// 		spec = ":" + spec
+// 	}
+// 	// ipv4 w/o port, add default
+// 	if strings.Contains(spec, ".") && !strings.Contains(spec, ":") {
+// 		spec += defaults.Listen
+// 	}
+// 	// ipv6 w/o port, add default
+// 	if ok, _ := regexp.MatchString(`^\[[a-f0-9:]+\]$`, spec); ok {
+// 		spec += defaults.Listen
+// 	}
+//
+// 	host, port, err := net.SplitHostPort(spec)
+// 	if err != nil {
+// 		return nil, errors.Wrap(err, "parsing listen")
+// 	}
+//
+// 	addr, err := net.ResolveTCPAddr("tcp", net.JoinHostPort(host, port))
+// 	if err != nil {
+// 		return nil, errors.Wrap(err, "resolving listen")
+// 	}
+//
+// 	return addr, nil
+// }

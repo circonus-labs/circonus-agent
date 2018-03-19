@@ -72,17 +72,17 @@ const (
 	StatsdGroupSets = "sum"
 
 	// ReverseCreateCheck flags whether a check, for reverse, should be created if one cannot be found
-	ReverseCreateCheck = false
+	// ReverseCreateCheck = false
 
 	// ReverseCreateCheckBroker to use if creating a check, 'select' or '' will
 	// result in the first broker which meets some basic criteria being selected.
 	// 1. Active status
 	// 2. Supports the required check type
 	// 3. Responds within reverse.brokerMaxResponseTime
-	ReverseCreateCheckBroker = "select"
+	// ReverseCreateCheckBroker = "select"
 
 	// ReverseCreateCheckTags to use if creating a check (comma separated list)
-	ReverseCreateCheckTags = ""
+	// ReverseCreateCheckTags = ""
 
 	// MetricNameSeparator defines character used to delimit metric name parts
 	MetricNameSeparator = "`"
@@ -90,6 +90,27 @@ const (
 	// PluginTTLUnits defines the default TTL units for plugins with TTLs
 	// e.g. plugin_ttl30s.sh (30s ttl) plugin_ttl45.sh (would get default ttl units, e.g. 45s)
 	PluginTTLUnits = "s" // seconds
+
+	// DisableGzip disables gzip compression on responses
+	DisableGzip = false
+
+	// CheckEnableNewMetrics toggles enabling new metrics
+	CheckEnableNewMetrics = false
+	// CheckMetricRefreshTTL determines how often to refresh check bundle metrics from API
+	CheckMetricRefreshTTL = "5m"
+
+	// CheckCreate toggles creating a check if a check bundle id is not supplied
+	CheckCreate = false
+
+	// CheckBroker to use if creating a check, 'select' or '' will
+	// result in the first broker which meets some basic criteria being selected.
+	// 1. Active status
+	// 2. Supports the required check type
+	// 3. Responds within reverse.brokerMaxResponseTime
+	CheckBroker = "select"
+
+	// CheckTags to use if creating a check (comma separated list)
+	CheckTags = ""
 )
 
 var (
@@ -118,11 +139,19 @@ var (
 	// EtcPath returns the default etc directory within base directory
 	EtcPath = "" // (e.g. /opt/circonus/agent/etc)
 
+	// StatePath returns the default state directory. In order for
+	// automatic new metric enabling to work the state path must exist
+	// and be owned by the user running circonus-agentd (i.e. 'nobody').
+	StatePath = "" // (e.g. /opt/circonus/agent/state)
+
 	// PluginPath returns the default plugin path
 	PluginPath = "" // (e.g. /opt/circonus/agent/plugins)
 
-	// ReverseTarget defaults to return from os.Hostname()
-	ReverseTarget = ""
+	// CheckTarget defaults to return from os.Hostname()
+	CheckTarget = ""
+
+	// CheckTitle defaults to '<CheckTarget> /agent'
+	CheckTitle = ""
 
 	// SSLCertFile returns the deefault ssl cert file name
 	SSLCertFile = "" // (e.g. /opt/circonus/agent/etc/agent.pem)
@@ -153,15 +182,17 @@ func init() {
 	}
 
 	EtcPath = filepath.Join(BasePath, "etc")
+	StatePath = filepath.Join(BasePath, "state")
 	PluginPath = filepath.Join(BasePath, "plugins")
 	SSLCertFile = filepath.Join(EtcPath, release.NAME+".pem")
 	SSLKeyFile = filepath.Join(EtcPath, release.NAME+".key")
 
-	ReverseTarget, err = os.Hostname()
+	CheckTarget, err = os.Hostname()
 	if err != nil {
 		fmt.Printf("Unable to determine hostname for target %v\n", err)
 		os.Exit(1)
 	}
+	CheckTitle = CheckTarget + " /agent"
 
 	switch runtime.GOOS {
 	case "linux":

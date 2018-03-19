@@ -52,6 +52,8 @@ archive:
         - CHANGELOG.md
         - etc/README.md
         - plugins/README.md
+        - service/circonus-agent.service
+        - state/README.md
 
 release:
     github:

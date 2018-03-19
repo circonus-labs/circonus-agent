@@ -7,13 +7,14 @@ package reverse
 
 import (
 	crand "crypto/rand"
-	"errors"
 	"math"
 	"math/big"
 	"math/rand"
 	"time"
 
+	"github.com/circonus-labs/circonus-agent/internal/check"
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
@@ -28,13 +29,17 @@ func init() {
 }
 
 // New creates a new connection
-func New(agentAddress string) (*Connection, error) {
+func New(check *check.Check, agentAddress string) (*Connection, error) {
+	if check == nil {
+		return nil, errors.New("invalid check value (empty)")
+	}
 	if agentAddress == "" {
 		return nil, errors.New("invalid agent address (empty)")
 	}
 	c := Connection{
 		agentAddress:  agentAddress,
-		checkCID:      viper.GetString(config.KeyReverseCID),
+		check:         check,
+		checkCID:      viper.GetString(config.KeyCheckBundleID),
 		cmdCh:         make(chan *noitCommand),
 		commTimeout:   commTimeoutSeconds * time.Second,
 		connAttempts:  0,
@@ -48,10 +53,12 @@ func New(agentAddress string) (*Connection, error) {
 
 	if c.enabled {
 		c.logger.Info().Str("agent_address", c.agentAddress).Msg("reverse")
-		err := c.setCheckConfig()
+		rc, err := c.check.GetReverseConfig()
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "setting reverse config")
 		}
+		c.reverseURL = rc.ReverseURL
+		c.tlsConfig = rc.TLSConfig
 	}
 
 	return &c, nil
@@ -65,7 +72,7 @@ func (c *Connection) Start() error {
 	}
 
 	c.logger.Info().
-		Str("check_bundle", viper.GetString(config.KeyReverseCID)).
+		Str("check_bundle", viper.GetString(config.KeyCheckBundleID)).
 		Str("rev_host", c.reverseURL.Hostname()).
 		Str("rev_port", c.reverseURL.Port()).
 		Str("rev_path", c.reverseURL.Path).

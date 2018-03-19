@@ -8,6 +8,8 @@
 > * No service configurations provided. (e.g. systemd, upstart, init, svc)
 > * Native plugins (.js) do not work. Unless modified to run `node` independently and follow [plugin output guidelines](#output)
 
+> :warning: **v0.10.0 BREAKING changes** -- Update command line and configuration files accordingly. See `circonus-agentd -h` and/or `circonus-agentd --show-config=<format>` for details. Notably, the check configuration options are in a dedicated *check* section in the configuration now (no longer under *reverse*). Additionally, automatic enabling of new metrics **requires** that a `state` directory be present and it must be owned by the user `circonus-agentd` runs as (i.e. *nobody*).
+
 # Features
 
 1. Builtin metric [collectors](#builtin-collectors)
@@ -16,34 +18,36 @@
 1. Local [StatsD](#statsd) listener for application metrics
 
 
-
 # Quick Start
 
 > Installing on a system which has already had [cosi](https://github.com/circonus-labs/circonus-one-step-install) install and configure NAD.
 
-1. `mkdir -p /opt/circonus/agent/{sbin,etc}`
-1. Download [latest release](../../releases/latest) from repository (or [build manually](#manual-build))
-1. If downloaded, extract archive into `/opt/circonus/agent`
-1. Stop NAD (e.g. `systemctl stop nad`)
+1. `mkdir -p /opt/circonus/agent`
+1. Download [latest release](../../releases/latest) from repository
+1. Extract archive into `/opt/circonus/agent`
+1. If planning to use `--check-enable-new-metrics`, ensure the `state` directory is owned by the user `circonus-agentd` will run as
+1. If NAD installed, stop (e.g. `systemctl stop nad`)
 1. Create a [config](https://github.com/circonus-labs/circonus-agent/blob/master/etc/README.md#main-configuration) or use command line parameters
-1. Run `sbin/circonus-agentd`
+1. Run `sbin/circonus-agentd` (optionally, for systems with `systemd`, edit and use `service/circonus-agent.service`.)
 
-Example, minimal, configuration using existing cosi install `/opt/circonus/agent/etc/circonus-agent.toml`:
+Example, minimal, configuration using existing cosi install, configuration would be placed into `/opt/circonus/agent/etc/circonus-agent.toml`:
 
 ```toml
-# set the plugin directory to NAD's
-plugin-dir = "/opt/circonus/nad/etc/node-agent.d"
+# enable debug for more verbose messages
+#debug = true
 
-[reverse]
-enabled = true
-cid = "cosi" # use cosi system check bundle
+# set the plugin directory to NAD's plugins
+plugin-dir = "/opt/circonus/nad/etc/node-agent.d"
 
 [api]
 key = "cosi" # use cosi api configuration
 
-#debug = true
-```
+[check]
+bundle_id = "cosi" # use cosi system check bundle
 
+[reverse]
+enabled = true
+```
 
 
 # Options
@@ -54,44 +58,47 @@ $ /opt/circonus/agent/sbin/circonus-agentd -h
 
 ```
 Flags:
-      --api-app string                       [ENV: CA_API_APP] Circonus API Token app (default "circonus-agent")
-      --api-ca-file string                   [ENV: CA_API_CA_FILE] Circonus API CA certificate file
-      --api-key string                       [ENV: CA_API_KEY] Circonus API Token key
-      --api-url string                       [ENV: CA_API_URL] Circonus API URL (default "https://api.circonus.com/v2/")
-      --collectors stringSlice               [ENV: CA_COLLECTORS] List of builtin collectors to enable
-  -c, --config string                        config file (default is /opt/circonus/agent/etc/circonus-agent.(json|toml|yaml)
-  -d, --debug                                [ENV: CA_DEBUG] Enable debug messages
-      --debug-cgm                            [ENV: CA_DEBUG_CGM] Enable CGM & API debug messages
-  -h, --help                                 help for circonus-agent
-  -l, --listen stringSlice                   [ENV: CA_LISTEN] Listen spec e.g. :2609, [::1], [::1]:2609, 127.0.0.1, 127.0.0.1:2609, foo.bar.baz, foo.bar.baz:2609 (default ":2609")
-  -L, --listen-socket stringSlice            [ENV: CA_LISTEN_SOCKET] Unix socket to create
-      --log-level string                     [ENV: CA_LOG_LEVEL] Log level [(panic|fatal|error|warn|info|debug|disabled)] (default "info")
-      --log-pretty                           [ENV: CA_LOG_PRETTY] Output formatted/colored log lines [ignored on windows]
-      --no-statsd                            [ENV: CA_NO_STATSD] Disable StatsD listener
-  -p, --plugin-dir string                    [ENV: CA_PLUGIN_DIR] Plugin directory (default "/opt/circonus/agent/plugins")
-      --plugin-ttl-units string              [ENV: CA_PLUGIN_TTL_UNITS] Default plugin TTL units (default "s")
-  -r, --reverse                              [ENV: CA_REVERSE] Enable reverse connection
-      --reverse-broker-ca-file string        [ENV: CA_REVERSE_BROKER_CA_FILE] Broker CA certificate file
-      --reverse-cid string                   [ENV: CA_REVERSE_CID] Check Bundle ID for reverse connection
-      --reverse-create-check                 [ENV: CA_REVERSE_CREATE_CHECK] Create check bundle for reverse if one cannot be found
-      --reverse-create-check-broker string   [ENV: CA_REVERSE_CREATE_CHECK_BROKER] ID of Broker to use or 'select' for random selection of valid broker, if creating a check bundle (default "select")
-      --reverse-create-check-tags string     [ENV: CA_REVERSE_CREATE_CHECK_TAGS] Tags [comma separated list] to use, if creating a check bundle
-      --reverse-create-check-title string    [ENV: CA_REVERSE_CREATE_CHECK_TITLE] Title [display name] to use, if creating a check bundle (default "<reverse-target> /agent")
-      --reverse-target string                [ENV: CA_REVERSE_TARGET] Target host (default <hostname>)
-      --show-config string                   Show config (json|toml|yaml) and exit
-      --ssl-cert-file string                 [ENV: CA_SSL_CERT_FILE] SSL Certificate file (PEM cert and CAs concatenated together) (default "/opt/circonus/agent/etc/circonus-agent.pem")
-      --ssl-key-file string                  [ENV: CA_SSL_KEY_FILE] SSL Key file (default "/opt/circonus/agent/etc/circonus-agent.key")
-      --ssl-listen string                    [ENV: CA_SSL_LISTEN] SSL listen address and port [IP]:[PORT] - setting enables SSL
-      --ssl-verify                           [ENV: CA_SSL_VERIFY] Enable SSL verification (default true)
-      --statsd-group-cid string              [ENV: CA_STATSD_GROUP_CID] StatsD group check bundle ID
-      --statsd-group-counters string         [ENV: CA_STATSD_GROUP_COUNTERS] StatsD group metric counter handling (average|sum) (default "sum")
-      --statsd-group-gauges string           [ENV: CA_STATSD_GROUP_GAUGES] StatsD group gauge operator (default "average")
-      --statsd-group-prefix string           [ENV: CA_STATSD_GROUP_PREFIX] StatsD group metric prefix (default "group.")
-      --statsd-group-sets string             [ENV: CA_STATSD_GROPUP_SETS] StatsD group set operator (default "sum")
-      --statsd-host-cateogry string          [ENV: CA_STATSD_HOST_CATEGORY] StatsD host metric category (default "statsd")
-      --statsd-host-prefix string            [ENV: CA_STATSD_HOST_PREFIX] StatsD host metric prefix (default "host.")
-      --statsd-port string                   [ENV: CA_STATSD_PORT] StatsD port (default "8125")
-  -V, --version                              Show version and exit
+      --api-app string                    [ENV: CA_API_APP] Circonus API Token app (default "circonus-agent")
+      --api-ca-file string                [ENV: CA_API_CA_FILE] Circonus API CA certificate file
+      --api-key string                    [ENV: CA_API_KEY] Circonus API Token key
+      --api-url string                    [ENV: CA_API_URL] Circonus API URL (default "https://api.circonus.com/v2/")
+      --check-broker string               [ENV: CA_CHECK_BROKER] ID of Broker to use or 'select' for random selection of valid broker, if creating a check bundle (default "select")
+  -C, --check-create                      [ENV: CA_CHECK_CREATE] Create check bundle (for reverse and auto enable new metrics)
+      --check-enable-new-metrics          [ENV: CA_CHECK_ENABLE_NEW_METRICS] Automatically enable all new metrics
+  -I, --check-id string                   [ENV: CA_CHECK_ID] Check Bundle ID or 'cosi' for cosi system check (for reverse and auto enable new metrics)
+      --check-metric-refresh-ttl string   [ENV: CA_CHECK_METRIC_REFRESH_TTL] Refresh check metrics TTL (default "5m")
+      --check-tags string                 [ENV: CA_CHECK_TAGS] Tags [comma separated list] to use, if creating a check bundle
+  -T, --check-target string               [ENV: CA_CHECK_TARGET] Check target host (for creating a new check) (default <hostname>)
+      --check-title string                [ENV: CA_CHECK_TITLE] Title [display name] to use, if creating a check bundle (default "<check-target> /agent")
+      --collectors stringSlice            [ENV: CA_COLLECTORS] List of builtin collectors to enable
+  -c, --config string                     config file (default is /opt/circonus/agent/etc/circonus-agent.(json|toml|yaml)
+  -d, --debug                             [ENV: CA_DEBUG] Enable debug messages
+      --debug-cgm                         [ENV: CA_DEBUG_CGM] Enable CGM & API debug messages
+  -h, --help                              help for circonus-agent
+  -l, --listen stringSlice                [ENV: CA_LISTEN] Listen spec e.g. :2609, [::1], [::1]:2609, 127.0.0.1, 127.0.0.1:2609, foo.bar.baz, foo.bar.baz:2609 (default ":2609")
+  -L, --listen-socket stringSlice         [ENV: CA_LISTEN_SOCKET] Unix socket to create
+      --log-level string                  [ENV: CA_LOG_LEVEL] Log level [(panic|fatal|error|warn|info|debug|disabled)] (default "info")
+      --log-pretty                        [ENV: CA_LOG_PRETTY] Output formatted/colored log lines [ignored on windows]
+      --no-gzip                           Disable gzip HTTP responses
+      --no-statsd                         [ENV: CA_NO_STATSD] Disable StatsD listener
+  -p, --plugin-dir string                 [ENV: CA_PLUGIN_DIR] Plugin directory (default "/opt/circonus/agent/plugins")
+      --plugin-ttl-units string           [ENV: CA_PLUGIN_TTL_UNITS] Default plugin TTL units (default "s")
+  -r, --reverse                           [ENV: CA_REVERSE] Enable reverse connection
+      --reverse-broker-ca-file string     [ENV: CA_REVERSE_BROKER_CA_FILE] Broker CA certificate file
+      --show-config string                Show config (json|toml|yaml) and exit
+      --ssl-cert-file string              [ENV: CA_SSL_CERT_FILE] SSL Certificate file (PEM cert and CAs concatenated together) (default "/opt/circonus/agent/etc/circonus-agent.pem")
+      --ssl-key-file string               [ENV: CA_SSL_KEY_FILE] SSL Key file (default "/opt/circonus/agent/etc/circonus-agent.key")
+      --ssl-listen string                 [ENV: CA_SSL_LISTEN] SSL listen address and port [IP]:[PORT] - setting enables SSL
+      --ssl-verify                        [ENV: CA_SSL_VERIFY] Enable SSL verification (default true)
+      --statsd-group-cid string           [ENV: CA_STATSD_GROUP_CID] StatsD group check bundle ID
+      --statsd-group-counters string      [ENV: CA_STATSD_GROUP_COUNTERS] StatsD group metric counter handling (average|sum) (default "sum")
+      --statsd-group-gauges string        [ENV: CA_STATSD_GROUP_GAUGES] StatsD group gauge operator (default "average")
+      --statsd-group-prefix string        [ENV: CA_STATSD_GROUP_PREFIX] StatsD group metric prefix (default "group.")
+      --statsd-group-sets string          [ENV: CA_STATSD_GROPUP_SETS] StatsD group set operator (default "sum")
+      --statsd-host-cateogry string       [ENV: CA_STATSD_HOST_CATEGORY] StatsD host metric category (default "statsd")
+      --statsd-host-prefix string         [ENV: CA_STATSD_HOST_PREFIX] StatsD host metric prefix (default "host.")
+      --statsd-port string                [ENV: CA_STATSD_PORT] StatsD port (default "8125")
+  -V, --version                           Show version and exit
  ```
 
 

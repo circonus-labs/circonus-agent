@@ -16,6 +16,7 @@ import (
 	tomb "gopkg.in/tomb.v2"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins"
+	"github.com/circonus-labs/circonus-agent/internal/check"
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
 	"github.com/circonus-labs/circonus-agent/internal/statsd"
 	"github.com/rs/zerolog"
@@ -42,6 +43,7 @@ type sslServer struct {
 // Server defines the listening servers
 type Server struct {
 	builtins   *builtins.Builtins
+	check      *check.Check
 	ctx        context.Context
 	logger     zerolog.Logger
 	plugins    *plugins.Plugins

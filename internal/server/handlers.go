@@ -6,6 +6,8 @@
 package server
 
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -98,15 +100,27 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 		// NOTE: errors are ignored from plugins.Run
 		//       1. errors are already logged by Run
 		//       2. do not expose execution state to callers
+		s.logger.Debug().Msg("calling plugin run")
 		s.plugins.Run(id)
+		s.logger.Debug().Msg("plugin run done")
+		s.logger.Debug().Msg("calling plugin flush")
 		pluginMetrics := s.plugins.Flush(id)
+		s.logger.Debug().Msg("plugin flush done")
 		for metricName, metric := range *pluginMetrics {
-			metrics[metricName] = metric
+			if v, ok := metric.(*cgm.Metrics); ok {
+				for mn, mv := range *v {
+					metrics[metricName+config.MetricNameSeparator+mn] = mv
+				}
+			} else {
+				metrics[metricName] = metric
+			}
 		}
 	}
 
 	if flushReceiver {
+		s.logger.Debug().Msg("calling receiver flush")
 		receiverMetrics := receiver.Flush()
+		s.logger.Debug().Msg("receiver flush done")
 		for metricName, metric := range *receiverMetrics {
 			metrics[metricName] = metric
 		}
@@ -114,29 +128,100 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 
 	if flushStatsd {
 		if s.statsdSvr != nil {
+			s.logger.Debug().Msg("calling statsd flush")
 			statsdMetrics := s.statsdSvr.Flush()
+			s.logger.Debug().Msg("statsd flush done")
 			if statsdMetrics != nil {
-				metrics[viper.GetString(config.KeyStatsdHostCategory)] = statsdMetrics
+				pfx := viper.GetString(config.KeyStatsdHostCategory)
+				for metricName, metric := range *statsdMetrics {
+					metrics[pfx+config.MetricNameSeparator+metricName] = metric
+				}
+				// metrics[viper.GetString(config.KeyStatsdHostCategory)] = statsdMetrics
 			}
 		}
 	}
 
 	if flushProm {
+		s.logger.Debug().Msg("calling prom flush")
 		promMetrics := promrecv.Flush()
+		s.logger.Debug().Msg("prom flush done")
 		for metricName, metric := range *promMetrics {
 			metrics[metricName] = metric
 		}
 	}
 
+	s.logger.Debug().Msg("update lastMetrics")
 	lastMetrics.metrics = metrics
 	lastMetrics.ts = time.Now()
+	s.logger.Debug().Msg("update lastMetrics done")
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(metrics); err != nil {
-		s.logger.Error().
-			Err(err).
-			Msg("Writing metrics to response")
+	s.logger.Debug().Msg("calling enable new metrics")
+	if err := s.check.EnableNewMetrics(&metrics); err != nil {
+		s.logger.Warn().Err(err).Msg("unable to update check metrics")
 	}
+	s.logger.Debug().Msg("enable new metrics done")
+
+	s.logger.Debug().Msg("encoding metrics")
+	s.encodeResponse(&metrics, w, r)
+	s.logger.Debug().Msg("encoding done")
+}
+
+// encodeResponse takes care of encoding the response to an HTTP request for metrics.
+// The broker does not handle chunk encoded data correctly and will emit an error if
+// it receives it. The agent does support gzip compression when the correct header
+// is supplied (Accept-Encoding: * or Accept-Encoding: gzip). The command line option
+// --no-gzip overrides and will result in unencoded response regardless of what the
+// Accept-Encoding header specifies.
+func (s *Server) encodeResponse(m *map[string]interface{}, w http.ResponseWriter, r *http.Request) {
+	//
+	// if an error occurs, it is logged and empty {} metrics are returned
+	//
+
+	// basically, turn off chunking
+	w.Header().Set("Transfer-Encoding", "identity")
+	w.Header().Set("Content-Type", "application/json")
+
+	var data []byte
+	var err error
+	var useGzip bool
+
+	if viper.GetBool(config.KeyDisableGzip) {
+		useGzip = false
+	} else {
+		acceptedEncodings := r.Header.Get("Accept-Encoding")
+		useGzip = strings.Contains(acceptedEncodings, "*") || strings.Contains(acceptedEncodings, "gzip")
+	}
+
+	if useGzip {
+		var buf bytes.Buffer
+		gz := gzip.NewWriter(&buf)
+		err = json.NewEncoder(gz).Encode(m)
+		gz.Close()
+
+		if err != nil {
+			// log the error and respond with empty metrics
+			s.logger.Error().
+				Err(err).
+				Msg("Writing metrics to response")
+			data = []byte("{}")
+		} else {
+			w.Header().Set("Content-Encoding", "gzip")
+			data = buf.Bytes()
+		}
+	} else {
+		data, err = json.Marshal(m)
+		if err != nil {
+			// log the error and respond with empty metrics
+			s.logger.Error().
+				Err(err).
+				Interface("metrics", m).
+				Msg("Encoding metrics to JSON for response")
+			data = []byte("{}")
+		}
+	}
+
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
+	w.Write(data)
 }
 
 // inventory returns the current, active plugin inventory

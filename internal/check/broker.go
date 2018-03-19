@@ -3,14 +3,13 @@
 // license that can be found in the LICENSE file.
 //
 
-package reverse
+package check
 
 import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"io/ioutil"
-	stdlog "log"
 	"math/rand"
 	"net"
 	"net/url"
@@ -26,43 +25,79 @@ import (
 	"github.com/spf13/viper"
 )
 
-func (c *Connection) getTLSConfig(cid string, reverseURL *url.URL) (*tls.Config, error) {
+func (c *Check) setReverseConfig() error {
+	c.Lock()
+	defer c.Unlock()
+
+	if len(c.bundle.ReverseConnectURLs) == 0 {
+		return errors.New("no reverse URLs found in check bundle")
+	}
+	rURL := c.bundle.ReverseConnectURLs[0]
+	rSecret := c.bundle.Config["reverse:secret_key"]
+
+	if rSecret != "" {
+		rURL += "#" + rSecret
+	}
+
+	// Replace protocol, url.Parse does not understand 'mtev_reverse'.
+	// Important part is validating what's after 'proto://'.
+	// Using raw tls connections, the url protocol is not germane.
+	reverseURL, err := url.Parse(strings.Replace(rURL, "mtev_reverse", "http", -1))
+	if err != nil {
+		return errors.Wrapf(err, "parsing check bundle reverse URL (%s)", rURL)
+	}
+
+	if len(c.bundle.Brokers) == 0 {
+		return errors.New("no brokers found in check bundle")
+	}
+	brokerID := c.bundle.Brokers[0]
+
+	tlsConfig, err := c.brokerTLSConfig(brokerID, reverseURL)
+	if err != nil {
+		return errors.Wrapf(err, "creating TLS config for (%s - %s)", brokerID, rURL)
+	}
+
+	c.revConfig = &ReverseConfig{
+		ReverseURL: reverseURL,
+		BrokerID:   brokerID,
+		TLSConfig:  tlsConfig,
+	}
+
+	return nil
+}
+
+// brokerTLSConfig returns the correct TLS configuration for the broker
+func (c *Check) brokerTLSConfig(cid string, reverseURL *url.URL) (*tls.Config, error) {
 	if cid == "" {
-		return nil, errors.New("No broker CID supplied")
-	}
-	if ok, _ := regexp.MatchString("^/broker/[0-9]+$", cid); !ok {
-		return nil, errors.Errorf("Invalid broker CID (%s)", cid)
+		return nil, errors.New("invalid broker cid (empty)")
 	}
 
-	cfg := &api.Config{
-		TokenKey: viper.GetString(config.KeyAPITokenKey),
-		TokenApp: viper.GetString(config.KeyAPITokenApp),
-		URL:      viper.GetString(config.KeyAPIURL),
-		Log:      stdlog.New(c.logger.With().Str("pkg", "circonus-gometrics.api").Logger(), "", 0),
-		Debug:    viper.GetBool(config.KeyDebugCGM),
+	bcid := cid
+
+	if ok, _ := regexp.MatchString(`^[0-9]+$`, bcid); ok {
+		bcid = "/broker/" + cid
 	}
 
-	client, err := api.New(cfg)
+	if ok, _ := regexp.MatchString(`^/broker/[0-9]+$`, bcid); !ok {
+		return nil, errors.Errorf("invalid broker cid (%s)", cid)
+	}
+
+	broker, err := c.client.FetchBroker(api.CIDType(&bcid))
 	if err != nil {
-		return nil, errors.Wrap(err, "Initializing cgm API")
-	}
-
-	broker, err := client.FetchBroker(api.CIDType(&cid))
-	if err != nil {
-		return nil, errors.Wrapf(err, "Fetching broker (%s) from API", cid)
+		return nil, errors.Wrapf(err, "unable to retrieve broker (%s)", cid)
 	}
 
 	cn, err := c.getBrokerCN(broker, reverseURL)
 	if err != nil {
 		return nil, err
 	}
-	cert, err := c.fetchBrokerCA(client)
+	cert, err := c.fetchBrokerCA()
 	if err != nil {
 		return nil, err
 	}
 	cp := x509.NewCertPool()
 	if !cp.AppendCertsFromPEM(cert) {
-		return nil, errors.New("Unable to add Broker CA Certificate to x509 cert pool")
+		return nil, errors.New("unable to add Broker CA Certificate to x509 cert pool")
 	}
 
 	tlsConfig := &tls.Config{
@@ -75,7 +110,7 @@ func (c *Connection) getTLSConfig(cid string, reverseURL *url.URL) (*tls.Config,
 	return tlsConfig, nil
 }
 
-func (c *Connection) getBrokerCN(broker *api.Broker, reverseURL *url.URL) (string, error) {
+func (c *Check) getBrokerCN(broker *api.Broker, reverseURL *url.URL) (string, error) {
 	host := reverseURL.Hostname()
 
 	// OK...
@@ -102,27 +137,27 @@ func (c *Connection) getBrokerCN(broker *api.Broker, reverseURL *url.URL) (strin
 	}
 
 	if cn == "" {
-		return "", errors.Errorf("Unable to match reverse URL host (%s) to broker", host)
+		return "", errors.Errorf("unable to match reverse URL host (%s) to broker", host)
 	}
 
 	return cn, nil
 }
 
-func (c *Connection) fetchBrokerCA(client *api.API) ([]byte, error) {
+func (c *Check) fetchBrokerCA() ([]byte, error) {
 	// use local file if specified
 	file := viper.GetString(config.KeyReverseBrokerCAFile)
 	if file != "" {
 		cert, err := ioutil.ReadFile(file)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Reading specified broker-ca-file (%s)", file)
+			return nil, errors.Wrapf(err, "reading specified broker-ca-file (%s)", file)
 		}
 		return cert, nil
 	}
 
 	// otherwise, try the api
-	data, err := client.Get("/pki/ca.crt")
+	data, err := c.client.Get("/pki/ca.crt")
 	if err != nil {
-		return nil, errors.Wrap(err, "Fetching Broker CA certificate")
+		return nil, errors.Wrap(err, "fetching Broker CA certificate")
 	}
 
 	type cacert struct {
@@ -132,11 +167,11 @@ func (c *Connection) fetchBrokerCA(client *api.API) ([]byte, error) {
 	var cadata cacert
 
 	if err := json.Unmarshal(data, &cadata); err != nil {
-		return nil, errors.Wrap(err, "Parsing Broker CA certificate")
+		return nil, errors.Wrap(err, "parsing Broker CA certificate")
 	}
 
 	if cadata.Contents == "" {
-		return nil, errors.Errorf("No Broker CA certificate in response (%#v)", string(data))
+		return nil, errors.Errorf("no Broker CA certificate in response (%#v)", string(data))
 	}
 
 	return []byte(cadata.Contents), nil
@@ -144,14 +179,14 @@ func (c *Connection) fetchBrokerCA(client *api.API) ([]byte, error) {
 
 // Select a broker for use when creating a check, if a specific broker
 // was not specified.
-func (c *Connection) selectBroker(client *api.API, checkType string) (*api.Broker, error) {
-	brokerList, err := client.FetchBrokers()
+func (c *Check) selectBroker(checkType string) (*api.Broker, error) {
+	brokerList, err := c.client.FetchBrokers()
 	if err != nil {
 		return nil, errors.Wrap(err, "select broker")
 	}
 
 	if len(*brokerList) == 0 {
-		return nil, errors.New("zero brokers found")
+		return nil, errors.New("no brokers returned from API")
 	}
 
 	validBrokers := make(map[string]api.Broker)
@@ -204,7 +239,7 @@ func (c *Connection) selectBroker(client *api.API, checkType string) (*api.Broke
 }
 
 // Is the broker valid (active, supports check type, and reachable)
-func (c *Connection) isValidBroker(broker *api.Broker, checkType string) (time.Duration, bool) {
+func (c *Check) isValidBroker(broker *api.Broker, checkType string) (time.Duration, bool) {
 	var brokerHost string
 	var brokerPort string
 	var connDuration time.Duration
@@ -220,7 +255,7 @@ func (c *Connection) isValidBroker(broker *api.Broker, checkType string) (time.D
 		}
 
 		// broker must have module loaded for the check type to be used
-		if !c.brokerSupportsCheckType(checkType, &detail) {
+		if !brokerSupportsCheckType(checkType, &detail) {
 			c.logger.Debug().Str("broker", broker.Name).Str("type", checkType).Msg("unsupported check type, skipping")
 			continue
 		}
@@ -281,15 +316,9 @@ func (c *Connection) isValidBroker(broker *api.Broker, checkType string) (time.D
 	return connDuration, valid
 }
 
-// Verify broker supports the check type to be used
-func (c *Connection) brokerSupportsCheckType(checkType string, details *api.BrokerDetail) bool {
+// brokerSupportsCheckType verifies a broker supports the check type to be used
+func brokerSupportsCheckType(checkType string, details *api.BrokerDetail) bool {
 	baseType := string(checkType)
-
-	for _, module := range details.Modules {
-		if module == baseType {
-			return true
-		}
-	}
 
 	if idx := strings.Index(baseType, ":"); idx > 0 {
 		baseType = baseType[0:idx]

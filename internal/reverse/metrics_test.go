@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/circonus-labs/circonus-agent/internal/check"
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/rs/zerolog"
 )
@@ -27,7 +28,11 @@ func TestSendMetricData(t *testing.T) {
 	data := []byte(`{"test":1}`)
 	buff := bytes.NewBuffer([]byte{})
 
-	s, err := New(defaults.Listen)
+	chk, cerr := check.New()
+	if cerr != nil {
+		t.Fatalf("expected no error, got (%s)", cerr)
+	}
+	s, err := New(chk, defaults.Listen)
 	if err != nil {
 		t.Fatalf("expected no error, got (%s)", err)
 	}
@@ -84,7 +89,11 @@ func TestFetchMetricData(t *testing.T) {
 		t.Fatalf("expected no error, got %s", err)
 	}
 
-	s, err := New(defaults.Listen)
+	chk, cerr := check.New()
+	if cerr != nil {
+		t.Fatalf("expected no error, got (%s)", cerr)
+	}
+	s, err := New(chk, defaults.Listen)
 	if err != nil {
 		t.Fatalf("expected no error, got (%s)", err)
 	}
