@@ -7,8 +7,10 @@ package check
 
 import (
 	"encoding/json"
+	"reflect"
 	"strings"
 
+	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/circonus-labs/circonus-gometrics/api"
 	"github.com/pkg/errors"
 )
@@ -30,7 +32,54 @@ func (c *Check) getFullCheckMetrics() ([]api.CheckBundleMetric, error) {
 	return metrics.Metrics, nil
 }
 
+// func (c *Check) updateCheckBundleMetrics(m *map[string]api.CheckBundleMetric) error {
+// 	metrics := make([]api.CheckBundleMetric, 0, len(*m))
+//
+// 	for mn, mv := range *m {
+// 		c.logger.Debug().Str("name", mn).Msg("configuring new check bundle metric")
+// 		metrics = append(metrics, mv)
+// 	}
+//
+// 	cfg := &api.CheckBundleMetrics{
+// 		CID:     strings.Replace(c.bundle.CID, "check_bundle", "check_bundle_metrics", 1),
+// 		Metrics: metrics,
+// 	}
+//
+// 	c.logger.Debug().Interface("payload", cfg).Msg("sending new metrics to API")
+//
+// 	results, err := c.client.UpdateCheckBundleMetrics(cfg)
+// 	if err != nil {
+// 		return errors.Wrap(err, "enabling new metrics")
+// 	}
+//
+// 	for _, ms := range results.Metrics {
+// 		if ms.Result == nil {
+// 			c.logger.Info().Interface("metric", ms).Msg("nil 'Result' field, unknown operation status")
+// 			continue
+// 		}
+// 		switch *ms.Result {
+// 		case "success":
+// 			c.logger.Info().Str("metric", ms.Name).Msg("enabled")
+// 		case "noop":
+// 			c.logger.Info().Str("metric", ms.Name).Msg("already enabled")
+// 		case "failure":
+// 			c.logger.Info().Str("metric", ms.Name).Msg("could not enable")
+// 		default:
+// 			c.logger.Info().Str("metric", ms.Name).Str("result", *ms.Result).Msg("unknown result")
+// 		}
+// 	}
+//
+// 	return nil
+// }
+
 func (c *Check) updateCheckBundleMetrics(m *map[string]api.CheckBundleMetric) error {
+
+	cid := c.bundle.CID
+	bundle, err := c.client.FetchCheckBundle(api.CIDType(&cid))
+	if err != nil {
+		return errors.Wrap(err, "unable to fetch up-to-date copy of check")
+	}
+
 	metrics := make([]api.CheckBundleMetric, 0, len(*m))
 
 	for mn, mv := range *m {
@@ -38,30 +87,37 @@ func (c *Check) updateCheckBundleMetrics(m *map[string]api.CheckBundleMetric) er
 		metrics = append(metrics, mv)
 	}
 
-	cfg := &api.CheckBundleMetrics{
-		CID:     strings.Replace(c.bundle.CID, "check_bundle", "check_bundle_metrics", 1),
-		Metrics: metrics,
-	}
+	bundle.Metrics = append(bundle.Metrics, metrics...)
 
-	c.logger.Debug().Interface("payload", cfg).Msg("sending new metrics to API")
-
-	results, err := c.client.UpdateCheckBundleMetrics(cfg)
+	newBundle, err := c.client.UpdateCheckBundle(bundle)
 	if err != nil {
-		return errors.Wrap(err, "enabling new metrics")
+		return errors.Wrap(err, "unable to update check bundle with new metrics")
 	}
 
-	for _, ms := range results.Metrics {
-		switch ms.Status {
-		case "active":
-			c.logger.Info().Str("metric", ms.Name).Msg("enabled")
-		case "noop":
-			c.logger.Info().Str("metric", ms.Name).Msg("already enabled")
-		case "fail":
-			c.logger.Info().Str("metric", ms.Name).Msg("could not enable")
-		default:
-			c.logger.Info().Str("metric", ms.Name).Str("status", ms.Status).Msg("unknown status")
-		}
-	}
+	c.bundle = newBundle
 
 	return nil
+}
+
+func (c *Check) configMetric(mn string, mv cgm.Metric) api.CheckBundleMetric {
+
+	cm := api.CheckBundleMetric{
+		Name:   mn,
+		Status: activeMetricStatus,
+	}
+
+	mtype := "numeric"
+	switch mv.Type {
+	case "n":
+		c.logger.Debug().Str("mn", mn).Interface("mv", mv).Str("reflect_type", reflect.TypeOf(mv.Value).Kind().String()).Msg("circ type n")
+		if reflect.TypeOf(mv.Value).Kind().String() == "slice" {
+			mtype = "histogram"
+		}
+	case "s":
+		mtype = "text"
+	}
+
+	cm.Type = mtype
+
+	return cm
 }
