@@ -24,6 +24,7 @@ func New(apiClient API) (*Check, error) {
 		manage:             false,
 		bundle:             nil,
 		metricStates:       make(metricStates),
+		activeMetrics:      make(metricStates),
 		updateMetricStates: false,
 		refreshTTL:         time.Duration(0),
 		logger:             log.With().Str("pkg", "check").Logger(),
@@ -156,10 +157,19 @@ func (c *Check) EnableNewMetrics(m *map[string]interface{}) error {
 
 		for _, metric := range metrics {
 			c.metricStates[metric.Name] = metric.Status
+			if c.updateActiveMetrics {
+				if metric.Status == activeMetricStatus {
+					c.activeMetrics[metric.Name] = metric.Status
+				} else {
+					delete(c.activeMetrics, metric.Name)
+				}
+			}
 		}
 
 		c.lastRefresh = time.Now()
 		c.saveState(&c.metricStates)
+		c.updateMetricStates = false
+		c.updateActiveMetrics = false
 		c.logger.Debug().Msg("updating metric states done")
 	}
 
@@ -168,20 +178,12 @@ func (c *Check) EnableNewMetrics(m *map[string]interface{}) error {
 	newMetrics := map[string]api.CheckBundleMetric{}
 
 	for mn, mv := range *m {
-		if _, known := c.metricStates[mn]; !known {
-			mtype := "numeric"
-			switch mv.(cgm.Metric).Type {
-			case "n":
-				mtype = "histogram"
-			case "s":
-				mtype = "text"
-			}
-			newMetrics[mn] = api.CheckBundleMetric{
-				Name:   mn,
-				Status: "active",
-				Type:   mtype,
-			}
-			c.logger.Debug().Interface("metric", newMetrics[mn]).Msg("found new metric")
+		if _, active := c.activeMetrics[mn]; active {
+			continue
+		}
+		if wantState, known := c.metricStates[mn]; !known || wantState == activeMetricStatus {
+			newMetrics[mn] = c.configMetric(mn, mv.(cgm.Metric))
+			c.logger.Debug().Interface("metric", newMetrics[mn]).Interface("mv", mv).Msg("found new metric")
 		}
 	}
 
@@ -189,9 +191,9 @@ func (c *Check) EnableNewMetrics(m *map[string]interface{}) error {
 		c.logger.Debug().Msg("enabling new metrics")
 		if err := c.updateCheckBundleMetrics(&newMetrics); err != nil {
 			c.logger.Error().Err(err).Msg("adding mew metrics to check bundle")
-		} else {
-			c.updateMetricStates = true // trigger an update to metric states
 		}
+		c.updateMetricStates = true // trigger an update to metric states
+		c.updateActiveMetrics = true
 	}
 
 	return nil

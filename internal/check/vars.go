@@ -20,15 +20,17 @@ type metricStates map[string]string
 
 // Check exposes the check bundle management interface
 type Check struct {
-	lastRefresh        time.Time
-	refreshTTL         time.Duration
-	manage             bool
-	bundle             *api.CheckBundle
-	metricStates       metricStates
-	updateMetricStates bool
-	revConfig          *ReverseConfig
-	client             API
-	logger             zerolog.Logger
+	lastRefresh         time.Time
+	refreshTTL          time.Duration
+	manage              bool
+	bundle              *api.CheckBundle
+	metricStates        metricStates
+	updateMetricStates  bool
+	activeMetrics       metricStates
+	updateActiveMetrics bool
+	revConfig           *ReverseConfig
+	client              API
+	logger              zerolog.Logger
 	sync.Mutex
 }
 
@@ -44,4 +46,5 @@ const (
 	brokerMaxRetries      = 5
 	brokerMaxResponseTime = 500 * time.Millisecond
 	brokerActiveStatus    = "active"
+	activeMetricStatus    = "active"
 )
