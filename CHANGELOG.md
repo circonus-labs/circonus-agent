@@ -1,11 +1,15 @@
 # v0.10.0
 
-* add: state directory requirement for enabling new metrics
+* fix: revert to check bundle updates vs check bundle metrics endpoint until histogram issue resolved
+* add: state directory requirement for enable new metrics feature
 * add: ability to automatically enable new metrics
-* add: create new check when not using reverse
+* add: ability to have agent create a new check when not using reverse
 * upd: reorganize check handling into dedicated package
 * upd: :warning: **BREAKING** changes to configuration options *check* configuration options changed/reorganized
-* add: systemd service to release tarball
+* add: example systemd service configuration to release tarball
+* add: `--no-gzip` to force disable gzip'd responses
+* add: `Transfer-Encoding: identity` to non-chunked responses
+* add: fix chunked gzip responses, broker does not understand them
 
 # v0.9.2
 
