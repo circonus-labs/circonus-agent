@@ -139,6 +139,11 @@ var (
 	// EtcPath returns the default etc directory within base directory
 	EtcPath = "" // (e.g. /opt/circonus/agent/etc)
 
+	// StatePath returns the default state directory. In order for
+	// automatic new metric enabling to work the state path must exist
+	// and be owned by the user running circonus-agentd (i.e. 'nobody').
+	StatePath = "" // (e.g. /opt/circonus/agent/state)
+
 	// PluginPath returns the default plugin path
 	PluginPath = "" // (e.g. /opt/circonus/agent/plugins)
 
@@ -177,6 +182,7 @@ func init() {
 	}
 
 	EtcPath = filepath.Join(BasePath, "etc")
+	StatePath = filepath.Join(BasePath, "state")
 	PluginPath = filepath.Join(BasePath, "plugins")
 	SSLCertFile = filepath.Join(EtcPath, release.NAME+".pem")
 	SSLKeyFile = filepath.Join(EtcPath, release.NAME+".key")

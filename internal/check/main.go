@@ -6,12 +6,12 @@
 package check
 
 import (
-	"fmt"
 	stdlog "log"
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
+	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/circonus-labs/circonus-gometrics/api"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -21,12 +21,12 @@ import (
 // New returns a new check instance
 func New(apiClient API) (*Check, error) {
 	c := Check{
-		manage:       false,
-		bundle:       nil,
-		checkMetrics: make(map[string]api.CheckBundleMetric),
-		knownMetrics: make(map[string]string),
-		refreshTTL:   time.Duration(0),
-		logger:       log.With().Str("pkg", "check").Logger(),
+		manage:             false,
+		bundle:             nil,
+		metricStates:       make(metricStates),
+		updateMetricStates: false,
+		refreshTTL:         time.Duration(0),
+		logger:             log.With().Str("pkg", "check").Logger(),
 	}
 
 	isCreate := viper.GetBool(config.KeyCheckCreate)
@@ -74,19 +74,35 @@ func New(apiClient API) (*Check, error) {
 	viper.Set(config.KeyCheckBundleID, c.bundle.CID)
 
 	if isManaged {
-		// refresh ttl
-		ttl, err := time.ParseDuration(viper.GetString(config.KeyCheckMetricRefreshTTL))
-		if err != nil {
-			return nil, errors.Wrap(err, "parsing check metric refresh TTL")
-		}
-		if ttl == time.Duration(0) {
-			ttl, err = time.ParseDuration(defaults.CheckMetricRefreshTTL)
+		// check state path
+		if !c.verifyStatePath() {
+			c.logger.Warn().Str("state_path", defaults.StatePath).Msg("Encountered state path issue(s), disabling check-enable-new-metrics")
+			isManaged = false
+		} else {
+			ms, err := c.loadState()
 			if err != nil {
-				return nil, errors.Wrap(err, "parsing default check metric refresh TTL")
+				c.logger.Error().Err(err).Msg("unable to load existing metric states, all metrics considered existing")
+			} else {
+				c.metricStates = *ms
+				c.logger.Debug().Interface("metric_states", c.metricStates).Msg("loaded metric states")
 			}
 		}
-		c.refreshTTL = ttl
-		c.manage = isManaged
+
+		if isManaged {
+			// refresh ttl
+			ttl, err := time.ParseDuration(viper.GetString(config.KeyCheckMetricRefreshTTL))
+			if err != nil {
+				return nil, errors.Wrap(err, "parsing check metric refresh TTL")
+			}
+			if ttl == time.Duration(0) {
+				ttl, err = time.ParseDuration(defaults.CheckMetricRefreshTTL)
+				if err != nil {
+					return nil, errors.Wrap(err, "parsing default check metric refresh TTL")
+				}
+			}
+			c.refreshTTL = ttl
+			c.manage = isManaged
+		}
 	}
 
 	return &c, nil
@@ -119,74 +135,64 @@ func (c *Check) EnableNewMetrics(m *map[string]interface{}) error {
 		return nil
 	}
 
-	// on first submission just collect all metric names which will be submitted
-	// and treat them all as "available"
-	if len(c.knownMetrics) == 0 {
-		for mn := range *m {
-			c.logger.Debug().Str("name", mn).Msg("adding KNOWN metric")
-			c.knownMetrics[mn] = "available"
-		}
-		return nil
-	}
-
-	// on second submission, fill in the checkMetrics list with metrics from
-	// API (force pulled from broker)
-	if len(c.checkMetrics) == 0 {
-		c.logger.Debug().Msg("populating initial check metrics")
-		metrics, err := c.getFullCheckMetrics()
-		if err != nil {
-			return errors.Wrap(err, "initial population of check metrics")
-		}
-
-		for _, metric := range metrics {
-			if _, ok := c.checkMetrics[metric.Name]; !ok {
-				c.logger.Debug().Str("name", metric.Name).Str("status", metric.Status).Msg("adding CHECK metric")
-				c.checkMetrics[metric.Name] = metric
-				if metric.Status == "active" {
-					c.knownMetrics[metric.Name] = metric.Status
-				}
-			}
-		}
-
-		c.lastRefresh = time.Now()
-		c.logger.Debug().Msg("initial population of check metrics done")
+	// let first submission of metrics go through if is no state file
+	if !c.updateMetricStates && len(c.metricStates) == 0 {
+		c.logger.Debug().Msg("no existing metric states, triggering load")
+		c.updateMetricStates = true
 		return nil
 	}
 
 	if time.Since(c.lastRefresh) > c.refreshTTL {
-		c.logger.Debug().Msg("refreshing check metrics")
+		c.logger.Debug().Dur("since_last", time.Since(c.lastRefresh)).Dur("ttl", c.refreshTTL).Msg("TTL triggering metric state refresh")
+		c.updateMetricStates = true
+	}
+
+	if c.updateMetricStates {
+		c.logger.Debug().Msg("updating metric states")
 		metrics, err := c.getFullCheckMetrics()
 		if err != nil {
-			return errors.Wrap(err, "refreshing check bundle metrics")
+			return errors.Wrap(err, "updating metric states")
 		}
 
 		for _, metric := range metrics {
-			if _, ok := c.checkMetrics[metric.Name]; !ok {
-				c.logger.Debug().Str("name", metric.Name).Str("status", metric.Status).Msg("adding metric")
-				c.checkMetrics[metric.Name] = metric
-				if metric.Status == "active" {
-					c.knownMetrics[metric.Name] = metric.Status
-				}
-			}
+			c.metricStates[metric.Name] = metric.Status
 		}
 
 		c.lastRefresh = time.Now()
-		c.logger.Debug().Msg("refreshing check metrics done")
+		c.saveState(&c.metricStates)
+		c.logger.Debug().Msg("updating metric states done")
 	}
 
 	c.logger.Debug().Msg("scanning for new metrics")
 
+	newMetrics := map[string]api.CheckBundleMetric{}
+
 	for mn, mv := range *m {
-		if _, ok := c.checkMetrics[mn]; !ok {
-			fmt.Printf("NOT FOUND %s = %#v\n", mn, mv)
+		if _, known := c.metricStates[mn]; !known {
+			mtype := "numeric"
+			switch mv.(cgm.Metric).Type {
+			case "n":
+				mtype = "histogram"
+			case "s":
+				mtype = "text"
+			}
+			newMetrics[mn] = api.CheckBundleMetric{
+				Name:   mn,
+				Status: "active",
+				Type:   mtype,
+			}
+			c.logger.Debug().Interface("metric", newMetrics[mn]).Msg("found new metric")
 		}
 	}
 
-	c.logger.Debug().Msg("enabling new metrics")
-
-	// compare metric states
-	// add any new metrics to check bundle
-	// update check bundle via api if needed
+	if len(newMetrics) > 0 {
+		c.logger.Debug().Msg("enabling new metrics")
+		if err := c.updateCheckBundleMetrics(&newMetrics); err != nil {
+			c.logger.Error().Err(err).Msg("adding mew metrics to check bundle")
+		} else {
+			c.updateMetricStates = true // trigger an update to metric states
+		}
+	}
 
 	return nil
 }

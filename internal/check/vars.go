@@ -15,22 +15,20 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type metricState struct {
-	active     bool
-	metricType string
-}
+// metricStates holds the status of known metrics persisted to metrics.json in defaults.StatePath
+type metricStates map[string]string
 
 // Check exposes the check bundle management interface
 type Check struct {
-	lastRefresh  time.Time
-	refreshTTL   time.Duration
-	manage       bool
-	bundle       *api.CheckBundle
-	checkMetrics map[string]api.CheckBundleMetric
-	knownMetrics map[string]string
-	revConfig    *ReverseConfig
-	client       API
-	logger       zerolog.Logger
+	lastRefresh        time.Time
+	refreshTTL         time.Duration
+	manage             bool
+	bundle             *api.CheckBundle
+	metricStates       metricStates
+	updateMetricStates bool
+	revConfig          *ReverseConfig
+	client             API
+	logger             zerolog.Logger
 	sync.Mutex
 }
 
