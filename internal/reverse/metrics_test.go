@@ -28,7 +28,7 @@ func TestSendMetricData(t *testing.T) {
 	data := []byte(`{"test":1}`)
 	buff := bytes.NewBuffer([]byte{})
 
-	chk, cerr := check.New()
+	chk, cerr := check.New(nil)
 	if cerr != nil {
 		t.Fatalf("expected no error, got (%s)", cerr)
 	}
@@ -89,7 +89,7 @@ func TestFetchMetricData(t *testing.T) {
 		t.Fatalf("expected no error, got %s", err)
 	}
 
-	chk, cerr := check.New()
+	chk, cerr := check.New(nil)
 	if cerr != nil {
 		t.Fatalf("expected no error, got (%s)", cerr)
 	}

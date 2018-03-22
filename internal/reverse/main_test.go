@@ -171,7 +171,7 @@ func TestNew(t *testing.T) {
 	t.Log("Reverse disabled")
 	{
 		viper.Set(config.KeyReverse, false)
-		chk, cerr := check.New()
+		chk, cerr := check.New(nil)
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
@@ -193,12 +193,11 @@ func TestNew(t *testing.T) {
 		_, err := New(nil, defaults.Listen)
 		viper.Reset()
 
-		expectedErr := errors.New("reverse configuration (check): Initializing cgm API: API Token is required")
 		if err == nil {
 			t.Fatal("expected error")
 		}
-		if err.Error() != expectedErr.Error() {
-			t.Fatalf("expected (%s) got (%s)", expectedErr, err)
+		if err.Error() != "invalid check value (empty)" {
+			t.Fatalf("unexpected error (%s)", err)
 		}
 	}
 }
@@ -211,7 +210,7 @@ func TestStart(t *testing.T) {
 	t.Log("Reverse disabled")
 	{
 		viper.Set(config.KeyReverse, false)
-		chk, cerr := check.New()
+		chk, cerr := check.New(nil)
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
@@ -282,7 +281,7 @@ func TestStart(t *testing.T) {
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
 		viper.Set(config.KeyAPIURL, apiSim.URL)
-		chk, cerr := check.New()
+		chk, cerr := check.New(nil)
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
@@ -335,7 +334,7 @@ func TestStartLong(t *testing.T) {
 		viper.Set(config.KeyAPITokenKey, "foo")
 		viper.Set(config.KeyAPITokenApp, "foo")
 		viper.Set(config.KeyAPIURL, apiSim.URL)
-		chk, cerr := check.New()
+		chk, cerr := check.New(nil)
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
@@ -364,7 +363,7 @@ func TestStop(t *testing.T) {
 	t.Log("disabled")
 	{
 		viper.Set(config.KeyReverse, false)
-		chk, cerr := check.New()
+		chk, cerr := check.New(nil)
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
@@ -379,7 +378,7 @@ func TestStop(t *testing.T) {
 	t.Log("nil conn")
 	{
 		viper.Set(config.KeyReverse, false)
-		chk, cerr := check.New()
+		chk, cerr := check.New(nil)
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
