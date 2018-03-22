@@ -190,6 +190,7 @@ func (s *Server) encodeResponse(m *map[string]interface{}, w http.ResponseWriter
 	} else {
 		acceptedEncodings := r.Header.Get("Accept-Encoding")
 		useGzip = strings.Contains(acceptedEncodings, "*") || strings.Contains(acceptedEncodings, "gzip")
+		s.logger.Debug().Bool("gzip", useGzip).Str("accept_encoding", acceptedEncodings).Msg("compressing response")
 	}
 
 	if useGzip {
