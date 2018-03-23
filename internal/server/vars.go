@@ -13,13 +13,13 @@ import (
 	"sync"
 	"time"
 
-	tomb "gopkg.in/tomb.v2"
-
 	"github.com/circonus-labs/circonus-agent/internal/builtins"
 	"github.com/circonus-labs/circonus-agent/internal/check"
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
 	"github.com/circonus-labs/circonus-agent/internal/statsd"
+	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/rs/zerolog"
+	tomb "gopkg.in/tomb.v2"
 )
 
 type httpServer struct {
@@ -55,7 +55,7 @@ type Server struct {
 }
 
 type previousMetrics struct {
-	metrics map[string]interface{}
+	metrics cgm.Metrics
 	ts      time.Time
 }
 

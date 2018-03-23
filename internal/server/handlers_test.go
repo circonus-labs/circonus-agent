@@ -409,10 +409,8 @@ func TestPromOutput(t *testing.T) {
 	t.Logf("GET /prom -> %d (w/metrics)", http.StatusOK)
 	{
 		lastMetrics.ts = time.Now()
-		lastMetrics.metrics = map[string]interface{}{
-			"gtest": &cgm.Metrics{
-				"mtest": cgm.Metric{Type: "i", Value: 1},
-			},
+		lastMetrics.metrics = cgm.Metrics{
+			"gtest`mtest": cgm.Metric{Type: "i", Value: 1},
 		}
 		req := httptest.NewRequest("GET", "/prom", nil)
 		w := httptest.NewRecorder()

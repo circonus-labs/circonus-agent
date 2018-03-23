@@ -63,7 +63,7 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 	lastMeticsmu.Lock()
 	defer lastMeticsmu.Unlock()
 
-	metrics := map[string]interface{}{}
+	metrics := cgm.Metrics{} //map[string]interface{}{}
 
 	// default to true if id is blank, otherwise set all to false
 	runBuiltins := id == ""
@@ -89,8 +89,12 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if runBuiltins {
+		s.logger.Debug().Msg("starting builtin run")
 		s.builtins.Run(id)
+		s.logger.Debug().Msg("builtin run done")
+		s.logger.Debug().Msg("calling builtin flush")
 		builtinMetrics := s.builtins.Flush(id)
+		s.logger.Debug().Msg("builtin flush done")
 		for metricName, metric := range *builtinMetrics {
 			metrics[metricName] = metric
 		}
@@ -100,20 +104,14 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 		// NOTE: errors are ignored from plugins.Run
 		//       1. errors are already logged by Run
 		//       2. do not expose execution state to callers
-		s.logger.Debug().Msg("calling plugin run")
+		s.logger.Debug().Msg("starting plugin run")
 		s.plugins.Run(id)
 		s.logger.Debug().Msg("plugin run done")
 		s.logger.Debug().Msg("calling plugin flush")
 		pluginMetrics := s.plugins.Flush(id)
 		s.logger.Debug().Msg("plugin flush done")
 		for metricName, metric := range *pluginMetrics {
-			if v, ok := metric.(*cgm.Metrics); ok {
-				for mn, mv := range *v {
-					metrics[metricName+config.MetricNameSeparator+mn] = mv
-				}
-			} else {
-				metrics[metricName] = metric
-			}
+			metrics[metricName] = metric
 		}
 	}
 
@@ -136,7 +134,6 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 				for metricName, metric := range *statsdMetrics {
 					metrics[pfx+config.MetricNameSeparator+metricName] = metric
 				}
-				// metrics[viper.GetString(config.KeyStatsdHostCategory)] = statsdMetrics
 			}
 		}
 	}
@@ -164,6 +161,8 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 	s.logger.Debug().Msg("encoding metrics")
 	s.encodeResponse(&metrics, w, r)
 	s.logger.Debug().Msg("encoding done")
+
+	s.logger.Info().Msgf("sent %d metrics", len(metrics))
 }
 
 // encodeResponse takes care of encoding the response to an HTTP request for metrics.
@@ -172,7 +171,7 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 // is supplied (Accept-Encoding: * or Accept-Encoding: gzip). The command line option
 // --no-gzip overrides and will result in unencoded response regardless of what the
 // Accept-Encoding header specifies.
-func (s *Server) encodeResponse(m *map[string]interface{}, w http.ResponseWriter, r *http.Request) {
+func (s *Server) encodeResponse(m *cgm.Metrics, w http.ResponseWriter, r *http.Request) {
 	//
 	// if an error occurs, it is logged and empty {} metrics are returned
 	//
