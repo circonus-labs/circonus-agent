@@ -128,7 +128,7 @@ func (c *Check) GetReverseConfig() (ReverseConfig, error) {
 }
 
 // EnableNewMetrics updates the check bundle enabling any new metrics
-func (c *Check) EnableNewMetrics(m *map[string]interface{}) error {
+func (c *Check) EnableNewMetrics(m *cgm.Metrics) error {
 	c.Lock()
 	defer c.Unlock()
 
@@ -182,7 +182,7 @@ func (c *Check) EnableNewMetrics(m *map[string]interface{}) error {
 			continue
 		}
 		if wantState, known := c.metricStates[mn]; !known || wantState == activeMetricStatus {
-			newMetrics[mn] = c.configMetric(mn, mv.(cgm.Metric))
+			newMetrics[mn] = c.configMetric(mn, mv)
 			c.logger.Debug().Interface("metric", newMetrics[mn]).Interface("mv", mv).Msg("found new metric")
 		}
 	}
