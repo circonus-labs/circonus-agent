@@ -73,6 +73,14 @@ func (c *Check) getFullCheckMetrics() ([]api.CheckBundleMetric, error) {
 // }
 
 func (c *Check) updateCheckBundleMetrics(m *map[string]api.CheckBundleMetric) error {
+	if m == nil {
+		return errors.New("nil metrics passed to update")
+	}
+
+	// short circuit if no metrics to update
+	if len(*m) == 0 {
+		return nil
+	}
 
 	cid := c.bundle.CID
 	bundle, err := c.client.FetchCheckBundle(api.CIDType(&cid))
@@ -106,11 +114,12 @@ func (c *Check) configMetric(mn string, mv cgm.Metric) api.CheckBundleMetric {
 		Status: activeMetricStatus,
 	}
 
-	mtype := "numeric"
+	mtype := "numeric" // default
 	switch mv.Type {
 	case "n":
-		c.logger.Debug().Str("mn", mn).Interface("mv", mv).Str("reflect_type", reflect.TypeOf(mv.Value).Kind().String()).Msg("circ type n")
-		if reflect.TypeOf(mv.Value).Kind().String() == "slice" {
+		vt := reflect.TypeOf(mv.Value).Kind().String()
+		c.logger.Debug().Str("mn", mn).Interface("mv", mv).Str("reflect_type", vt).Msg("circ type n")
+		if vt == "slice" || vt == "array" {
 			mtype = "histogram"
 		}
 	case "s":
