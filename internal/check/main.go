@@ -7,6 +7,7 @@ package check
 
 import (
 	stdlog "log"
+	"path/filepath"
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
@@ -28,6 +29,8 @@ func New(apiClient API) (*Check, error) {
 		updateMetricStates: false,
 		refreshTTL:         time.Duration(0),
 		logger:             log.With().Str("pkg", "check").Logger(),
+		statePath:          defaults.StatePath,
+		stateFile:          filepath.Join(defaults.StatePath, "metrics.json"),
 	}
 
 	isCreate := viper.GetBool(config.KeyCheckCreate)
@@ -45,9 +48,7 @@ func New(apiClient API) (*Check, error) {
 		return &c, nil // if we don't need a check, return a NOP object
 	}
 
-	if apiClient != nil {
-		c.client = apiClient
-	} else {
+	if apiClient == nil {
 		// create an API client
 		cfg := &api.Config{
 			TokenKey: viper.GetString(config.KeyAPITokenKey),
@@ -56,15 +57,16 @@ func New(apiClient API) (*Check, error) {
 			Log:      stdlog.New(c.logger.With().Str("pkg", "check.api").Logger(), "", 0),
 			Debug:    viper.GetBool(config.KeyDebugCGM),
 		}
-
 		client, err := api.New(cfg)
 		if err != nil {
 			return nil, errors.Wrap(err, "creating circonus api client")
 		}
-
-		c.client = client
+		apiClient = client
 	}
 
+	c.client = apiClient
+
+	// fetch or create check bundle
 	if err := c.setCheck(); err != nil {
 		return nil, errors.Wrap(err, "unable to configure check")
 	}
@@ -74,37 +76,44 @@ func New(apiClient API) (*Check, error) {
 	// created initially since user 'nobody' cannot create or update the configuration
 	viper.Set(config.KeyCheckBundleID, c.bundle.CID)
 
-	if isManaged {
-		// check state path
-		if !c.verifyStatePath() {
-			c.logger.Warn().Str("state_path", defaults.StatePath).Msg("Encountered state path issue(s), disabling check-enable-new-metrics")
-			isManaged = false
-		} else {
-			ms, err := c.loadState()
-			if err != nil {
-				c.logger.Error().Err(err).Msg("unable to load existing metric states, all metrics considered existing")
-			} else {
-				c.metricStates = *ms
-				c.logger.Debug().Interface("metric_states", c.metricStates).Msg("loaded metric states")
-			}
-		}
+	if !isManaged {
+		return &c, nil
+	}
 
-		if isManaged {
-			// refresh ttl
-			ttl, err := time.ParseDuration(viper.GetString(config.KeyCheckMetricRefreshTTL))
-			if err != nil {
-				return nil, errors.Wrap(err, "parsing check metric refresh TTL")
-			}
-			if ttl == time.Duration(0) {
-				ttl, err = time.ParseDuration(defaults.CheckMetricRefreshTTL)
-				if err != nil {
-					return nil, errors.Wrap(err, "parsing default check metric refresh TTL")
-				}
-			}
-			c.refreshTTL = ttl
-			c.manage = isManaged
+	//
+	// managed check requires some additional setup
+	//
+	if ok, err := c.verifyStatePath(); !ok {
+		if err != nil {
+			c.logger.Error().Err(err).Msg("verify state path")
+		}
+		c.logger.Warn().Str("state_path", c.statePath).Msg("encountered state path issue(s), disabling check-enable-new-metrics")
+		c.manage = false
+		return &c, nil
+	}
+
+	ms, err := c.loadState()
+	if err != nil {
+		c.logger.Error().Err(err).Msg("unable to load existing metric states, all metrics considered existing")
+	} else {
+		c.metricStates = *ms
+		c.logger.Debug().Interface("metric_states", c.metricStates).Msg("loaded metric states")
+	}
+
+	// check metrics refresh ttl
+	ttl, err := time.ParseDuration(viper.GetString(config.KeyCheckMetricRefreshTTL))
+	if err != nil {
+		return nil, errors.Wrap(err, "parsing check metric refresh TTL")
+	}
+	if ttl == time.Duration(0) {
+		ttl, err = time.ParseDuration(defaults.CheckMetricRefreshTTL)
+		if err != nil {
+			return nil, errors.Wrap(err, "parsing default check metric refresh TTL")
 		}
 	}
+
+	c.refreshTTL = ttl
+	c.manage = isManaged
 
 	return &c, nil
 }
@@ -136,7 +145,7 @@ func (c *Check) EnableNewMetrics(m *cgm.Metrics) error {
 		return nil
 	}
 
-	// let first submission of metrics go through if is no state file
+	// let first submission of metrics go through if no state file
 	if !c.updateMetricStates && len(c.metricStates) == 0 {
 		c.logger.Debug().Msg("no existing metric states, triggering load")
 		c.updateMetricStates = true

@@ -9,60 +9,88 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 
-	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/pkg/errors"
 )
 
 func (c *Check) loadState() (*metricStates, error) {
-	stateFile := filepath.Join(defaults.StatePath, "metrics.json")
-	data, err := ioutil.ReadFile(stateFile)
-	if err != nil {
-		return nil, errors.Wrap(err, "loading metric state file")
+	if c.stateFile == "" {
+		return nil, errors.New("invalid state file (empty)")
 	}
 
 	var ms metricStates
 
-	if err := json.Unmarshal(data, &ms); err != nil {
-		return nil, errors.Wrap(err, "parsing metric state file")
+	sf, err := os.Open(c.stateFile)
+	if err != nil {
+		return nil, errors.Wrap(err, "opening state file")
+	}
+	defer sf.Close()
+
+	dec := json.NewDecoder(sf)
+	if err := dec.Decode(&ms); err != nil {
+		return nil, errors.Wrap(err, "parsing state file")
 	}
 
 	return &ms, nil
 }
 
 func (c *Check) saveState(ms *metricStates) error {
-	stateFile := filepath.Join(defaults.StatePath, "metrics.json")
-	data, err := json.MarshalIndent(*ms, "", "  ")
-	if err != nil {
-		return errors.Wrap(err, "converting metric states to json")
+	if c.stateFile == "" {
+		return errors.New("invalid state file (empty)")
 	}
 
-	if err := ioutil.WriteFile(stateFile, data, 0644); err != nil {
-		return errors.Wrap(err, "saving metric state file")
+	sf, err := ioutil.TempFile(c.statePath, "state")
+	if err != nil {
+		return errors.Wrap(err, "creating temp state file")
+	}
+
+	enc := json.NewEncoder(sf)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(ms); err != nil {
+		sf.Close()
+		os.Remove(sf.Name())
+		return errors.Wrap(err, "error encoding state (removing temp file)")
+	}
+
+	sf.Close()
+	if err := os.Rename(sf.Name(), c.stateFile); err != nil {
+		os.Remove(sf.Name())
+		return errors.Wrap(err, "updating state file (removing temp file)")
 	}
 
 	return nil
 }
 
-func (c *Check) verifyStatePath() bool {
-	fs, err := os.Stat(defaults.StatePath)
+func (c *Check) verifyStatePath() (bool, error) {
+	if c.statePath == "" {
+		return false, errors.New("invalid state path (empty)")
+	}
+
+	fs, err := os.Stat(c.statePath)
 	if err != nil {
-		c.logger.Error().Err(err).Str("state_path", defaults.StatePath).Msg("accessing state path")
-		return false
+		return false, errors.Wrap(err, "stat state path")
 	}
+
 	if !fs.IsDir() {
-		c.logger.Error().Str("state_path", defaults.StatePath).Msg("state path is not a directory")
-		return false
+		return false, errors.Errorf("state path is not a directory (%s)", c.statePath)
 	}
-	testFile := filepath.Join(defaults.StatePath, "test.file")
-	if err := ioutil.WriteFile(testFile, []byte("test file, ok to delete"), 0644); err != nil {
-		c.logger.Error().Err(err).Msg("creating test state file")
-		return false
+
+	tf, err := ioutil.TempFile(c.statePath, "verify")
+	if err != nil {
+		return false, errors.Wrap(err, "creating test state file")
 	}
-	if err := os.Remove(testFile); err != nil {
-		c.logger.Error().Err(err).Msg("removing test state file")
-		return false
+
+	if _, err := tf.Write([]byte("test file, ok to delete")); err != nil {
+		return false, errors.Wrapf(err, "writing test state file (%s)", tf.Name())
 	}
-	return true
+
+	if err := tf.Close(); err != nil {
+		return false, errors.Wrapf(err, "closing test state file (%s)", tf.Name())
+	}
+
+	if err := os.Remove(tf.Name()); err != nil {
+		return false, errors.Wrapf(err, "removing test state file (%s)", tf.Name())
+	}
+
+	return true, nil
 }

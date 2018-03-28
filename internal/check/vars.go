@@ -31,6 +31,8 @@ type Check struct {
 	revConfig           *ReverseConfig
 	client              API
 	logger              zerolog.Logger
+	stateFile           string
+	statePath           string
 	sync.Mutex
 }
 
