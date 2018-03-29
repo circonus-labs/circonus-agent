@@ -11,7 +11,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -181,6 +183,7 @@ func (s *Server) encodeResponse(m *cgm.Metrics, w http.ResponseWriter, r *http.R
 	w.Header().Set("Content-Type", "application/json")
 
 	var data []byte
+	var jsonData []byte
 	var err error
 	var useGzip bool
 
@@ -192,36 +195,52 @@ func (s *Server) encodeResponse(m *cgm.Metrics, w http.ResponseWriter, r *http.R
 		s.logger.Debug().Bool("gzip", useGzip).Str("accept_encoding", acceptedEncodings).Msg("compressing response")
 	}
 
+	jsonData, err = json.Marshal(m)
+	if err != nil {
+		// log the error and respond with empty metrics
+		s.logger.Error().
+			Err(err).
+			Interface("metrics", m).
+			Msg("encoding metrics to JSON for response")
+		jsonData = []byte("{}")
+	}
+	data = jsonData
+
 	if useGzip {
 		var buf bytes.Buffer
 		gz := gzip.NewWriter(&buf)
-		err = json.NewEncoder(gz).Encode(m)
+		_, err := gz.Write(jsonData)
 		gz.Close()
-
 		if err != nil {
 			// log the error and respond with empty metrics
 			s.logger.Error().
 				Err(err).
-				Msg("Writing metrics to response")
+				Msg("compressing metrics")
 			data = []byte("{}")
 		} else {
 			w.Header().Set("Content-Encoding", "gzip")
 			data = buf.Bytes()
 		}
-	} else {
-		data, err = json.Marshal(m)
-		if err != nil {
-			// log the error and respond with empty metrics
-			s.logger.Error().
-				Err(err).
-				Interface("metrics", m).
-				Msg("Encoding metrics to JSON for response")
-			data = []byte("{}")
-		}
 	}
 
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
-	w.Write(data)
+	if _, err := w.Write(data); err != nil {
+		s.logger.Error().
+			Err(err).
+			Msg("writing metrics to response")
+		return
+	}
+
+	dumpDir := viper.GetString(config.KeyDebugDumpMetrics)
+	if dumpDir != "" {
+		dumpFile := filepath.Join(dumpDir, "metrics_"+time.Now().Format("20060102_150405")+".json")
+		if err := ioutil.WriteFile(dumpFile, jsonData, 0644); err != nil {
+			s.logger.Error().
+				Err(err).
+				Str("file", dumpFile).
+				Msg("dumping metrics")
+		}
+	}
 }
 
 // inventory returns the current, active plugin inventory

@@ -19,10 +19,10 @@ type Log struct {
 
 // API defines the running config.api structure
 type API struct {
-	Key    string `json:"key" yaml:"key" toml:"key"`
 	App    string `json:"app" yaml:"app" toml:"app"`
-	URL    string `json:"url" yaml:"url" toml:"url"`
 	CAFile string `mapstructure:"ca_file" json:"ca_file" yaml:"ca_file" toml:"ca_file"`
+	Key    string `json:"key" yaml:"key" toml:"key"`
+	URL    string `json:"url" yaml:"url" toml:"url"`
 }
 
 // ReverseCreateCheckOptions defines the running config.reverse.check structure
@@ -34,24 +34,20 @@ type ReverseCreateCheckOptions struct {
 
 // Check defines the check parameters
 type Check struct {
-	BundleID         string `mapstructure:"bundle_id" json:"bundle_id" yaml:"bundle_id" toml:"bundle_id"`
-	Target           string `mapstructure:"target" json:"target" yaml:"target" toml:"target"`
-	Create           bool   `mapstructure:"create" json:"create" yaml:"create" toml:"create"`
 	Broker           string `json:"broker" yaml:"broker" toml:"broker"`
-	Tags             string `json:"tags" yaml:"tags" toml:"tags"`
-	Title            string `json:"title" yaml:"title" toml:"title"`
+	BundleID         string `mapstructure:"bundle_id" json:"bundle_id" yaml:"bundle_id" toml:"bundle_id"`
+	Create           bool   `mapstructure:"create" json:"create" yaml:"create" toml:"create"`
 	EnableNewMetrics bool   `mapstructure:"enable_new_metrics" json:"enable_new_metrics" yaml:"enable_new_metrics" toml:"enable_new_metrics"`
 	MetricRefreshTTL string `mapstructure:"metric_refresh_ttl" json:"metric_refresh_ttl" yaml:"metric_refresh_ttl" toml:"metric_refresh_ttl"`
+	Tags             string `json:"tags" yaml:"tags" toml:"tags"`
+	Target           string `mapstructure:"target" json:"target" yaml:"target" toml:"target"`
+	Title            string `json:"title" yaml:"title" toml:"title"`
 }
 
 // Reverse defines the running config.reverse structure
 type Reverse struct {
-	Enabled      bool   `json:"enabled" yaml:"enabled" toml:"enabled"`
 	BrokerCAFile string `mapstructure:"broker_ca_file" json:"broker_ca_file" yaml:"broker_ca_file" toml:"broker_ca_file"`
-	// CheckBundleID      string                    `mapstructure:"check_bundle_id" json:"check_bundle_id" yaml:"check_bundle_id" toml:"check_bundle_id"`
-	// CheckTarget        string                    `mapstructure:"check_target" json:"check_target" yaml:"check_target" toml:"check_target"`
-	// CreateCheck        bool                      `mapstructure:"create_check" json:"create_check" yaml:"create_check" toml:"create_check"`
-	// CreateCheckOptions ReverseCreateCheckOptions `json:"check" yaml:"check" toml:"check"`
+	Enabled      bool   `json:"enabled" yaml:"enabled" toml:"enabled"`
 }
 
 // SSL defines the running config.ssl structure
@@ -80,26 +76,27 @@ type StatsDGroup struct {
 // StatsD defines the running config.statsd structure
 type StatsD struct {
 	Disabled bool        `json:"disabled" yaml:"disabled" toml:"disabled"`
-	Port     string      `json:"port" yaml:"port" toml:"port"`
 	Group    StatsDGroup `json:"group" yaml:"group" toml:"group"`
 	Host     StatsDHost  `json:"host" yaml:"host" toml:"host"`
+	Port     string      `json:"port" yaml:"port" toml:"port"`
 }
 
 // Config defines the running config structure
 type Config struct {
-	Debug          bool     `json:"debug" yaml:"debug" toml:"debug"`
-	API            API      `json:"api" yaml:"api" toml:"api"`
-	Log            Log      `json:"log" yaml:"log" toml:"log"`
-	DebugCGM       bool     `mapstructure:"debug_cgm" json:"debug_cgm" yaml:"debug_cgm" toml:"debug_cgm"`
-	Listen         []string `json:"listen" yaml:"listen" toml:"listen"`
-	ListenSocket   []string `mapstructure:"listen_socket" json:"listen_socket" yaml:"listen_socket" toml:"listen_socket"`
-	PluginDir      string   `mapstructure:"plugin_dir" json:"plugin_dir" yaml:"plugin_dir" toml:"plugin_dir"`
-	PluginTTLUnits string   `mapstructure:"plugin_ttl_units" json:"plugin_ttl_units" yaml:"plugin_ttl_units" toml:"plugin_ttl_units"`
-	Reverse        Reverse  `json:"reverse" yaml:"reverse" toml:"reverse"`
-	Check          Check    `json:"check" yaml:"check" toml:"check"`
-	SSL            SSL      `json:"ssl" yaml:"ssl" toml:"ssl"`
-	StatsD         StatsD   `json:"statsd" yaml:"statsd" toml:"statsd"`
-	Collectors     []string `json:"collectors" yaml:"collectors" toml:"collectors"`
+	API              API      `json:"api" yaml:"api" toml:"api"`
+	Check            Check    `json:"check" yaml:"check" toml:"check"`
+	Collectors       []string `json:"collectors" yaml:"collectors" toml:"collectors"`
+	Debug            bool     `json:"debug" yaml:"debug" toml:"debug"`
+	DebugCGM         bool     `mapstructure:"debug_cgm" json:"debug_cgm" yaml:"debug_cgm" toml:"debug_cgm"`
+	DebugDumpMetrics string   `mapstructure:"debug_dump_metrics" json:"debug_dump_metrics" yaml:"debug_dump_metrics" toml:"debug_dump_metrics"`
+	Listen           []string `json:"listen" yaml:"listen" toml:"listen"`
+	ListenSocket     []string `mapstructure:"listen_socket" json:"listen_socket" yaml:"listen_socket" toml:"listen_socket"`
+	Log              Log      `json:"log" yaml:"log" toml:"log"`
+	PluginDir        string   `mapstructure:"plugin_dir" json:"plugin_dir" yaml:"plugin_dir" toml:"plugin_dir"`
+	PluginTTLUnits   string   `mapstructure:"plugin_ttl_units" json:"plugin_ttl_units" yaml:"plugin_ttl_units" toml:"plugin_ttl_units"`
+	Reverse          Reverse  `json:"reverse" yaml:"reverse" toml:"reverse"`
+	SSL              SSL      `json:"ssl" yaml:"ssl" toml:"ssl"`
+	StatsD           StatsD   `json:"statsd" yaml:"statsd" toml:"statsd"`
 }
 
 type cosiCheckConfig struct {
@@ -127,6 +124,11 @@ const (
 
 	// KeyDebugCGM enables debug messages for circonus-gometrics
 	KeyDebugCGM = "debug_cgm"
+
+	// KeyDebugDumpMetrics enables dumping metrics to a file as they are submitted to circonus
+	// it should contain a directory name where the user running circonus-agentd has write
+	// permissions. metrics will be dumped for each _successful_ request.
+	KeyDebugDumpMetrics = "debug_dump_metrics"
 
 	// KeyListen primary address and port to listen on
 	KeyListen = "listen"
