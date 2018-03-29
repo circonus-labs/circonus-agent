@@ -47,8 +47,9 @@ func (p *plugin) parsePluginOutput(output []string) error {
 	defer p.Unlock()
 
 	p.logger.Debug().
-		Str("output", strings.Join(output, "\n")).
-		Msg("processing")
+		// Str("output", strings.Join(output, "\n")).
+		Int("num_lines", len(output)).
+		Msg("processing plugin output")
 
 	if len(output) == 0 {
 		p.metrics = &cgm.Metrics{}
@@ -56,6 +57,7 @@ func (p *plugin) parsePluginOutput(output []string) error {
 	}
 
 	metrics := cgm.Metrics{}
+	numDuplicates := 0
 
 	// if first char of first line is '{' then assume output is json
 	if output[0][:1] == "{" {
@@ -99,6 +101,12 @@ func (p *plugin) parsePluginOutput(output []string) error {
 
 		metricName := strings.Replace(fields[0], " ", metricDelimiter, -1)
 		metricType := fields[1]
+
+		if _, ok := metrics[metricName]; ok {
+			p.logger.Warn().Str("name", metricName).Msg("duplicate name, skipping")
+			numDuplicates++
+			continue
+		}
 
 		if !metricTypes.MatchString(metricType) {
 			p.logger.Error().
@@ -201,8 +209,14 @@ func (p *plugin) parsePluginOutput(output []string) error {
 		}
 
 		metrics[metricName] = metric
-
 	}
+
+	p.logger.Debug().
+		Int("tot_plugin_lines", len(output)).
+		Int("tot_metric", len(metrics)).
+		Int("tot_duplicate", numDuplicates).
+		Int("tot_error", len(output)-(len(metrics)+numDuplicates)).
+		Msg("done processing plugin output")
 
 	p.metrics = &metrics
 
