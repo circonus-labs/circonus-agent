@@ -144,8 +144,8 @@ func readBytes(r io.Reader, size int64) ([]byte, error) {
 
 	// dealing with expected sizes
 	if int64(n) != size {
-		sz := 30
-		if n < 30 {
+		sz := 30 // 30 is arbitrary, max amount of a larger buffer wanted in a log message
+		if n < sz {
 			sz = n
 		}
 		return nil, errors.Errorf("invalid read, expected bytes %d got %d (%#v = %s)", size, n, buff[0:sz], string(buff[0:sz]))
