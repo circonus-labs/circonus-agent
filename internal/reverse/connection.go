@@ -19,10 +19,6 @@ import (
 func (c *Connection) handler() error {
 	defer close(c.cmdCh)
 	for { // allow reconnecting
-
-		if c.shutdown() {
-			return nil
-		}
 		cerr := c.connect()
 		if c.shutdown() {
 			return nil
@@ -38,9 +34,6 @@ func (c *Connection) handler() error {
 		}
 
 		for {
-			if c.shutdown() {
-				return nil
-			}
 			cmd, err := c.getCommandFromBroker(c.conn)
 			if c.shutdown() {
 				return nil
@@ -67,9 +60,16 @@ func (c *Connection) processor() error {
 				c.logger.Warn().Str("cmd", "nil").Msg("ignoring nil command")
 				break
 			}
-			if nc.command != noitCmdConnect {
+			if nc.command != noitCmdConnect && nc.command != noitCmdReset {
 				c.logger.Debug().Str("cmd", nc.command).Msg("ignoring command")
 				break
+			}
+			if nc.command == noitCmdReset {
+				c.logger.Debug().
+					Str("cmd", nc.command).
+					Msg("resetting connection")
+				c.conn.Close()
+				return nil
 			}
 
 			if len(nc.request) == 0 {
@@ -106,6 +106,8 @@ func (c *Connection) processor() error {
 			// NOTE: send even if metrics will be empty
 			if err := c.sendMetricData(c.conn, nc.channelID, data); err != nil {
 				c.logger.Warn().Err(err).Msg("sending metric data")
+				c.logger.Warn().Msg("closing conn to reset")
+				c.conn.Close()
 			}
 		}
 	}

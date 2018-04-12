@@ -77,7 +77,8 @@ const (
 	maxDelaySeconds       = 60        // maximum amount of delay between attempts
 	minDelayStep          = 1         // minimum seconds to add on retry
 	maxDelayStep          = 20        // maximum seconds to add on retry
-	noitCmdConnect        = "CONNECT" // command from noit/broker
+	noitCmdConnect        = "CONNECT" // command from noit/broker (not ignored)
+	noitCmdReset          = "RESET"   // command from noit/broker (not ignored)
 	brokerMaxRetries      = 5
 	brokerMaxResponseTime = 500 * time.Millisecond
 	brokerActiveStatus    = "active"
