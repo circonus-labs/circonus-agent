@@ -154,24 +154,6 @@ const (
 	// KeyReverseBrokerCAFile custom broker ca file
 	KeyReverseBrokerCAFile = "reverse.broker_ca_file"
 
-	// KeyReverseCID circonus check bundle id for reverse
-	// KeyReverseCID = "reverse.check_bundle_id"
-
-	// KeyReverseTarget custom target|host to use for reverse (searching for a check) default os.Hostname()
-	// KeyReverseTarget = "reverse.check_target"
-
-	// KeyReverseCreateCheck indicates whether a check should be created if one cannot be found for the target
-	// KeyReverseCreateCheck = "reverse.create_check"
-
-	// KeyReverseCreateCheckBroker cid to use if creating a check
-	// KeyReverseCreateCheckBroker = "reverse.check.broker"
-
-	// KeyReverseCreateCheckTitle to use if creating a check
-	// KeyReverseCreateCheckTitle = "reverse.check.title"
-
-	// KeyReverseCreateCheckTags to add if creating a check
-	// KeyReverseCreateCheckTags = "reverse.check.tags"
-
 	// KeyShowConfig - show configuration and exit
 	KeyShowConfig = "show-config"
 
