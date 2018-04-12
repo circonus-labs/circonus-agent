@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/maier/go-appstats"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -74,19 +75,23 @@ func New(ctx context.Context) (*Plugins, error) {
 }
 
 // Flush plugin metrics
-func (p *Plugins) Flush(pluginName string) *map[string]interface{} {
+func (p *Plugins) Flush(pluginName string) *cgm.Metrics {
 	p.RLock()
 	defer p.RUnlock()
 
 	appstats.MapSet("plugins", "last_flush", time.Now())
 
-	metrics := map[string]interface{}{}
+	metrics := cgm.Metrics{}
 
 	for pluginID, plug := range p.active {
 		if pluginName == "" || // all plugins
 			pluginID == pluginName || // specific plugin
-			strings.HasPrefix(pluginID, pluginName+"`") { // specific plugin with instances
-			metrics[pluginID] = plug.drain()
+			strings.HasPrefix(pluginID, pluginName+metricDelimiter) { // specific plugin with instances
+
+			m := plug.drain()
+			for mn, mv := range *m {
+				metrics[pluginID+metricDelimiter+mn] = mv
+			}
 		}
 	}
 

@@ -107,6 +107,10 @@ func genMockClient() *APIMock {
 			switch *cid {
 			case "/check_bundle/000":
 				return nil, errors.New("forced mock api call error")
+			case "/check_bundle/0002":
+				x := testCheckBundle
+				x.CID = *cid
+				return &x, nil
 			case "/check_bundle/1234":
 				return &testCheckBundle, nil
 			default:
@@ -126,8 +130,25 @@ func genMockClient() *APIMock {
 					panic(err)
 				}
 				return ret, nil
+			case "/check_bundle_metrics/000?query_broker=1":
+				return nil, errors.New("forced mock api call error")
+			case "/check_bundle_metrics/0001?query_broker=1":
+				return []byte("{"), nil
+			case "/check_bundle_metrics/1234?query_broker=1":
+				m := api.CheckBundleMetrics{
+					CID: "/check_bundle_metrics/1234",
+					Metrics: []api.CheckBundleMetric{
+						api.CheckBundleMetric{Name: "foo", Type: "n", Status: "active"},
+					},
+				}
+				data, err := json.Marshal(m)
+				if err != nil {
+					panic(err)
+				}
+				return data, nil
+			default:
+				return nil, errors.Errorf("bad api.Get(%s), no handler for url", url)
 			}
-			panic("TODO: mock out the Get method for " + url)
 		},
 
 		SearchCheckBundlesFunc: func(searchCriteria *api.SearchQueryType, filterCriteria *map[string][]string) (*[]api.CheckBundle, error) {
@@ -147,7 +168,14 @@ func genMockClient() *APIMock {
 		},
 
 		UpdateCheckBundleFunc: func(cfg *api.CheckBundle) (*api.CheckBundle, error) {
-			panic("TODO: mock out the UpdateCheckBundle method")
+			switch cfg.CID {
+			case "/check_bundle/1234":
+				return cfg, nil
+			case "/check_bundle/0002":
+				return nil, errors.New("api update check bundle error")
+			default:
+				return nil, errors.Errorf("add handler for %s", cfg.CID)
+			}
 		},
 
 		UpdateCheckBundleMetricsFunc: func(cfg *api.CheckBundleMetrics) (*api.CheckBundleMetrics, error) {

@@ -15,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ParseListen verifies and parses a listen address spec
 func ParseListen(spec string) (*net.TCPAddr, error) {
 	// empty, default
 	if spec == "" {

@@ -16,7 +16,6 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins"
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
@@ -180,33 +179,22 @@ func TestFlush(t *testing.T) {
 		if len(*data) == 0 {
 			t.Fatalf("expected metrics got none (%#v)", data)
 		}
-		var metrics *cgm.Metrics
+
+		name := "test"
 		if runtime.GOOS == "windows" {
-			if _, ok := (*data)["testwin"]; !ok {
-				t.Fatalf("expected 'testwin' plugin id got (%#v)", *data)
-			}
-			metrics = (*data)["testwin"].(*cgm.Metrics)
-			if len(*metrics) == 0 {
-				t.Fatalf("expected metric 'testwin', got (%#v)", *metrics)
-			}
-		} else {
-			if _, ok := (*data)["test"]; !ok {
-				t.Fatalf("expected 'test' plugin id got (%#v)", *data)
-			}
-			metrics = (*data)["test"].(*cgm.Metrics)
-			if len(*metrics) == 0 {
-				t.Fatalf("expected metric 'test', got (%#v)", *metrics)
-			}
+			name = "testwin"
 		}
-		metric, ok := (*metrics)["metric"]
+		name += metricDelimiter + "metric"
+
+		mv, ok := (*data)[name]
 		if !ok {
-			t.Fatalf("expected metric named 'metric'")
+			t.Fatalf("expected metric named (%s) got (%#v)", name, *data)
 		}
-		if metric.Type != "n" {
-			t.Fatalf("expected type 'n', got %#v", metric)
+		if mv.Type != "n" {
+			t.Fatalf("expected type 'n', got %#v", mv)
 		}
-		if metric.Value.(float64) != 22.1 {
-			t.Fatalf("expected value '22.1', got %#v", metric)
+		if mv.Value.(float64) != 22.1 {
+			t.Fatalf("expected value 22.1 got %#v", mv)
 		}
 	}
 }

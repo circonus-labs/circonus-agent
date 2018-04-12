@@ -131,13 +131,32 @@ func TestParse(t *testing.T) {
 		if len(*m) != numExpected {
 			t.Fatalf("expected %d metrics, got %d", numExpected, len(*m))
 		}
-		testMetric, ok := (*m)["prom`test"]
-		if !ok {
-			t.Fatalf("expected metric 'prom`test', %#v", m)
+
+		// test 1
+		{
+			mn := "prom`test"
+			testMetric, ok := (*m)[mn]
+			if !ok {
+				t.Fatalf("expected metric '%s', %#v", mn, m)
+			}
+			expect := float64(1234)
+			if testMetric.Value.(float64) != expect {
+				t.Fatalf("expected %v got %v", expect, testMetric.Value)
+			}
 		}
-		expect := float64(1234)
-		if testMetric.Value.(float64) != expect {
-			t.Fatalf("expected %v got %v", expect, testMetric.Value)
+
+		// test 2
+		{
+			// http_requests_total{method="post",code="400"}
+			mn := "prom`http_requests_total|ST[code:400,method:post]"
+			testMetric, ok := (*m)[mn]
+			if !ok {
+				t.Fatalf("expected metric '%s', %#v", mn, m)
+			}
+			expect := float64(3)
+			if testMetric.Value.(float64) != expect {
+				t.Fatalf("expected %v got %v", expect, testMetric.Value)
+			}
 		}
 	}
 }

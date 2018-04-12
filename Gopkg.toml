@@ -68,9 +68,11 @@ required = ["github.com/go-ole/go-ole"]
   branch = "v2"
   name = "gopkg.in/yaml.v2"
 
-[[constraint]]
-  branch = "master"
-  name = "github.com/xi2/httpgzip"
+# gzip'ing manually now - broker cannot handle chunked gzip'd
+# respones - a Content-Length header is required (at start)
+# [[constraint]]
+#   branch = "master"
+#   name = "github.com/xi2/httpgzip"
 
 # need to add a constraint on go-ole for wmi
 # wmi uses "master" rather than the semver release of go-ole

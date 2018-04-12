@@ -11,7 +11,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -63,7 +65,7 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 	lastMeticsmu.Lock()
 	defer lastMeticsmu.Unlock()
 
-	metrics := map[string]interface{}{}
+	metrics := cgm.Metrics{} //map[string]interface{}{}
 
 	// default to true if id is blank, otherwise set all to false
 	runBuiltins := id == ""
@@ -89,8 +91,12 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if runBuiltins {
+		s.logger.Debug().Msg("starting builtin run")
 		s.builtins.Run(id)
+		s.logger.Debug().Msg("builtin run done")
+		s.logger.Debug().Msg("calling builtin flush")
 		builtinMetrics := s.builtins.Flush(id)
+		s.logger.Debug().Msg("builtin flush done")
 		for metricName, metric := range *builtinMetrics {
 			metrics[metricName] = metric
 		}
@@ -100,20 +106,14 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 		// NOTE: errors are ignored from plugins.Run
 		//       1. errors are already logged by Run
 		//       2. do not expose execution state to callers
-		s.logger.Debug().Msg("calling plugin run")
+		s.logger.Debug().Msg("starting plugin run")
 		s.plugins.Run(id)
 		s.logger.Debug().Msg("plugin run done")
 		s.logger.Debug().Msg("calling plugin flush")
 		pluginMetrics := s.plugins.Flush(id)
 		s.logger.Debug().Msg("plugin flush done")
 		for metricName, metric := range *pluginMetrics {
-			if v, ok := metric.(*cgm.Metrics); ok {
-				for mn, mv := range *v {
-					metrics[metricName+config.MetricNameSeparator+mn] = mv
-				}
-			} else {
-				metrics[metricName] = metric
-			}
+			metrics[metricName] = metric
 		}
 	}
 
@@ -136,7 +136,6 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 				for metricName, metric := range *statsdMetrics {
 					metrics[pfx+config.MetricNameSeparator+metricName] = metric
 				}
-				// metrics[viper.GetString(config.KeyStatsdHostCategory)] = statsdMetrics
 			}
 		}
 	}
@@ -164,6 +163,8 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 	s.logger.Debug().Msg("encoding metrics")
 	s.encodeResponse(&metrics, w, r)
 	s.logger.Debug().Msg("encoding done")
+
+	s.logger.Info().Msgf("sent %d metrics", len(metrics))
 }
 
 // encodeResponse takes care of encoding the response to an HTTP request for metrics.
@@ -172,7 +173,7 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 // is supplied (Accept-Encoding: * or Accept-Encoding: gzip). The command line option
 // --no-gzip overrides and will result in unencoded response regardless of what the
 // Accept-Encoding header specifies.
-func (s *Server) encodeResponse(m *map[string]interface{}, w http.ResponseWriter, r *http.Request) {
+func (s *Server) encodeResponse(m *cgm.Metrics, w http.ResponseWriter, r *http.Request) {
 	//
 	// if an error occurs, it is logged and empty {} metrics are returned
 	//
@@ -182,6 +183,7 @@ func (s *Server) encodeResponse(m *map[string]interface{}, w http.ResponseWriter
 	w.Header().Set("Content-Type", "application/json")
 
 	var data []byte
+	var jsonData []byte
 	var err error
 	var useGzip bool
 
@@ -190,38 +192,55 @@ func (s *Server) encodeResponse(m *map[string]interface{}, w http.ResponseWriter
 	} else {
 		acceptedEncodings := r.Header.Get("Accept-Encoding")
 		useGzip = strings.Contains(acceptedEncodings, "*") || strings.Contains(acceptedEncodings, "gzip")
+		s.logger.Debug().Bool("gzip", useGzip).Str("accept_encoding", acceptedEncodings).Msg("compressing response")
 	}
+
+	jsonData, err = json.Marshal(m)
+	if err != nil {
+		// log the error and respond with empty metrics
+		s.logger.Error().
+			Err(err).
+			Interface("metrics", m).
+			Msg("encoding metrics to JSON for response")
+		jsonData = []byte("{}")
+	}
+	data = jsonData
 
 	if useGzip {
 		var buf bytes.Buffer
 		gz := gzip.NewWriter(&buf)
-		err = json.NewEncoder(gz).Encode(m)
+		_, err := gz.Write(jsonData)
 		gz.Close()
-
 		if err != nil {
 			// log the error and respond with empty metrics
 			s.logger.Error().
 				Err(err).
-				Msg("Writing metrics to response")
+				Msg("compressing metrics")
 			data = []byte("{}")
 		} else {
 			w.Header().Set("Content-Encoding", "gzip")
 			data = buf.Bytes()
 		}
-	} else {
-		data, err = json.Marshal(m)
-		if err != nil {
-			// log the error and respond with empty metrics
-			s.logger.Error().
-				Err(err).
-				Interface("metrics", m).
-				Msg("Encoding metrics to JSON for response")
-			data = []byte("{}")
-		}
 	}
 
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
-	w.Write(data)
+	if _, err := w.Write(data); err != nil {
+		s.logger.Error().
+			Err(err).
+			Msg("writing metrics to response")
+		return
+	}
+
+	dumpDir := viper.GetString(config.KeyDebugDumpMetrics)
+	if dumpDir != "" {
+		dumpFile := filepath.Join(dumpDir, "metrics_"+time.Now().Format("20060102_150405")+".json")
+		if err := ioutil.WriteFile(dumpFile, jsonData, 0644); err != nil {
+			s.logger.Error().
+				Err(err).
+				Str("file", dumpFile).
+				Msg("dumping metrics")
+		}
+	}
 }
 
 // inventory returns the current, active plugin inventory

@@ -34,11 +34,11 @@ func (c *Connection) sendMetricData(r io.Writer, channelID uint16, data *[]byte)
 		if c.conn != nil {
 			c.conn.SetDeadline(time.Now().Add(c.commTimeout))
 		}
-		sentBytes, err := r.Write(frame)
+		_, err := r.Write(frame)
 		if err != nil {
 			return errors.Wrap(err, "writing metric data")
 		}
-		offset += sentBytes
+		offset += len(buff)
 	}
 
 	c.logger.Debug().

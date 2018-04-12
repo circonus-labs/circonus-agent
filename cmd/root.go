@@ -614,6 +614,19 @@ func init() {
 
 	{
 		const (
+			key         = config.KeyDebugDumpMetrics
+			longOpt     = "debug-dump-metrics"
+			envVar      = release.ENVPREFIX + "_DEBUG_DUMP_METRICS"
+			description = "Directory to dump sent metrics"
+		)
+
+		RootCmd.Flags().String(longOpt, "", desc(description, envVar))
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+	}
+
+	{
+		const (
 			key         = config.KeyLogLevel
 			longOpt     = "log-level"
 			envVar      = release.ENVPREFIX + "_LOG_LEVEL"

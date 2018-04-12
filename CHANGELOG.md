@@ -1,3 +1,22 @@
+# v0.11.0
+
+* upd: remove deprecated options/defaults
+* doc: clarify comment in frame handling
+* upd: honor RESETs from broker on reverse
+* upd: use stream tag syntax by default for supported sources
+* add: warn logging on duplicate metric names
+* add: debug log summary of lines processed, metrics found, errors, and duplicates found while processing exec plugin output
+* add: --debug-dump-metrics option to dump json sent to broker (option argument is a directory name where the user running circonus-agentd has write permissions. output file name format metrics_ccyymmdd_hhmmss.json)
+* add: more tests to check package (state)
+* add: more tests to check package (metrics)
+* upd: switch from using map[string]interface{} to only using cgm.Metrics for metrics
+* fix: issue with incrementing offset by bytes sent rather than payload length
+* upd: check.New func signature in reverse tests
+* upd: dependencies
+* upd: remove httpgzip constraint
+* add: tests for ParseListen
+* doc: comment ParseListen
+
 # v0.10.0
 
 * fix: revert to check bundle updates vs check bundle metrics endpoint until histogram issue resolved

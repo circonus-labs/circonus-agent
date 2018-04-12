@@ -262,13 +262,30 @@ func TestCollect(t *testing.T) {
 	if len(m) != numExpected {
 		t.Fatalf("expected %d metrics, got %d", numExpected, len(m))
 	}
-	testMetric, ok := m["foo`test"]
-	if !ok {
-		t.Fatalf("expected metric 'prom`test', %#v", m)
+
+	{
+		mn := "foo`test"
+		testMetric, ok := m[mn]
+		if !ok {
+			t.Fatalf("expected metric '%s', %#v", mn, m)
+		}
+		expect := float64(1234)
+		if testMetric.Value.(float64) != expect {
+			t.Fatalf("expected %v got %v", expect, testMetric.Value)
+		}
 	}
-	expect := float64(1234)
-	if testMetric.Value.(float64) != expect {
-		t.Fatalf("expected %v got %v", expect, testMetric.Value)
+
+	{
+		// http_requests_total{method="post",code="400"}
+		mn := "foo`http_requests_total|ST[code:400,method:post]"
+		testMetric, ok := m[mn]
+		if !ok {
+			t.Fatalf("expected metric '%s', %#v", mn, m)
+		}
+		expect := float64(3)
+		if testMetric.Value.(float64) != expect {
+			t.Fatalf("expected %v got %v", expect, testMetric.Value)
+		}
 	}
 
 }

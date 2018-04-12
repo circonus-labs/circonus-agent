@@ -85,7 +85,7 @@ func Parse(data io.ReadCloser) error {
 			metricName := id + metricNameSeparator + nameCleanerRx.ReplaceAllString(mn, "")
 			labels := getLabels(m)
 			if len(labels) > 0 {
-				metricName += metricNameSeparator + strings.Join(labels, metricNameSeparator)
+				metricName += "|ST[" + strings.Join(labels, ",") + "]"
 			}
 			if mf.GetType() == dto.MetricType_SUMMARY {
 				metrics.Gauge(metricName+"_count", float64(m.GetSummary().GetSampleCount()))
@@ -138,7 +138,7 @@ func getLabels(m *dto.Metric) []string {
 	sort.Strings(keys)
 
 	for _, label := range keys {
-		ret = append(ret, label+"="+labels[label])
+		ret = append(ret, label+":"+labels[label])
 	}
 	return ret
 }

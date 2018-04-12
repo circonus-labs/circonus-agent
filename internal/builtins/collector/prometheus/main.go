@@ -232,7 +232,7 @@ func (c *Prom) parse(id string, data io.ReadCloser, metrics *cgm.Metrics) error 
 			metricName := mn
 			labels := c.getLabels(m)
 			if len(labels) > 0 {
-				metricName += metricNameSeparator + strings.Join(labels, metricNameSeparator)
+				metricName += "|ST[" + strings.Join(labels, ",") + "]"
 			}
 			if mf.GetType() == dto.MetricType_SUMMARY {
 				c.addMetric(metrics, pfx, metricName+"_count", "n", float64(m.GetSummary().GetSampleCount()))
@@ -284,7 +284,7 @@ func (c *Prom) getLabels(m *dto.Metric) []string {
 	sort.Strings(keys)
 
 	for _, label := range keys {
-		ret = append(ret, label+"="+labels[label])
+		ret = append(ret, label+":"+labels[label])
 	}
 	return ret
 }

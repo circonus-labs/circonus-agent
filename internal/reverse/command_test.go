@@ -22,7 +22,7 @@ func TestGetCommandFromBroker(t *testing.T) {
 
 	t.Log("valid")
 	{
-		chk, cerr := check.New()
+		chk, cerr := check.New(nil)
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
@@ -55,7 +55,7 @@ func TestGetCommandFromBroker(t *testing.T) {
 
 	t.Log("invalid (data before command)")
 	{
-		chk, cerr := check.New()
+		chk, cerr := check.New(nil)
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
@@ -81,7 +81,7 @@ func TestGetCommandFromBroker(t *testing.T) {
 
 	t.Log("invalid (two commands)")
 	{
-		chk, cerr := check.New()
+		chk, cerr := check.New(nil)
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
@@ -134,7 +134,7 @@ func TestGetFrameFromBroker(t *testing.T) {
 
 	for _, tst := range tt {
 		t.Log(tst.description)
-		chk, cerr := check.New()
+		chk, cerr := check.New(nil)
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
