@@ -14,10 +14,10 @@ import (
 	stdlog "log"
 	"math"
 	"regexp"
-	"sort"
 	"strings"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/pkg/errors"
 	dto "github.com/prometheus/client_model/go"
@@ -83,9 +83,9 @@ func Parse(data io.ReadCloser) error {
 	for mn, mf := range metricFamilies {
 		for _, m := range mf.Metric {
 			metricName := id + metricNameSeparator + nameCleanerRx.ReplaceAllString(mn, "")
-			labels := getLabels(m)
-			if len(labels) > 0 {
-				metricName += "|ST[" + strings.Join(labels, ",") + "]"
+			streamTags := getLabels(m)
+			if streamTags != "" {
+				metricName += streamTags
 			}
 			if mf.GetType() == dto.MetricType_SUMMARY {
 				metrics.Gauge(metricName+"_count", float64(m.GetSummary().GetSampleCount()))
@@ -120,19 +120,29 @@ func Parse(data io.ReadCloser) error {
 	return nil
 }
 
-func getLabels(m *dto.Metric) []string {
-	ret := []string{}
+func getLabels(m *dto.Metric) string {
+	labels := []string{}
+
 	for _, label := range m.Label {
 		if label.Name != nil && label.Value != nil {
 			ln := nameCleanerRx.ReplaceAllString(*label.Name, "")
 			lv := nameCleanerRx.ReplaceAllString(*label.Value, "")
-			ret = append(ret, ln+":"+lv)
+			labels = append(labels, ln+tags.Delimiter+lv) // stream tags take form cat:val
 		}
 	}
 
-	sort.Strings(ret)
+	if len(labels) > 0 {
+		tagList := strings.Join(labels, tags.Separator)
+		t, err := tags.PrepStreamTags(tagList)
+		if err != nil {
+			logger.Warn().Err(err).Str("tags", tagList).Msg("ignoring labels")
+		}
+		if t != "" {
+			return t
+		}
+	}
 
-	return ret
+	return ""
 }
 
 func getQuantiles(m *dto.Metric) map[string]float64 {
