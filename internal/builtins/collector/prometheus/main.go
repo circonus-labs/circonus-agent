@@ -269,23 +269,17 @@ func (c *Prom) parse(id string, data io.ReadCloser, metrics *cgm.Metrics) error 
 
 func (c *Prom) getLabels(m *dto.Metric) []string {
 	ret := []string{}
-	// sort for predictive metric names
-	var keys []string
-	labels := make(map[string]string)
 	for _, label := range m.Label {
 		if label.Name != nil && label.Value != nil {
 			ln := c.metricNameRegex.ReplaceAllString(*label.Name, "")
 			lv := c.metricNameRegex.ReplaceAllString(*label.Value, "")
-			labels[ln] = lv
-			keys = append(keys, ln)
+			ret = append(ret, ln+":"+lv) // stream tags take form cat:val
 		}
 	}
 
-	sort.Strings(keys)
+	// sort for predictive metric names
+	sort.Strings(ret)
 
-	for _, label := range keys {
-		ret = append(ret, label+":"+labels[label])
-	}
 	return ret
 }
 
