@@ -128,7 +128,7 @@ func TestParsePluginOutput(t *testing.T) {
 		{"invalid uint64", []string{"metric\tL\tfoo"}, 0},
 		{"invalid double", []string{"metric\tn\tfoo"}, 0},
 		{"invalid delimiter", []string{"metric L 1"}, 0},
-		{"invalid number of fields", []string{"metric\tL\t1\tfoo"}, 0},
+		{"invalid number of fields", []string{"metric\tL\t1\tfoo\tbar"}, 0},
 		{"invalid metric type", []string{"metric\tfoo\t1"}, 0},
 		{"invalid metric type", []string{"metric\t\t1"}, 0},
 	}

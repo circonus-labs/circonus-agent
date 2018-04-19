@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/pkg/errors"
 )
@@ -76,9 +77,10 @@ func (p *plugin) parsePluginOutput(output []string) error {
 
 	// otherwise, assume it is delimited fields:
 	//  fieldDelimiter is current TAB
-	//  metric_name<TAB>metric_type[<TAB>metric_value]
+	//  metric_name<TAB>metric_type[<TAB>metric_value<TAB>tags]
 	//  foo\ti\t10  - int32 foo w/value 10
 	//  bar\tL      - uint64 bar w/o value (null, metric is present but has no value)
+	// note: tags is a comma separated list of key:value pairs (e.g. foo:bar,cat:dog)
 	metricTypes := regexp.MustCompile("^[iIlLnOs]$")
 	for _, line := range output {
 		delimCount := strings.Count(line, fieldDelimiter)
@@ -90,12 +92,12 @@ func (p *plugin) parsePluginOutput(output []string) error {
 		}
 
 		fields := strings.Split(line, fieldDelimiter)
-		if len(fields) <= 1 || len(fields) > 3 {
+		if len(fields) <= 1 || len(fields) > 4 {
 			p.logger.Error().
 				Str("line", line).
 				Int("fields", len(fields)).
 				Int("delimiters", delimCount).
-				Msg("invalid number of fields, expect 2 or 3")
+				Msg("invalid number of fields - expect 2, 3, or 4")
 			continue
 		}
 
@@ -126,6 +128,18 @@ func (p *plugin) parsePluginOutput(output []string) error {
 		}
 
 		metricValue := fields[2]
+
+		// add stream tags to metric name
+		if len(fields) == 4 {
+			metricTags := fields[3]
+			t, err := tags.PrepStreamTags(metricTags)
+			if err != nil {
+				p.logger.Warn().Err(err).Str("metric", metricName).Str("tags", metricTags).Msg("ignoring tags")
+			}
+			if t != "" {
+				metricName += t
+			}
+		}
 
 		// intentionally null value, explicit syntax
 		if strings.ToLower(metricValue) == nullMetricValue {
