@@ -44,7 +44,9 @@ Plugin output (whether json or tab-delimited) supports the following types:
 
 ### Tab delimited
 
-`metric_name<TAB>metric_type<TAB>metric_value`
+`metric_name<TAB>metric_type<TAB>metric_value[<TAB>tag_list]`
+
+The *tag_list* is optional, a comma separated list of key:value pairs to use as Stream Tags.
 
 ### JSON
 
@@ -61,3 +63,5 @@ Plugin output (whether json or tab-delimited) supports the following types:
     ...
 }
 ```
+
+> Note: to add Stream Tags to JSON plugin output, use the following syntax: `metric_name|ST[tag_list]`. Where *tag_list* is a comma separated list of key:value pairs. It is recommended that the tags are sorted.
