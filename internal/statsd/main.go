@@ -65,7 +65,7 @@ func New() (*Server, error) {
 	}
 
 	s.address = addr
-	s.metricRegex = regexp.MustCompile(`^(?P<name>[^:\s]+):(?P<value>[^|\s]+)\|(?P<type>[a-z]+)(?:@(?P<sample>[0-9.]+))?$`)
+	s.metricRegex = regexp.MustCompile(`^(?P<name>[^:\s]+):(?P<value>[^|\s]+)\|(?P<type>[a-z]+)(?:\|@(?P<sample>[0-9.]+))?(?:\|#(?P<tags>[^:,]+:[^:,]+(,[^:,]+:[^:,]+)*))?$`)
 	s.metricRegexGroupNames = s.metricRegex.SubexpNames()
 
 	if !s.disabled {
