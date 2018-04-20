@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -66,7 +67,7 @@ func Parse(id string, data io.ReadCloser) error {
 	metricsmu.Lock()
 	defer metricsmu.Unlock()
 
-	var tmp cgm.Metrics
+	var tmp tags.JSONMetrics // cgm.Metrics
 	if err := json.NewDecoder(data).Decode(&tmp); err != nil {
 		if serr, ok := err.(*json.SyntaxError); ok {
 			return errors.Wrapf(serr, "id:%s - offset %d", id, serr.Offset)
@@ -76,6 +77,13 @@ func Parse(id string, data io.ReadCloser) error {
 
 	for name, metric := range tmp {
 		metricName := strings.Join([]string{id, name}, config.MetricNameSeparator)
+		if len(metric.Tags) > 0 {
+			st, err := tags.PrepStreamTags(strings.Join(metric.Tags, tags.Separator))
+			if err != nil {
+				log.Warn().Err(err).Str("pkg", "receiver").Str("metric", metricName).Strs("tags", metric.Tags).Msg("ignoring tags")
+			}
+			metricName += st
+		}
 		switch metric.Type {
 		case "i":
 			if v := parseInt32(metricName, metric); v != nil {
@@ -119,7 +127,7 @@ func Parse(id string, data io.ReadCloser) error {
 	return nil
 }
 
-func parseInt32(metricName string, metric cgm.Metric) *int32 {
+func parseInt32(metricName string, metric tags.JSONMetric) *int32 {
 	switch t := metric.Value.(type) {
 	case float64:
 		v := int32(metric.Value.(float64))
@@ -147,7 +155,7 @@ func parseInt32(metricName string, metric cgm.Metric) *int32 {
 	return nil
 }
 
-func parseUint32(metricName string, metric cgm.Metric) *uint32 {
+func parseUint32(metricName string, metric tags.JSONMetric) *uint32 {
 	switch t := metric.Value.(type) {
 	case float64:
 		v := uint32(metric.Value.(float64))
@@ -175,7 +183,7 @@ func parseUint32(metricName string, metric cgm.Metric) *uint32 {
 	return nil
 }
 
-func parseInt64(metricName string, metric cgm.Metric) *int64 {
+func parseInt64(metricName string, metric tags.JSONMetric) *int64 {
 	switch t := metric.Value.(type) {
 	case float64:
 		v := int64(metric.Value.(float64))
@@ -203,7 +211,7 @@ func parseInt64(metricName string, metric cgm.Metric) *int64 {
 	return nil
 }
 
-func parseUint64(metricName string, metric cgm.Metric) *uint64 {
+func parseUint64(metricName string, metric tags.JSONMetric) *uint64 {
 	switch t := metric.Value.(type) {
 	case float64:
 		v := uint64(metric.Value.(float64))
@@ -231,7 +239,7 @@ func parseUint64(metricName string, metric cgm.Metric) *uint64 {
 	return nil
 }
 
-func parseFloat(metricName string, metric cgm.Metric) (*float64, bool) {
+func parseFloat(metricName string, metric tags.JSONMetric) (*float64, bool) {
 	switch t := metric.Value.(type) {
 	case float64:
 		v := metric.Value.(float64)
@@ -267,7 +275,7 @@ type histSample struct {
 	value  float64
 }
 
-func parseHistogram(metricName string, metric cgm.Metric) *[]histSample {
+func parseHistogram(metricName string, metric tags.JSONMetric) *[]histSample {
 	switch t := metric.Value.(type) {
 	case []interface{}:
 		ret := make([]histSample, 0, len(metric.Value.([]interface{})))

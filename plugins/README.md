@@ -57,6 +57,7 @@ The *tag_list* is optional, a comma separated list of key:value pairs to use as 
         "_value": "metric_value"
     },
     "metric_name2": {
+        "_tags": ["cat1:val1,cat2:val2"],
         "_type": "metric_type",
         "_value": "metric_value"
     },
@@ -64,4 +65,4 @@ The *tag_list* is optional, a comma separated list of key:value pairs to use as 
 }
 ```
 
-> Note: to add Stream Tags to JSON plugin output, use the following syntax: `metric_name|ST[tag_list]`. Where *tag_list* is a comma separated list of key:value pairs. It is recommended that the tags are sorted.
+The JSON `_tags` attribute will be converted into stream tags format embedded into the metric name.

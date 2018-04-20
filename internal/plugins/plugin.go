@@ -62,7 +62,8 @@ func (p *plugin) parsePluginOutput(output []string) error {
 
 	// if first char of first line is '{' then assume output is json
 	if output[0][:1] == "{" {
-		err := json.Unmarshal([]byte(strings.Join(output, "\n")), &metrics)
+		var jm tags.JSONMetrics
+		err := json.Unmarshal([]byte(strings.Join(output, "\n")), &jm)
 		if err != nil {
 			p.logger.Error().
 				Err(err).
@@ -70,6 +71,16 @@ func (p *plugin) parsePluginOutput(output []string) error {
 				Msg("parsing json")
 			p.metrics = &cgm.Metrics{}
 			return errors.Wrap(err, "parsing json")
+		}
+		for mn, md := range jm {
+			if len(md.Tags) > 0 {
+				st, err := tags.PrepStreamTags(strings.Join(md.Tags, tags.Separator))
+				if err != nil {
+					p.logger.Warn().Err(err).Str("metric", mn).Strs("tags", md.Tags).Msg("ignoring tags")
+				}
+				mn += st
+			}
+			metrics[mn] = cgm.Metric{Type: md.Type, Value: md.Value}
 		}
 		p.metrics = &metrics
 		return nil

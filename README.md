@@ -134,6 +134,7 @@ HTTP POST `http://127.0.0.1:2609/write/test` with a payload of:
         "_value": 32
     },
     "t2": {
+        "_tags": ["abc:123"],
         "_type": "s",
         "_value": "foo"
     }
@@ -144,7 +145,7 @@ Would result in metrics in the Circonus UI of:
 
 ```
 test`t1 numeric 32
-test`t2 text "foo"
+test`t2|ST[abc:123] text "foo"
 ```
 
 
@@ -184,6 +185,7 @@ Configuration:
 
 For complete list of collectors and details on collector specific configuration see [etc/README.md](etc/README.md#collector-configurations).
 
+To disable all default builtin collectors pass `--connectors=""` on the command line or configure `collectors` attribute in a configuration file.
 
 # Manual build
 

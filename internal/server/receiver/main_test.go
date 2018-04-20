@@ -14,7 +14,7 @@ import (
 	"strings"
 	"testing"
 
-	cgm "github.com/circonus-labs/circonus-gometrics"
+	"github.com/circonus-labs/circonus-agent/internal/tags"
 	"github.com/rs/zerolog"
 )
 
@@ -292,15 +292,32 @@ func TestParse(t *testing.T) {
 			t.Fatalf("expected no metric got, %#v", testMetric)
 		}
 	}
+
+	t.Log("\twith tags")
+	{
+		data := []byte(`{"test": {"_tags": ["c1:v1","c2:v2"], "_type": "n", "_value": 1}}`)
+		r := ioutil.NopCloser(bytes.NewReader(data))
+		err := Parse("testg", r)
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
+		mn := "testg`test|ST[c1:v1,c2:v2]"
+		m := metrics.FlushMetrics()
+		_, ok := (*m)[mn]
+		if !ok {
+			t.Fatalf("expected metric '%s', %#v", mn, m)
+		}
+	}
+
 }
 
-func createMetric(t string, v interface{}) cgm.Metric {
+func createMetric(t string, v interface{}) tags.JSONMetric {
 
 	// convert native literal types to json then back to
-	// simulate parsed values comming in from a POST|PUT
+	// simulate parsed values coming in from a POST|PUT
 	// iow, what would be _coming_ from receive.Parse()
 
-	m := cgm.Metric{Type: t, Value: v}
+	m := tags.JSONMetric{Type: t, Value: v}
 	b, err := json.Marshal(m)
 	if err != nil {
 		panic(err)
