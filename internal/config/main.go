@@ -37,7 +37,7 @@ func Validate() error {
 	}
 
 	if viper.GetString(KeyCheckBundleID) != "" && viper.GetBool(KeyCheckCreate) {
-		return errors.New("Use --check-create OR --check-id, they are mutually exclusive.")
+		return errors.New("use --check-create OR --check-id, they are mutually exclusive")
 	}
 
 	return nil
