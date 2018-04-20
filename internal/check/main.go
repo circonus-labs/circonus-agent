@@ -29,9 +29,10 @@ func New(apiClient API) (*Check, error) {
 		updateMetricStates: false,
 		refreshTTL:         time.Duration(0),
 		logger:             log.With().Str("pkg", "check").Logger(),
-		statePath:          defaults.StatePath,
-		stateFile:          filepath.Join(defaults.StatePath, "metrics.json"),
+		statePath:          viper.GetString(config.KeyStateDir),
 	}
+
+	c.stateFile = filepath.Join(c.statePath, "metrics.json")
 
 	isCreate := viper.GetBool(config.KeyCheckCreate)
 	isManaged := viper.GetBool(config.KeyCheckEnableNewMetrics)

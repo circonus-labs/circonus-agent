@@ -97,6 +97,7 @@ type Config struct {
 	Reverse          Reverse  `json:"reverse" yaml:"reverse" toml:"reverse"`
 	SSL              SSL      `json:"ssl" yaml:"ssl" toml:"ssl"`
 	StatsD           StatsD   `json:"statsd" yaml:"statsd" toml:"statsd"`
+	StateDir         string   `mapstructure:"state_dir" json:"state_dir" yaml:"state_dir" toml:"state_dir"`
 }
 
 type cosiCheckConfig struct {
@@ -228,6 +229,9 @@ const (
 
 	// KeyCheckTags a specific set of tags to use when creating a new check bundle
 	KeyCheckTags = "check.tags"
+
+	// KeyStateDir defines the path where check metric state will be maintained when --check-enable-new-metrics is turned on
+	KeyStateDir = "state_dir"
 
 	cosiName = "cosi"
 )

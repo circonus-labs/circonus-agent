@@ -309,6 +309,20 @@ func init() {
 
 	{
 		const (
+			key         = config.KeyStateDir
+			longOpt     = "state-dir"
+			envVar      = release.ENVPREFIX + "_STATE_DIR"
+			description = "State directory for enable new metrics (must be writeable by user running agent)"
+		)
+
+		RootCmd.Flags().String(longOpt, defaults.StatePath, desc(description, envVar))
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+		viper.SetDefault(key, defaults.StatePath)
+	}
+
+	{
+		const (
 			key         = config.KeyCheckMetricRefreshTTL
 			longOpt     = "check-metric-refresh-ttl"
 			envVar      = release.ENVPREFIX + "_CHECK_METRIC_REFRESH_TTL"
