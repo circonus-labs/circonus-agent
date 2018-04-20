@@ -309,16 +309,16 @@ func init() {
 
 	{
 		const (
-			key         = config.KeyStateDir
-			longOpt     = "state-dir"
-			envVar      = release.ENVPREFIX + "_STATE_DIR"
-			description = "State directory for enable new metrics (must be writeable by user running agent)"
+			key         = config.KeyCheckMetricStateDir
+			longOpt     = "check-metric-state-dir"
+			envVar      = release.ENVPREFIX + "_CHECK_METRIC_STATE_DIR"
+			description = "Metric state directory for enable new metrics (must be writeable by user running agent)"
 		)
 
-		RootCmd.Flags().String(longOpt, defaults.StatePath, desc(description, envVar))
+		RootCmd.Flags().String(longOpt, defaults.CheckMetricStatePath, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
-		viper.SetDefault(key, defaults.StatePath)
+		viper.SetDefault(key, defaults.CheckMetricStatePath)
 	}
 
 	{

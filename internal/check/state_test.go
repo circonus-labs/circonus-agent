@@ -114,8 +114,8 @@ func TestVerifyStatePath(t *testing.T) {
 	t.Log("statePath (empty)")
 	{
 		viper.Reset()
-		viper.Set(config.KeyStateDir, "")
-		c := Check{statePath: viper.GetString(config.KeyStateDir)}
+		viper.Set(config.KeyCheckMetricStateDir, "")
+		c := Check{statePath: viper.GetString(config.KeyCheckMetricStateDir)}
 
 		_, err := c.verifyStatePath()
 		if err == nil {
@@ -129,8 +129,8 @@ func TestVerifyStatePath(t *testing.T) {
 	t.Log("statePath (missing)")
 	{
 		viper.Reset()
-		viper.Set(config.KeyStateDir, "testdata/state/missing")
-		c := Check{statePath: viper.GetString(config.KeyStateDir)}
+		viper.Set(config.KeyCheckMetricStateDir, "testdata/state/missing")
+		c := Check{statePath: viper.GetString(config.KeyCheckMetricStateDir)}
 
 		_, err := c.verifyStatePath()
 		if err == nil {
@@ -144,8 +144,8 @@ func TestVerifyStatePath(t *testing.T) {
 	t.Log("statePath (not directory)")
 	{
 		viper.Reset()
-		viper.Set(config.KeyStateDir, "testdata/state/not_a_dir")
-		c := Check{statePath: viper.GetString(config.KeyStateDir)}
+		viper.Set(config.KeyCheckMetricStateDir, "testdata/state/not_a_dir")
+		c := Check{statePath: viper.GetString(config.KeyCheckMetricStateDir)}
 
 		_, err := c.verifyStatePath()
 		if err == nil {
@@ -159,8 +159,8 @@ func TestVerifyStatePath(t *testing.T) {
 	t.Log("statePath (valid)")
 	{
 		viper.Reset()
-		viper.Set(config.KeyStateDir, "testdata/state")
-		c := Check{statePath: viper.GetString(config.KeyStateDir)}
+		viper.Set(config.KeyCheckMetricStateDir, "testdata/state")
+		c := Check{statePath: viper.GetString(config.KeyCheckMetricStateDir)}
 
 		ok, err := c.verifyStatePath()
 		if err != nil {

@@ -29,7 +29,7 @@ func New(apiClient API) (*Check, error) {
 		updateMetricStates: false,
 		refreshTTL:         time.Duration(0),
 		logger:             log.With().Str("pkg", "check").Logger(),
-		statePath:          viper.GetString(config.KeyStateDir),
+		statePath:          viper.GetString(config.KeyCheckMetricStateDir),
 	}
 
 	c.stateFile = filepath.Join(c.statePath, "metrics.json")
