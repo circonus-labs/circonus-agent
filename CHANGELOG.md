@@ -1,3 +1,20 @@
+# v0.12.0
+
+* add: `-E` as a short option for `--check-enable-new-metrics`
+* add: `--check-metric-state-dir` configuration option
+* doc: stream tag support for JSON plugin output and JSON receiver
+* add: stream tag support to parsers for JSON plugin output and JSON receiver /write/... endpoint
+* doc: stream tag support to exec plugin output
+* add: stream tag support to exec plugin output parser
+* doc: stream tag support for StatsD receiver
+* add: stream tag support to StatsD receiver metric parser
+* upd: fix StatsD metric syntax for rates, require `|@`
+* upd: optimize label handling in prometheus receiver/collector
+* add: tags package, centralize handling of tag list to stream tag spec
+* upd: allow underscore in plugin name with /run/... endpoint
+* add: error message when both `--check-create` and `--check-id` options are specified
+* upd: build constraint to go1.10
+
 # v0.11.0
 
 * upd: remove deprecated options/defaults
