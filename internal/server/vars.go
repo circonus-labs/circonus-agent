@@ -60,9 +60,9 @@ type previousMetrics struct {
 }
 
 var (
-	pluginPathRx    = regexp.MustCompile("^/(run(/[a-zA-Z0-9-]*)?)?$")
+	pluginPathRx    = regexp.MustCompile("^/(run(/[a-zA-Z0-9_-]*)?)?$")
 	inventoryPathRx = regexp.MustCompile("^/inventory/?$")
-	writePathRx     = regexp.MustCompile("^/write/[a-zA-Z0-9-]+$")
+	writePathRx     = regexp.MustCompile("^/write/[a-zA-Z0-9_-]+$")
 	statsPathRx     = regexp.MustCompile("^/stats/?$")
 	promPathRx      = regexp.MustCompile("^/prom/?$")
 	lastMetrics     = &previousMetrics{}

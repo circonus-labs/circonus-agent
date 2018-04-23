@@ -38,6 +38,7 @@ type Check struct {
 	BundleID         string `mapstructure:"bundle_id" json:"bundle_id" yaml:"bundle_id" toml:"bundle_id"`
 	Create           bool   `mapstructure:"create" json:"create" yaml:"create" toml:"create"`
 	EnableNewMetrics bool   `mapstructure:"enable_new_metrics" json:"enable_new_metrics" yaml:"enable_new_metrics" toml:"enable_new_metrics"`
+	MetricStateDir   string `mapstructure:"metric_state_dir" json:"metric_state_dir" yaml:"metric_state_dir" toml:"metric_state_dir"`
 	MetricRefreshTTL string `mapstructure:"metric_refresh_ttl" json:"metric_refresh_ttl" yaml:"metric_refresh_ttl" toml:"metric_refresh_ttl"`
 	Tags             string `json:"tags" yaml:"tags" toml:"tags"`
 	Target           string `mapstructure:"target" json:"target" yaml:"target" toml:"target"`
@@ -214,6 +215,8 @@ const (
 
 	// KeyCheckEnableNewMetrics toggles automatically enabling new metrics
 	KeyCheckEnableNewMetrics = "check.enable_new_metrics"
+	// KeyCheckMetricStateDir defines the path where check metric state will be maintained when --check-enable-new-metrics is turned on
+	KeyCheckMetricStateDir = "check.metric_state_dir"
 	// KeyCheckMetricRefreshTTL determines how often to refresh check bundle metrics from API when enable new metrics is turned on
 	KeyCheckMetricRefreshTTL = "check.metric_refresh_ttl"
 

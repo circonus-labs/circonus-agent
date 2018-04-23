@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/pkg/errors"
 )
@@ -61,7 +62,8 @@ func (p *plugin) parsePluginOutput(output []string) error {
 
 	// if first char of first line is '{' then assume output is json
 	if output[0][:1] == "{" {
-		err := json.Unmarshal([]byte(strings.Join(output, "\n")), &metrics)
+		var jm tags.JSONMetrics
+		err := json.Unmarshal([]byte(strings.Join(output, "\n")), &jm)
 		if err != nil {
 			p.logger.Error().
 				Err(err).
@@ -70,15 +72,26 @@ func (p *plugin) parsePluginOutput(output []string) error {
 			p.metrics = &cgm.Metrics{}
 			return errors.Wrap(err, "parsing json")
 		}
+		for mn, md := range jm {
+			if len(md.Tags) > 0 {
+				st, err := tags.PrepStreamTags(strings.Join(md.Tags, tags.Separator))
+				if err != nil {
+					p.logger.Warn().Err(err).Str("metric", mn).Strs("tags", md.Tags).Msg("ignoring tags")
+				}
+				mn += st
+			}
+			metrics[mn] = cgm.Metric{Type: md.Type, Value: md.Value}
+		}
 		p.metrics = &metrics
 		return nil
 	}
 
 	// otherwise, assume it is delimited fields:
 	//  fieldDelimiter is current TAB
-	//  metric_name<TAB>metric_type[<TAB>metric_value]
+	//  metric_name<TAB>metric_type[<TAB>metric_value<TAB>tags]
 	//  foo\ti\t10  - int32 foo w/value 10
 	//  bar\tL      - uint64 bar w/o value (null, metric is present but has no value)
+	// note: tags is a comma separated list of key:value pairs (e.g. foo:bar,cat:dog)
 	metricTypes := regexp.MustCompile("^[iIlLnOs]$")
 	for _, line := range output {
 		delimCount := strings.Count(line, fieldDelimiter)
@@ -90,12 +103,12 @@ func (p *plugin) parsePluginOutput(output []string) error {
 		}
 
 		fields := strings.Split(line, fieldDelimiter)
-		if len(fields) <= 1 || len(fields) > 3 {
+		if len(fields) <= 1 || len(fields) > 4 {
 			p.logger.Error().
 				Str("line", line).
 				Int("fields", len(fields)).
 				Int("delimiters", delimCount).
-				Msg("invalid number of fields, expect 2 or 3")
+				Msg("invalid number of fields - expect 2, 3, or 4")
 			continue
 		}
 
@@ -126,6 +139,18 @@ func (p *plugin) parsePluginOutput(output []string) error {
 		}
 
 		metricValue := fields[2]
+
+		// add stream tags to metric name
+		if len(fields) == 4 {
+			metricTags := fields[3]
+			t, err := tags.PrepStreamTags(metricTags)
+			if err != nil {
+				p.logger.Warn().Err(err).Str("metric", metricName).Str("tags", metricTags).Msg("ignoring tags")
+			}
+			if t != "" {
+				metricName += t
+			}
+		}
 
 		// intentionally null value, explicit syntax
 		if strings.ToLower(metricValue) == nullMetricValue {

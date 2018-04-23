@@ -8,7 +8,9 @@ package check
 import (
 	"testing"
 
+	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/rs/zerolog"
+	"github.com/spf13/viper"
 )
 
 func TestLoadState(t *testing.T) {
@@ -111,7 +113,9 @@ func TestVerifyStatePath(t *testing.T) {
 
 	t.Log("statePath (empty)")
 	{
-		c := Check{statePath: ""}
+		viper.Reset()
+		viper.Set(config.KeyCheckMetricStateDir, "")
+		c := Check{statePath: viper.GetString(config.KeyCheckMetricStateDir)}
 
 		_, err := c.verifyStatePath()
 		if err == nil {
@@ -124,7 +128,9 @@ func TestVerifyStatePath(t *testing.T) {
 
 	t.Log("statePath (missing)")
 	{
-		c := Check{statePath: "testdata/state/missing"}
+		viper.Reset()
+		viper.Set(config.KeyCheckMetricStateDir, "testdata/state/missing")
+		c := Check{statePath: viper.GetString(config.KeyCheckMetricStateDir)}
 
 		_, err := c.verifyStatePath()
 		if err == nil {
@@ -137,7 +143,9 @@ func TestVerifyStatePath(t *testing.T) {
 
 	t.Log("statePath (not directory)")
 	{
-		c := Check{statePath: "testdata/state/not_a_dir"}
+		viper.Reset()
+		viper.Set(config.KeyCheckMetricStateDir, "testdata/state/not_a_dir")
+		c := Check{statePath: viper.GetString(config.KeyCheckMetricStateDir)}
 
 		_, err := c.verifyStatePath()
 		if err == nil {
@@ -150,7 +158,9 @@ func TestVerifyStatePath(t *testing.T) {
 
 	t.Log("statePath (valid)")
 	{
-		c := Check{statePath: "testdata/state"}
+		viper.Reset()
+		viper.Set(config.KeyCheckMetricStateDir, "testdata/state")
+		c := Check{statePath: viper.GetString(config.KeyCheckMetricStateDir)}
 
 		ok, err := c.verifyStatePath()
 		if err != nil {

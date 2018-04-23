@@ -134,6 +134,7 @@ HTTP POST `http://127.0.0.1:2609/write/test` with a payload of:
         "_value": 32
     },
     "t2": {
+        "_tags": ["abc:123"],
         "_type": "s",
         "_value": "foo"
     }
@@ -144,14 +145,16 @@ Would result in metrics in the Circonus UI of:
 
 ```
 test`t1 numeric 32
-test`t2 text "foo"
+test`t2|ST[abc:123] text "foo"
 ```
 
 
 
 # StatsD
 
-The Circonus  agent provides a StatsD listener by default (disable: `--no-statsd`, configure port: `--statsd-port`). It accepts the basic [StatsD metric types](https://github.com/etsy/statsd/blob/master/docs/metric_types.md#statsd-metric-types) as well as, Circonus specific metric types `h` and `t`.
+The Circonus  agent provides a StatsD listener by default (disable: `--no-statsd`, configure port: `--statsd-port`). It accepts the basic [StatsD metric types](https://github.com/etsy/statsd/blob/master/docs/metric_types.md#statsd-metric-types) as well as, Circonus specific metric types `h` and `t`. In addition, the StatsD listener support adding stream tags to metrics via `|#tag_list` added to a metric (where *tag_list* is a comma separated list of key:value pairs).
+
+Syntax: `name:value|type[|@rate][|#tag_list]`
 
 | Type | Note                            |
 | ---- | ------------------------------- |
@@ -182,6 +185,7 @@ Configuration:
 
 For complete list of collectors and details on collector specific configuration see [etc/README.md](etc/README.md#collector-configurations).
 
+To disable all default builtin collectors pass `--connectors=""` on the command line or configure `collectors` attribute in a configuration file.
 
 # Manual build
 

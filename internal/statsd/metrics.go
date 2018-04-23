@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/maier/go-appstats"
 	"github.com/pkg/errors"
@@ -81,6 +82,7 @@ func (s *Server) parseMetric(metric string) error {
 	metricValue := ""
 	metricRate := ""
 	sampleRate := 0.0
+	metricTags := ""
 
 	if !s.metricRegex.MatchString(metric) {
 		return errors.Errorf("invalid metric format '%s', ignoring", metric)
@@ -97,6 +99,8 @@ func (s *Server) parseMetric(metric string) error {
 				metricValue = matchVal
 			case "sample":
 				metricRate = matchVal
+			case "tags":
+				metricTags = matchVal
 			default:
 				// ignore any other groups
 			}
@@ -129,6 +133,16 @@ func (s *Server) parseMetric(metric string) error {
 
 	if dest == nil {
 		return errors.Errorf("invalid metric destination (%s)->(%s)", metric, metricDest)
+	}
+
+	if metricTags != "" {
+		t, err := tags.PrepStreamTags(metricTags)
+		if err != nil {
+			s.logger.Warn().Err(err).Str("metric", metricName).Str("tags", metricTags).Msg("ignoring tags")
+		}
+		if t != "" {
+			metricName += t
+		}
 	}
 
 	switch metricType {

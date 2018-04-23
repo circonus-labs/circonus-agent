@@ -296,14 +296,29 @@ func init() {
 		const (
 			key         = config.KeyCheckEnableNewMetrics
 			longOpt     = "check-enable-new-metrics"
+			shortOpt    = "E"
 			envVar      = release.ENVPREFIX + "_CHECK_ENABLE_NEW_METRICS"
 			description = "Automatically enable all new metrics"
 		)
 
-		RootCmd.Flags().Bool(longOpt, defaults.CheckEnableNewMetrics, desc(description, envVar))
+		RootCmd.Flags().BoolP(longOpt, shortOpt, defaults.CheckEnableNewMetrics, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 		viper.SetDefault(key, defaults.CheckEnableNewMetrics)
+	}
+
+	{
+		const (
+			key         = config.KeyCheckMetricStateDir
+			longOpt     = "check-metric-state-dir"
+			envVar      = release.ENVPREFIX + "_CHECK_METRIC_STATE_DIR"
+			description = "Metric state directory for enable new metrics (must be writeable by user running agent)"
+		)
+
+		RootCmd.Flags().String(longOpt, defaults.CheckMetricStatePath, desc(description, envVar))
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+		viper.SetDefault(key, defaults.CheckMetricStatePath)
 	}
 
 	{

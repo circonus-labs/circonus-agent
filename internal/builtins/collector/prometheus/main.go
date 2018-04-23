@@ -14,13 +14,13 @@ import (
 	"net/url"
 	"path"
 	"regexp"
-	"sort"
 	"strings"
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
+	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/pkg/errors"
 	dto "github.com/prometheus/client_model/go"
@@ -230,9 +230,9 @@ func (c *Prom) parse(id string, data io.ReadCloser, metrics *cgm.Metrics) error 
 	for mn, mf := range metricFamilies {
 		for _, m := range mf.Metric {
 			metricName := mn
-			labels := c.getLabels(m)
-			if len(labels) > 0 {
-				metricName += "|ST[" + strings.Join(labels, ",") + "]"
+			streamTags := c.getLabels(m)
+			if streamTags != "" {
+				metricName += streamTags
 			}
 			if mf.GetType() == dto.MetricType_SUMMARY {
 				c.addMetric(metrics, pfx, metricName+"_count", "n", float64(m.GetSummary().GetSampleCount()))
@@ -267,26 +267,29 @@ func (c *Prom) parse(id string, data io.ReadCloser, metrics *cgm.Metrics) error 
 	return nil
 }
 
-func (c *Prom) getLabels(m *dto.Metric) []string {
-	ret := []string{}
-	// sort for predictive metric names
-	var keys []string
-	labels := make(map[string]string)
+func (c *Prom) getLabels(m *dto.Metric) string {
+	labels := []string{}
+
 	for _, label := range m.Label {
 		if label.Name != nil && label.Value != nil {
 			ln := c.metricNameRegex.ReplaceAllString(*label.Name, "")
 			lv := c.metricNameRegex.ReplaceAllString(*label.Value, "")
-			labels[ln] = lv
-			keys = append(keys, ln)
+			labels = append(labels, ln+tags.Delimiter+lv) // stream tags take form cat:val
 		}
 	}
 
-	sort.Strings(keys)
-
-	for _, label := range keys {
-		ret = append(ret, label+":"+labels[label])
+	if len(labels) > 0 {
+		tagList := strings.Join(labels, tags.Separator)
+		t, err := tags.PrepStreamTags(tagList)
+		if err != nil {
+			c.logger.Warn().Err(err).Str("tags", tagList).Msg("ignoring labels")
+		}
+		if t != "" {
+			return t
+		}
 	}
-	return ret
+
+	return ""
 }
 
 func (c *Prom) getQuantiles(m *dto.Metric) map[string]float64 {
