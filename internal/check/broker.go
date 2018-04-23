@@ -47,6 +47,11 @@ func (c *Check) setReverseConfig() error {
 		return errors.Wrapf(err, "parsing check bundle reverse URL (%s)", rURL)
 	}
 
+	brokerAddr, err := net.ResolveTCPAddr("tcp", reverseURL.Host)
+	if err != nil {
+		return errors.Wrapf(err, "invalid reverse service address", rURL)
+	}
+
 	if len(c.bundle.Brokers) == 0 {
 		return errors.New("no brokers found in check bundle")
 	}
@@ -60,6 +65,7 @@ func (c *Check) setReverseConfig() error {
 	c.revConfig = &ReverseConfig{
 		ReverseURL: reverseURL,
 		BrokerID:   brokerID,
+		BrokerAddr: brokerAddr,
 		TLSConfig:  tlsConfig,
 	}
 

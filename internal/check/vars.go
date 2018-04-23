@@ -7,6 +7,7 @@ package check
 
 import (
 	"crypto/tls"
+	"net"
 	"net/url"
 	"sync"
 	"time"
@@ -39,6 +40,7 @@ type Check struct {
 // ReverseConfig contains the reverse configuration for the check
 type ReverseConfig struct {
 	ReverseURL *url.URL
+	BrokerAddr *net.TCPAddr
 	TLSConfig  *tls.Config
 	BrokerID   string
 }
