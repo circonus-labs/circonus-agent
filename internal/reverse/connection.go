@@ -108,6 +108,7 @@ func (c *Connection) processor() error {
 				c.logger.Warn().Err(err).Msg("sending metric data")
 				c.logger.Warn().Msg("closing conn to reset")
 				c.conn.Close()
+				c.conn = nil
 			}
 		}
 	}
