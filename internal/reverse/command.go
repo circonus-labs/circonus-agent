@@ -52,10 +52,12 @@ func (c *Connection) readCommand(r io.Reader) command {
 		name:      string(cmdPkt.payload),
 	}
 
-	if cmd.name == noitCmdConnect { // connect command requires a request
+	if cmd.name == c.cmdConnect { // connect command requires a request
 		reqPkt, err := c.readFrameFromBroker(r)
 		if err != nil {
-			return command{err: errors.Wrap(err, "reading command payload"), reset: true}
+			cmd.err = errors.Wrap(err, "reading command payload")
+			cmd.reset = true
+			return cmd
 		}
 
 		if reqPkt.header.isCommand {
@@ -100,12 +102,12 @@ func (c *Connection) processCommand(cmd command) command {
 		return cmd
 	}
 
-	if cmd.name == "RESET" {
+	if cmd.name == c.cmdReset {
 		cmd.reset = true
 		return cmd
 	}
 
-	if cmd.name != "CONNECT" {
+	if cmd.name != c.cmdConnect {
 		cmd.ignore = true
 		cmd.err = errors.Errorf("unused/empty command (%s)", cmd.name)
 		return cmd

@@ -142,13 +142,13 @@ func TestProcessCommand(t *testing.T) {
 			t.Fatalf("expected no error, got (%s)", cmd.err)
 		}
 
-		if cmd.name == noitCmdConnect {
+		if cmd.name == s.cmdConnect {
 			if cmd.metrics == nil {
 				t.Fatal("expected metrics to be not nil")
 			}
 		}
 
-		if cmd.name == noitCmdReset {
+		if cmd.name == s.cmdReset {
 			if !cmd.reset {
 				t.Fatal("expected 'reset' to be true")
 			}

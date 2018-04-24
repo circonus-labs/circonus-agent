@@ -99,7 +99,7 @@ func (c *Connection) connect() (*tls.Conn, *connError) {
 		// check changed to use a different broker, broker certificate
 		// changes, etc.) The majority of configuration based errors are
 		// fatal, no attempt is made to resolve.
-		if c.connAttempts%configRetryLimit == 0 {
+		if c.connAttempts%c.configRetryLimit == 0 {
 			c.logger.Info().Int("attempts", c.connAttempts).Msg("reconfig triggered")
 			if err := c.check.RefreshCheckConfig(); err != nil {
 				return nil, &connError{fatal: true, err: errors.Wrap(err, "refreshing check configuration")}
@@ -121,7 +121,7 @@ func (c *Connection) connect() (*tls.Conn, *connError) {
 	dialer := &net.Dialer{Timeout: c.dialerTimeout}
 	conn, err := tls.DialWithDialer(dialer, "tcp", c.revConfig.BrokerAddr.String(), c.revConfig.TLSConfig)
 	if err != nil {
-		if c.connAttempts >= maxConnRetry {
+		if c.connAttempts >= c.maxConnRetry {
 			return nil, &connError{fatal: true, err: errors.Wrapf(err, "after %d failed attempts, last error", c.connAttempts)}
 		}
 		return nil, &connError{fatal: false, err: errors.Wrapf(err, "connecting to %s", revHost)}
@@ -154,7 +154,7 @@ func (c *Connection) getNextDelay(currDelay time.Duration) time.Duration {
 	delay := currDelay
 
 	if delay < c.maxDelay {
-		drift := rand.Intn(maxDelayStep-minDelayStep) + minDelayStep
+		drift := rand.Intn(c.maxDelayStep-c.minDelayStep) + c.minDelayStep
 		delay += time.Duration(drift) * time.Second
 	}
 

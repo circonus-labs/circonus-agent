@@ -284,8 +284,8 @@ func TestSetNextDelay(t *testing.T) {
 			t.Fatalf("delay did NOT changed %s == %s", c.delay.String(), delay.String())
 		}
 
-		min := time.Duration(minDelayStep) * time.Second
-		max := time.Duration(maxDelayStep) * time.Second
+		min := time.Duration(c.minDelayStep) * time.Second
+		max := time.Duration(c.maxDelayStep) * time.Second
 		diff := delay - c.delay
 
 		if diff < min {
