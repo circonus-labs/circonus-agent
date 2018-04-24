@@ -30,6 +30,17 @@ func init() {
 
 // New creates a new connection
 func New(check *check.Check, agentAddress string) (*Connection, error) {
+	const (
+		// NOTE: TBD, make some of these user-configurable
+		commTimeoutSeconds    = 65 // seconds, when communicating with noit
+		dialerTimeoutSeconds  = 15 // seconds, establishing connection
+		metricTimeoutSeconds  = 50 // seconds, when communicating with agent
+		maxDelaySeconds       = 60 // maximum amount of delay between attempts
+		brokerMaxRetries      = 5
+		brokerMaxResponseTime = 500 * time.Millisecond
+		brokerActiveStatus    = "active"
+	)
+
 	if check == nil {
 		return nil, errors.New("invalid check value (empty)")
 	}
@@ -37,18 +48,23 @@ func New(check *check.Check, agentAddress string) (*Connection, error) {
 		return nil, errors.New("invalid agent address (empty)")
 	}
 	c := Connection{
-		agentAddress:  agentAddress,
-		check:         check,
-		checkCID:      viper.GetString(config.KeyCheckBundleID),
-		cmdCh:         make(chan *noitCommand),
-		commTimeout:   commTimeoutSeconds * time.Second,
-		connAttempts:  0,
-		delay:         1 * time.Second,
-		dialerTimeout: dialerTimeoutSeconds * time.Second,
-		enabled:       viper.GetBool(config.KeyReverse),
-		logger:        log.With().Str("pkg", "reverse").Logger(),
-		maxDelay:      maxDelaySeconds * time.Second,
-		metricTimeout: metricTimeoutSeconds * time.Second,
+		agentAddress:     agentAddress,
+		check:            check,
+		commTimeout:      commTimeoutSeconds * time.Second,
+		connAttempts:     0,
+		delay:            1 * time.Second,
+		dialerTimeout:    dialerTimeoutSeconds * time.Second,
+		enabled:          viper.GetBool(config.KeyReverse),
+		logger:           log.With().Str("pkg", "reverse").Logger(),
+		maxDelay:         maxDelaySeconds * time.Second,
+		metricTimeout:    metricTimeoutSeconds * time.Second,
+		cmdConnect:       "CONNECT",
+		cmdReset:         "RESET",
+		maxPayloadLen:    65529, // max unsigned short - 6 (for header)
+		minDelayStep:     1,     // minimum seconds to add on retry
+		maxDelayStep:     20,    // maximum seconds to add on retry
+		maxConnRetry:     10,    // max times to retry a persistently failing connection
+		configRetryLimit: 5,     // if failed attempts > threshold, force reconfig
 	}
 
 	if c.enabled {
@@ -57,8 +73,7 @@ func New(check *check.Check, agentAddress string) (*Connection, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "setting reverse config")
 		}
-		c.reverseURL = rc.ReverseURL
-		c.tlsConfig = rc.TLSConfig
+		c.revConfig = rc
 	}
 
 	return &c, nil
@@ -73,14 +88,13 @@ func (c *Connection) Start() error {
 
 	c.logger.Info().
 		Str("check_bundle", viper.GetString(config.KeyCheckBundleID)).
-		Str("rev_host", c.reverseURL.Hostname()).
-		Str("rev_port", c.reverseURL.Port()).
-		Str("rev_path", c.reverseURL.Path).
+		Str("rev_host", c.revConfig.ReverseURL.Hostname()).
+		Str("rev_port", c.revConfig.ReverseURL.Port()).
+		Str("rev_path", c.revConfig.ReverseURL.Path).
 		Str("agent", c.agentAddress).
 		Msg("Reverse configuration")
 
-	c.t.Go(c.handler)
-	c.t.Go(c.processor)
+	c.t.Go(c.startReverse)
 
 	return c.t.Wait()
 }
@@ -94,17 +108,8 @@ func (c *Connection) Stop() {
 	c.logger.Info().Msg("Stopping reverse connection")
 
 	if c.t.Alive() {
+		c.logger.Warn().Msg("Sent stop signal, may take a minute for timeout")
 		c.t.Kill(nil)
-	}
-
-	if c.conn == nil {
-		return
-	}
-
-	c.logger.Info().Msg("Closing reverse connection")
-	err := c.conn.Close()
-	if err != nil {
-		c.logger.Warn().Err(err).Msg("Closing reverse connection")
 	}
 }
 
