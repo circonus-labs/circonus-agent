@@ -42,11 +42,12 @@ func (c *Connection) startReverse() error {
 				return nil
 			}
 			if result.ignore {
+				// c.logger.Debug().Err(result.err).Int("timeouts", c.commTimeouts).Msg("ignored")
 				continue
 			}
 			if result.err != nil {
 				if result.reset {
-					c.logger.Warn().Err(result.err).Msg("resetting connection")
+					c.logger.Warn().Err(result.err).Int("timeouts", c.commTimeouts).Msg("resetting connection")
 					close(done)
 					break
 				} else if result.fatal {
@@ -67,16 +68,14 @@ func (c *Connection) startReverse() error {
 				break
 			}
 
-			// Successfully connected, sent, and received data.
-			// In certain circumstances, a broker will allow a connection, accept
-			// the initial introduction, and then summarily disconnect (e.g. multiple
-			// agents attempting reverse connections for the same check.)
-			if c.connAttempts > 0 {
-				c.resetConnectionAttempts()
-			}
+			c.resetConnectionAttempts()
 		}
 
 		conn.Close()
+		if c.shutdown() {
+			return nil
+		}
+
 	}
 }
 

@@ -32,7 +32,7 @@ func init() {
 func New(check *check.Check, agentAddress string) (*Connection, error) {
 	const (
 		// NOTE: TBD, make some of these user-configurable
-		commTimeoutSeconds    = 65 // seconds, when communicating with noit
+		commTimeoutSeconds    = 10 // seconds, when communicating with noit
 		dialerTimeoutSeconds  = 15 // seconds, establishing connection
 		metricTimeoutSeconds  = 50 // seconds, when communicating with agent
 		maxDelaySeconds       = 60 // maximum amount of delay between attempts
@@ -61,6 +61,7 @@ func New(check *check.Check, agentAddress string) (*Connection, error) {
 		cmdConnect:       "CONNECT",
 		cmdReset:         "RESET",
 		maxPayloadLen:    65529, // max unsigned short - 6 (for header)
+		maxCommTimeouts:  5,     // multiply by commTimeout, ensure >(broker polling interval) otherwise conn reset loop
 		minDelayStep:     1,     // minimum seconds to add on retry
 		maxDelayStep:     20,    // maximum seconds to add on retry
 		maxConnRetry:     10,    // max times to retry a persistently failing connection

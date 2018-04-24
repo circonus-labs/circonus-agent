@@ -9,6 +9,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"net"
 
 	"github.com/pkg/errors"
 )
@@ -36,8 +37,28 @@ func (c *Connection) newCommandReader(done <-chan interface{}, conn *tls.Conn) <
 func (c *Connection) readCommand(r io.Reader) command {
 	cmdPkt, err := c.readFrameFromBroker(r)
 	if err != nil {
-		return command{err: errors.Wrap(err, "reading command"), reset: true}
+		// ignore first c.maxCommTimeout errors; workaround for conn.Read
+		// being blocking and not interruptable with a context/channel
+		// so that a request to stop will only block for a short period of time
+		reset := true
+		ignore := false
+		if ne, ok := err.(*net.OpError); ok {
+			if ne.Timeout() {
+				c.Lock()
+				c.commTimeouts++
+				if c.commTimeouts <= c.maxCommTimeouts {
+					reset = false
+					ignore = true
+				}
+				c.Unlock()
+			}
+		}
+		return command{err: errors.Wrap(err, "reading command"), reset: reset, ignore: ignore}
 	}
+
+	c.Lock()
+	c.commTimeouts = 0
+	c.Unlock()
 
 	if !cmdPkt.header.isCommand {
 		c.logger.Warn().
@@ -55,10 +76,28 @@ func (c *Connection) readCommand(r io.Reader) command {
 	if cmd.name == c.cmdConnect { // connect command requires a request
 		reqPkt, err := c.readFrameFromBroker(r)
 		if err != nil {
-			cmd.err = errors.Wrap(err, "reading command payload")
-			cmd.reset = true
-			return cmd
+			// ignore first c.maxCommTimeout errors; workaround for conn.Read
+			// being blocking and not interruptable with a context/channel
+			// so that a request to stop will only block for a short period of time
+			reset := true
+			ignore := false
+			if ne, ok := err.(*net.OpError); ok {
+				if ne.Timeout() {
+					c.Lock()
+					c.commTimeouts++
+					if c.commTimeouts <= c.maxCommTimeouts {
+						reset = false
+						ignore = true
+					}
+					c.Unlock()
+				}
+			}
+			return command{err: errors.Wrap(err, "reading command payload"), reset: reset, ignore: ignore}
 		}
+
+		c.Lock()
+		c.commTimeouts = 0
+		c.Unlock()
 
 		if reqPkt.header.isCommand {
 			c.logger.Warn().

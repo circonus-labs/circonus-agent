@@ -22,12 +22,14 @@ type Connection struct {
 	cmdConnect       string
 	cmdReset         string
 	commTimeout      time.Duration
+	commTimeouts     int
 	configRetryLimit int
 	connAttempts     int
 	delay            time.Duration
 	dialerTimeout    time.Duration
 	enabled          bool
 	logger           zerolog.Logger
+	maxCommTimeouts  int
 	maxConnRetry     int
 	maxDelay         time.Duration
 	maxDelayStep     int
