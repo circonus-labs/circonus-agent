@@ -45,7 +45,7 @@ func (c *Connection) readFrameFromBroker(r io.Reader) (*noitFrame, error) {
 		return nil, err
 	}
 
-	if hdr.payloadLen > maxPayloadLen {
+	if hdr.payloadLen > c.maxPayloadLen {
 		return nil, errors.Errorf("received oversized frame (%d len)", hdr.payloadLen) // restart the connection
 	}
 
