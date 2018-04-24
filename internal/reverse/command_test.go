@@ -8,6 +8,9 @@ package reverse
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/circonus-labs/circonus-agent/internal/check"
@@ -15,306 +18,140 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func TestGetCommandFromBroker(t *testing.T) {
-	t.Log("Testing getCommandFromBroker")
+func TestReadCommand(t *testing.T) {
+	t.Log("Testing readCommand")
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	t.Log("valid")
-	{
-		chk, cerr := check.New(nil)
-		if cerr != nil {
-			t.Fatalf("expected no error, got (%s)", cerr)
-		}
-		s, err := New(chk, defaults.Listen)
-		if err != nil {
-			t.Fatalf("expected no error, got (%s)", err)
-		}
-		cmd := "CONNECT"
-		req := "GET /foo\r\n\r\n"
-		buff := bytes.NewBuffer(buildFrame(1, true, []byte(cmd)))
-		reqFrame := buildFrame(1, false, []byte(req))
-		buff.Grow(len(reqFrame))
-		buff.Write(reqFrame)
-
-		c, err := s.getCommandFromBroker(buff)
-		if err != nil {
-			t.Fatalf("expected no error, got (%s)", err)
-		}
-		if c.channelID != 1 {
-			t.Fatalf("expected channel 1, got (%d)", c.channelID)
-		}
-		if c.command != cmd {
-			t.Fatalf("expected (%s) got (%s)", cmd, c.command)
-		}
-		if string(c.request) != req {
-			t.Fatalf("expected (%s), got (%s)", req, c.request)
-		}
-
-	}
-
-	t.Log("invalid (data before command)")
-	{
-		chk, cerr := check.New(nil)
-		if cerr != nil {
-			t.Fatalf("expected no error, got (%s)", cerr)
-		}
-		s, err := New(chk, defaults.Listen)
-		if err != nil {
-			t.Fatalf("expected no error, got (%s)", err)
-		}
-		cmd := "CONNECT"
-		req := "GET /foo\r\n\r\n"
-		buff := bytes.NewBuffer(buildFrame(1, false, []byte(req)))
-		reqFrame := buildFrame(1, true, []byte(cmd))
-		buff.Grow(len(reqFrame))
-		buff.Write(reqFrame)
-
-		c, err := s.getCommandFromBroker(buff)
-		if err != nil {
-			t.Fatalf("expected no error, got (%s)", err)
-		}
-		if c != nil {
-			t.Fatalf("expected nil, got (%#v)", c)
-		}
-	}
-
-	t.Log("invalid (two commands)")
-	{
-		chk, cerr := check.New(nil)
-		if cerr != nil {
-			t.Fatalf("expected no error, got (%s)", cerr)
-		}
-		s, err := New(chk, defaults.Listen)
-		if err != nil {
-			t.Fatalf("expected no error, got (%s)", err)
-		}
-		cmd := "CONNECT"
-		buff := bytes.NewBuffer(buildFrame(1, true, []byte(cmd)))
-		reqFrame := buildFrame(1, true, []byte(cmd))
-		buff.Grow(len(reqFrame))
-		buff.Write(reqFrame)
-
-		c, err := s.getCommandFromBroker(buff)
-		if err != nil {
-			t.Fatalf("expected no error, got (%s)", err)
-		}
-		if c != nil {
-			t.Fatalf("expected nil, got (%#v)", c)
-		}
-	}
-
-}
-
-func TestGetFrameFromBroker(t *testing.T) {
-	t.Log("Testing getFrameFromBroker")
-
-	zerolog.SetGlobalLevel(zerolog.Disabled)
-
-	tt := []struct {
-		description string
-		expect      []byte
-		channelID   uint16
-		command     bool
-		payload     string
+	tests := []struct {
+		name         string
+		commandFrame []byte
+		payloadFrame []byte
+		shouldError  bool
+		err          error
 	}{
-		{
-			description: "command payload",
-			channelID:   1,
-			command:     true,
-			payload:     "RESET",
-		},
-		{
-			description: "data payload",
-			channelID:   1,
-			command:     false,
-			payload:     `{"test": 1}`,
-		},
+		{"valid", buildFrame(1, true, []byte("CONNECT")), buildFrame(1, false, []byte("GET /foo\r\n\r\n")), false, nil},
+		{"payload first", buildFrame(1, false, []byte("invalid_cmd")), buildFrame(1, false, []byte("n/a")), true, errors.New("expected command")},
+		{"two commands", buildFrame(1, true, []byte("CONNECT")), buildFrame(1, true, []byte("double_cmd")), true, errors.New("expected request")},
 	}
 
-	for _, tst := range tt {
-		t.Log(tst.description)
-		chk, cerr := check.New(nil)
-		if cerr != nil {
-			t.Fatalf("expected no error, got (%s)", cerr)
-		}
-		s, err := New(chk, defaults.Listen)
-		if err != nil {
-			t.Fatalf("expected no error, got (%s)", err)
-		}
-		data := buildFrame(tst.channelID, tst.command, []byte(tst.payload))
-		b := bytes.NewReader(data)
-		p, err := s.getFrameFromBroker(b)
-		if err != nil {
-			t.Fatalf("expected no error, got (%s)", err)
-		}
-		if p == nil {
-			t.Fatal("expected packet")
-		}
-		if p.header.channelID != tst.channelID {
-			t.Fatalf("expected channel %d, got (%d)", tst.channelID, p.header.channelID)
-		}
-		if p.header.isCommand != tst.command {
-			t.Fatalf("expected %v, got %v", tst.command, p.header.isCommand)
-		}
-		if p.header.payloadLen != uint32(len(tst.payload)) {
-			t.Fatalf("expected payload length %d, got %d", len(tst.payload), p.header.payloadLen)
-		}
-		if string(p.payload) != tst.payload {
-			t.Fatalf("expected (%s) got (%s)", tst.payload, string(p.payload))
-		}
+	chk, cerr := check.New(nil)
+	if cerr != nil {
+		t.Fatalf("expected no error, got (%s)", cerr)
 	}
-}
-
-func TestReadHeader(t *testing.T) {
-	t.Log("Testing readHeader")
-
-	zerolog.SetGlobalLevel(zerolog.Disabled)
-
-	tt := []struct {
-		description string
-		expect      []byte
-		channelID   uint16
-		command     bool
-		payload     string
-	}{
-		{
-			description: "command header",
-			channelID:   1,
-			command:     true,
-			payload:     "RESET",
-		},
-		{
-			description: "data header",
-			channelID:   1,
-			command:     false,
-			payload:     `{"test": 1}`,
-		},
-	}
-
-	for _, tst := range tt {
-		t.Log(tst.description)
-		data := buildFrame(tst.channelID, tst.command, []byte(tst.payload))
-		b := bytes.NewReader(data)
-		hdr, err := readHeader(b)
-		if err != nil {
-			t.Fatalf("expected no error, got (%s)", err)
-		}
-		if hdr == nil {
-			t.Fatal("expected packet")
-		}
-		if hdr.channelID != tst.channelID {
-			t.Fatalf("expected channel %d, got (%d)", tst.channelID, hdr.channelID)
-		}
-		if hdr.isCommand != tst.command {
-			t.Fatalf("expected %v, got %v", tst.command, hdr.isCommand)
-		}
-		if hdr.payloadLen != uint32(len(tst.payload)) {
-			t.Fatalf("expected payload length %d, got %d", len(tst.payload), hdr.payloadLen)
-		}
-	}
-}
-
-func TestReadPayload(t *testing.T) {
-	t.Log("Testing readPayload")
-
-	zerolog.SetGlobalLevel(zerolog.Disabled)
-
-	t.Log("zero length")
-	{
-		expect := []byte("")
-		b := bytes.NewReader(expect)
-		data, err := readPayload(b, uint32(b.Len()))
-		if err != nil {
-			t.Fatalf("expected no error, got (%s)", err)
-		}
-		if string(data) != string(expect) {
-			t.Fatalf("expected (%s) got (%s)", string(expect), string(data))
-		}
-	}
-
-	t.Log("undersize")
-	{
-		expect := []byte("test")
-		expectErr := errors.New("invalid read, expected bytes 6 got 4 ([]byte{0x74, 0x65, 0x73, 0x74} = test)")
-		b := bytes.NewReader(expect)
-		data, err := readPayload(b, 6)
-		if err == nil {
-			t.Fatal("expected err")
-		}
-		if err.Error() != expectErr.Error() {
-			t.Fatalf("expected (%s) got (%s)", expectErr, err)
-		}
-		if data != nil {
-			t.Fatalf("expected nil, got %#v %s", data, string(data))
-		}
-	}
-
-	t.Log("simple")
-	{
-		expect := []byte("test")
-		b := bytes.NewReader(expect)
-		data, err := readPayload(b, uint32(b.Len()))
-		if err != nil {
-			t.Fatalf("expected no error, got (%s)", err)
-		}
-		if string(data) != string(expect) {
-			t.Fatalf("expected (%s) got (%s)", string(expect), string(data))
-		}
-	}
-}
-
-func TestReadBytes(t *testing.T) {
-	t.Log("Testing readBytes")
-
-	zerolog.SetGlobalLevel(zerolog.Disabled)
-
-	expect := []byte("test")
-	b := bytes.NewReader(expect)
-	data, err := readBytes(b, int64(b.Len()))
+	s, err := New(chk, defaults.Listen)
 	if err != nil {
 		t.Fatalf("expected no error, got (%s)", err)
 	}
-	if string(data) != string(expect) {
-		t.Fatalf("expected (%s) got (%s)", string(expect), string(data))
+
+	for _, test := range tests {
+		t.Logf("\ttesting %s", test.name)
+
+		buff := new(bytes.Buffer)
+
+		if len(test.commandFrame) != 0 {
+			buff.Grow(len(test.commandFrame))
+			buff.Write(test.commandFrame)
+		}
+
+		if len(test.payloadFrame) != 0 {
+			buff.Grow(len(test.payloadFrame))
+			buff.Write(test.payloadFrame)
+		}
+
+		cmd := s.readCommand(buff)
+		if test.shouldError {
+			if cmd.err == nil {
+				t.Logf("%#v", cmd)
+				t.Fatal("expected error")
+			}
+			if cmd.err.Error() != test.err.Error() {
+				t.Fatalf("expected (%s) got (%s)", cmd.err, test.err)
+			}
+			continue
+		}
+
+		if cmd.err != nil {
+			t.Fatalf("expected no error, got (%s)", cmd.err)
+		}
+
+		if cmd.channelID != 1 {
+			t.Fatalf("expected channel 1, got (%d)", cmd.channelID)
+		}
+
+		if !bytes.Contains(test.commandFrame, []byte(cmd.name)) {
+			t.Fatalf("expected (%v) got (%v)", test.commandFrame, cmd.name)
+		}
+
+		if !bytes.Contains(test.payloadFrame, cmd.request) {
+			t.Fatalf("expected (%v), got (%v)", test.payloadFrame, cmd.request)
+		}
 	}
 }
 
-func TestBuildFrame(t *testing.T) {
-	t.Log("Testing buildFrame")
+func TestProcessCommand(t *testing.T) {
+	t.Log("Testing processCommand")
 
-	tt := []struct {
-		description string
-		expect      []byte
-		channelID   uint16
-		command     bool
-		payload     string
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "{}")
+	}))
+	defer ts.Close()
+
+	tests := []struct {
+		name        string
+		cmd         command
+		shouldError bool
+		err         error
 	}{
-		{
-			description: "command payload",
-			expect:      []byte{0x80, 0x1, 0x0, 0x0, 0x0, 0x5, 0x52, 0x45, 0x53, 0x45, 0x54},
-			channelID:   1,
-			command:     true,
-			payload:     "RESET",
-		},
-		{
-			description: "data payload",
-			expect:      []byte{0x0, 0x1, 0x0, 0x0, 0x0, 0xb, 0x7b, 0x22, 0x74, 0x65, 0x73, 0x74, 0x22, 0x3a, 0x20, 0x31, 0x7d},
-			channelID:   1,
-			command:     false,
-			payload:     `{"test": 1}`,
-		},
+		{"valid connect", command{name: "CONNECT", request: []byte("GET /\r\n\r\n")}, false, nil},
+		{"invalid connect - zero len request", command{name: "CONNECT", request: []byte("")}, true, errors.New("invalid connect command, 0 length request")},
+		{"valid reset", command{name: "RESET", reset: true}, false, nil},
+		{"cmd err - ignored (SHUTDOWN)", command{name: "SHUTDOWN", ignore: true}, true, errors.New("unused/empty command (SHUTDOWN)")},
+		{"cmd err - ignored (empty)", command{name: "", ignore: true}, true, errors.New("unused/empty command ()")},
+		{"cmd err", command{err: errors.New("command error")}, true, errors.New("command error")},
 	}
 
-	for _, tst := range tt {
-		t.Log(tst.description)
-		data := buildFrame(tst.channelID, tst.command, []byte(tst.payload))
-		if data == nil {
-			t.Fatal("expected not nil")
+	chk, cerr := check.New(nil)
+	if cerr != nil {
+		t.Fatalf("expected no error, got (%s)", cerr)
+	}
+	s, err := New(chk, defaults.Listen)
+	if err != nil {
+		t.Fatalf("expected no error, got (%s)", err)
+	}
+	s.agentAddress = ts.Listener.Addr().String()
+
+	for _, test := range tests {
+		t.Logf("\ttesting %s", test.name)
+
+		cmd := s.processCommand(test.cmd)
+		if test.shouldError {
+			if cmd.err == nil {
+				t.Logf("%#v", cmd)
+				t.Fatal("expected error")
+			}
+			if cmd.err.Error() != test.err.Error() {
+				t.Fatalf("expected (%s) got (%s)", test.err, cmd.err)
+			}
+			continue
 		}
 
-		if !bytes.Equal(data, tst.expect) {
-			t.Fatalf("expected (%#v) got (%#v)", tst.expect, data)
+		if cmd.err != nil {
+			t.Fatalf("expected no error, got (%s)", cmd.err)
+		}
+
+		if cmd.name == noitCmdConnect {
+			if cmd.metrics == nil {
+				t.Fatal("expected metrics to be not nil")
+			}
+		}
+
+		if cmd.name == noitCmdReset {
+			if !cmd.reset {
+				t.Fatal("expected 'reset' to be true")
+			}
 		}
 	}
 }
