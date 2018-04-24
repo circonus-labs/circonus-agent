@@ -42,7 +42,7 @@ func TestSendMetricData(t *testing.T) {
 		t.Fatalf("expected no error, got (%s)", err)
 	}
 
-	hdr, err := readHeader(buff)
+	hdr, err := readFrameHeader(buff)
 	if err != nil {
 		t.Fatalf("expected no error, got (%s)", err)
 	}
@@ -56,7 +56,7 @@ func TestSendMetricData(t *testing.T) {
 		t.Fatalf("expected expected len %d, got %v", len(data), hdr.payloadLen)
 	}
 
-	m, err := readPayload(buff, hdr.payloadLen)
+	m, err := readFramePayload(buff, hdr.payloadLen)
 	if err != nil {
 		t.Fatalf("expected no error, got (%s)", err)
 	}

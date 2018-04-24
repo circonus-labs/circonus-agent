@@ -6,6 +6,7 @@
 package reverse
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -23,7 +24,7 @@ func (c *Connection) sendMetricData(r io.Writer, channelID uint16, data *[]byte)
 		data = &empty
 	}
 	for offset := 0; offset < len(*data); {
-		buff := make([]byte, int(math.Min(float64(len((*data)[offset:])), float64(maxPayloadLen))))
+		buff := make([]byte, int(math.Min(float64(len((*data)[offset:])), float64(c.maxPayloadLen))))
 		copy(buff, (*data)[offset:])
 		frame := buildFrame(channelID, false, buff)
 		c.logger.Debug().
@@ -31,9 +32,11 @@ func (c *Connection) sendMetricData(r io.Writer, channelID uint16, data *[]byte)
 			Int("frame_size", len(frame)).
 			Int("payload_len", len(buff)).
 			Msg("metric payload frame")
-		if c.conn != nil {
-			c.conn.SetDeadline(time.Now().Add(c.commTimeout))
+
+		if conn, ok := r.(*tls.Conn); ok {
+			conn.SetDeadline(time.Now().Add(c.commTimeout))
 		}
+
 		_, err := r.Write(frame)
 		if err != nil {
 			return errors.Wrap(err, "writing metric data")
