@@ -82,17 +82,16 @@ func TestConnect(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
-		defer l.Close()
 
 		go func() {
 			conn, cerr := l.Accept()
 			if cerr != nil {
-				panic(cerr)
+				t.Errorf("expected no error got (%s)", err)
+				return
 			}
-			go func(c net.Conn) {
-				io.Copy(c, c)
-				c.Close()
-			}(conn)
+
+			io.Copy(conn, conn)
+			conn.Close()
 		}()
 
 		chk, cerr := check.New(nil)
@@ -104,22 +103,43 @@ func TestConnect(t *testing.T) {
 			t.Fatalf("expected no error got (%s)", err)
 		}
 
-		s.tlsConfig = &tls.Config{
-			RootCAs: cp,
-		}
-
 		tsURL, err := url.Parse("http://" + l.Addr().String() + "/check/foo-bar-baz#abc123")
 		if err != nil {
 			t.Fatalf("expected no error got (%s)", err)
 		}
-
-		s.reverseURL = tsURL
-		s.dialerTimeout = 2 * time.Second
-
-		if err := s.connect(); err != nil {
+		ra, err := net.ResolveTCPAddr("tcp", tsURL.Host)
+		if err != nil {
 			t.Fatalf("expected no error got (%s)", err)
 		}
-		s.Stop()
+
+		s.revConfig = check.ReverseConfig{
+			ReverseURL: tsURL,
+			BrokerAddr: ra,
+			TLSConfig: &tls.Config{
+				RootCAs: cp,
+			},
+		}
+		s.dialerTimeout = 2 * time.Second
+		s.commTimeout = 2 * time.Second
+
+		// the actual test...
+		{
+			conn, err := s.connect()
+			if err != nil {
+				t.Fatalf("expected no error got (%s)", err)
+			}
+			conn.SetDeadline(time.Now().Add(s.commTimeout))
+			data := make([]byte, 256)
+			s.logger.Debug().Msg("reading data")
+			dlen, rerr := conn.Read(data)
+			if rerr != nil {
+				t.Fatalf("expected no error, got (%s)", rerr)
+			}
+			s.logger.Debug().Int("bytes", dlen).Bytes("data", data).Msg("read data")
+			conn.Close()
+			s.Stop()
+			l.Close()
+		}
 	}
 
 	t.Log("timeout")
@@ -140,28 +160,33 @@ func TestConnect(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected no error got (%s)", err)
 		}
-
-		s.tlsConfig = &tls.Config{
-			RootCAs: cp,
-		}
+		defer s.Stop()
 
 		tsURL, err := url.Parse("http://" + l.Addr().String() + "/check/foo-bar-baz#abc123")
 		if err != nil {
 			t.Fatalf("expected no error got (%s)", err)
 		}
+		ra, err := net.ResolveTCPAddr("tcp", tsURL.Host)
+		if err != nil {
+			t.Fatalf("expected no error got (%s)", err)
+		}
 
-		s.reverseURL = tsURL
+		s.revConfig = check.ReverseConfig{
+			ReverseURL: tsURL,
+			BrokerAddr: ra,
+			TLSConfig: &tls.Config{
+				RootCAs: cp,
+			},
+		}
 		s.dialerTimeout = 2 * time.Second
 
 		expect := errors.Errorf("connecting to %s: tls: DialWithDialer timed out", l.Addr().String())
-		connErr := s.connect()
-		if connErr == nil {
+
+		if _, cerr := s.connect(); cerr == nil {
 			t.Fatal("expected error")
+		} else if cerr.Error() != expect.Error() {
+			t.Fatalf("expected (%s) got (%s)", expect, cerr)
 		}
-		if connErr.Error() != expect.Error() {
-			t.Fatalf("expected (%s) got (%s)", expect, connErr)
-		}
-		s.Stop()
 	}
 
 	t.Log("error (closed connection)")
@@ -170,16 +195,14 @@ func TestConnect(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
-		defer l.Close()
 
 		go func() {
 			conn, cerr := l.Accept()
 			if cerr != nil {
-				panic(cerr)
+				t.Errorf("expected no error got (%s)", cerr)
+				return
 			}
-			go func(c net.Conn) {
-				c.Close()
-			}(conn)
+			conn.Close()
 		}()
 
 		chk, cerr := check.New(nil)
@@ -191,28 +214,32 @@ func TestConnect(t *testing.T) {
 			t.Fatalf("expected no error got (%s)", err)
 		}
 
-		s.tlsConfig = &tls.Config{
-			RootCAs: cp,
-		}
-
 		tsURL, err := url.Parse("http://" + l.Addr().String() + "/check/foo-bar-baz#abc123")
 		if err != nil {
 			t.Fatalf("expected no error got (%s)", err)
 		}
+		ra, err := net.ResolveTCPAddr("tcp", tsURL.Host)
+		if err != nil {
+			t.Fatalf("expected no error got (%s)", err)
+		}
 
-		s.reverseURL = tsURL
+		s.revConfig = check.ReverseConfig{
+			ReverseURL: tsURL,
+			BrokerAddr: ra,
+			TLSConfig: &tls.Config{
+				RootCAs: cp,
+			},
+		}
 		s.dialerTimeout = 2 * time.Second
 
-		connErr := s.connect()
-		if connErr == nil {
+		if _, cerr := s.connect(); cerr == nil {
 			t.Fatal("expected error")
-		}
-		if !strings.Contains(connErr.Error(), l.Addr().String()) {
-			t.Fatalf("expected (%s) got (%s)", l.Addr().String(), connErr)
+		} else if !strings.Contains(cerr.Error(), l.Addr().String()) {
+			t.Fatalf("expected (%s) got (%s)", l.Addr().String(), cerr)
 		}
 		s.Stop()
+		l.Close()
 	}
-
 }
 
 func TestSetNextDelay(t *testing.T) {
@@ -233,8 +260,8 @@ func TestSetNextDelay(t *testing.T) {
 		}
 
 		c.delay = c.maxDelay
-		c.setNextDelay()
-		if c.delay != c.maxDelay {
+		delay := c.getNextDelay(c.delay)
+		if delay != c.maxDelay {
 			t.Fatalf("delay changed, not set to max")
 		}
 	}
@@ -251,17 +278,15 @@ func TestSetNextDelay(t *testing.T) {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
 
-		currDelay := c.delay
+		delay := c.getNextDelay(c.delay)
 
-		c.setNextDelay()
-
-		if c.delay == currDelay {
-			t.Fatalf("delay did NOT changed %s == %s", c.delay.String(), currDelay.String())
+		if delay == c.delay {
+			t.Fatalf("delay did NOT changed %s == %s", c.delay.String(), delay.String())
 		}
 
 		min := time.Duration(minDelayStep) * time.Second
 		max := time.Duration(maxDelayStep) * time.Second
-		diff := c.delay - currDelay
+		diff := delay - c.delay
 
 		if diff < min {
 			t.Fatalf("delay increment (%s) < minimum (%s)", diff.String(), min.String())
@@ -286,10 +311,10 @@ func TestSetNextDelay(t *testing.T) {
 
 		c.delay = 61 * time.Second
 
-		c.setNextDelay()
+		delay := c.getNextDelay(c.delay)
 
-		if c.delay != c.maxDelay {
-			t.Fatalf("delay did NOT reset %s == %s", c.delay.String(), c.maxDelay)
+		if delay != c.maxDelay {
+			t.Fatalf("delay did NOT reset %s == %s", delay.String(), c.maxDelay)
 		}
 	}
 }
