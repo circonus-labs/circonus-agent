@@ -139,7 +139,6 @@ func (c *Connection) connect() (*tls.Conn, *connError) {
 			return nil, &connError{fatal: false, err: errors.Wrapf(err, "unable to write intro to %s", revHost)}
 		}
 	}
-	c.logger.Info().Str("host", revHost).Msg("intro sent")
 
 	return conn, nil
 }
