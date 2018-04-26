@@ -21,15 +21,18 @@ import (
 
 // New returns a new check instance
 func New(apiClient API) (*Check, error) {
+	// NOTE: TBD, make broker max retries and response time configurable
 	c := Check{
-		manage:             false,
-		bundle:             nil,
-		metricStates:       make(metricStates),
-		activeMetrics:      make(metricStates),
-		updateMetricStates: false,
-		refreshTTL:         time.Duration(0),
-		logger:             log.With().Str("pkg", "check").Logger(),
-		statePath:          viper.GetString(config.KeyCheckMetricStateDir),
+		brokerMaxResponseTime: 500 * time.Millisecond,
+		brokerMaxRetries:      5,
+		bundle:                nil,
+		logger:                log.With().Str("pkg", "check").Logger(),
+		manage:                false,
+		metricStateUpdate:     false,
+		refreshTTL:            time.Duration(0),
+		statePath:             viper.GetString(config.KeyCheckMetricStateDir),
+		statusActiveBroker:    "active",
+		statusActiveMetric:    "active",
 	}
 
 	c.stateFile = filepath.Join(c.statePath, "metrics.json")
@@ -67,6 +70,28 @@ func New(apiClient API) (*Check, error) {
 
 	c.client = apiClient
 
+	if isManaged {
+		// preload the last known metric states so that states coming down
+		// from the API when fetching the check bundle will be merged into
+		// the known states since the fresh states have a higher precedence
+		if ok, err := c.verifyStatePath(); !ok {
+			if err != nil {
+				c.logger.Error().Err(err).Msg("verify state path")
+			}
+			c.logger.Warn().Str("state_path", c.statePath).Msg("encountered state path issue(s), disabling check-enable-new-metrics")
+			c.manage = false
+			return &c, nil
+		}
+
+		ms, err := c.loadState()
+		if err != nil {
+			c.logger.Error().Err(err).Msg("unable to load existing metric states, all metrics considered existing")
+		} else {
+			c.metricStates = ms
+			c.logger.Debug().Interface("metric_states", len(*c.metricStates)).Msg("loaded metric states")
+		}
+	}
+
 	// fetch or create check bundle
 	if err := c.setCheck(); err != nil {
 		return nil, errors.Wrap(err, "unable to configure check")
@@ -79,26 +104,6 @@ func New(apiClient API) (*Check, error) {
 
 	if !isManaged {
 		return &c, nil
-	}
-
-	//
-	// managed check requires some additional setup
-	//
-	if ok, err := c.verifyStatePath(); !ok {
-		if err != nil {
-			c.logger.Error().Err(err).Msg("verify state path")
-		}
-		c.logger.Warn().Str("state_path", c.statePath).Msg("encountered state path issue(s), disabling check-enable-new-metrics")
-		c.manage = false
-		return &c, nil
-	}
-
-	ms, err := c.loadState()
-	if err != nil {
-		c.logger.Error().Err(err).Msg("unable to load existing metric states, all metrics considered existing")
-	} else {
-		c.metricStates = *ms
-		c.logger.Debug().Interface("metric_states", c.metricStates).Msg("loaded metric states")
 	}
 
 	// check metrics refresh ttl
@@ -146,41 +151,26 @@ func (c *Check) EnableNewMetrics(m *cgm.Metrics) error {
 		return nil
 	}
 
-	// let first submission of metrics go through if no state file
-	if !c.updateMetricStates && len(c.metricStates) == 0 {
-		c.logger.Debug().Msg("no existing metric states, triggering load")
-		c.updateMetricStates = true
-		return nil
+	if !c.metricStateUpdate {
+		// let first submission of metrics go through if no state file
+		// use case where agent is replacing an existing nad install (check already exists)
+		if c.metricStates == nil {
+			c.logger.Debug().Msg("no existing metric states, triggering load")
+			c.metricStateUpdate = true
+			return nil
+		}
+
+		if time.Since(c.lastRefresh) > c.refreshTTL {
+			c.logger.Debug().Dur("since_last", time.Since(c.lastRefresh)).Dur("ttl", c.refreshTTL).Msg("TTL triggering metric state refresh")
+			c.metricStateUpdate = true
+		}
 	}
 
-	if time.Since(c.lastRefresh) > c.refreshTTL {
-		c.logger.Debug().Dur("since_last", time.Since(c.lastRefresh)).Dur("ttl", c.refreshTTL).Msg("TTL triggering metric state refresh")
-		c.updateMetricStates = true
-	}
-
-	if c.updateMetricStates {
-		c.logger.Debug().Msg("updating metric states")
-		metrics, err := c.getFullCheckMetrics()
+	if c.metricStateUpdate {
+		err := c.setMetricStates(nil)
 		if err != nil {
 			return errors.Wrap(err, "updating metric states")
 		}
-
-		for _, metric := range metrics {
-			c.metricStates[metric.Name] = metric.Status
-			if c.updateActiveMetrics {
-				if metric.Status == activeMetricStatus {
-					c.activeMetrics[metric.Name] = metric.Status
-				} else {
-					delete(c.activeMetrics, metric.Name)
-				}
-			}
-		}
-
-		c.lastRefresh = time.Now()
-		c.saveState(&c.metricStates)
-		c.updateMetricStates = false
-		c.updateActiveMetrics = false
-		c.logger.Debug().Msg("updating metric states done")
 	}
 
 	c.logger.Debug().Msg("scanning for new metrics")
@@ -188,22 +178,16 @@ func (c *Check) EnableNewMetrics(m *cgm.Metrics) error {
 	newMetrics := map[string]api.CheckBundleMetric{}
 
 	for mn, mv := range *m {
-		if _, active := c.activeMetrics[mn]; active {
-			continue
-		}
-		if wantState, known := c.metricStates[mn]; !known || wantState == activeMetricStatus {
+		if _, known := (*c.metricStates)[mn]; !known {
 			newMetrics[mn] = c.configMetric(mn, mv)
 			c.logger.Debug().Interface("metric", newMetrics[mn]).Interface("mv", mv).Msg("found new metric")
 		}
 	}
 
 	if len(newMetrics) > 0 {
-		c.logger.Debug().Msg("enabling new metrics")
 		if err := c.updateCheckBundleMetrics(&newMetrics); err != nil {
 			c.logger.Error().Err(err).Msg("adding mew metrics to check bundle")
 		}
-		c.updateMetricStates = true // trigger an update to metric states
-		c.updateActiveMetrics = true
 	}
 
 	return nil

@@ -22,6 +22,7 @@ import (
 func (c *Check) setCheck() error {
 	// retrieve the check via the Circonus API or create a new check (if configured to do so)
 	isCreate := viper.GetBool(config.KeyCheckCreate)
+	isManaged := viper.GetBool(config.KeyCheckEnableNewMetrics)
 	isReverse := viper.GetBool(config.KeyReverse)
 	cid := viper.GetString(config.KeyCheckBundleID)
 
@@ -56,13 +57,15 @@ func (c *Check) setCheck() error {
 	}
 
 	c.bundle = bundle
-	// initialize the currently active metrics
-	for _, m := range c.bundle.Metrics {
-		if m.Status == activeMetricStatus {
-			c.activeMetrics[m.Name] = m.Status
+	if isManaged {
+		err := c.setMetricStates(&bundle.Metrics)
+		if err != nil {
+			return errors.Wrap(err, "setting metric states")
 		}
 	}
-	c.updateActiveMetrics = false
+
+	// the metrics from the reference bundle are not needed in memory
+	// as they will never be used again.
 	c.bundle.Metrics = []api.CheckBundleMetric{}
 
 	if isReverse {
@@ -159,7 +162,7 @@ func (c *Check) createCheck() (*api.CheckBundle, error) {
 	cfg.Type = "json:nad"
 	cfg.Config = api.CheckBundleConfig{apiconf.URL: "http://" + targetAddr + "/"}
 	cfg.Metrics = []api.CheckBundleMetric{
-		{Name: "placeholder", Type: "text", Status: activeMetricStatus}, // one metric is required again
+		{Name: "placeholder", Type: "text", Status: c.statusActiveMetric}, // one metric is required again
 	}
 
 	tags := viper.GetString(config.KeyCheckTags)
