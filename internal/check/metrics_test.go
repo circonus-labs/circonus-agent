@@ -54,7 +54,7 @@ func TestGetFullCheckMetrics(t *testing.T) {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
 
-		if len(m) == 0 {
+		if len(*m) == 0 {
 			t.Fatal("expected > 0 metrics")
 		}
 	}
@@ -128,15 +128,9 @@ func TestUpdateCheckBundleMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
-		ok := false
-		for _, m := range c.bundle.Metrics {
-			if m.Name == "foo" {
-				ok = true
-				break
-			}
-		}
+		_, ok := (*c.metricStates)["foo"]
 		if !ok {
-			t.Fatalf("expected metric named 'foo', got (%#v)", c.bundle.Metrics)
+			t.Fatalf("expected metric named 'foo', metric states (%#v)", c.metricStates)
 		}
 	}
 }

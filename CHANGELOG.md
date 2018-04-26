@@ -1,3 +1,8 @@
+# v0.13.0
+
+* upd: refactor enable new metric logic to work better for new check use case
+* upd: refactor reverse connection and command processing
+
 # v0.12.0
 
 * add: `-E` as a short option for `--check-enable-new-metrics`

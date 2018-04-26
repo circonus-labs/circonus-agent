@@ -9,9 +9,40 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
+	"time"
 
+	"github.com/circonus-labs/circonus-gometrics/api"
 	"github.com/pkg/errors"
 )
+
+func (c *Check) setMetricStates(m *[]api.CheckBundleMetric) error {
+	c.logger.Debug().Msg("updating metric states")
+
+	if m == nil {
+		metrics, err := c.getFullCheckMetrics()
+		if err != nil {
+			return errors.Wrap(err, "updating metric states")
+		}
+		m = metrics
+	}
+
+	if c.metricStates == nil {
+		c.metricStates = &metricStates{}
+	}
+
+	for _, metric := range *m {
+		(*c.metricStates)[metric.Name] = metric.Status
+	}
+
+	c.lastRefresh = time.Now()
+	c.metricStateUpdate = false
+	if err := c.saveState(c.metricStates); err != nil {
+		c.logger.Warn().Err(err).Msg("saving metric states")
+	}
+
+	c.logger.Debug().Int("metrics", len(*c.metricStates)).Msg("updating metric states done")
+	return nil
+}
 
 func (c *Check) loadState() (*metricStates, error) {
 	if c.stateFile == "" {

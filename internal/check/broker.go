@@ -47,6 +47,11 @@ func (c *Check) setReverseConfig() error {
 		return errors.Wrapf(err, "parsing check bundle reverse URL (%s)", rURL)
 	}
 
+	brokerAddr, err := net.ResolveTCPAddr("tcp", reverseURL.Host)
+	if err != nil {
+		return errors.Wrapf(err, "invalid reverse service address", rURL)
+	}
+
 	if len(c.bundle.Brokers) == 0 {
 		return errors.New("no brokers found in check bundle")
 	}
@@ -60,6 +65,7 @@ func (c *Check) setReverseConfig() error {
 	c.revConfig = &ReverseConfig{
 		ReverseURL: reverseURL,
 		BrokerID:   brokerID,
+		BrokerAddr: brokerAddr,
 		TLSConfig:  tlsConfig,
 	}
 
@@ -249,7 +255,7 @@ func (c *Check) isValidBroker(broker *api.Broker, checkType string) (time.Durati
 		detail := detail
 
 		// broker must be active
-		if detail.Status != brokerActiveStatus {
+		if detail.Status != c.statusActiveBroker {
 			c.logger.Debug().Str("broker", broker.Name).Msg("not active, skipping")
 			continue
 		}
@@ -283,10 +289,10 @@ func (c *Check) isValidBroker(broker *api.Broker, checkType string) (time.Durati
 		minDelay := int(200 * time.Millisecond)
 		maxDelay := int(2 * time.Second)
 
-		for attempt := 1; attempt <= brokerMaxRetries; attempt++ {
+		for attempt := 1; attempt <= c.brokerMaxRetries; attempt++ {
 			start := time.Now()
 			// broker must be reachable and respond within designated time
-			conn, err := net.DialTimeout("tcp", net.JoinHostPort(brokerHost, brokerPort), brokerMaxResponseTime)
+			conn, err := net.DialTimeout("tcp", net.JoinHostPort(brokerHost, brokerPort), c.brokerMaxResponseTime)
 			if err == nil {
 				connDuration = time.Since(start)
 				conn.Close()
@@ -301,7 +307,7 @@ func (c *Check) isValidBroker(broker *api.Broker, checkType string) (time.Durati
 				Str("delay", delay.String()).
 				Str("broker", broker.Name).
 				Int("attempt", attempt).
-				Int("retries", brokerMaxRetries).
+				Int("retries", c.brokerMaxRetries).
 				Msg("unable to connect, retrying")
 
 			time.Sleep(delay)

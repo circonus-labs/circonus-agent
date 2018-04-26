@@ -6,49 +6,98 @@
 package reverse
 
 import (
-	"encoding/binary"
+	"crypto/tls"
 	"fmt"
 	"io"
-	"time"
+	"net"
 
 	"github.com/pkg/errors"
 )
 
-// getCommandFromBroker reads a command and optional request from broker
-func (c *Connection) getCommandFromBroker(r io.Reader) (*noitCommand, error) {
-	if c.shutdown() {
-		return nil, nil
+func (c *Connection) newCommandReader(done <-chan interface{}, conn *tls.Conn) <-chan command {
+	commandReader := make(chan command)
+	go func() {
+		defer close(commandReader)
+		for {
+			cmd := c.readCommand(conn)
+			select {
+			case <-c.t.Dying():
+				c.logger.Debug().Msg("reverse dying, cmd reader")
+				return
+			case <-done:
+				c.logger.Debug().Msg("reverse 'done', cmd reader")
+				return
+			case commandReader <- cmd:
+			}
+		}
+	}()
+	return commandReader
+}
+
+func (c *Connection) readCommand(r io.Reader) command {
+	cmdPkt, err := c.readFrameFromBroker(r)
+	if err != nil {
+		// ignore first c.maxCommTimeout errors; workaround for conn.Read
+		// being blocking and not interruptable with a context/channel
+		// so that a request to stop will only block for a short period of time
+		reset := true
+		ignore := false
+		if ne, ok := err.(*net.OpError); ok {
+			if ne.Timeout() {
+				c.Lock()
+				c.commTimeouts++
+				if c.commTimeouts <= c.maxCommTimeouts {
+					reset = false
+					ignore = true
+				}
+				c.Unlock()
+			}
+		}
+		return command{err: errors.Wrap(err, "reading command"), reset: reset, ignore: ignore}
 	}
 
-	cmdPkt, err := c.getFrameFromBroker(r)
-	if c.shutdown() {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
+	c.Lock()
+	c.commTimeouts = 0
+	c.Unlock()
 
 	if !cmdPkt.header.isCommand {
 		c.logger.Warn().
 			Str("cmd_header", fmt.Sprintf("%#v", cmdPkt.header)).
 			Str("cmd_payload", string(cmdPkt.payload)).
 			Msg("expected command")
-		return nil, nil
+		return command{err: errors.New("expected command")}
 	}
 
-	nc := &noitCommand{
+	cmd := command{
 		channelID: cmdPkt.header.channelID,
-		command:   string(cmdPkt.payload),
+		name:      string(cmdPkt.payload),
 	}
 
-	if nc.command == noitCmdConnect { // connect command requires a request
-		reqPkt, err := c.getFrameFromBroker(r)
-		if c.shutdown() {
-			return nil, nil
-		}
+	if cmd.name == c.cmdConnect { // connect command requires a request
+		reqPkt, err := c.readFrameFromBroker(r)
 		if err != nil {
-			return nil, err
+			// ignore first c.maxCommTimeout errors; workaround for conn.Read
+			// being blocking and not interruptable with a context/channel
+			// so that a request to stop will only block for a short period of time
+			reset := true
+			ignore := false
+			if ne, ok := err.(*net.OpError); ok {
+				if ne.Timeout() {
+					c.Lock()
+					c.commTimeouts++
+					if c.commTimeouts <= c.maxCommTimeouts {
+						reset = false
+						ignore = true
+					}
+					c.Unlock()
+				}
+			}
+			return command{err: errors.Wrap(err, "reading command payload"), reset: reset, ignore: ignore}
 		}
+
+		c.Lock()
+		c.commTimeouts = 0
+		c.Unlock()
 
 		if reqPkt.header.isCommand {
 			c.logger.Warn().
@@ -57,120 +106,63 @@ func (c *Connection) getCommandFromBroker(r io.Reader) (*noitCommand, error) {
 				Str("req_header", fmt.Sprintf("%#v", reqPkt.header)).
 				Str("req_payload", string(reqPkt.payload)).
 				Msg("expected request")
-			return nil, nil
+			cmd.err = errors.New("expected request")
+			return cmd
 		}
 
-		nc.request = reqPkt.payload
+		cmd.request = reqPkt.payload
 	}
 
-	return nc, nil
+	return cmd
 }
 
-// getFrameFromBroker reads a frame(header + payload) from broker
-func (c *Connection) getFrameFromBroker(r io.Reader) (*noitPacket, error) {
-	if c.conn != nil {
-		c.conn.SetDeadline(time.Now().Add(c.commTimeout))
-	}
-	hdr, err := readHeader(r)
-	if err != nil {
-		return nil, err
-	}
-
-	if hdr.payloadLen > maxPayloadLen {
-		return nil, errors.Errorf("received oversized frame (%d len)", hdr.payloadLen) // restart the connection
-	}
-
-	if c.conn != nil {
-		c.conn.SetDeadline(time.Now().Add(c.commTimeout))
-	}
-	payload, err := readPayload(r, hdr.payloadLen)
-	if err != nil {
-		return nil, err
-	}
-
-	c.logger.Debug().
-		Uint16("channel", hdr.channelID).
-		Bool("is_command", hdr.isCommand).
-		Uint32("payload_len", hdr.payloadLen).
-		Str("payload", string(payload)).
-		Msg("data from broker")
-
-	return &noitPacket{
-		header:  hdr,
-		payload: payload,
-	}, nil
-}
-
-// readHeader reads 6 bytes from the broker connection
-func readHeader(r io.Reader) (*noitHeader, error) {
-	hdrSize := 6
-
-	data, err := readPayload(r, uint32(hdrSize))
-	if err != nil {
-		return nil, err
-	}
-
-	encodedChannelID := binary.BigEndian.Uint16(data)
-	hdr := &noitHeader{
-		channelID:  encodedChannelID & 0x7fff,
-		isCommand:  encodedChannelID&0x8000 > 0,
-		payloadLen: binary.BigEndian.Uint32(data[2:]),
-	}
-
-	return hdr, nil
-}
-
-// readPayload consumes n bytes from the broker connection
-func readPayload(r io.Reader, size uint32) ([]byte, error) {
-	if size == 0 {
-		return []byte{}, nil
-	}
-	data, err := readBytes(r, int64(size))
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
-}
-
-// readBytes attempts to reads <size> bytes from broker connection.
-func readBytes(r io.Reader, size int64) ([]byte, error) {
-	buff := make([]byte, 0, size)
-	lr := io.LimitReader(r, size)
-
-	n, err := lr.Read(buff[:cap(buff)])
-	if n == 0 && err != nil {
-		return nil, err
-	}
-
-	// dealing with expected sizes
-	if int64(n) != size {
-		sz := 30 // 30 is arbitrary, max amount of a larger buffer wanted in a log message
-		if n < sz {
-			sz = n
+func (c *Connection) newCommandProcessor(done <-chan interface{}, cmds <-chan command) <-chan command {
+	commandResults := make(chan command)
+	go func() {
+		defer close(commandResults)
+		for cmd := range cmds {
+			cmdResult := c.processCommand(cmd)
+			select {
+			case <-c.t.Dying():
+				c.logger.Debug().Msg("reverse dying, cmd processor")
+				return
+			case <-done:
+				c.logger.Debug().Msg("reverse 'done', cmd processor")
+				return
+			case commandResults <- cmdResult:
+			}
 		}
-		return nil, errors.Errorf("invalid read, expected bytes %d got %d (%#v = %s)", size, n, buff[0:sz], string(buff[0:sz]))
-	}
-
-	return buff[:n], nil
+	}()
+	return commandResults
 }
 
-// buildFrame creates a frame to send to broker.
-// recipe:
-// bytes 1-6 header
-//      2 bytes channel id and command flag
-//      4 bytes length of data
-// bytes 7-n are data, where 0 < n <= maxPayloadLen
-func buildFrame(channelID uint16, isCommand bool, payload []byte) []byte {
-	frame := make([]byte, len(payload)+6)
-
-	var cmdFlag uint16
-	if isCommand {
-		cmdFlag = 0x8000
+func (c *Connection) processCommand(cmd command) command {
+	if cmd.err != nil {
+		return cmd
 	}
 
-	copy(frame[6:], payload)
-	binary.BigEndian.PutUint16(frame[0:], channelID&0x7fff|cmdFlag)
-	binary.BigEndian.PutUint32(frame[2:], uint32(len(payload)))
+	if cmd.name == c.cmdReset {
+		cmd.reset = true
+		return cmd
+	}
 
-	return frame
+	if cmd.name != c.cmdConnect {
+		cmd.ignore = true
+		cmd.err = errors.Errorf("unused/empty command (%s)", cmd.name)
+		return cmd
+	}
+
+	if len(cmd.request) == 0 {
+		cmd.err = errors.New("invalid connect command, 0 length request")
+		return cmd
+	}
+
+	metrics, err := c.fetchMetricData(&cmd.request)
+	if err != nil {
+		cmd.err = errors.Wrap(err, "fetching metrics")
+		return cmd
+	}
+
+	cmd.metrics = metrics
+	return cmd
 }

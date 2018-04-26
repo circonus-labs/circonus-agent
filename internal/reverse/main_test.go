@@ -270,7 +270,7 @@ func TestStart(t *testing.T) {
 				if werr != nil {
 					panic(werr)
 				}
-				// leave open broker connections are persistent
+				// leave open, broker connections are persistent
 				// closing it will trigger reconnecting
 				//c.Close()
 			}(conn)
@@ -290,16 +290,23 @@ func TestStart(t *testing.T) {
 			t.Fatalf("expected no error got (%s)", err)
 		}
 
-		s.tlsConfig = &tls.Config{
-			RootCAs: cp,
-		}
-
 		tsURL, err := url.Parse("http://" + l.Addr().String() + "/check/foo-bar-baz#abc123")
 		if err != nil {
 			t.Fatalf("expected no error got (%s)", err)
 		}
+		ra, err := net.ResolveTCPAddr("tcp", tsURL.Host)
+		if err != nil {
+			t.Fatalf("expected no error got (%s)", err)
+		}
 
-		s.reverseURL = tsURL
+		s.revConfig = check.ReverseConfig{
+			ReverseURL: tsURL,
+			BrokerAddr: ra,
+			TLSConfig: &tls.Config{
+				RootCAs: cp,
+			},
+		}
+
 		s.dialerTimeout = 1 * time.Second
 
 		time.AfterFunc(2*time.Second, func() {
@@ -322,8 +329,6 @@ func TestStartLong(t *testing.T) {
 		t.Logf("Skipping long tests, set %s=1 to enable", ltFlag)
 		return
 	}
-
-	t.Logf("Testing failed conn attempts, expect success after %d attempts", maxConnRetry)
 
 	zerolog.SetGlobalLevel(zerolog.DebugLevel) // provide some feedback to terminal
 
@@ -388,7 +393,6 @@ func TestStop(t *testing.T) {
 		}
 
 		c.enabled = true
-		c.conn = nil
 
 		c.Stop()
 	}

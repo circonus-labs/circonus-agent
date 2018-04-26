@@ -6,8 +6,6 @@
 package reverse
 
 import (
-	"crypto/tls"
-	"net/url"
 	"sync"
 	"time"
 
@@ -19,23 +17,28 @@ import (
 
 // Connection defines a reverse connection
 type Connection struct {
-	agentAddress  string
-	check         *check.Check
-	checkCID      string
-	cmdCh         chan *noitCommand
-	commTimeout   time.Duration
-	conn          *tls.Conn
-	connAttempts  int
-	delay         time.Duration
-	dialerTimeout time.Duration
-	enabled       bool
-	logger        zerolog.Logger
-	maxDelay      time.Duration
-	metricTimeout time.Duration
-	reverseURL    *url.URL
-	t             tomb.Tomb
-	tlsConfig     *tls.Config
+	agentAddress     string
+	check            *check.Check
+	cmdConnect       string
+	cmdReset         string
+	commTimeout      time.Duration
+	commTimeouts     int
+	configRetryLimit int
+	connAttempts     int
+	delay            time.Duration
+	dialerTimeout    time.Duration
+	enabled          bool
+	logger           zerolog.Logger
+	maxCommTimeouts  int
+	maxConnRetry     int
+	maxDelay         time.Duration
+	maxDelayStep     int
+	maxPayloadLen    uint32
+	metricTimeout    time.Duration
+	minDelayStep     int
+	revConfig        check.ReverseConfig
 	sync.Mutex
+	t tomb.Tomb
 }
 
 // noitHeader defines the header received from the noit/broker
@@ -45,18 +48,10 @@ type noitHeader struct {
 	payloadLen uint32
 }
 
-// noitPacket defines the header + the payload (described by the header) received from the noit/broker
-type noitPacket struct {
+// noitFrame defines the header + the payload (described by the header) received from the noit/broker
+type noitFrame struct {
 	header  *noitHeader
 	payload []byte
-}
-
-// noitCommand is the encapsulation of the header+payload for a single command or
-// a command + request
-type noitCommand struct {
-	channelID uint16
-	command   string
-	request   []byte
 }
 
 // connError returned from connect(), adds flag indicating whether the error is
@@ -66,20 +61,14 @@ type connError struct {
 	fatal bool
 }
 
-const (
-	// NOTE: TBD, make some of these user-configurable
-	commTimeoutSeconds    = 65        // seconds, when communicating with noit
-	dialerTimeoutSeconds  = 15        // seconds, establishing connection
-	metricTimeoutSeconds  = 50        // seconds, when communicating with agent
-	maxPayloadLen         = 65529     // max unsigned short - 6 (for header)
-	maxConnRetry          = 10        // max times to retry a persistently failing connection
-	configRetryLimit      = 5         // if failed attempts > threshold, force reconfig
-	maxDelaySeconds       = 60        // maximum amount of delay between attempts
-	minDelayStep          = 1         // minimum seconds to add on retry
-	maxDelayStep          = 20        // maximum seconds to add on retry
-	noitCmdConnect        = "CONNECT" // command from noit/broker (not ignored)
-	noitCmdReset          = "RESET"   // command from noit/broker (not ignored)
-	brokerMaxRetries      = 5
-	brokerMaxResponseTime = 500 * time.Millisecond
-	brokerActiveStatus    = "active"
-)
+// command contains details of the command received from the broker
+type command struct {
+	err       error
+	ignore    bool
+	fatal     bool
+	reset     bool
+	channelID uint16
+	name      string
+	request   []byte
+	metrics   *[]byte
+}

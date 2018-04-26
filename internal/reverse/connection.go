@@ -15,116 +15,74 @@ import (
 	"github.com/pkg/errors"
 )
 
-// handler connects to the broker and reads commands sent by the broker
-func (c *Connection) handler() error {
-	defer close(c.cmdCh)
-	for { // allow reconnecting
-		cerr := c.connect()
-		if c.shutdown() {
-			return nil
-		}
+// startReverse manages the actual reverse connection to the Circonus broker
+func (c *Connection) startReverse() error {
+	for {
+		conn, cerr := c.connect()
 		if cerr != nil {
 			if cerr.fatal {
-				return cerr
+				c.logger.Error().Err(cerr.err).Msg("connecting to broker")
+				return cerr.err
 			}
-			c.logger.Warn().Err(cerr).Int("attempt", c.connAttempts).Msg("connect failed")
-		}
-		if c.conn == nil {
+			c.logger.Warn().Err(cerr.err).Msg("retrying")
 			continue
 		}
 
-		for {
-			cmd, err := c.getCommandFromBroker(c.conn)
-			if c.shutdown() {
-				return nil
-			}
-			if err != nil {
-				c.logger.Warn().Err(err).Msg("reading commands, resetting connection")
-				break
-			}
-			if cmd != nil {
-				c.cmdCh <- cmd
-			}
-		}
-	}
-}
-
-// processor handles commands from broker
-func (c *Connection) processor() error {
-	for {
-		select {
-		case <-c.t.Dying():
+		if c.shutdown() {
 			return nil
-		case nc := <-c.cmdCh:
-			if nc == nil {
-				c.logger.Warn().Str("cmd", "nil").Msg("ignoring nil command")
-				break
-			}
-			if nc.command != noitCmdConnect && nc.command != noitCmdReset {
-				c.logger.Debug().Str("cmd", nc.command).Msg("ignoring command")
-				break
-			}
-			if nc.command == noitCmdReset {
-				c.logger.Debug().
-					Str("cmd", nc.command).
-					Msg("resetting connection")
-				c.conn.Close()
-				return nil
-			}
-
-			if len(nc.request) == 0 {
-				c.logger.Debug().
-					Str("cmd", nc.command).
-					Str("req", string(nc.request)).
-					Msg("ignoring zero length request")
-				break
-			}
-
-			if c.shutdown() {
-				return nil
-			}
-
-			// Successfully connected, sent, and received data.
-			// In certain circumstances, a broker will allow a connection, accept
-			// the initial introduction, and then summarily disconnect (e.g. multiple
-			// agents attempting reverse connections for the same check.)
-			if c.connAttempts > 0 {
-				c.resetConnectionAttempts()
-			}
-
-			// NOTE: do not check whether shutting down for the next two
-			//       let the metrics go ahead and be sent through for
-			//       the channel in the request from the broker.
-			//       then exit at the start of the next iteration.
-			//
-			// send the request from the broker to the local agent
-			data, err := c.fetchMetricData(&nc.request)
-			if err != nil {
-				c.logger.Warn().Err(err).Msg("fetching metric data")
-			}
-			// send the metrics received from the local agent back to the broker
-			// NOTE: send even if metrics will be empty
-			if err := c.sendMetricData(c.conn, nc.channelID, data); err != nil {
-				c.logger.Warn().Err(err).Msg("sending metric data")
-				c.logger.Warn().Msg("closing conn to reset")
-				c.conn.Close()
-				c.conn = nil
-			}
 		}
+
+		done := make(chan interface{})
+		commandReader := c.newCommandReader(done, conn)
+		commandProcessor := c.newCommandProcessor(done, commandReader)
+		for result := range commandProcessor {
+			if c.shutdown() {
+				close(done)
+				conn.Close()
+				return nil
+			}
+			if result.ignore {
+				// c.logger.Debug().Err(result.err).Int("timeouts", c.commTimeouts).Msg("ignored")
+				continue
+			}
+			if result.err != nil {
+				if result.reset {
+					c.logger.Warn().Err(result.err).Int("timeouts", c.commTimeouts).Msg("resetting connection")
+					close(done)
+					break
+				} else if result.fatal {
+					c.logger.Error().Err(result.err).Interface("result", result).Msg("fatal error, exiting")
+					conn.Close()
+					close(done)
+					return result.err
+				} else {
+					c.logger.Error().Err(result.err).Interface("result", result).Msg("unhandled error state...")
+					continue
+				}
+			}
+
+			// send metrics to broker
+			if err := c.sendMetricData(conn, result.channelID, result.metrics); err != nil {
+				c.logger.Warn().Err(err).Msg("sending metric data, resetting connection")
+				close(done)
+				break
+			}
+
+			c.resetConnectionAttempts()
+		}
+
+		conn.Close()
+		if c.shutdown() {
+			return nil
+		}
+
 	}
 }
 
-// connect to broker via w/tls and send initial introduction to start reverse
+// connect to broker w/tls and send initial introduction
 // NOTE: all reverse connections require tls
-func (c *Connection) connect() *connError {
-	if c.conn != nil {
-		c.conn.Close()
-	}
-
+func (c *Connection) connect() (*tls.Conn, *connError) {
 	c.Lock()
-	c.conn = nil
-	c.Unlock()
-
 	if c.connAttempts > 0 {
 		c.logger.Info().
 			Str("delay", c.delay.String()).
@@ -132,7 +90,7 @@ func (c *Connection) connect() *connError {
 			Msg("connect retry")
 
 		time.Sleep(c.delay)
-		c.setNextDelay()
+		c.delay = c.getNextDelay(c.delay)
 
 		// Under normal circumstances the configuration for reverse is
 		// non-volatile. There are, however, some situations where the
@@ -140,82 +98,84 @@ func (c *Connection) connect() *connError {
 		// check changed to use a different broker, broker certificate
 		// changes, etc.) The majority of configuration based errors are
 		// fatal, no attempt is made to resolve.
-		if c.connAttempts%configRetryLimit == 0 {
+		if c.connAttempts%c.configRetryLimit == 0 {
 			c.logger.Info().Int("attempts", c.connAttempts).Msg("reconfig triggered")
 			if err := c.check.RefreshCheckConfig(); err != nil {
-				return &connError{fatal: true, err: errors.Wrap(err, "refreshing check configuration")}
+				return nil, &connError{fatal: true, err: errors.Wrap(err, "refreshing check configuration")}
 			}
 			rc, err := c.check.GetReverseConfig()
 			if err != nil {
-				return &connError{fatal: true, err: errors.Wrap(err, "reconfiguring reverse connection")}
+				return nil, &connError{fatal: true, err: errors.Wrap(err, "reconfiguring reverse connection")}
 			}
-			c.reverseURL = rc.ReverseURL
-			c.tlsConfig = rc.TLSConfig
+			c.revConfig = rc
 		}
 	}
+	c.Unlock()
 
-	if c.shutdown() {
-		return nil
-	}
-
-	c.logger.Debug().Str("host", c.reverseURL.Host).Msg("connecting")
+	revHost := c.revConfig.ReverseURL.Host
+	c.logger.Debug().Str("host", revHost).Msg("connecting")
 	c.Lock()
 	c.connAttempts++
 	c.Unlock()
 	dialer := &net.Dialer{Timeout: c.dialerTimeout}
-	conn, err := tls.DialWithDialer(dialer, "tcp", c.reverseURL.Host, c.tlsConfig)
+	conn, err := tls.DialWithDialer(dialer, "tcp", c.revConfig.BrokerAddr.String(), c.revConfig.TLSConfig)
 	if err != nil {
-		if c.connAttempts >= maxConnRetry {
-			return &connError{fatal: true, err: errors.Wrapf(err, "after %d failed attempts, last error", c.connAttempts)}
+		if c.connAttempts >= c.maxConnRetry {
+			return nil, &connError{fatal: true, err: errors.Wrapf(err, "after %d failed attempts, last error", c.connAttempts)}
 		}
-		return &connError{fatal: false, err: errors.Wrapf(err, "connecting to %s", c.reverseURL.Host)}
+		return nil, &connError{fatal: false, err: errors.Wrapf(err, "connecting to %s", revHost)}
 	}
-	c.logger.Info().Str("host", c.reverseURL.Host).Msg("connected")
+	c.logger.Info().Str("host", revHost).Msg("connected")
 
 	conn.SetDeadline(time.Now().Add(c.commTimeout))
-	introReq := "REVERSE " + c.reverseURL.Path
-	if c.reverseURL.Fragment != "" {
-		introReq += "#" + c.reverseURL.Fragment // reverse secret is placed here when reverse url is parsed
+	introReq := "REVERSE " + c.revConfig.ReverseURL.Path
+	if c.revConfig.ReverseURL.Fragment != "" {
+		introReq += "#" + c.revConfig.ReverseURL.Fragment // reverse secret is placed here when reverse url is parsed
 	}
 	c.logger.Debug().Msg(fmt.Sprintf("sending intro '%s'", introReq))
 	if _, err := fmt.Fprintf(conn, "%s HTTP/1.1\r\n\r\n", introReq); err != nil {
 		if err != nil {
-			return &connError{fatal: false, err: errors.Wrapf(err, "unable to write intro to %s", c.reverseURL.Host)}
+			c.logger.Error().Err(err).Msg("sending intro")
+			return nil, &connError{fatal: false, err: errors.Wrapf(err, "unable to write intro to %s", revHost)}
 		}
 	}
 
 	c.Lock()
-	c.conn = conn
+	// reset timeouts after successful (re)connection
+	c.commTimeouts = 0
 	c.Unlock()
-	return nil
+
+	return conn, nil
 }
 
-// setNextDelay for failed connection attempts
-func (c *Connection) setNextDelay() {
-	if c.delay == c.maxDelay {
-		return
-	}
-	c.Lock()
-	defer c.Unlock()
-
-	if c.delay < c.maxDelay {
-		drift := rand.Intn(maxDelayStep-minDelayStep) + minDelayStep
-		c.delay += time.Duration(drift) * time.Second
+// getNextDelay for failed connection attempts
+func (c *Connection) getNextDelay(currDelay time.Duration) time.Duration {
+	if currDelay == c.maxDelay {
+		return currDelay
 	}
 
-	if c.delay > c.maxDelay {
-		c.delay = c.maxDelay
+	delay := currDelay
+
+	if delay < c.maxDelay {
+		drift := rand.Intn(c.maxDelayStep-c.minDelayStep) + c.minDelayStep
+		delay += time.Duration(drift) * time.Second
 	}
+
+	if delay > c.maxDelay {
+		delay = c.maxDelay
+	}
+
+	return delay
 }
 
 // resetConnectionAttempts on successful send/receive
 func (c *Connection) resetConnectionAttempts() {
+	c.Lock()
 	if c.connAttempts > 0 {
-		c.Lock()
 		c.delay = 1 * time.Second
 		c.connAttempts = 0
-		c.Unlock()
 	}
+	c.Unlock()
 }
 
 // Error returns string representation of a connError

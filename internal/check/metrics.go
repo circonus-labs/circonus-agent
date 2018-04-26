@@ -15,7 +15,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (c *Check) getFullCheckMetrics() ([]api.CheckBundleMetric, error) {
+func (c *Check) getFullCheckMetrics() (*[]api.CheckBundleMetric, error) {
 	cbmPath := strings.Replace(c.bundle.CID, "check_bundle", "check_bundle_metrics", -1)
 	cbmPath += "?query_broker=1" // force for full set of metrics (active and available)
 
@@ -29,48 +29,8 @@ func (c *Check) getFullCheckMetrics() ([]api.CheckBundleMetric, error) {
 		return nil, errors.Wrap(err, "parsing check bundle metrics")
 	}
 
-	return metrics.Metrics, nil
+	return &metrics.Metrics, nil
 }
-
-// func (c *Check) updateCheckBundleMetrics(m *map[string]api.CheckBundleMetric) error {
-// 	metrics := make([]api.CheckBundleMetric, 0, len(*m))
-//
-// 	for mn, mv := range *m {
-// 		c.logger.Debug().Str("name", mn).Msg("configuring new check bundle metric")
-// 		metrics = append(metrics, mv)
-// 	}
-//
-// 	cfg := &api.CheckBundleMetrics{
-// 		CID:     strings.Replace(c.bundle.CID, "check_bundle", "check_bundle_metrics", 1),
-// 		Metrics: metrics,
-// 	}
-//
-// 	c.logger.Debug().Interface("payload", cfg).Msg("sending new metrics to API")
-//
-// 	results, err := c.client.UpdateCheckBundleMetrics(cfg)
-// 	if err != nil {
-// 		return errors.Wrap(err, "enabling new metrics")
-// 	}
-//
-// 	for _, ms := range results.Metrics {
-// 		if ms.Result == nil {
-// 			c.logger.Info().Interface("metric", ms).Msg("nil 'Result' field, unknown operation status")
-// 			continue
-// 		}
-// 		switch *ms.Result {
-// 		case "success":
-// 			c.logger.Info().Str("metric", ms.Name).Msg("enabled")
-// 		case "noop":
-// 			c.logger.Info().Str("metric", ms.Name).Msg("already enabled")
-// 		case "failure":
-// 			c.logger.Info().Str("metric", ms.Name).Msg("could not enable")
-// 		default:
-// 			c.logger.Info().Str("metric", ms.Name).Str("result", *ms.Result).Msg("unknown result")
-// 		}
-// 	}
-//
-// 	return nil
-// }
 
 func (c *Check) updateCheckBundleMetrics(m *map[string]api.CheckBundleMetric) error {
 	if m == nil {
@@ -97,12 +57,18 @@ func (c *Check) updateCheckBundleMetrics(m *map[string]api.CheckBundleMetric) er
 
 	bundle.Metrics = append(bundle.Metrics, metrics...)
 
+	c.logger.Debug().Msg("updating check bundle with new metrics")
 	newBundle, err := c.client.UpdateCheckBundle(bundle)
 	if err != nil {
 		return errors.Wrap(err, "unable to update check bundle with new metrics")
 	}
 
+	if err := c.setMetricStates(&newBundle.Metrics); err != nil {
+		return errors.Wrap(err, "updating metrics states after enable new metrics")
+	}
+
 	c.bundle = newBundle
+	c.bundle.Metrics = []api.CheckBundleMetric{}
 
 	return nil
 }
@@ -111,7 +77,7 @@ func (c *Check) configMetric(mn string, mv cgm.Metric) api.CheckBundleMetric {
 
 	cm := api.CheckBundleMetric{
 		Name:   mn,
-		Status: activeMetricStatus,
+		Status: c.statusActiveMetric,
 	}
 
 	mtype := "numeric" // default
