@@ -21,34 +21,28 @@ type metricStates map[string]string
 
 // Check exposes the check bundle management interface
 type Check struct {
-	lastRefresh         time.Time
-	refreshTTL          time.Duration
-	manage              bool
-	bundle              *api.CheckBundle
-	metricStates        metricStates
-	updateMetricStates  bool
-	activeMetrics       metricStates
-	updateActiveMetrics bool
-	revConfig           *ReverseConfig
-	client              API
-	logger              zerolog.Logger
-	stateFile           string
-	statePath           string
+	statusActiveMetric    string
+	statusActiveBroker    string
+	brokerMaxResponseTime time.Duration
+	brokerMaxRetries      int
+	bundle                *api.CheckBundle
+	client                API
+	lastRefresh           time.Time
+	logger                zerolog.Logger
+	manage                bool
+	metricStates          *metricStates
+	metricStateUpdate     bool
+	refreshTTL            time.Duration
+	revConfig             *ReverseConfig
+	stateFile             string
+	statePath             string
 	sync.Mutex
 }
 
 // ReverseConfig contains the reverse configuration for the check
 type ReverseConfig struct {
-	ReverseURL *url.URL
 	BrokerAddr *net.TCPAddr
-	TLSConfig  *tls.Config
 	BrokerID   string
+	ReverseURL *url.URL
+	TLSConfig  *tls.Config
 }
-
-const (
-	// NOTE: TBD, possibly make retries and response time configurable
-	brokerMaxRetries      = 5
-	brokerMaxResponseTime = 500 * time.Millisecond
-	brokerActiveStatus    = "active"
-	activeMetricStatus    = "active"
-)
