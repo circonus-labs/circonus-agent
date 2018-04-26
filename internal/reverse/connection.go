@@ -140,6 +140,11 @@ func (c *Connection) connect() (*tls.Conn, *connError) {
 		}
 	}
 
+	c.Lock()
+	// reset timeouts after successful (re)connection
+	c.commTimeouts = 0
+	c.Unlock()
+
 	return conn, nil
 }
 
