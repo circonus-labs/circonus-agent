@@ -1,0 +1,47 @@
+collectors = ["cpu","diskstats","if","loadavg","vm"]
+debug = false
+debug_cgm = false
+debug_dump_metrics = ""
+listen = []
+listen_socket = []
+plugin_ttl_units = "s"
+
+[api]
+ca_file = ""
+key = ""
+url = "https://api.circonus.com/v2/"
+
+[check]
+broker = "select"
+bundle_id = ""
+create = false
+enable_new_metrics = false
+metric_refresh_ttl = "5m"
+tags = ""
+
+[log]
+level = "info"
+pretty = false
+
+[reverse]
+broker_ca_file = ""
+enabled = true
+
+[ssl]
+listen = ""
+verify = true
+
+[statsd]
+disabled = false
+port = "8125"
+
+[statsd.group]
+check_bundle_id = ""
+counters = "sum"
+gauges = "average"
+metric_prefix = "group."
+sets = "sum"
+
+[statsd.host]
+category = "statsd"
+metric_prefix = "host."
