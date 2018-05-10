@@ -6,7 +6,7 @@ HOME="{{pkg.svc_var_path}}"
 
 exec circonus-agentd \
   --api-app="circonus-agent" \
-  --api-key="{{cfg.api.key}}" \
+  --api-key="{{cfg.api_key}}" \
   --check-broker "{{cfg.check.broker}}" \
   --check-create \
   --check-enable-new-metrics \

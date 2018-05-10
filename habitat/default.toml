@@ -1,3 +1,4 @@
+api_key = ""
 collectors = ["cpu","diskstats","if","loadavg","vm"]
 debug = false
 debug_cgm = false
@@ -8,7 +9,6 @@ plugin_ttl_units = "s"
 
 [api]
 ca_file = ""
-key = ""
 url = "https://api.circonus.com/v2/"
 
 [check]
