@@ -330,7 +330,7 @@ func TestInventory(t *testing.T) {
 			t.Fatalf("expected not nil")
 		}
 
-		expect := []byte(`"test":{"name":"test","instance":"","command":"`)
+		expect := []byte(`{"id":"test","name":"test","instance":"","command":"testdata/test.sh"`)
 		if !bytes.Contains(data, expect) {
 			t.Fatalf("expected (%s) got (%s)", string(expect), string(data))
 		}

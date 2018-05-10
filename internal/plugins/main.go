@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/circonus-labs/circonus-agent/api"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/maier/go-appstats"
@@ -199,10 +200,12 @@ func (p *Plugins) IsInternal(pluginName string) bool {
 func (p *Plugins) Inventory() []byte {
 	p.Lock()
 	defer p.Unlock()
-	inventory := make(map[string]*pluginDetails, len(p.active))
+	// inventory := make(map[string]*pluginDetails, len(p.active))
+	inventory := make(api.Inventory, 0, len(p.active))
 	for id, plug := range p.active {
 		plug.Lock()
-		inventory[id] = &pluginDetails{
+		p := api.Plugin{
+			ID:              id,
 			Name:            plug.id,
 			Instance:        plug.instanceID,
 			Command:         plug.command,
@@ -211,12 +214,12 @@ func (p *Plugins) Inventory() []byte {
 			LastRunEnd:      plug.lastEnd.Format(time.RFC3339Nano),
 			LastRunDuration: plug.lastRunDuration.String(),
 		}
-
 		if plug.lastError != nil {
-			inventory[id].LastError = plug.lastError.Error()
+			p.LastError = plug.lastError.Error()
 		}
-
 		plug.Unlock()
+
+		inventory = append(inventory, p)
 	}
 	data, err := json.Marshal(inventory)
 	if err != nil {

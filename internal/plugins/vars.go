@@ -48,17 +48,17 @@ type plugin struct {
 	sync.Mutex
 }
 
-// pluginDetails are exposed via the /inventory endpoint
-type pluginDetails struct {
-	Name            string   `json:"name"`
-	Instance        string   `json:"instance"`
-	Command         string   `json:"command"`
-	Args            []string `json:"args"`
-	LastRunStart    string   `json:"last_run_start"`
-	LastRunEnd      string   `json:"last_run_end"`
-	LastRunDuration string   `json:"last_run_duration"`
-	LastError       string   `json:"last_error"`
-}
+// // pluginDetails are exposed via the /inventory endpoint
+// type pluginDetails struct {
+// 	Name            string   `json:"name"`
+// 	Instance        string   `json:"instance"`
+// 	Command         string   `json:"command"`
+// 	Args            []string `json:"args"`
+// 	LastRunStart    string   `json:"last_run_start"`
+// 	LastRunEnd      string   `json:"last_run_end"`
+// 	LastRunDuration string   `json:"last_run_duration"`
+// 	LastError       string   `json:"last_error"`
+// }
 
 const (
 	fieldDelimiter  = "\t"
