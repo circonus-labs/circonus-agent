@@ -1,0 +1,56 @@
+{
+   "api": {
+     "app": "circonus-agent",
+     "ca_file": "{{cfg.api.ca_file}}",
+     "key": "{{cfg.api_key}}",
+     "url": "https://api.circonus.com/v2/"
+   },
+   "check": {
+     "broker": "{{cfg.check.broker}}",
+     "bundle_id": "",
+     "create": {{cfg.check.create}},
+     "enable_new_metrics": {{cfg.check.enable_new_metrics}},
+     "metric_state_dir": "{{pkg.svc_var_path}}",
+     "metric_refresh_ttl": "{{cfg.check.metric_refresh_ttl}}",
+     "tags": "",
+     "target": "{{sys.ip}}",
+     "title": "{{sys.hostname}}"
+   },
+   "collectors": "{{cfg.collectors}}",
+   "debug": false,
+   "debug_cgm": false,
+   "debug_dump_metrics": "",
+   "listen": {{cfg.listen}},
+   "listen_socket": {{cfg.listen_socket}},
+   "log": {
+     "level": "{{cfg.log.level}}",
+     "pretty": {{cfg.log.pretty}}
+   },
+   "plugin_dir": "{{pkg.svc_files_path}}",
+   "plugin_ttl_units": "{{cfg.plugin_ttl_units}}",
+   "reverse": {
+     "broker_ca_file": "{{cfg.reverse.broker_ca_file}}",
+     "enabled": {{cfg.reverse.enabled}}
+   },
+   "ssl": {
+     "cert_file": "/hab/pkgs/smartb/circonus-agent/0.13.0/20180511135308/etc/circonus-agent.pem",
+     "key_file": "/hab/pkgs/smartb/circonus-agent/0.13.0/20180511135308/etc/circonus-agent.key",
+     "listen": "{{cfg.ssl.listen}}",
+     "verify": {{cfg.ssl.verify}}
+   },
+   "statsd": {
+     "disabled": {{cfg.statsd.disabled}},
+     "group": {
+       "check_bundle_id": "{{cfg.statsd.group.check_bundle_id}}",
+       "counters": "{{cfg.statsd.group.counters}}",
+       "gauges": "{{cfg.statsd.group.gauges}}",
+       "metric_prefix": "{{cfg.statsd.group.metric_prefix}}",
+       "sets": "{{cfg.statsd.group.sets}}"
+     },
+     "host": {
+       "category": "{{cfg.statsd.host.category}}",
+       "metric_prefix": "{{cfg.statsd.host.metric_prefix}}"
+     },
+     "port": "{{cfg.statsd.port}}"
+   }
+ }

@@ -4,19 +4,13 @@ exec 2>&1
 
 HOME="{{pkg.svc_var_path}}"
 
-exec circonus-agentd \
-  --api-app="circonus-agent" \
-  --api-key="{{cfg.api_key}}" \
-  --check-broker "{{cfg.check.broker}}" \
-  --check-create \
-  --check-enable-new-metrics \
-  --check-metric-state-dir="{{pkg.svc_var_path}}" \
-  --check-target="{{sys.ip}}" \
-  --check-title="Circonus Agent on {{sys.hostname}}" \
-  --collectors="{{cfg.collectors}}" \
-  --listen="127.0.0.1:2609" \
-  --log-pretty \
-  --no-statsd \
-  --plugin-dir="{{pkg.path}}/plugins" \
-  --reverse \
-  2>&1
+{{#each cfg.plugin_packages as |package| ~}}
+  PATH="$PATH:$(hab pkg path {{package}})"
+{{/each}}
+
+if [ "$(whoami)" = "root" ]
+then
+  exec chpst -U hab -u hab {{pkg.name}} --config {{pkg.svc_config_path}}/agent.json
+else
+  exec {{pkg.name}} --config {{pkg.svc_config_path}}/agent.json
+fi

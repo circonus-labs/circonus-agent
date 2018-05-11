@@ -7,6 +7,8 @@ listen = []
 listen_socket = []
 plugin_ttl_units = "s"
 
+plugin_packages = []
+
 [api]
 ca_file = ""
 url = "https://api.circonus.com/v2/"
