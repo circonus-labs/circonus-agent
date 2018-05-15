@@ -56,6 +56,6 @@ do_build() {
 }
 
 do_install() {
-  cp -r "${GOPATH}/bin"              "${pkg_prefix}/${bin}"
+  cp -r "${GOPATH}/bin"            "${pkg_prefix}/"
   return $?
 }
