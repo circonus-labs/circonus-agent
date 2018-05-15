@@ -57,5 +57,6 @@ do_build() {
 
 do_install() {
   cp -r "${GOPATH}/bin"            "${pkg_prefix}/"
+  cp -r "$PLAN_CONTEXT/../plugins" "${pkg_prefix}/plugins"
   return $?
 }
