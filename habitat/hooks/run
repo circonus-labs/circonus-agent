@@ -5,7 +5,7 @@ exec 2>&1
 HOME="{{pkg.svc_var_path}}"
 
 {{#each cfg.plugin_packages as |package| ~}}
-  PATH="$PATH:$(hab pkg path {{package}})"
+  PATH=$PATH:"$(cat $(hab pkg path {{package}})/PATH)"
 {{/each}}
 
 if [ "$(whoami)" = "root" ]
