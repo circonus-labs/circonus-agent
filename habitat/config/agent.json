@@ -16,12 +16,12 @@
      "target": "{{sys.ip}}",
      "title": "{{sys.hostname}}"
    },
-   "collectors": "{{cfg.collectors}}",
+   "collectors": {{toJson cfg.collectors}},
    "debug": false,
    "debug_cgm": false,
    "debug_dump_metrics": "",
-   "listen": "{{cfg.listen}}",
-   "listen_socket": {{cfg.listen_socket}},
+   "listen": {{toJson cfg.listen}},
+   "listen_socket": {{toJson cfg.listen_socket}},
    "log": {
      "level": "{{cfg.log.level}}",
      "pretty": {{cfg.log.pretty}}
