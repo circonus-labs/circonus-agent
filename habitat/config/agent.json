@@ -20,7 +20,7 @@
    "debug": false,
    "debug_cgm": false,
    "debug_dump_metrics": "",
-   "listen": {{cfg.listen}},
+   "listen": "{{cfg.listen}}",
    "listen_socket": {{cfg.listen_socket}},
    "log": {
      "level": "{{cfg.log.level}}",
