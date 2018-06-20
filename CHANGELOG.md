@@ -1,3 +1,8 @@
+# v0.13.1
+
+* fix: remove version line from `--show-config` output
+* new: api package
+
 # v0.13.0
 
 * upd: refactor enable new metric logic to work better for new check use case
