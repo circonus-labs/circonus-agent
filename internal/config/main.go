@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/circonus-labs/circonus-agent/internal/release"
 	toml "github.com/pelletier/go-toml"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -106,6 +105,6 @@ func ShowConfig(w io.Writer) error {
 		return errors.Errorf("unknown config format '%s'", format)
 	}
 
-	fmt.Fprintf(w, "%s v%s running config:\n%s\n", release.NAME, release.VERSION, data)
+	fmt.Fprintf(w, "\n%s\n", data)
 	return nil
 }
