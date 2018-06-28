@@ -56,7 +56,8 @@ do_build() {
 }
 
 do_install() {
-  cp -r "${GOPATH}/bin"            "${pkg_prefix}/"
-  cp -r "$PLAN_CONTEXT/../plugins" "${pkg_prefix}/plugins"
+  cp -r "${GOPATH}/bin"                "${pkg_prefix}/"
+  cp -r "$PLAN_CONTEXT/../plugins"     "${pkg_prefix}/plugins"
+  mv "${pkg_prefix}/plugins/README.md" "${pkg_prefix}/README.md"
   return $?
 }
