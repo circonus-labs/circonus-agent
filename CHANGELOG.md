@@ -1,3 +1,8 @@
+# v0.13.2
+
+* fix: linxu/procfs/diskstats collector. guard against malformed/blank lines
+* doc: miscellaneous documentation updates
+
 # v0.13.1
 
 * fix: remove version line from `--show-config` output
