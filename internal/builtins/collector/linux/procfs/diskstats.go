@@ -422,7 +422,13 @@ func (c *Diskstats) parsemdstat() map[string][]string {
 	for scanner.Scan() {
 
 		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
 		fields := strings.Fields(line)
+		if len(fields) < 1 {
+			continue
+		}
 
 		if !mdrx.MatchString(fields[0]) {
 			continue
