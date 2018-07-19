@@ -1,5 +1,6 @@
 # v0.13.3
 
+* upd: breaking change in upstream repo
 * upd: upstream deps
 
 # v0.13.2
