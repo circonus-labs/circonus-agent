@@ -47,4 +47,4 @@ coverage.xml
 coverage.html
 
 # plugin binaries
-plugins/linux/io/io_latency/io_latency
+*.elf
