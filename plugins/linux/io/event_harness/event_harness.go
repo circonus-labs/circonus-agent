@@ -1,3 +1,10 @@
+// Copyright © 2017 Circonus, Inc. <support@circonus.com>
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+//
+
+// +build linux
+
 package event_harness
 
 import "bufio"
@@ -32,7 +39,7 @@ func StartTracing(instance string, args [][]string) error {
 	if err := echoEmulate(filepath.Join(inst, "tracing_on"), "1\n"); err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 func StopTracing(instance string) error {
@@ -43,17 +50,17 @@ func StopTracing(instance string) error {
 }
 
 func ProcessTrace(pipe *os.File, handler func(string), tasks chan func(), finished chan error) {
-        defer pipe.Close()
+	defer pipe.Close()
 	rdr := bufio.NewReader(pipe)
 	// This stupid timeout is because of https://lkml.org/lkml/2014/6/10/30
 	pipe.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
 	line, err := rdr.ReadString('\n')
-	for ; err != io.EOF ; {
+	for err != io.EOF {
 		if line != "" {
-			handler(string(line));
+			handler(string(line))
 		}
 		select {
-		case f := <- tasks:
+		case f := <-tasks:
 			f()
 		default:
 		}
@@ -64,9 +71,10 @@ func ProcessTrace(pipe *os.File, handler func(string), tasks chan func(), finish
 }
 
 type Harness struct {
-	Done chan error
+	Done  chan error
 	Tasks chan func()
 }
+
 func HarnessMain(instance string, args [][]string, handler func(string)) (*Harness, error) {
 	complete := make(chan error)
 	inline_tasks := make(chan func())
@@ -78,11 +86,11 @@ func HarnessMain(instance string, args [][]string, handler func(string)) (*Harne
 		return nil, fmt.Errorf("Failed to start tracing: %s", err)
 	}
 	pipe, erro := os.Open(filepath.Join(inst, "trace_pipe"))
-        if erro != nil {
+	if erro != nil {
 		StopTracing(instance)
 		return nil, fmt.Errorf("Failed to read trace: %s", erro)
-        }
- 	c := make(chan os.Signal, 1)
+	}
+	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	go func() {
 		for _ = range c {
@@ -90,16 +98,16 @@ func HarnessMain(instance string, args [][]string, handler func(string)) (*Harne
 		}
 	}()
 
-        go func() {
-		go ProcessTrace(pipe,handler,inline_tasks,done)
+	go func() {
+		go ProcessTrace(pipe, handler, inline_tasks, done)
 		err := <-done
-        	pipe.Close()
-        	close(done)
+		pipe.Close()
+		close(done)
 		StopTracing(instance)
 		complete <- err
 	}()
 	return &Harness{
-		Done: complete,
+		Done:  complete,
 		Tasks: inline_tasks,
 	}, nil
 }
