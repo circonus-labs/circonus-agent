@@ -1,3 +1,11 @@
+# v0.13.4
+
+* upd: upstream deps (cgm)
+
+# v0.13.3
+
+* upd: upstream deps
+
 # v0.13.2
 
 * fix: linxu/procfs/diskstats collector. guard against malformed/blank lines

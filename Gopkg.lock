@@ -21,8 +21,8 @@
     "api/config",
     "checkmgr"
   ]
-  revision = "b5b9c6e8f93c67411193a170108e951e642c453c"
-  version = "v2.1.1"
+  revision = "f57cec857aa60ee9ffa19016d5edc822f9b1fea1"
+  version = "v2.1.2"
 
 [[projects]]
   branch = "master"
@@ -67,7 +67,7 @@
   branch = "master"
   name = "github.com/hashicorp/go-retryablehttp"
   packages = ["."]
-  revision = "3b087ef2d313afe6c55b2f511d20db04ca767075"
+  revision = "e651d75abec6fbd4f2c09508f72ae7af8a8b7171"
 
 [[projects]]
   branch = "master"
@@ -114,7 +114,7 @@
   branch = "master"
   name = "github.com/mitchellh/mapstructure"
   packages = ["."]
-  revision = "bb74f1db0675b241733089d5a1faa5dd8b0ef57b"
+  revision = "f15292f7a699fcc1a38a80977f80a046874ba8ac"
 
 [[projects]]
   name = "github.com/pelletier/go-toml"
@@ -132,7 +132,7 @@
   branch = "master"
   name = "github.com/prometheus/client_model"
   packages = ["go"]
-  revision = "99fa1f4be8e564e8a6b613da7fa6f46c9edafc6c"
+  revision = "5c3871d89910bfb32f5fcab2aa4b9ec68e65a99f"
 
 [[projects]]
   branch = "master"
@@ -204,13 +204,13 @@
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context"]
-  revision = "ed29d75add3d7c4bf7ca65aac0c6df3d1420216f"
+  revision = "a680a1efc54dd51c040b3b5ce4939ea3cf2ea0d1"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "151529c776cdc58ddbe7963ba9af779f3577b419"
+  revision = "ac767d655b305d4e9612f5f6e33120b9176c4ad4"
 
 [[projects]]
   name = "golang.org/x/text"
