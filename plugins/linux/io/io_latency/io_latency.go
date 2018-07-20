@@ -1,17 +1,18 @@
 package main
 
-import "fmt"
-import "os"
-import "log"
-import "strconv"
-import "strings"
-import "syscall"
-import "time"
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+	"log"
+	"os"
+	"strconv"
+	"strings"
+	"syscall"
+	"time"
 
-import "github.com/circonus-labs/circonusllhist"
-
-import "../event_harness"
+	"github.com/circonus-labs/circonus-agent/plugins/linux/io/event_harness"
+	"github.com/circonus-labs/circonusllhist"
+)
 
 var MAX_AGE = 310.0 // 5m10s
 var devlist = map[string]string{}
@@ -45,10 +46,10 @@ func dumpHistAndClear() {
 		for dev, hist := range latency {
 			if ss := hist.DecStrings(); len(ss) > 0 {
 				hist.Reset()
-	  			val := make(map[string]interface{})
-	  			val["_type"] = "n"
-	  			val["_value"] = ss
-				tmp[typ + "|ST[device:" + dev + "]"] = val
+				val := make(map[string]interface{})
+				val["_type"] = "n"
+				val["_value"] = ss
+				tmp[typ+"|ST[device:"+dev+",units=seconds]"] = val
 			}
 		}
 	}
@@ -85,6 +86,7 @@ func handleLogLine(line string) {
 			}
 		default:
 		}
+
 		switch {
 		case op == "block_rq_insert":
 			sec, nsec := parts[9], parts[11]
@@ -95,17 +97,20 @@ func handleLogLine(line string) {
 			opkey := strings.Join([]string{dev, sec, nsec}, ",")
 			if start, ok := inserts[opkey]; ok {
 				issues[opkey] = whence
-				trackLatency(dev, "q2d", whence-start)
+				// Q2D - time request spent in queue - io_latency`queue_time
+				trackLatency(dev, "queue_time", whence-start)
 			}
 		case op == "block_rq_complete":
 			sec, nsec := parts[8], parts[10]
 			opkey := strings.Join([]string{dev, sec, nsec}, ",")
 			if start, ok := inserts[opkey]; ok {
-				trackLatency(dev, "q2c", whence-start)
+				// Q2C - total request handling time - io_latency`total_time
+				trackLatency(dev, "total_time", whence-start)
 				delete(inserts, opkey)
 			}
 			if start, ok := issues[opkey]; ok {
-				trackLatency(dev, "c2d", whence-start)
+				// D2C - time for device to handle request - io_latency`device_time
+				trackLatency(dev, "device_time", whence-start)
 				delete(issues, opkey)
 			}
 		default:
