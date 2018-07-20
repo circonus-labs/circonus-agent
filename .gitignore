@@ -38,6 +38,7 @@ circonus-agent.yaml
 circonus-agent.json
 
 # goreleaser files
+release.sh
 dist/
 
 # codecov.io repo token and report
@@ -45,3 +46,6 @@ dist/
 coverage.txt
 coverage.xml
 coverage.html
+
+# plugin binaries
+*.elf
