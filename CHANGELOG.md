@@ -1,3 +1,7 @@
+# v0.14.0
+
+* add: io latency plugin for linux
+
 # v0.13.4
 
 * upd: upstream deps (cgm)
