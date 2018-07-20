@@ -21,8 +21,8 @@
     "api/config",
     "checkmgr"
   ]
-  revision = "b5b9c6e8f93c67411193a170108e951e642c453c"
-  version = "v2.1.1"
+  revision = "f57cec857aa60ee9ffa19016d5edc822f9b1fea1"
+  version = "v2.1.2"
 
 [[projects]]
   branch = "master"
@@ -204,7 +204,7 @@
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context"]
-  revision = "81d44fd177a98d09fe3bc40a5a78d495d3f042ea"
+  revision = "a680a1efc54dd51c040b3b5ce4939ea3cf2ea0d1"
 
 [[projects]]
   branch = "master"
