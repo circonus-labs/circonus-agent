@@ -23,3 +23,7 @@ Example `plugins/io_latency.sh` using sudo.
 
 sudo linux/io/io_latency/io_latency.elf
 ```
+
+### Notes
+
+Further reading on [blktrace et al.](http://fibrevillage.com/storage/539-blktrace-and-btt-example-to-debug-and-tune-disk-i-o-on-linux)
