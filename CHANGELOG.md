@@ -1,3 +1,7 @@
+# v0.14.1
+
+* upd: io latency plugin for linux - add additional signals to handler and cleanup in tracing start
+
 # v0.14.0
 
 * add: io latency plugin for linux

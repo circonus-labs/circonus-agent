@@ -7,13 +7,17 @@
 
 package event_harness
 
-import "bufio"
-import "path/filepath"
-import "fmt"
-import "io"
-import "os"
-import "os/signal"
-import "time"
+import (
+	"bufio"
+	"fmt"
+	"io"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"time"
+
+	"golang.org/x/sys/unix"
+)
 
 var base = "/sys/kernel/debug/tracing/instances"
 
@@ -28,6 +32,7 @@ func echoEmulate(path, val string) error {
 }
 func StartTracing(instance string, args [][]string) error {
 	inst := filepath.Join(base, instance)
+	os.Remove(inst) // force cleanup
 	if err := os.Mkdir(inst, 0550); err != nil {
 		return err
 	}
@@ -91,7 +96,7 @@ func HarnessMain(instance string, args [][]string, handler func(string)) (*Harne
 		return nil, fmt.Errorf("Failed to read trace: %s", erro)
 	}
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
+	signal.Notify(c, os.Interrupt, unix.SIGTERM, unix.SIGHUP, unix.SIGPIPE, unix.SIGTRAP)
 	go func() {
 		for _ = range c {
 			done <- nil
