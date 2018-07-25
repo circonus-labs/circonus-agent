@@ -1,3 +1,29 @@
+# v0.14.1
+
+* upd: io latency plugin for linux - add additional signals to handler and cleanup in tracing start
+
+# v0.14.0
+
+* add: io latency plugin for linux
+
+# v0.13.4
+
+* upd: upstream deps (cgm)
+
+# v0.13.3
+
+* upd: upstream deps
+
+# v0.13.2
+
+* fix: linxu/procfs/diskstats collector. guard against malformed/blank lines
+* doc: miscellaneous documentation updates
+
+# v0.13.1
+
+* fix: remove version line from `--show-config` output
+* new: api package
+
 # v0.13.0
 
 * upd: refactor enable new metric logic to work better for new check use case

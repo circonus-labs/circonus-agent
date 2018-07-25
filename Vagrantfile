@@ -10,6 +10,7 @@ Vagrant.configure('2') do |config|
         c7.vm.box = 'maier/centos-7.3.1611-x86_64'
         c7.vm.provider 'virtualbox' do |vb|
             vb.name = 'c7'
+            vb.cpus = 2
         end
         c7.vm.synced_folder '.', '/home/vagrant/godev/src/github.com/circonus-labs/circonus-agent'
         c7.vm.network 'private_network', ip: '192.168.100.240'

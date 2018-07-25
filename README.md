@@ -180,7 +180,7 @@ Configuration:
 * Config file `collectors` (array of strings)
 
 * Windows default WMI collectors: `['cache', 'disk', 'ip', 'interface', 'memory', 'object', 'paging_file' 'processor', 'tcp', 'udp']`
-* Linux default ProcFS collectors: `['cpu']`
+* Linux default ProcFS collectors: `['cpu','diskstats','if','loadavg','vm']`
 * Common `prometheus` (disabled if no configuration file exists)
 
 For complete list of collectors and details on collector specific configuration see [etc/README.md](etc/README.md#collector-configurations).

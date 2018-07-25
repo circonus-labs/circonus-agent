@@ -51,9 +51,13 @@ archive:
         - README.md
         - CHANGELOG.md
         - etc/README.md
-        - plugins/README.md
         - service/circonus-agent.service
         - state/README.md
+        - plugins/*
+        - plugins/linux/*
+        - plugins/linux/io/*
+        - plugins/linux/io/io_latency/*
+        - plugins/linux/io/event_harness/*
 
 release:
     github:
