@@ -26,7 +26,7 @@
      "level": "{{cfg.log.level}}",
      "pretty": {{cfg.log.pretty}}
    },
-   "plugin_dir": "{{pkg.svc_files_path}}",
+   "plugin_dir": "{{pkg.path}}/plugins",
    "plugin_ttl_units": "{{cfg.plugin_ttl_units}}",
    "reverse": {
      "broker_ca_file": "{{cfg.reverse.broker_ca_file}}",

@@ -3,31 +3,10 @@
 exec 2>&1
 
 HOME="{{pkg.svc_var_path}}"
-{{#each cfg.plugin_packages as |package| ~}}
-PATH=$PATH:"$(cat $(hab pkg path {{package}})/PATH)"
-{{/each}}
 
-main() {
-  install_plugins
-  start_service
-}
-
-install_plugins() {
-  local target={{pkg.svc_files_path}}
-  {{#each cfg.plugin_packages as |package| ~}}
-  hab pkg install {{package}}
-  ln --symbolic --force $(hab pkg path {{package}})/plugins/* ${target}
-  {{/each}}
-  ln --symbolic --force {{pkg.path}}/plugins/README.md ${target}
-}
-
-start_service() {
-  if [ "$(whoami)" = "root" ]
-  then
-    exec chpst -U hab -u hab {{pkg.name}} --config {{pkg.svc_config_path}}/agent.json
-  else
-    exec {{pkg.name}} --config {{pkg.svc_config_path}}/agent.json
-  fi
-}
-
-main
+if [ "$(whoami)" = "root" ]
+then
+  exec chpst -U hab -u hab {{pkg.name}} --config {{pkg.svc_config_path}}/agent.json
+else
+  exec {{pkg.name}} --config {{pkg.svc_config_path}}/agent.json
+fi

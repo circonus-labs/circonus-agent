@@ -1,13 +1,16 @@
-pkg_name=circonus-agent
 pkg_origin=bixu
+pkg_name=circonus-agent
 pkg_maintainer="Blake Irvin <blake.irvin@gmail.com>"
 pkg_license=("BSD-3")
 pkg_deps=(
+  core/bash
   core/cacerts
   core/coreutils
   core/grep
   core/runit
   core/sed
+  core/python
+  core/findutils
 )
 pkg_build_deps=(
   core/go
@@ -55,9 +58,18 @@ do_build() {
   return $?
 }
 
+do_replace_interpreters() {
+  for plugin in $(find $1 -maxdepth 1 -type f -perm 755)
+  do
+    lang=$(grep '#!' ${plugin} | awk 'BEGIN{FS="/"}{print $NF}')
+    fix_interpreter ${plugin} core/${lang} bin/${lang}
+  done
+}
+
 do_install() {
   cp -r "${GOPATH}/bin"                "${pkg_prefix}/"
   cp -r "$PLAN_CONTEXT/../plugins"     "${pkg_prefix}/plugins"
   mv "${pkg_prefix}/plugins/README.md" "${pkg_prefix}/README.md"
+  do_replace_interpreters ${pkg_prefix}/plugins/
   return $?
 }
