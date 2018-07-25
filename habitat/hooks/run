@@ -1,0 +1,12 @@
+#!/bin/bash
+
+exec 2>&1
+
+HOME="{{pkg.svc_var_path}}"
+
+if [ "$(whoami)" = "root" ]
+then
+  exec chpst -U hab -u hab {{pkg.name}} --config {{pkg.svc_config_path}}/agent.json
+else
+  exec {{pkg.name}} --config {{pkg.svc_config_path}}/agent.json
+fi
