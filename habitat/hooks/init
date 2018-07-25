@@ -1,0 +1,11 @@
+#!/bin/bash
+
+exec 2>&1
+
+set -e -x
+target={{pkg.svc_files_path}}
+{{#each cfg.plugin_packages as |package| ~}}
+  hab pkg install {{package}}
+  ln --symbolic --force $(hab pkg path {{package}})/plugins/* ${target}
+{{/each}}
+ln --symbolic --force {{pkg.path}}/plugins/README.md ${target}

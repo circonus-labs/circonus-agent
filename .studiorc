@@ -1,0 +1,23 @@
+export HAB_HART_COMPRESSION_LEVEL=0
+
+echo "\`DO_CHECK=true build <path>\` to skip tests."
+echo "\`NO_INSTALL_DEPS=true\` to skip Habitat dependency checks."
+echo ""
+echo "Apply custom Studio configs by creating a \`./habitat/studio.toml\` file."
+export DO_CHECK=true
+echo ""
+
+rebuild() {
+    source ./habitat/plan.sh
+
+    hab stop ${pkg_origin}/${pkg_name} || true
+    build
+    source ./results/last_build.env
+    hab install ./results/${pkg_artifact}
+    hab start ${pkg_ident}
+
+    touch ./habitat/studio.toml
+    hab config apply ${pkg_name}.default $(date +%s) ./habitat/studio.toml
+
+    echo "Type \`sup-log\` to see Supervisor output and service status"
+}

@@ -49,3 +49,8 @@ coverage.html
 
 # plugin binaries
 *.elf
+
+# habitat artifacts
+habitat/results/*
+results/*
+studio.toml
