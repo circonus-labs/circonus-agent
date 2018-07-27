@@ -1,0 +1,5 @@
+
+[api]
+key = "foo"
+app = "bar"
+missing_api_url = "http://localhost/"

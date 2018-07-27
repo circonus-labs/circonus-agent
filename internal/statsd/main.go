@@ -14,7 +14,6 @@ import (
 	"strconv"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	"github.com/circonus-labs/circonus-agent/internal/config/cosi"
 	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/maier/go-appstats"
 	"github.com/pkg/errors"
@@ -294,7 +293,7 @@ func validateStatsdOptions() error {
 	}
 
 	if groupCID == "cosi" {
-		cid, err := cosi.LoadCheckID("group")
+		cid, err := config.LoadCosiCheckID("group")
 		if err != nil {
 			return err
 		}
@@ -302,7 +301,7 @@ func validateStatsdOptions() error {
 		viper.Set(config.KeyStatsdGroupCID, groupCID)
 	}
 
-	ok, err := cosi.ValidCheckID(groupCID)
+	ok, err := config.IsValidCheckID(groupCID)
 	if err != nil {
 		return errors.Wrap(err, "StatsD Group Check ID")
 	}

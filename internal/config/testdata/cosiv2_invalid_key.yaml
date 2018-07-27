@@ -1,0 +1,5 @@
+---
+api:
+  missing_api_key: foo
+  app: bar
+  url: http://localhost/

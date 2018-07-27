@@ -1,0 +1,7 @@
+{
+    "api": {
+        "key": "foo",
+        "missing_api_app": "bar",
+        "url": "http://localhost/"
+    }
+}

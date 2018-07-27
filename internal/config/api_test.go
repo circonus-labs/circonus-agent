@@ -65,7 +65,7 @@ func TestValidateAPIOptions(t *testing.T) {
 		if err == nil {
 			t.Fatal("Expected error")
 		}
-		pfx := "Unable to access cosi config:"
+		pfx := "unable to load cosi config: no config found matching"
 		if !strings.HasPrefix(err.Error(), pfx) {
 			t.Errorf("Expected (^%s) got (%s)", pfx, err)
 		}

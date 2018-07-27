@@ -75,8 +75,8 @@ func TestValidateReverseOptions(t *testing.T) {
 		if err == nil {
 			t.Fatal("Expected error")
 		}
-		if !strings.HasPrefix(err.Error(), "Unable to access cosi check config:") {
-			t.Errorf("expected 'Unable to access cosi check config: ...' got '%s'", err)
+		if !strings.HasPrefix(err.Error(), "unable to access cosi check config:") {
+			t.Errorf("unexpected error (%s)", err)
 		}
 	}
 }

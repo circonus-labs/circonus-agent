@@ -338,8 +338,8 @@ func TestValidateStatsdOptions(t *testing.T) {
 		if err == nil {
 			t.Fatal("Expected error")
 		}
-		if !strings.HasPrefix(err.Error(), "Unable to access cosi check config:") {
-			t.Errorf("Expected (%s) got (%s)", "Unable to access cosi check config: ...", err)
+		if !strings.HasPrefix(err.Error(), "unable to access cosi check config: open") {
+			t.Errorf("unexpected error (%s)", err)
 		}
 	}
 
