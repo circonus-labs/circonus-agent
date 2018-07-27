@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/circonus-labs/circonus-agent/internal/config/cosi"
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -38,7 +37,7 @@ func validateAPIOptions() error {
 
 	// if key is 'cosi' - load the cosi api config
 	if strings.ToLower(apiKey) == cosiName {
-		cfg, err := cosi.LoadAPIConfig()
+		cfg, err := loadCosiAPIConfig()
 		if err != nil {
 			return err
 		}
