@@ -34,6 +34,7 @@ type Connection struct {
 	maxDelay         time.Duration
 	maxDelayStep     int
 	maxPayloadLen    uint32
+	maxRequests      int
 	metricTimeout    time.Duration
 	minDelayStep     int
 	revConfig        check.ReverseConfig

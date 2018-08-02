@@ -48,6 +48,9 @@ const (
 	// Watch plugins for changes
 	Watch = false
 
+	// ReverseMaxConnRetry - how many times to retry persistently failing broker connection
+	ReverseMaxConnRetry = 10
+
 	// StatsdPort to listen, NOTE address is always localhost
 	StatsdPort = "8125"
 
