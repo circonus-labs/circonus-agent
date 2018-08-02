@@ -1,3 +1,14 @@
+# v0.15.0
+
+* add: check bundle id to all reverse log messages
+* upd: fatal when errors starting main listening servers (e.g. address already in use)
+* upd: add more debug lines around refreshing check configuration
+* fix: lock contention when refreshing check configuration for reverse AND enable new metrics is active
+* add: `--reverse-max-conn-retry` command line option
+* wip: gate max requests from broker before forced reset
+* wip: refactor of inventory endpoint
+* upd: cosi v2 prep
+
 # v0.14.1
 
 * upd: io latency plugin for linux - add additional signals to handler and cleanup in tracing start
