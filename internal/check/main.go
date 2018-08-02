@@ -126,20 +126,21 @@ func New(apiClient API) (*Check, error) {
 
 // RefreshCheckConfig re-loads the check bundle using the API and reconfigures reverse (if needed)
 func (c *Check) RefreshCheckConfig() error {
-	c.Lock()
-	defer c.Unlock()
+	// c.Lock()
+	// defer c.Unlock()
+	c.logger.Debug().Msg("refreshing check configuration using API")
 	return c.setCheck()
 }
 
 // GetReverseConfig returns the reverse configuration to use for the broker
-func (c *Check) GetReverseConfig() (ReverseConfig, error) {
+func (c *Check) GetReverseConfig() (*ReverseConfig, error) {
 	c.Lock()
 	defer c.Unlock()
 
 	if c.revConfig == nil {
-		return ReverseConfig{}, errors.New("invalid reverse configuration")
+		return nil, errors.New("invalid reverse configuration")
 	}
-	return *c.revConfig, nil
+	return c.revConfig, nil
 }
 
 // EnableNewMetrics updates the check bundle enabling any new metrics
