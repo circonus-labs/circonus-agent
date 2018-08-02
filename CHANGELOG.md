@@ -1,5 +1,6 @@
 # v0.15.0
 
+* mrg: tracking upstream
 * add: check bundle id to all reverse log messages
 * upd: fatal when errors starting main listening servers (e.g. address already in use)
 * upd: add more debug lines around refreshing check configuration
