@@ -120,7 +120,7 @@ func (c *Connection) connect() (*tls.Conn, *connError) {
 	dialer := &net.Dialer{Timeout: c.dialerTimeout}
 	conn, err := tls.DialWithDialer(dialer, "tcp", c.revConfig.BrokerAddr.String(), c.revConfig.TLSConfig)
 	if err != nil {
-		if c.connAttempts >= c.maxConnRetry {
+		if c.maxConnRetry != -1 && c.connAttempts >= c.maxConnRetry {
 			return nil, &connError{fatal: true, err: errors.Wrapf(err, "after %d failed attempts, last error", c.connAttempts)}
 		}
 		return nil, &connError{fatal: false, err: errors.Wrapf(err, "connecting to %s", revHost)}

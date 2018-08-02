@@ -202,6 +202,20 @@ func init() {
 		viper.BindEnv(key, envVar)
 	}
 
+	{
+		const (
+			key          = config.KeyReverseMaxConnRetry
+			longOpt      = "reverse-max-conn-retry"
+			defaultValue = defaults.ReverseMaxConnRetry
+			envVar       = release.ENVPREFIX + "_REVERSE_MAX_CONN_RETRY"
+			description  = "Max attempts to retry persistently failing reverse connection to broker [-1=indefinitely]"
+		)
+
+		RootCmd.Flags().Int(longOpt, defaultValue, desc(description, envVar))
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+	}
+
 	//
 	// Check
 	//

@@ -49,6 +49,7 @@ type Check struct {
 type Reverse struct {
 	BrokerCAFile string `mapstructure:"broker_ca_file" json:"broker_ca_file" yaml:"broker_ca_file" toml:"broker_ca_file"`
 	Enabled      bool   `json:"enabled" yaml:"enabled" toml:"enabled"`
+	MaxConnRetry int    `mapstructure:"max_conn_retry" json:"max_conn_retry" yaml:"max_conn_retry" toml:"max_conn_retry"`
 }
 
 // SSL defines the running config.ssl structure
@@ -154,6 +155,9 @@ const (
 
 	// KeyReverseBrokerCAFile custom broker ca file
 	KeyReverseBrokerCAFile = "reverse.broker_ca_file"
+
+	// KeyReverseMaxConnRetry how many times to retry a persistently failing broker connection. default 10, -1 = indefinitely
+	KeyReverseMaxConnRetry = "reverse.max_conn_retry"
 
 	// KeyShowConfig - show configuration and exit
 	KeyShowConfig = "show-config"

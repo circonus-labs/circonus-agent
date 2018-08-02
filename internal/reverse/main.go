@@ -36,6 +36,7 @@ func New(check *check.Check, agentAddress string) (*Connection, error) {
 		dialerTimeoutSeconds  = 15 // seconds, establishing connection
 		metricTimeoutSeconds  = 50 // seconds, when communicating with agent
 		maxDelaySeconds       = 60 // maximum amount of delay between attempts
+		maxRequests           = -1 // max requests from broker before resetting connection, -1 = unlimited
 		brokerMaxRetries      = 5
 		brokerMaxResponseTime = 500 * time.Millisecond
 		brokerActiveStatus    = "active"
@@ -60,12 +61,13 @@ func New(check *check.Check, agentAddress string) (*Connection, error) {
 		metricTimeout:    metricTimeoutSeconds * time.Second,
 		cmdConnect:       "CONNECT",
 		cmdReset:         "RESET",
-		maxPayloadLen:    65529, // max unsigned short - 6 (for header)
-		maxCommTimeouts:  5,     // multiply by commTimeout, ensure >(broker polling interval) otherwise conn reset loop
-		minDelayStep:     1,     // minimum seconds to add on retry
-		maxDelayStep:     20,    // maximum seconds to add on retry
-		maxConnRetry:     10,    // max times to retry a persistently failing connection
-		configRetryLimit: 5,     // if failed attempts > threshold, force reconfig
+		maxPayloadLen:    65529,                                       // max unsigned short - 6 (for header)
+		maxCommTimeouts:  5,                                           // multiply by commTimeout, ensure >(broker polling interval) otherwise conn reset loop
+		minDelayStep:     1,                                           // minimum seconds to add on retry
+		maxDelayStep:     20,                                          // maximum seconds to add on retry
+		maxConnRetry:     viper.GetInt(config.KeyReverseMaxConnRetry), // max times to retry a persistently failing connection
+		configRetryLimit: 5,                                           // if failed attempts > threshold, force reconfig
+		maxRequests:      maxRequests,                                 // max requests from broker before reset
 	}
 
 	if c.enabled {

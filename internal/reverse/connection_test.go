@@ -179,6 +179,7 @@ func TestConnect(t *testing.T) {
 			},
 		}
 		s.dialerTimeout = 2 * time.Second
+		s.maxConnRetry = 10
 
 		expect := errors.Errorf("connecting to %s: tls: DialWithDialer timed out", l.Addr().String())
 
@@ -231,6 +232,7 @@ func TestConnect(t *testing.T) {
 			},
 		}
 		s.dialerTimeout = 2 * time.Second
+		s.maxConnRetry = 10
 
 		if _, cerr := s.connect(); cerr == nil {
 			t.Fatal("expected error")
