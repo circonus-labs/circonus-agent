@@ -238,9 +238,10 @@ func (s *Server) startHTTP(svr *httpServer) error {
 	s.logger.Info().Str("listen", svr.address.String()).Msg("Starting")
 	if err := svr.server.ListenAndServe(); err != nil {
 		if err != http.ErrServerClosed {
-			s.logger.Error().Err(err).Msg("HTTP Server, stopping agent")
+			s.logger.Fatal().Err(err).Msg("HTTP Server, stopping agent")
 			return errors.Wrap(err, "HTTP server")
 		}
+
 	}
 	return nil
 }
@@ -253,7 +254,7 @@ func (s *Server) startHTTPS() error {
 	s.logger.Info().Str("listen", s.svrHTTPS.server.Addr).Msg("SSL starting")
 	if err := s.svrHTTPS.server.ListenAndServeTLS(s.svrHTTPS.certFile, s.svrHTTPS.keyFile); err != nil {
 		if err != http.ErrServerClosed {
-			s.logger.Error().Err(err).Msg("SSL Server, stopping agent")
+			s.logger.Fatal().Err(err).Msg("SSL Server, stopping agent")
 			return errors.Wrap(err, "SSL server")
 		}
 	}
@@ -277,7 +278,7 @@ func (s *Server) startSocket(svr *socketServer) error {
 	s.logger.Info().Str("listen", svr.address.String()).Msg("Socket starting")
 	if err := svr.server.Serve(svr.listener); err != nil {
 		if err != http.ErrServerClosed {
-			s.logger.Error().Err(err).Str("socket", svr.address.String()).Msg("Socket Server, stopping agent")
+			s.logger.Fatal().Err(err).Str("socket", svr.address.String()).Msg("Socket Server, stopping agent")
 			return errors.Wrap(err, "socket server")
 		}
 	}
