@@ -82,6 +82,8 @@ func New(check *check.Check, agentAddress string) (*Connection, error) {
 		c.revConfig = *rc
 	}
 
+	c.logger = log.With().Str("pkg", "reverse").Str("cid", viper.GetString(config.KeyCheckBundleID)).Logger()
+
 	return &c, nil
 }
 

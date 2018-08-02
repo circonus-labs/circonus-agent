@@ -14,6 +14,7 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
 
@@ -115,6 +116,7 @@ func (c *Connection) connect() (*tls.Conn, *connError) {
 				return nil, &connError{fatal: true, err: errors.Wrap(err, "invalid reverse configuration (nil)")}
 			}
 			c.revConfig = *rc
+			c.logger = log.With().Str("pkg", "reverse").Str("cid", viper.GetString(config.KeyCheckBundleID)).Logger()
 			c.logger.Info().
 				Str("check_bundle", viper.GetString(config.KeyCheckBundleID)).
 				Str("rev_host", c.revConfig.ReverseURL.Hostname()).
