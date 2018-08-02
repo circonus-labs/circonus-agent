@@ -76,7 +76,10 @@ func New(check *check.Check, agentAddress string) (*Connection, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "setting reverse config")
 		}
-		c.revConfig = rc
+		if rc == nil {
+			return nil, errors.New("invalid reverse configuration (nil)")
+		}
+		c.revConfig = *rc
 	}
 
 	return &c, nil
