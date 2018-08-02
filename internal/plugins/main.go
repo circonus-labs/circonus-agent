@@ -200,11 +200,10 @@ func (p *Plugins) IsInternal(pluginName string) bool {
 func (p *Plugins) Inventory() []byte {
 	p.Lock()
 	defer p.Unlock()
-	// inventory := make(map[string]*pluginDetails, len(p.active))
-	inventory := make(api.Inventory, 0, len(p.active))
+	inventory := api.Inventory{}
 	for id, plug := range p.active {
 		plug.Lock()
-		p := api.Plugin{
+		pinfo := api.Plugin{
 			ID:              id,
 			Name:            plug.id,
 			Instance:        plug.instanceID,
@@ -215,11 +214,10 @@ func (p *Plugins) Inventory() []byte {
 			LastRunDuration: plug.lastRunDuration.String(),
 		}
 		if plug.lastError != nil {
-			p.LastError = plug.lastError.Error()
+			pinfo.LastError = plug.lastError.Error()
 		}
 		plug.Unlock()
-
-		inventory = append(inventory, p)
+		inventory = append(inventory, pinfo)
 	}
 	data, err := json.Marshal(inventory)
 	if err != nil {
