@@ -48,6 +48,13 @@ func (c *Connection) sendMetricData(r io.Writer, channelID uint16, data *[]byte)
 		Int("bytes", len(*data)).
 		Msg("metric data sent")
 
+	if c.maxRequests != -1 && channelID > uint16(c.maxRequests) {
+		if conn, ok := r.(*tls.Conn); ok {
+			c.logger.Info().Uint16("channel", channelID).Int("max", c.maxRequests).Msg("resetting connection")
+			conn.Close()
+		}
+	}
+
 	return nil
 }
 
