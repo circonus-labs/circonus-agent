@@ -87,7 +87,6 @@ func (c *Connection) connect() (*tls.Conn, *connError) {
 	c.Lock()
 	if c.connAttempts > 0 {
 		if c.maxConnRetry != -1 && c.connAttempts >= c.maxConnRetry {
-			// c.logger.Fatal().Int("max_attempts", c.maxConnRetry).Int("attempts", c.connAttempts).Msg("max broker connection attempts reached, exiting")
 			return nil, &connError{fatal: true, err: errors.Errorf("max broker connection attempts reached (%d of %d)", c.connAttempts, c.maxConnRetry)}
 		}
 
@@ -109,17 +108,14 @@ func (c *Connection) connect() (*tls.Conn, *connError) {
 			c.logger.Info().Int("attempts", c.connAttempts).Msg("reconfig triggered")
 			c.logger.Debug().Str("check_bundle", viper.GetString(config.KeyCheckBundleID)).Msg("refreshing check")
 			if err := c.check.RefreshCheckConfig(); err != nil {
-				// c.logger.Fatal().Err(err).Msg("unable to refresh check configuration")
 				return nil, &connError{fatal: true, err: errors.Wrap(err, "refreshing check configuration")}
 			}
 			c.logger.Debug().Str("check_bundle", viper.GetString(config.KeyCheckBundleID)).Msg("setting reverse config")
 			rc, err := c.check.GetReverseConfig()
 			if err != nil {
-				// c.logger.Fatal().Err(err).Msg("unable to reconfigure reverse connection after check refresh")
 				return nil, &connError{fatal: true, err: errors.Wrap(err, "reconfiguring reverse connection")}
 			}
 			if rc == nil {
-				// c.logger.Fatal().Msg("invalid reverse configuration (nil)")
 				return nil, &connError{fatal: true, err: errors.Wrap(err, "invalid reverse configuration (nil)")}
 			}
 			c.revConfig = *rc
