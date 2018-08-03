@@ -87,6 +87,10 @@ func (c *Connection) startReverse() error {
 func (c *Connection) connect() (*tls.Conn, *connError) {
 	c.Lock()
 	if c.connAttempts > 0 {
+		if c.maxConnRetry != -1 && c.connAttempts >= c.maxConnRetry {
+			c.logger.Fatal().Int("max_attempts", c.maxConnRetry).Int("attempts", c.connAttempts).Msg("max broker connection attempts reached, exiting")
+		}
+
 		c.logger.Info().
 			Str("delay", c.delay.String()).
 			Int("attempt", c.connAttempts).
@@ -105,15 +109,18 @@ func (c *Connection) connect() (*tls.Conn, *connError) {
 			c.logger.Info().Int("attempts", c.connAttempts).Msg("reconfig triggered")
 			c.logger.Debug().Str("check_bundle", viper.GetString(config.KeyCheckBundleID)).Msg("refreshing check")
 			if err := c.check.RefreshCheckConfig(); err != nil {
-				return nil, &connError{fatal: true, err: errors.Wrap(err, "refreshing check configuration")}
+				c.logger.Fatal().Err(err).Msg("unable to refresh check configuration")
+				// return nil, &connError{fatal: true, err: errors.Wrap(err, "refreshing check configuration")}
 			}
 			c.logger.Debug().Str("check_bundle", viper.GetString(config.KeyCheckBundleID)).Msg("setting reverse config")
 			rc, err := c.check.GetReverseConfig()
 			if err != nil {
-				return nil, &connError{fatal: true, err: errors.Wrap(err, "reconfiguring reverse connection")}
+				c.logger.Fatal().Err(err).Msg("unable to reconfigure reverse connection after check refresh")
+				// return nil, &connError{fatal: true, err: errors.Wrap(err, "reconfiguring reverse connection")}
 			}
 			if rc == nil {
-				return nil, &connError{fatal: true, err: errors.Wrap(err, "invalid reverse configuration (nil)")}
+				c.logger.Fatal().Msg("invalid reverse configuration (nil)")
+				// return nil, &connError{fatal: true, err: errors.Wrap(err, "invalid reverse configuration (nil)")}
 			}
 			c.revConfig = *rc
 			c.logger = log.With().Str("pkg", "reverse").Str("cid", viper.GetString(config.KeyCheckBundleID)).Logger()
@@ -136,9 +143,6 @@ func (c *Connection) connect() (*tls.Conn, *connError) {
 	dialer := &net.Dialer{Timeout: c.dialerTimeout}
 	conn, err := tls.DialWithDialer(dialer, "tcp", c.revConfig.BrokerAddr.String(), c.revConfig.TLSConfig)
 	if err != nil {
-		if c.maxConnRetry != -1 && c.connAttempts >= c.maxConnRetry {
-			return nil, &connError{fatal: true, err: errors.Wrapf(err, "after %d failed attempts, last error", c.connAttempts)}
-		}
 		return nil, &connError{fatal: false, err: errors.Wrapf(err, "connecting to %s", revHost)}
 	}
 	c.logger.Info().Str("host", revHost).Msg("connected")
