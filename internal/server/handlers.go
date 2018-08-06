@@ -62,9 +62,6 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	lastMeticsmu.Lock()
-	defer lastMeticsmu.Unlock()
-
 	metrics := cgm.Metrics{} //map[string]interface{}{}
 
 	// default to true if id is blank, otherwise set all to false
@@ -145,8 +142,12 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 		s.logger.Debug().Msg("prom done")
 	}
 
+	s.logger.Debug().Str("in", "run").Msg("locking last metrics")
+	lastMetricsmu.Lock()
 	lastMetrics.metrics = metrics
 	lastMetrics.ts = time.Now()
+	lastMetricsmu.Unlock()
+	s.logger.Debug().Str("in", "run").Msg("unlocking last metrics")
 
 	if err := s.check.EnableNewMetrics(&metrics); err != nil {
 		s.logger.Warn().Err(err).Msg("unable to update check metrics")
@@ -313,18 +314,27 @@ func (s *Server) promReceiver(w http.ResponseWriter, r *http.Request) {
 
 // promOutput returns the last metrics in prom format
 func (s *Server) promOutput(w http.ResponseWriter, r *http.Request) {
-	if lastMetrics.metrics == nil || len(lastMetrics.metrics) == 0 {
+	s.logger.Debug().Str("in", "prom output").Msg("start")
+
+	s.logger.Debug().Str("in", "prom output").Msg("locking last metrics")
+	lastMetricsmu.Lock()
+	metrics := lastMetrics.metrics
+	ms := lastMetrics.ts.UnixNano() / int64(time.Millisecond)
+	lastMetricsmu.Unlock()
+	s.logger.Debug().Str("in", "prom output").Msg("unlocked last metrics")
+
+	if metrics == nil || len(metrics) == 0 {
 		w.WriteHeader(http.StatusNoContent)
+		s.logger.Debug().Str("in", "prom output").Msg("end")
 		return
 	}
 
-	ms := lastMetrics.ts.UnixNano() / int64(time.Millisecond)
-
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK)
-	for id, data := range lastMetrics.metrics {
+	for id, data := range metrics {
 		s.metricsToPromFormat(w, id, ms, data)
 	}
+	s.logger.Debug().Str("in", "prom output").Msg("end")
 }
 
 func (s *Server) metricsToPromFormat(w io.Writer, prefix string, ts int64, val interface{}) {
