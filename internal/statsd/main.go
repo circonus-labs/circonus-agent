@@ -129,12 +129,13 @@ func (s *Server) Flush() *cgm.Metrics {
 		return nil
 	}
 
+	s.hostMetricsmu.Lock()
+	defer s.hostMetricsmu.Unlock()
+
 	if s.hostMetrics == nil {
 		return &cgm.Metrics{}
 	}
 
-	s.hostMetricsmu.Lock()
-	defer s.hostMetricsmu.Unlock()
 	return s.hostMetrics.FlushMetrics()
 }
 
