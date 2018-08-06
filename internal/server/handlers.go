@@ -120,15 +120,14 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 			s.plugins.Run(id)
 			pluginMetrics := s.plugins.Flush(id)
 			if pluginMetrics != nil && len(*pluginMetrics) > 0 {
-				s.logger.Debug().Int("num_metrics", len(*pluginMetrics)).Msg("lock metrics for plugins")
+				s.logger.Debug().Int("num_metrics", len(*pluginMetrics)).Msg("lock metrics for plugin output")
 				metricsmu.Lock()
 				for metricName, metric := range *pluginMetrics {
 					metrics[metricName] = metric
 				}
-				s.logger.Debug().Msg("unlock metrics for plugins")
 				metricsmu.Unlock()
 			}
-			s.logger.Debug().Msg("plugin done")
+			s.logger.Debug().Msg("unlock, plugin done")
 			wg.Done()
 		}()
 	}
@@ -144,10 +143,9 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 				for metricName, metric := range *receiverMetrics {
 					metrics[metricName] = metric
 				}
-				s.logger.Debug().Msg("unlock metrics for receiver")
 				metricsmu.Unlock()
 			}
-			s.logger.Debug().Msg("receiver done")
+			s.logger.Debug().Msg("unlock, receiver done")
 			wg.Done()
 		}()
 	}
@@ -165,10 +163,9 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 					for metricName, metric := range *statsdMetrics {
 						metrics[pfx+config.MetricNameSeparator+metricName] = metric
 					}
-					s.logger.Debug().Msg("unlock metrics for statsd")
 					metricsmu.Unlock()
 				}
-				s.logger.Debug().Msg("statsd done")
+				s.logger.Debug().Msg("unlock, statsd done")
 				wg.Done()
 			}()
 		}
@@ -177,18 +174,17 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 	if flushProm {
 		wg.Add(1)
 		go func() {
-			s.logger.Debug().Msg("prom start")
+			s.logger.Debug().Msg("promrecv start")
 			promMetrics := promrecv.Flush()
 			if promMetrics != nil && len(*promMetrics) > 0 {
-				s.logger.Debug().Int("num_metrics", len(*promMetrics)).Msg("lock metrics for prom recv")
+				s.logger.Debug().Int("num_metrics", len(*promMetrics)).Msg("lock metrics for promrecv")
 				metricsmu.Lock()
 				for metricName, metric := range *promMetrics {
 					metrics[metricName] = metric
 				}
-				s.logger.Debug().Msg("unlock metrics for prom recv")
 				metricsmu.Unlock()
 			}
-			s.logger.Debug().Msg("prom done")
+			s.logger.Debug().Msg("unlock, promrecv done")
 			wg.Done()
 		}()
 	}
@@ -197,11 +193,11 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 
 	s.logger.Debug().Msg("lock metrics for lastMetrics upd, enable metrics, and response")
 	metricsmu.Lock()
-	s.logger.Debug().Str("in", "run").Msg("locking last metrics")
+	s.logger.Debug().Str("in", "run").Msg("lock, update lastMetrics")
 	lastMetricsmu.Lock()
 	lastMetrics.metrics = &metrics
 	lastMetrics.ts = time.Now()
-	s.logger.Debug().Str("in", "run").Msg("unlocking last metrics")
+	s.logger.Debug().Str("in", "run").Msg("unlock, lastMetrics")
 	lastMetricsmu.Unlock()
 
 	if err := s.check.EnableNewMetrics(&metrics); err != nil {
@@ -373,12 +369,12 @@ func (s *Server) promReceiver(w http.ResponseWriter, r *http.Request) {
 func (s *Server) promOutput(w http.ResponseWriter, r *http.Request) {
 	s.logger.Debug().Str("in", "prom output").Msg("start")
 
-	s.logger.Debug().Str("in", "prom output").Msg("locking last metrics")
+	s.logger.Debug().Str("in", "prom output").Msg("lock lastMetrics")
 	lastMetricsmu.Lock()
 	metrics := lastMetrics.metrics
 	ms := lastMetrics.ts.UnixNano() / int64(time.Millisecond)
 	lastMetricsmu.Unlock()
-	s.logger.Debug().Str("in", "prom output").Msg("unlocked last metrics")
+	s.logger.Debug().Str("in", "prom output").Msg("unlock lastMetrics")
 
 	if metrics == nil || len(*metrics) == 0 {
 		w.WriteHeader(http.StatusNoContent)
