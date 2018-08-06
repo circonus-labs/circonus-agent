@@ -66,5 +66,5 @@ var (
 	statsPathRx     = regexp.MustCompile("^/stats/?$")
 	promPathRx      = regexp.MustCompile("^/prom/?$")
 	lastMetrics     = &previousMetrics{}
-	lastMeticsmu    sync.Mutex
+	lastMetricsmu   sync.Mutex
 )
