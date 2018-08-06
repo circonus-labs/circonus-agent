@@ -409,7 +409,7 @@ func TestPromOutput(t *testing.T) {
 	t.Logf("GET /prom -> %d (w/metrics)", http.StatusOK)
 	{
 		lastMetrics.ts = time.Now()
-		lastMetrics.metrics = cgm.Metrics{
+		lastMetrics.metrics = &cgm.Metrics{
 			"gtest`mtest": cgm.Metric{Type: "i", Value: 1},
 		}
 		req := httptest.NewRequest("GET", "/prom", nil)

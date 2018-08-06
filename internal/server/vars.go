@@ -55,7 +55,7 @@ type Server struct {
 }
 
 type previousMetrics struct {
-	metrics cgm.Metrics
+	metrics *cgm.Metrics
 	ts      time.Time
 }
 

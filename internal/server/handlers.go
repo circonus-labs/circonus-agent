@@ -199,7 +199,7 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 	metricsmu.Lock()
 	s.logger.Debug().Str("in", "run").Msg("locking last metrics")
 	lastMetricsmu.Lock()
-	lastMetrics.metrics = metrics
+	lastMetrics.metrics = &metrics
 	lastMetrics.ts = time.Now()
 	s.logger.Debug().Str("in", "run").Msg("unlocking last metrics")
 	lastMetricsmu.Unlock()
@@ -380,7 +380,7 @@ func (s *Server) promOutput(w http.ResponseWriter, r *http.Request) {
 	lastMetricsmu.Unlock()
 	s.logger.Debug().Str("in", "prom output").Msg("unlocked last metrics")
 
-	if metrics == nil || len(metrics) == 0 {
+	if metrics == nil || len(*metrics) == 0 {
 		w.WriteHeader(http.StatusNoContent)
 		s.logger.Debug().Str("in", "prom output").Msg("end")
 		return
@@ -388,7 +388,7 @@ func (s *Server) promOutput(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK)
-	for id, data := range metrics {
+	for id, data := range *metrics {
 		s.metricsToPromFormat(w, id, ms, data)
 	}
 	s.logger.Debug().Str("in", "prom output").Msg("end")
