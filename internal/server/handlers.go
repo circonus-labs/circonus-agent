@@ -336,7 +336,7 @@ func (s *Server) socketHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) write(w http.ResponseWriter, r *http.Request) {
 	id := strings.Replace(r.URL.Path, "/write/", "", -1)
 
-	s.logger.Debug().Str("path", r.URL.Path).Str("id", id).Msg("write request")
+	// s.logger.Debug().Str("path", r.URL.Path).Str("id", id).Msg("write request")
 	// a write request *MUST* include a metric group id to act as a namespace.
 	// in other words, a "plugin name", all metrics for that write will appear
 	// _under_ the metric group id (aka plugin name)
