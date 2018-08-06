@@ -56,9 +56,7 @@ func (c *Check) setCheck() error {
 		return errors.New("invalid Check object state, bundle is nil")
 	}
 
-	c.Lock()
 	c.bundle = bundle
-	c.Unlock()
 	if isManaged {
 		c.logger.Debug().Msg("setting metric states")
 		err := c.setMetricStates(&bundle.Metrics)
@@ -69,9 +67,7 @@ func (c *Check) setCheck() error {
 
 	// the metrics from the reference bundle are not needed in memory
 	// as they will never be used again.
-	c.Lock()
 	c.bundle.Metrics = []api.CheckBundleMetric{}
-	c.Unlock()
 
 	if isReverse {
 		// populate reverse configuration

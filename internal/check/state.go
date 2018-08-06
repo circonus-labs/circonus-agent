@@ -16,9 +16,6 @@ import (
 )
 
 func (c *Check) setMetricStates(m *[]api.CheckBundleMetric) error {
-	c.Lock()
-	defer c.Unlock()
-
 	if m == nil {
 		metrics, err := c.getFullCheckMetrics()
 		if err != nil {
