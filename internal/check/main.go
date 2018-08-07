@@ -126,8 +126,8 @@ func New(apiClient API) (*Check, error) {
 
 // RefreshCheckConfig re-loads the check bundle using the API and reconfigures reverse (if needed)
 func (c *Check) RefreshCheckConfig() error {
-	// c.Lock()
-	// defer c.Unlock()
+	c.Lock()
+	defer c.Unlock()
 	c.logger.Debug().Msg("refreshing check configuration using API")
 	return c.setCheck()
 }

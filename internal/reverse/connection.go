@@ -24,8 +24,7 @@ func (c *Connection) startReverse() error {
 		conn, cerr := c.connect()
 		if cerr != nil {
 			if cerr.fatal {
-				c.logger.Error().Err(cerr.err).Msg("connecting to broker")
-				return cerr.err
+				c.logger.Fatal().Err(cerr.err).Msg("unable to establish reverse connection to broker")
 			}
 			c.logger.Warn().Err(cerr.err).Msg("retrying")
 			continue
@@ -87,6 +86,10 @@ func (c *Connection) startReverse() error {
 func (c *Connection) connect() (*tls.Conn, *connError) {
 	c.Lock()
 	if c.connAttempts > 0 {
+		if c.maxConnRetry != -1 && c.connAttempts >= c.maxConnRetry {
+			return nil, &connError{fatal: true, err: errors.Errorf("max broker connection attempts reached (%d of %d)", c.connAttempts, c.maxConnRetry)}
+		}
+
 		c.logger.Info().
 			Str("delay", c.delay.String()).
 			Int("attempt", c.connAttempts).
@@ -136,9 +139,6 @@ func (c *Connection) connect() (*tls.Conn, *connError) {
 	dialer := &net.Dialer{Timeout: c.dialerTimeout}
 	conn, err := tls.DialWithDialer(dialer, "tcp", c.revConfig.BrokerAddr.String(), c.revConfig.TLSConfig)
 	if err != nil {
-		if c.maxConnRetry != -1 && c.connAttempts >= c.maxConnRetry {
-			return nil, &connError{fatal: true, err: errors.Wrapf(err, "after %d failed attempts, last error", c.connAttempts)}
-		}
 		return nil, &connError{fatal: false, err: errors.Wrapf(err, "connecting to %s", revHost)}
 	}
 	c.logger.Info().Str("host", revHost).Msg("connected")

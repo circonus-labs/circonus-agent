@@ -1,3 +1,12 @@
+# v0.15.1
+
+* fix: lock contention in check refresh
+* upd: optimize lastMetrics (val->ptr)
+* upd: additional debugging during run, flush, package
+* upd: concurrent flushes (builtins, plugins, receiver, statsd, prom receiver)
+* fix: var name typo
+* upd: `lastMetrics` handling
+
 # v0.15.0
 
 * mrg: tracking upstream

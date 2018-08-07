@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
@@ -62,10 +63,9 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	lastMeticsmu.Lock()
-	defer lastMeticsmu.Unlock()
-
 	metrics := cgm.Metrics{} //map[string]interface{}{}
+	var metricsmu sync.Mutex
+	var wg sync.WaitGroup
 
 	// default to true if id is blank, otherwise set all to false
 	runBuiltins := id == ""
@@ -91,68 +91,122 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if runBuiltins {
-		s.logger.Debug().Msg("builtin start")
-		s.builtins.Run(id)
-		builtinMetrics := s.builtins.Flush(id)
-		for metricName, metric := range *builtinMetrics {
-			metrics[metricName] = metric
-		}
-		s.logger.Debug().Msg("builtin done")
+		wg.Add(1)
+		go func() {
+			s.logger.Debug().Msg("builtin start")
+			s.builtins.Run(id)
+			builtinMetrics := s.builtins.Flush(id)
+			if builtinMetrics != nil && len(*builtinMetrics) > 0 {
+				s.logger.Debug().Int("num_metrics", len(*builtinMetrics)).Msg("lock metrics for builtins")
+				metricsmu.Lock()
+				for metricName, metric := range *builtinMetrics {
+					metrics[metricName] = metric
+				}
+				s.logger.Debug().Msg("unlock metrics for builtins")
+				metricsmu.Unlock()
+			}
+			s.logger.Debug().Msg("builtin done")
+			wg.Done()
+		}()
 	}
 
 	if runPlugins {
-		// NOTE: errors are ignored from plugins.Run
-		//       1. errors are already logged by Run
-		//       2. do not expose execution state to callers
-		s.logger.Debug().Msg("plugin start")
-		s.plugins.Run(id)
-		pluginMetrics := s.plugins.Flush(id)
-		for metricName, metric := range *pluginMetrics {
-			metrics[metricName] = metric
-		}
-		s.logger.Debug().Msg("plugin done")
+		wg.Add(1)
+		go func() {
+			// NOTE: errors are ignored from plugins.Run
+			//       1. errors are already logged by Run
+			//       2. do not expose execution state to callers
+			s.logger.Debug().Msg("plugin start")
+			s.plugins.Run(id)
+			pluginMetrics := s.plugins.Flush(id)
+			if pluginMetrics != nil && len(*pluginMetrics) > 0 {
+				s.logger.Debug().Int("num_metrics", len(*pluginMetrics)).Msg("lock metrics for plugin output")
+				metricsmu.Lock()
+				for metricName, metric := range *pluginMetrics {
+					metrics[metricName] = metric
+				}
+				metricsmu.Unlock()
+			}
+			s.logger.Debug().Msg("unlock, plugin done")
+			wg.Done()
+		}()
 	}
 
 	if flushReceiver {
-		s.logger.Debug().Msg("receiver start")
-		receiverMetrics := receiver.Flush()
-		for metricName, metric := range *receiverMetrics {
-			metrics[metricName] = metric
-		}
-		s.logger.Debug().Msg("receiver done")
+		wg.Add(1)
+		go func() {
+			s.logger.Debug().Msg("receiver start")
+			receiverMetrics := receiver.Flush()
+			if receiverMetrics != nil && len(*receiverMetrics) > 0 {
+				s.logger.Debug().Int("num_metrics", len(*receiverMetrics)).Msg("lock metrics for receiver")
+				metricsmu.Lock()
+				for metricName, metric := range *receiverMetrics {
+					metrics[metricName] = metric
+				}
+				metricsmu.Unlock()
+			}
+			s.logger.Debug().Msg("unlock, receiver done")
+			wg.Done()
+		}()
 	}
 
 	if flushStatsd {
 		if s.statsdSvr != nil {
-			s.logger.Debug().Msg("statsd start")
-			statsdMetrics := s.statsdSvr.Flush()
-			if statsdMetrics != nil {
-				pfx := viper.GetString(config.KeyStatsdHostCategory)
-				for metricName, metric := range *statsdMetrics {
-					metrics[pfx+config.MetricNameSeparator+metricName] = metric
+			wg.Add(1)
+			go func() {
+				s.logger.Debug().Msg("statsd start")
+				statsdMetrics := s.statsdSvr.Flush()
+				if statsdMetrics != nil && len(*statsdMetrics) > 0 {
+					pfx := viper.GetString(config.KeyStatsdHostCategory)
+					s.logger.Debug().Int("num_metrics", len(*statsdMetrics)).Msg("lock metrics for statsd")
+					metricsmu.Lock()
+					for metricName, metric := range *statsdMetrics {
+						metrics[pfx+config.MetricNameSeparator+metricName] = metric
+					}
+					metricsmu.Unlock()
 				}
-			}
-			s.logger.Debug().Msg("statsd done")
+				s.logger.Debug().Msg("unlock, statsd done")
+				wg.Done()
+			}()
 		}
 	}
 
 	if flushProm {
-		s.logger.Debug().Msg("prom start")
-		promMetrics := promrecv.Flush()
-		for metricName, metric := range *promMetrics {
-			metrics[metricName] = metric
-		}
-		s.logger.Debug().Msg("prom done")
+		wg.Add(1)
+		go func() {
+			s.logger.Debug().Msg("promrecv start")
+			promMetrics := promrecv.Flush()
+			if promMetrics != nil && len(*promMetrics) > 0 {
+				s.logger.Debug().Int("num_metrics", len(*promMetrics)).Msg("lock metrics for promrecv")
+				metricsmu.Lock()
+				for metricName, metric := range *promMetrics {
+					metrics[metricName] = metric
+				}
+				metricsmu.Unlock()
+			}
+			s.logger.Debug().Msg("unlock, promrecv done")
+			wg.Done()
+		}()
 	}
 
-	lastMetrics.metrics = metrics
+	wg.Wait()
+
+	s.logger.Debug().Msg("lock metrics for lastMetrics upd, enable metrics, and response")
+	metricsmu.Lock()
+	s.logger.Debug().Str("in", "run").Msg("lock, update lastMetrics")
+	lastMetricsmu.Lock()
+	lastMetrics.metrics = &metrics
 	lastMetrics.ts = time.Now()
+	s.logger.Debug().Str("in", "run").Msg("unlock, lastMetrics")
+	lastMetricsmu.Unlock()
 
 	if err := s.check.EnableNewMetrics(&metrics); err != nil {
 		s.logger.Warn().Err(err).Msg("unable to update check metrics")
 	}
 
 	s.encodeResponse(&metrics, w, r)
+	s.logger.Debug().Msg("unlock metrics for lastMetrics upd, enable metrics, and response")
+	metricsmu.Unlock()
 }
 
 // encodeResponse takes care of encoding the response to an HTTP request for metrics.
@@ -278,7 +332,7 @@ func (s *Server) socketHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) write(w http.ResponseWriter, r *http.Request) {
 	id := strings.Replace(r.URL.Path, "/write/", "", -1)
 
-	s.logger.Debug().Str("path", r.URL.Path).Str("id", id).Msg("write request")
+	// s.logger.Debug().Str("path", r.URL.Path).Str("id", id).Msg("write request")
 	// a write request *MUST* include a metric group id to act as a namespace.
 	// in other words, a "plugin name", all metrics for that write will appear
 	// _under_ the metric group id (aka plugin name)
@@ -313,18 +367,27 @@ func (s *Server) promReceiver(w http.ResponseWriter, r *http.Request) {
 
 // promOutput returns the last metrics in prom format
 func (s *Server) promOutput(w http.ResponseWriter, r *http.Request) {
-	if lastMetrics.metrics == nil || len(lastMetrics.metrics) == 0 {
+	s.logger.Debug().Str("in", "prom output").Msg("start")
+
+	s.logger.Debug().Str("in", "prom output").Msg("lock lastMetrics")
+	lastMetricsmu.Lock()
+	metrics := lastMetrics.metrics
+	ms := lastMetrics.ts.UnixNano() / int64(time.Millisecond)
+	lastMetricsmu.Unlock()
+	s.logger.Debug().Str("in", "prom output").Msg("unlock lastMetrics")
+
+	if metrics == nil || len(*metrics) == 0 {
 		w.WriteHeader(http.StatusNoContent)
+		s.logger.Debug().Str("in", "prom output").Msg("end")
 		return
 	}
 
-	ms := lastMetrics.ts.UnixNano() / int64(time.Millisecond)
-
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK)
-	for id, data := range lastMetrics.metrics {
+	for id, data := range *metrics {
 		s.metricsToPromFormat(w, id, ms, data)
 	}
+	s.logger.Debug().Str("in", "prom output").Msg("end")
 }
 
 func (s *Server) metricsToPromFormat(w io.Writer, prefix string, ts int64, val interface{}) {
