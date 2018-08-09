@@ -53,7 +53,8 @@ func (b *Builtins) Run(id string) error {
 	b.Unlock()
 
 	start := time.Now()
-	appstats.MapSet("builtins", "last_start", start)
+	appstats.SetString("builtins.last_start", start.String())
+	// appstats.MapSet("builtins", "last_start", start)
 
 	var wg sync.WaitGroup
 
@@ -90,8 +91,10 @@ func (b *Builtins) Run(id string) error {
 
 	b.logger.Debug().Msg("all builtins done")
 
-	appstats.MapSet("builtins", "last_end", time.Now())
-	appstats.MapSet("builtins", "last_duration", time.Since(start))
+	appstats.SetString("builtins.last_end", time.Now().String())
+	appstats.SetString("builtins.last_duration", time.Since(start).String())
+	// appstats.MapSet("builtins", "last_end", time.Now())
+	// appstats.MapSet("builtins", "last_duration", time.Since(start))
 
 	b.Lock()
 	b.running = false
@@ -123,7 +126,8 @@ func (b *Builtins) Flush(id string) *cgm.Metrics {
 	b.Lock()
 	defer b.Unlock()
 
-	appstats.MapSet("builtins", "last_flush", time.Now())
+	appstats.SetString("builtins.last_flush", time.Now().String())
+	// appstats.MapSet("builtins", "last_flush", time.Now())
 
 	metrics := cgm.Metrics{}
 
