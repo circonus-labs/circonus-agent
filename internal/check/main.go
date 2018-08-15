@@ -74,21 +74,22 @@ func New(apiClient API) (*Check, error) {
 		// preload the last known metric states so that states coming down
 		// from the API when fetching the check bundle will be merged into
 		// the known states since the fresh states have a higher precedence
-		if ok, err := c.verifyStatePath(); !ok {
+		if ok, err := c.verifyStatePath(); ok {
+			ms, err := c.loadState()
+			if err != nil {
+				c.logger.Error().Err(err).Msg("unable to load existing metric states, all metrics considered existing")
+			} else {
+				c.metricStates = ms
+				c.logger.Debug().Interface("metric_states", len(*c.metricStates)).Msg("loaded metric states")
+			}
+		} else {
 			if err != nil {
 				c.logger.Error().Err(err).Msg("verify state path")
 			}
 			c.logger.Warn().Str("state_path", c.statePath).Msg("encountered state path issue(s), disabling check-enable-new-metrics")
+			viper.Set(config.KeyCheckEnableNewMetrics, false)
+			isManaged = false
 			c.manage = false
-			return &c, nil
-		}
-
-		ms, err := c.loadState()
-		if err != nil {
-			c.logger.Error().Err(err).Msg("unable to load existing metric states, all metrics considered existing")
-		} else {
-			c.metricStates = ms
-			c.logger.Debug().Interface("metric_states", len(*c.metricStates)).Msg("loaded metric states")
 		}
 	}
 
