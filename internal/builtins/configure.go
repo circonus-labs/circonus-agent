@@ -15,11 +15,13 @@ import (
 func (b *Builtins) configure() error {
 	prom, err := prometheus.New("")
 	if err != nil {
-		appstats.MapAddInt("builtins", "total", 0)
+		appstats.AddInt("builtins.total", 0)
+		// appstats.MapAddInt("builtins", "total", 0)
 		b.logger.Warn().Err(err).Msg("prom collector, disabling")
 	} else {
 		b.collectors[prom.ID()] = prom
-		appstats.MapIncrementInt("builtins", "total")
+		appstats.IncrementInt("builtins.total")
+		// appstats.MapIncrementInt("builtins", "total")
 	}
 	return nil
 }

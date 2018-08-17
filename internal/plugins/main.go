@@ -80,7 +80,8 @@ func (p *Plugins) Flush(pluginName string) *cgm.Metrics {
 	p.RLock()
 	defer p.RUnlock()
 
-	appstats.MapSet("plugins", "last_flush", time.Now())
+	appstats.SetString("plugins.last_flush", time.Now().String())
+	// appstats.MapSet("plugins", "last_flush", time.Now())
 
 	metrics := cgm.Metrics{}
 
@@ -117,7 +118,8 @@ func (p *Plugins) Run(pluginName string) error {
 	}
 
 	start := time.Now()
-	appstats.MapSet("plugins", "last_run_start", start)
+	appstats.SetString("plugins.last_run_start", start.String())
+	// appstats.MapSet("plugins", "last_run_start", start)
 
 	p.running = true
 	p.Unlock()
@@ -156,8 +158,10 @@ func (p *Plugins) Run(pluginName string) error {
 
 	wg.Wait()
 
-	appstats.MapSet("plugins", "last_run_end", time.Now())
-	appstats.MapSet("plugins", "last_run_duration", time.Since(start))
+	appstats.SetString("plugins.last_run_end", time.Now().String())
+	appstats.SetString("plugins.last_run_duration", time.Since(start).String())
+	// appstats.MapSet("plugins", "last_run_end", time.Now())
+	// appstats.MapSet("plugins", "last_run_duration", time.Since(start))
 
 	p.Lock()
 	p.running = false

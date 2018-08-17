@@ -1,3 +1,12 @@
+# v0.16.0
+
+* fix: add error to reset command result so it is honored
+* fix: remove deadlock in setReverseConfig
+* upd: revert max reverse conn retries back to infinite (-1)
+* upd: switch server request logging to debug level
+* fix: handle enable new metrics when there's an error with the state directory. Disable new metric enabling and turn off check management, but allow check to be created.
+* upd: export plugin/builtin stat times as strings for json
+
 # v0.15.1
 
 * fix: lock contention in check refresh

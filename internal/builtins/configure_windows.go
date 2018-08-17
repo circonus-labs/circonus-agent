@@ -23,7 +23,8 @@ func (b *Builtins) configure() error {
 		return err
 	}
 	for _, c := range collectors {
-		appstats.MapIncrementInt("builtins", "total")
+		appstats.IncrementInt("builtins.total")
+		// appstats.MapIncrementInt("builtins", "total")
 		b.logger.Info().Str("id", c.ID()).Msg("enabled builtin")
 		b.collectors[c.ID()] = c
 	}
@@ -31,7 +32,8 @@ func (b *Builtins) configure() error {
 	if err != nil {
 		b.logger.Warn().Err(err).Msg("prom collector, disabling")
 	} else {
-		appstats.MapIncrementInt("builtins", "total")
+		appstats.IncrementInt("builtins.total")
+		// appstats.MapIncrementInt("builtins", "total")
 		b.collectors[prom.ID()] = prom
 	}
 	return nil

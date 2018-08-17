@@ -237,7 +237,8 @@ func (p *Plugins) scanPluginDirectory(b *builtins.Builtins) error {
 				plug = p.active[fileBase]
 			}
 
-			appstats.MapIncrementInt("plugins", "total")
+			appstats.IncrementInt("plugins.total")
+			// appstats.MapIncrementInt("plugins", "total")
 			plug.command = cmdName
 			p.logger.Info().
 				Str("id", fileBase).
@@ -262,7 +263,8 @@ func (p *Plugins) scanPluginDirectory(b *builtins.Builtins) error {
 					plug = p.active[pluginName]
 				}
 
-				appstats.MapIncrementInt("plugins", "total")
+				appstats.IncrementInt("plugins.total")
+				// appstats.MapIncrementInt("plugins", "total")
 				plug.command = cmdName
 				p.logger.Info().
 					Str("id", pluginName).

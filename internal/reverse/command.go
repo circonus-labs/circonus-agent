@@ -142,6 +142,8 @@ func (c *Connection) processCommand(cmd command) command {
 	}
 
 	if cmd.name == c.cmdReset {
+		cmd.err = errors.New("received RESET command from broker")
+		cmd.ignore = false
 		cmd.reset = true
 		return cmd
 	}
