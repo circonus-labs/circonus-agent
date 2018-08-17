@@ -107,7 +107,7 @@ func TestProcessCommand(t *testing.T) {
 	}{
 		{"valid connect", command{name: "CONNECT", request: []byte("GET /\r\n\r\n")}, false, nil},
 		{"invalid connect - zero len request", command{name: "CONNECT", request: []byte("")}, true, errors.New("invalid connect command, 0 length request")},
-		{"valid reset", command{name: "RESET", reset: true}, false, nil},
+		{"valid reset", command{name: "RESET", reset: true}, true, errors.New("received RESET command from broker")},
 		{"cmd err - ignored (SHUTDOWN)", command{name: "SHUTDOWN", ignore: true}, true, errors.New("unused/empty command (SHUTDOWN)")},
 		{"cmd err - ignored (empty)", command{name: "", ignore: true}, true, errors.New("unused/empty command ()")},
 		{"cmd err", command{err: errors.New("command error")}, true, errors.New("command error")},
