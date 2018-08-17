@@ -26,9 +26,6 @@ import (
 )
 
 func (c *Check) setReverseConfig() error {
-	c.Lock()
-	defer c.Unlock()
-
 	if len(c.bundle.ReverseConnectURLs) == 0 {
 		return errors.New("no reverse URLs found in check bundle")
 	}
