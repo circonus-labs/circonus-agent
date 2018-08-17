@@ -15,10 +15,10 @@ import (
 func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 	appstats.IncrementInt("requests_total")
 
-	s.logger.Info().
+	s.logger.Debug().
 		Str("method", r.Method).
 		Str("url", r.URL.String()).
-		Msg("Request")
+		Msg("request")
 
 	switch r.Method {
 	case "GET":
