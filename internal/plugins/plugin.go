@@ -270,7 +270,7 @@ func (p *plugin) exec() error {
 
 	if p.running {
 		msg := "already running"
-		plog.Info().Msg(msg)
+		plog.Debug().Msg(msg)
 		p.Unlock()
 		return errors.New(msg)
 	}
