@@ -200,11 +200,11 @@ func (s *Server) parseMetric(metric string) error {
 	}
 
 	s.logger.Debug().
+		Str("destination", metricDest).
 		Str("metric", metric).
-		Str("Name", metricName).
-		Str("Type", metricType).
-		Str("Value", metricValue).
-		Str("Destination", metricDest).
+		Str("name", metricName).
+		Str("type", metricType).
+		Str("value", metricValue).
 		Msg("parsing")
 
 	return nil

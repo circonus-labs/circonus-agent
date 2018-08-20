@@ -15,10 +15,7 @@ import (
 func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 	appstats.IncrementInt("requests_total")
 
-	s.logger.Debug().
-		Str("method", r.Method).
-		Str("url", r.URL.String()).
-		Msg("request")
+	s.logger.Debug().Str("method", r.Method).Str("url", r.URL.String()).Msg("request")
 
 	switch r.Method {
 	case "GET":
@@ -34,10 +31,7 @@ func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 			s.promOutput(w, r)
 		} else {
 			appstats.IncrementInt("requests_bad")
-			s.logger.Warn().
-				Str("method", r.Method).
-				Str("url", r.URL.String()).
-				Msg("Not found")
+			s.logger.Warn().Str("method", r.Method).Str("url", r.URL.String()).Msg("not found")
 			http.NotFound(w, r)
 		}
 	case "POST":
@@ -49,10 +43,7 @@ func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 			s.promReceiver(w, r)
 		} else {
 			appstats.IncrementInt("requests_bad")
-			s.logger.Warn().
-				Str("method", r.Method).
-				Str("url", r.URL.String()).
-				Msg("Not found")
+			s.logger.Warn().Str("method", r.Method).Str("url", r.URL.String()).Msg("not found")
 			http.NotFound(w, r)
 		}
 	default:

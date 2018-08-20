@@ -273,7 +273,7 @@ func (s *Server) encodeResponse(m *cgm.Metrics, w http.ResponseWriter, r *http.R
 		return
 	}
 
-	s.logger.Info().Msgf("sent %d metrics", len(*m))
+	s.logger.Info().Int("metrics", len(*m)).Msg("request response")
 
 	dumpDir := viper.GetString(config.KeyDebugDumpMetrics)
 	if dumpDir != "" {

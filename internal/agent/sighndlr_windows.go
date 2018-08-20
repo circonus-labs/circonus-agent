@@ -37,7 +37,7 @@ func (a *Agent) handleSignals() error {
 		case <-a.t.Dying():
 			return nil
 		case sig := <-a.signalCh:
-			log.Info().Str("signal", sig.String()).Msg("Received signal")
+			log.Info().Str("signal", sig.String()).Msg("received signal")
 			switch sig {
 			case os.Interrupt, syscall.SIGTERM:
 				a.Stop()

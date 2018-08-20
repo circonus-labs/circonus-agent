@@ -106,14 +106,14 @@ func (s *Server) Stop() error {
 		return nil
 	}
 
-	s.logger.Info().Msg("Stopping StatsD Server")
+	s.logger.Info().Msg("stopping StatsD Server")
 
 	if s.t.Alive() {
 		s.t.Kill(nil)
 	}
 
 	if s.groupMetrics != nil {
-		s.logger.Info().Msg("Flushing group metrics")
+		s.logger.Info().Msg("flushing group metrics")
 		s.groupMetricsmu.Lock()
 		s.groupMetrics.Flush()
 		s.groupMetricsmu.Unlock()
