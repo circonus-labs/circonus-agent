@@ -167,7 +167,8 @@ fetch_agent_repo() {
         popd >/dev/null
     else
         echo "-cloning agent repo"
-        $GIT clone $url_agent_repo
+        local url_repo=${url_agent_repo/#https/git}
+        $GIT clone $url_repo
     fi
 
     if [[ "$agent_version" == "latest" ]]; then
@@ -207,7 +208,8 @@ fetch_plugin_repo() {
         popd >/dev/null
     else
         echo "-cloning plugin repo"
-        $GIT clone $url_plugin_repo
+        local url_repo=${url_plugin_repo/#https/git}
+        $GIT clone $url_repo
     fi
 
     if [[ "$plugin_version" == "latest" ]]; then
