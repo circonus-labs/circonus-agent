@@ -257,12 +257,12 @@ func (p *plugin) exec() error {
 
 	plog := p.logger
 
-	plog.Debug().Msg("Running")
+	plog.Debug().Msg("running")
 
 	if p.runTTL > time.Duration(0) {
 		if time.Since(p.lastEnd) < p.runTTL {
 			msg := "TTL not expired"
-			plog.Info().Msg(msg)
+			plog.Debug().Msg(msg)
 			p.Unlock()
 			return errors.New(msg)
 		}
@@ -270,7 +270,7 @@ func (p *plugin) exec() error {
 
 	if p.running {
 		msg := "already running"
-		plog.Info().Msg(msg)
+		plog.Debug().Msg(msg)
 		p.Unlock()
 		return errors.New(msg)
 	}

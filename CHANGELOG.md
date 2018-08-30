@@ -1,3 +1,16 @@
+# v0.16.1
+
+* wip: package builder (incomplete)
+* add: X-Circonus-Check-ID header to /write and /prom PUT|POST request responses
+* add: X-Circonus-Check-Bundle-ID header to /write and /prom PUT|POST request responses
+* fix: add pattern to wrapped error message for reverse url
+* fix: use `git://` rather than `https://` urls for repos (older el build support)
+* upd: use unique virtualbox names
+* upd: release pkg name (macOS->darwin)
+* upd: try different habitat origin for auto build
+* doc: add details on getting prometheus in/out of agent
+* upd: misc log message updates (level, etc.)
+
 # v0.16.0
 
 * fix: add error to reset command result so it is honored

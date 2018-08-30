@@ -1,4 +1,4 @@
-pkg_origin=bixu
+pkg_origin=circonus
 pkg_name=circonus-agent
 pkg_maintainer="Blake Irvin <blake.irvin@gmail.com>"
 pkg_license=("BSD-3")

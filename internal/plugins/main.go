@@ -102,7 +102,7 @@ func (p *Plugins) Flush(pluginName string) *cgm.Metrics {
 
 // Stop any long running plugins
 func (p *Plugins) Stop() error {
-	p.logger.Info().Msg("Stopping plugins")
+	p.logger.Info().Msg("stopping")
 	return nil
 }
 
@@ -140,9 +140,7 @@ func (p *Plugins) Run(pluginName string) error {
 			}
 		}
 		if numFound == 0 {
-			p.logger.Error().
-				Str("plugin", pluginName).
-				Msg("Invalid/Unknown")
+			p.logger.Error().Str("plugin", pluginName).Msg("invalid/unknown")
 			p.running = false
 			return errors.Errorf("invalid plugin (%s)", pluginName)
 		}

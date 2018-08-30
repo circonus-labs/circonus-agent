@@ -90,7 +90,7 @@ func New(check *check.Check, agentAddress string) (*Connection, error) {
 // Start reverse connection to the broker
 func (c *Connection) Start() error {
 	if !c.enabled {
-		c.logger.Info().Msg("Reverse disabled, not starting")
+		c.logger.Info().Msg("disabled, not starting")
 		return nil
 	}
 
@@ -100,7 +100,7 @@ func (c *Connection) Start() error {
 		Str("rev_port", c.revConfig.ReverseURL.Port()).
 		Str("rev_path", c.revConfig.ReverseURL.Path).
 		Str("agent", c.agentAddress).
-		Msg("Reverse configuration")
+		Msg("configuration")
 
 	c.t.Go(c.startReverse)
 
@@ -113,10 +113,10 @@ func (c *Connection) Stop() {
 		return
 	}
 
-	c.logger.Info().Msg("Stopping reverse connection")
+	c.logger.Info().Msg("stopping")
 
 	if c.t.Alive() {
-		c.logger.Warn().Msg("Sent stop signal, may take a minute for timeout")
+		c.logger.Warn().Msg("sent stop signal, may take a minute for timeout")
 		c.t.Kill(nil)
 	}
 }

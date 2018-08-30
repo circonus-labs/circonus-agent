@@ -197,26 +197,26 @@ func (s *Server) Stop() {
 	defer cancel()
 
 	for _, svrHTTP := range s.svrHTTP {
-		s.logger.Info().Msg("Stopping HTTP server")
+		s.logger.Info().Msg("stopping HTTP server")
 		err := svrHTTP.server.Shutdown(ctx)
 		if err != nil {
-			s.logger.Warn().Err(err).Msg("Closing HTTP server")
+			s.logger.Warn().Err(err).Msg("closing HTTP server")
 		}
 	}
 
 	if s.svrHTTPS != nil {
-		s.logger.Info().Msg("Stopping HTTPS server")
+		s.logger.Info().Msg("stopping HTTPS server")
 		err := s.svrHTTPS.server.Shutdown(ctx)
 		if err != nil {
-			s.logger.Warn().Err(err).Msg("Closing HTTPS server")
+			s.logger.Warn().Err(err).Msg("closing HTTPS server")
 		}
 	}
 
 	for _, svrSocket := range s.svrSockets {
-		s.logger.Info().Str("server", svrSocket.address.Name).Msg("Stopping Socket server")
+		s.logger.Info().Str("server", svrSocket.address.Name).Msg("stopping Socket server")
 		err := svrSocket.server.Shutdown(ctx)
 		if err != nil {
-			s.logger.Warn().Err(err).Str("server", svrSocket.address.Name).Msg("Closing Socket server")
+			s.logger.Warn().Err(err).Str("server", svrSocket.address.Name).Msg("closing Socket server")
 		}
 	}
 
@@ -227,7 +227,7 @@ func (s *Server) Stop() {
 
 func (s *Server) startHTTP(svr *httpServer) error {
 	if svr == nil {
-		s.logger.Debug().Msg("No listen configured, skipping server")
+		s.logger.Debug().Msg("no listen configured, skipping server")
 		return nil
 	}
 	if svr.address == nil || svr.server == nil {
@@ -248,7 +248,7 @@ func (s *Server) startHTTP(svr *httpServer) error {
 
 func (s *Server) startHTTPS() error {
 	if s.svrHTTPS == nil {
-		s.logger.Debug().Msg("No SSL listen configured, skipping server")
+		s.logger.Debug().Msg("no SSL listen configured, skipping server")
 		return nil
 	}
 	s.logger.Info().Str("listen", s.svrHTTPS.server.Addr).Msg("SSL starting")
@@ -263,7 +263,7 @@ func (s *Server) startHTTPS() error {
 
 func (s *Server) startSocket(svr *socketServer) error {
 	if svr == nil {
-		s.logger.Debug().Msg("No socket configured, skipping")
+		s.logger.Debug().Msg("no socket configured, skipping")
 		return nil
 	}
 	if svr.address == nil || svr.listener == nil || svr.server == nil {
@@ -284,35 +284,3 @@ func (s *Server) startSocket(svr *socketServer) error {
 	}
 	return nil
 }
-
-// // parseListen parses and fixes listen spec
-// func parseListen(spec string) (*net.TCPAddr, error) {
-// 	// empty, default
-// 	if spec == "" {
-// 		spec = defaults.Listen
-// 	}
-// 	// only a port, prefix with colon
-// 	if ok, _ := regexp.MatchString(`^[0-9]+$`, spec); ok {
-// 		spec = ":" + spec
-// 	}
-// 	// ipv4 w/o port, add default
-// 	if strings.Contains(spec, ".") && !strings.Contains(spec, ":") {
-// 		spec += defaults.Listen
-// 	}
-// 	// ipv6 w/o port, add default
-// 	if ok, _ := regexp.MatchString(`^\[[a-f0-9:]+\]$`, spec); ok {
-// 		spec += defaults.Listen
-// 	}
-//
-// 	host, port, err := net.SplitHostPort(spec)
-// 	if err != nil {
-// 		return nil, errors.Wrap(err, "parsing listen")
-// 	}
-//
-// 	addr, err := net.ResolveTCPAddr("tcp", net.JoinHostPort(host, port))
-// 	if err != nil {
-// 		return nil, errors.Wrap(err, "resolving listen")
-// 	}
-//
-// 	return addr, nil
-// }

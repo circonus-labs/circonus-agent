@@ -46,7 +46,7 @@ func (c *Check) setReverseConfig() error {
 
 	brokerAddr, err := net.ResolveTCPAddr("tcp", reverseURL.Host)
 	if err != nil {
-		return errors.Wrapf(err, "invalid reverse service address", rURL)
+		return errors.Wrapf(err, "invalid reverse service address (%s)", rURL)
 	}
 
 	if len(c.bundle.Brokers) == 0 {

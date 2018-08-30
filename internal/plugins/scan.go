@@ -70,9 +70,7 @@ func (p *Plugins) scanPluginDirectory(b *builtins.Builtins) error {
 		return errors.New("invalid plugin directory (none)")
 	}
 
-	p.logger.Info().
-		Str("dir", p.pluginDir).
-		Msg("Scanning plugin directory")
+	p.logger.Info().Str("dir", p.pluginDir).Msg("scanning")
 
 	f, err := os.Open(p.pluginDir)
 	if err != nil {
@@ -240,10 +238,7 @@ func (p *Plugins) scanPluginDirectory(b *builtins.Builtins) error {
 			appstats.IncrementInt("plugins.total")
 			// appstats.MapIncrementInt("plugins", "total")
 			plug.command = cmdName
-			p.logger.Info().
-				Str("id", fileBase).
-				Str("cmd", cmdName).
-				Msg("Activating plugin")
+			p.logger.Info().Str("id", fileBase).Str("cmd", cmdName).Msg("activating")
 
 		} else {
 			for inst, args := range cfg {
@@ -266,10 +261,7 @@ func (p *Plugins) scanPluginDirectory(b *builtins.Builtins) error {
 				appstats.IncrementInt("plugins.total")
 				// appstats.MapIncrementInt("plugins", "total")
 				plug.command = cmdName
-				p.logger.Info().
-					Str("id", pluginName).
-					Str("cmd", cmdName).
-					Msg("Activating plugin")
+				p.logger.Info().Str("id", pluginName).Str("cmd", cmdName).Msg("activating")
 
 			}
 		}
