@@ -348,6 +348,11 @@ func (s *Server) write(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if meta, _ := s.check.CheckMeta(); meta != nil {
+		w.Header().Set("X-Circonus-Check-Bundle-ID", meta.BundleID)
+		w.Header().Set("X-Circonus-Check-ID", strings.Join(meta.CheckIDs, ","))
+	}
+
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -362,6 +367,10 @@ func (s *Server) promReceiver(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if meta, _ := s.check.CheckMeta(); meta != nil {
+		w.Header().Set("X-Circonus-Check-Bundle-ID", meta.BundleID)
+		w.Header().Set("X-Circonus-Check-ID", strings.Join(meta.CheckIDs, ","))
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
