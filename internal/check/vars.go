@@ -39,6 +39,12 @@ type Check struct {
 	sync.Mutex
 }
 
+// Meta contains check id meta data
+type Meta struct {
+	BundleID string
+	CheckIDs []string
+}
+
 // ReverseConfig contains the reverse configuration for the check
 type ReverseConfig struct {
 	BrokerAddr *net.TCPAddr

@@ -125,6 +125,17 @@ func New(apiClient API) (*Check, error) {
 	return &c, nil
 }
 
+// CheckMeta returns check bundle id and check ids
+func (c *Check) CheckMeta() (*Meta, error) {
+	if c.bundle != nil {
+		return &Meta{
+			BundleID: c.bundle.CID,
+			CheckIDs: c.bundle.Checks,
+		}, nil
+	}
+	return nil, errors.New("check not initialized")
+}
+
 // RefreshCheckConfig re-loads the check bundle using the API and reconfigures reverse (if needed)
 func (c *Check) RefreshCheckConfig() error {
 	c.Lock()
