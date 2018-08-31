@@ -13,6 +13,7 @@ umask 0022
 #       repo url - do not modify these variables
 agent_name="circonus-agent"
 plugins_name="circonus-agent-plugins"
+po_name="wirelatency"
 base_repo_url="https://github.com/circonus-labs"
 
 : ${dir_build:="/tmp/agent-build"}
@@ -20,6 +21,7 @@ base_repo_url="https://github.com/circonus-labs"
 : ${dir_publish:="/tmp/agent-publish"}
 : ${dir_agent_build:="${dir_build}/${agent_name}"}
 : ${dir_plugin_build:="${dir_build}/${plugins_name}"}
+: ${dir_po_build:="${dir_build}/${po_name}"}
 
 #
 # settings which can be overridden in build.conf
@@ -33,6 +35,7 @@ base_repo_url="https://github.com/circonus-labs"
 # NOTE: circonus-agent version must be 'latest' or a specific release tag.
 #       It cannot be 'master' or a branch name. See 'goreleaser' below.
 : ${agent_version:="latest"}
+: ${po_version:="latest"} # same caveat as agent
 : ${plugin_version:="latest"} # 'latest', 'master', or specific tag
 
 # NOTE: goreleaser is used to produce cross-compiled binaries in the
@@ -45,12 +48,15 @@ base_repo_url="https://github.com/circonus-labs"
 # changes, commit, tag, run goreleaser to produce a "release" which can be used
 # to build a package for testing.
 : ${url_agent_repo:="${base_repo_url}/${agent_name}"}
+# same as agent, use goreleaser to produce releases
+: ${url_po_repo}:="${base_repo_url}/${po_name}"
 # Using a fork for plugins is more straight-forward. Fork, change, set
 # plugin_version in build.conf to 'master' and build the package.
 : ${url_plugin_repo:="${base_repo_url}/${plugins_name}"}
 
 : ${dir_install_prefix:="/opt/circonus"}
 : ${dir_install_agent:="${dir_install_prefix}/agent"}
+: ${dir_install_po:="${dir_install_agent}/po"}
 
 #
 # commands used during build/install
@@ -134,6 +140,8 @@ let make_jobs="$nproc + ($nproc / 2)" # 1.5x the number of CPUs
 
 agent_tgz=""
 agent_tgz_url=""
+po_tgz=""
+po_tgz_url=""
 
 ###
 ### start building package
@@ -180,7 +188,6 @@ fetch_agent_repo() {
         popd >/dev/null
     fi
 }
-
 fetch_agent_package() {
     local stripped_ver=${agent_ver#v}
     agent_tgz="${agent_name}_${stripped_ver}_${os_type}_64-bit.tar.gz"
@@ -190,8 +197,10 @@ fetch_agent_package() {
         $CURL -sSL "$agent_tgz_url" -o $agent_tgz
     }
 }
-
 install_agent() {
+    fetch_agent_repo
+    fetch_agent_package
+
     echo "-unpacking $agent_tgz into $dir_install_agent"
     $TAR -zxf $agent_tgz -C $dir_install_agent
 }
@@ -221,14 +230,60 @@ fetch_plugin_repo() {
         popd >/dev/null
     fi
 }
-
 install_plugins() {
+    fetch_plugin_repo
+
     pushd $dir_plugin_build >/dev/null
     [[ $plugin_version == "master" ]] || $GIT checkout tags/$plugin_version
     $MAKE DEST=$dir_install_agent $install_target
     popd >/dev/null
 }
 
+##
+## use pre-built protocol_observer release packages (single source of truth...)
+##
+fetch_protocol_observer_repo() {
+    if [[ -d $dir_po_build ]]; then
+        echo "-updating wirelatency repo"
+        pushd $dir_po_build >/dev/null
+        $GIT checkout master # ensure on master branch
+        $GIT pull
+        popd >/dev/null
+    else
+        echo "-cloning wirelatency repo"
+        local url_repo=${url_po_repo/#https/git}
+        $GIT clone $url_repo
+    fi
+
+    if [[ "$po_version" == "latest" ]]; then
+        # get latest released tag otherwise _assume_ it is set to a
+        # valid tag version in the repository.
+        pushd $dir_po_build >/dev/null
+        po_version=$($GIT describe --abbrev=0 --tags)
+        echo "-using protocol_observer version ${po_version}"
+        popd >/dev/null
+    fi
+}
+fetch_protocol_observer_package() {
+    local stripped_ver=${po_ver#v}
+    po_tgz="${po_name}_${stripped_ver}_${os_type}_64-bit.tar.gz"
+    po_tgz_url="${url_po_repo}/releases/download/${po_version}/$po_tgz"
+    [[ -f $po_tgz ]] || {
+        echo "-fetching protocol_observer package (${po_tgz}) - ${po_tgz_url}"
+        $CURL -sSL "$po_tgz_url" -o $po_tgz
+    }
+}
+install_protocol_observer() {
+    fetch_protocol_observer_repo
+    fetch_protocol_observer_package
+
+    echo "-unpacking $po_tgz into $dir_install_po"
+    $TAR -zxf $po_tgz -C $dir_install_po
+}
+
+##
+## build the target package
+##
 make_package() {
     case $os_name in
         el*)
@@ -263,13 +318,9 @@ make_package() {
 
 pushd $dir_build >/dev/null
 
-fetch_agent_repo
-fetch_agent_package
 install_agent
-
-fetch_plugin_repo
 install_plugins
-
+install_protocol_observer
 make_package
 
 popd >/dev/null
