@@ -35,8 +35,8 @@ base_repo_url="https://github.com/circonus-labs"
 # NOTE: circonus-agent version must be 'latest' or a specific release tag.
 #       It cannot be 'master' or a branch name. See 'goreleaser' below.
 : ${agent_version:="latest"}
-: ${po_version:="latest"} # same caveat as agent
 : ${plugin_version:="latest"} # 'latest', 'master', or specific tag
+: ${po_version:="latest"} # same caveat as plugin
 
 # NOTE: goreleaser is used to produce cross-compiled binaries in the
 #       official circonus-labs/circonus-agent repository.
@@ -48,15 +48,14 @@ base_repo_url="https://github.com/circonus-labs"
 # changes, commit, tag, run goreleaser to produce a "release" which can be used
 # to build a package for testing.
 : ${url_agent_repo:="${base_repo_url}/${agent_name}"}
-# same as agent, use goreleaser to produce releases
-: ${url_po_repo}:="${base_repo_url}/${po_name}"
 # Using a fork for plugins is more straight-forward. Fork, change, set
 # plugin_version in build.conf to 'master' and build the package.
 : ${url_plugin_repo:="${base_repo_url}/${plugins_name}"}
+# same caveat as plugin
+: ${url_po_repo}:="${base_repo_url}/${po_name}"
 
 : ${dir_install_prefix:="/opt/circonus"}
 : ${dir_install_agent:="${dir_install_prefix}/agent"}
-: ${dir_install_po:="${dir_install_agent}/po"}
 
 #
 # commands used during build/install
@@ -64,6 +63,7 @@ base_repo_url="https://github.com/circonus-labs"
 : ${CP:="cp"}
 : ${CURL:="curl"}
 : ${GIT:="git"}
+: ${GO:="go"} # for protocol_observer
 : ${MKDIR:="mkdir"}
 : ${RM:="rm"}
 : ${TAR:="tar"}
@@ -140,8 +140,6 @@ let make_jobs="$nproc + ($nproc / 2)" # 1.5x the number of CPUs
 
 agent_tgz=""
 agent_tgz_url=""
-po_tgz=""
-po_tgz_url=""
 
 ###
 ### start building package
@@ -264,21 +262,13 @@ fetch_protocol_observer_repo() {
         popd >/dev/null
     fi
 }
-fetch_protocol_observer_package() {
-    local stripped_ver=${po_ver#v}
-    po_tgz="${po_name}_${stripped_ver}_${os_type}_64-bit.tar.gz"
-    po_tgz_url="${url_po_repo}/releases/download/${po_version}/$po_tgz"
-    [[ -f $po_tgz ]] || {
-        echo "-fetching protocol_observer package (${po_tgz}) - ${po_tgz_url}"
-        $CURL -sSL "$po_tgz_url" -o $po_tgz
-    }
-}
 install_protocol_observer() {
     fetch_protocol_observer_repo
-    fetch_protocol_observer_package
 
-    echo "-unpacking $po_tgz into $dir_install_po"
-    $TAR -zxf $po_tgz -C $dir_install_po
+    pushd $dir_po_build/protocol_observer >/dev/null
+    [[ $po_version == "master" ]] || $GIT checkout tags/$po_version
+    $GO build -o ${dir_install_agent}/sbin/protocol-observerd
+    popd >/dev/null
 }
 
 ##
