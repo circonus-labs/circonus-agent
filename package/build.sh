@@ -1,5 +1,15 @@
 #!/usr/bin/env bash
 
+###
+### !! IMPORTANT !!
+###
+### Requires VMs for target OSes due to c plugins and cgo in protocol_observer.
+### The actual agent is cross-compiled and stored in releases within the github repo.
+###
+### make,gcc,go
+### rhel:rpmbuild
+###
+
 set -o errtrace
 set -o errexit
 set -o nounset
@@ -81,6 +91,8 @@ os_arch=$($UNAME -m)
 [[ $os_arch =~ ^(x86_64|amd64)$ ]] || { echo "unsupported architecture ($os_arch) - x86_64 or amd64 only"; exit 1; }
 
 # check for custom target os overrides (e.g. build-linux.conf)
+# NOTE: these are for redefinition, vars will not be backfilled.
+#       setting a required var to something invalid *will* cause problems.
 cust_conf="build-${os_type}.conf"
 [[ -f $cust_conf ]] && source ./$cust_conf
 
@@ -109,6 +121,13 @@ case $os_type in
             exit 1
         fi
         ;;
+    #
+    # TODO: Should we add omnios/illumos package building here so there is ONE place
+    #       where packages are built, rather than two which need to be kept in sync?
+    #       Or, move all of this to the official "packaging" repository for the same
+    #       "single source of truth" outcome. Note, the cadence for the agent will,
+    #       at times, be higher than for the "all of circonus" packaging cadence.
+    #
     freebsd)
         install_target="install-freebsd"
         relver=`freebsd-version -u | cut -d'-' -f1`
@@ -172,14 +191,16 @@ fetch_agent_repo() {
         $GIT pull
         popd >/dev/null
     else
+        pushd $dir_build >/dev/null
         echo "-cloning agent repo"
         local url_repo=${url_agent_repo/#https/git}
         $GIT clone $url_repo
+        popd >/dev/null
     fi
 
     if [[ "$agent_version" == "latest" ]]; then
         # get latest released tag otherwise _assume_ it is set to a
-        # valid tag version in the repository.
+        # valid tag version in the repository or master.
         pushd $dir_agent_build >/dev/null
         agent_version=$($GIT describe --abbrev=0 --tags)
         echo "-using agent version ${agent_version}"
@@ -214,9 +235,11 @@ fetch_plugin_repo() {
         $GIT pull
         popd >/dev/null
     else
+        pushd $dir_build >/dev/null
         echo "-cloning plugin repo"
         local url_repo=${url_plugin_repo/#https/git}
         $GIT clone $url_repo
+        popd >/dev/null
     fi
 
     if [[ "$plugin_version" == "latest" ]]; then
@@ -232,6 +255,7 @@ install_plugins() {
     fetch_plugin_repo
 
     pushd $dir_plugin_build >/dev/null
+    $GIT checkout master # ensure on master branch
     [[ $plugin_version == "master" ]] || $GIT checkout tags/$plugin_version
     $MAKE DEST=$dir_install_agent $install_target
     popd >/dev/null
@@ -248,14 +272,16 @@ fetch_protocol_observer_repo() {
         $GIT pull
         popd >/dev/null
     else
+        pushd $dir_build >/dev/null
         echo "-cloning wirelatency repo"
         local url_repo=${url_po_repo/#https/git}
         $GIT clone $url_repo
+        popd >/dev/null
     fi
 
     if [[ "$po_version" == "latest" ]]; then
         # get latest released tag otherwise _assume_ it is set to a
-        # valid tag version in the repository.
+        # valid tag version in the repository or master.
         pushd $dir_po_build >/dev/null
         po_version=$($GIT describe --abbrev=0 --tags)
         echo "-using protocol_observer version ${po_version}"
@@ -265,9 +291,16 @@ fetch_protocol_observer_repo() {
 install_protocol_observer() {
     fetch_protocol_observer_repo
 
-    pushd $dir_po_build/protocol_observer >/dev/null
+    pushd $dir_po_build >/dev/null
+    $GIT checkout master # ensure on master branch
     [[ $po_version == "master" ]] || $GIT checkout tags/$po_version
+    #
+    # NOTE: protocol_observer is a tool in the wirelatency repository
+    #
+    pushd protocol_observer >/dev/null
     $GO build -o ${dir_install_agent}/sbin/protocol-observerd
+
+    popd >/dev/null
     popd >/dev/null
 }
 
