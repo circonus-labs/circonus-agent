@@ -312,9 +312,24 @@ install_protocol_observer() {
 }
 
 ##
+## install os specific service configuration(s)
+##
+install_service() {
+
+    # TODO: install os specific service
+
+    echo
+    echo "install_service NOT IMPLEMENTED YET"
+    echo
+}
+
+##
 ## build the target package
 ##
 make_package() {
+
+    # TODO: finish os specific packaging
+
     case $os_name in
         el*)
             pushd $dir_agent_build >/dev/null
@@ -337,7 +352,7 @@ make_package() {
     esac
 
     echo
-    echo "NOT IMPLEMENTED YET"
+    echo "make_package NOT [fully] IMPLEMENTED YET"
     echo
 }
 
@@ -351,6 +366,7 @@ pushd $dir_build >/dev/null
 install_agent
 install_plugins
 install_protocol_observer
+install_service
 make_package
 
 popd >/dev/null
