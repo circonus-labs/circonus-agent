@@ -54,3 +54,6 @@ coverage.html
 habitat/results/*
 results/*
 studio.toml
+
+# ignore local build.conf
+package/build.conf
