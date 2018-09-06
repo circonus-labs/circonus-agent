@@ -25,6 +25,7 @@ umask 0022
 agent_name="circonus-agent"
 plugins_name="circonus-agent-plugins"
 po_name="wirelatency"
+logwatch_name="circonus-logwatch"
 base_repo_url="https://github.com/circonus-labs"
 
 : ${dir_build:="/tmp/agent-build"}
@@ -33,6 +34,7 @@ base_repo_url="https://github.com/circonus-labs"
 : ${dir_agent_build:="${dir_build}/${agent_name}"}
 : ${dir_plugin_build:="${dir_build}/${plugins_name}"}
 : ${dir_po_build:="${dir_build}/${po_name}"}
+: ${dir_logwatch_build:="${dir_build}/${logwatch_name}"}
 
 #
 # settings which can be overridden in build.conf
@@ -46,6 +48,7 @@ base_repo_url="https://github.com/circonus-labs"
 # NOTE: circonus-agent version must be 'latest' or a specific release tag.
 #       It cannot be 'master' or a branch name. See 'goreleaser' below.
 : ${agent_version:="latest"}
+: ${logwatch_version:="latest"} # same caveat as agent
 : ${plugin_version:="latest"} # 'latest', 'master', or specific tag
 : ${po_version:="latest"} # same caveat as plugin
 
@@ -59,6 +62,7 @@ base_repo_url="https://github.com/circonus-labs"
 # changes, commit, tag, run goreleaser to produce a "release" which can be used
 # to build a package for testing.
 : ${url_agent_repo:="${base_repo_url}/${agent_name}"}
+: ${url_logwatch_repo:="${base_repo_url}/${logwatch_name}"}
 # Using a fork for plugins is more straight-forward. Fork, change, set
 # plugin_version in build.conf to 'master' and build the package.
 : ${url_plugin_repo:="${base_repo_url}/${plugins_name}"}
@@ -67,6 +71,7 @@ base_repo_url="https://github.com/circonus-labs"
 
 : ${dir_install_prefix:="/opt/circonus"}
 : ${dir_install_agent:="${dir_install}${dir_install_prefix}/agent"}
+: ${dir_install_logwatch:="${dir_install}${dir_install_prefix}/logwatch"}
 
 #
 # commands used during build/install
@@ -160,6 +165,8 @@ let make_jobs="$nproc + ($nproc / 2)" # 1.5x the number of CPUs
 
 agent_tgz=""
 agent_tgz_url=""
+logwatch_tgz=""
+logwatch_tgz_url=""
 
 ###
 ### start building package
@@ -182,7 +189,7 @@ echo
 }
 
 ##
-## use pre-built agent release packages (single source of truth...)
+## Agent: use pre-built agent release packages (single source of truth...)
 ##
 fetch_agent_repo() {
     if [[ -d $dir_agent_build ]]; then
@@ -312,6 +319,51 @@ install_protocol_observer() {
 }
 
 ##
+## Logwatch: use pre-built agent release packages (single source of truth...)
+##
+fetch_logwatch_repo() {
+    if [[ -d $dir_logwatch_build ]]; then
+        echo "-updating logwatch repo"
+        pushd $dir_logwatch_build >/dev/null
+        $GIT checkout master # ensure on master branch
+        $GIT pull
+        popd >/dev/null
+    else
+        pushd $dir_build >/dev/null
+        echo "-cloning logwatch repo"
+        local url_repo=${url_logwatch_repo/#https/git}
+        $GIT clone $url_repo
+        popd >/dev/null
+    fi
+
+    if [[ "$logwatch_version" == "latest" ]]; then
+        # get latest released tag otherwise _assume_ it is set to a
+        # valid tag version in the repository or master.
+        pushd $dir_logwatch_build >/dev/null
+        logwatch_version=$($GIT describe --abbrev=0 --tags)
+        echo "-using logwatch version ${logwatch_version}"
+        popd >/dev/null
+    fi
+}
+fetch_logwatch_package() {
+    local stripped_ver=${logwatch_version#v}
+    logwatch_tgz="${logwatch_name}_${stripped_ver}_${os_type}_64-bit.tar.gz"
+    logwatch_tgz_url="${url_logwatch_repo}/releases/download/${logwatch_version}/$logwatch_tgz"
+    [[ -f $logwatch_tgz ]] || {
+        echo "-fetching logwatch package (${logwatch_tgz}) - ${logwatch_tgz_url}"
+        $CURL -sSL "$logwatch_tgz_url" -o $logwatch_tgz
+    }
+}
+install_logwatch() {
+    fetch_logwatch_repo
+    fetch_logwatch_package
+
+    echo "-unpacking $logwatch_tgz into $dir_install_logwatch"
+    [[ -d $dir_install_logwatch ]] || mkdir -p $dir_install_logwatch
+    $TAR -zxf $logwatch_tgz -C $dir_install_logwatch
+}
+
+##
 ## install os specific service configuration(s)
 ##
 install_service() {
@@ -366,6 +418,7 @@ pushd $dir_build >/dev/null
 install_agent
 install_plugins
 install_protocol_observer
+install_logwatch
 install_service
 make_package
 
