@@ -31,6 +31,10 @@ base_repo_url="https://github.com/circonus-labs"
 : ${dir_build:="/tmp/agent-build"}
 : ${dir_install:="/tmp/agent-install"}
 : ${dir_publish:="/tmp/agent-publish"}
+
+# NOTE: the publish directory should ALREADY exist
+[[ -d $dir_publish ]] || { echo "publish directory ($dir_publish) not found!"; exit 1; }
+
 dir_agent_build="${dir_build}/${agent_name}"
 dir_plugin_build="${dir_build}/${plugins_name}"
 dir_po_build="${dir_build}/${po_name}"
@@ -201,7 +205,7 @@ fetch_agent_package() {
     agent_tgz_url="${url_agent_repo}/releases/download/${agent_version}/$agent_tgz"
     [[ -f $agent_tgz ]] || {
         echo "-fetching agent package (${agent_tgz}) - ${agent_tgz_url}"
-        $CURL -sSL "$agent_tgz_url" -o $agent_tgz
+        $CURL -fsSL "$agent_tgz_url" -o $agent_tgz
     }
 }
 install_agent() {
@@ -214,7 +218,7 @@ install_agent() {
 
     echo "-unpacking $agent_tgz into $dir_install_agent"
     [[ -d $dir_install_agent ]] || $MKDIR -p $dir_install_agent
-    $TAR -zxf $agent_tgz -C $dir_install_agent
+    $TAR -xf $agent_tgz -C $dir_install_agent
 }
 
 ##
@@ -350,22 +354,27 @@ fetch_logwatch_package() {
     logwatch_tgz_url="${url_logwatch_repo}/releases/download/${logwatch_version}/$logwatch_tgz"
     [[ -f $logwatch_tgz ]] || {
         echo "-fetching logwatch package (${logwatch_tgz}) - ${logwatch_tgz_url}"
-        $CURL -sSL "$logwatch_tgz_url" -o $logwatch_tgz
+        $CURL -fsSL "$logwatch_tgz_url" -o $logwatch_tgz
     }
 }
 install_logwatch() {
-    echo
-    echo "Installing circonus-logwatch from ${url_logwatch_repo}"
-    echo
+    #
+    # currently logwatch is only built for linux and freebsd
+    #
+    if [[ $os_type =~ (linux|freebsd) ]]; then
+        echo
+        echo "Installing circonus-logwatch from ${url_logwatch_repo}"
+        echo
 
-    fetch_logwatch_repo
-    fetch_logwatch_package
+        fetch_logwatch_repo
+        fetch_logwatch_package
 
-    # TODO: add service config examples (at least systemd) to logwatch
+        # TODO: add service config examples (at least systemd) to logwatch
 
-    echo "-unpacking $logwatch_tgz into $dir_install_logwatch"
-    [[ -d $dir_install_logwatch ]] || $MKDIR -p $dir_install_logwatch
-    $TAR -zxf $logwatch_tgz -C $dir_install_logwatch
+        echo "-unpacking $logwatch_tgz into $dir_install_logwatch"
+        [[ -d $dir_install_logwatch ]] || $MKDIR -p $dir_install_logwatch
+        $TAR -xf $logwatch_tgz -C $dir_install_logwatch
+    fi
 }
 
 ##
@@ -393,6 +402,11 @@ make_package() {
 
     # TODO: finish os specific packaging
 
+    #
+    # remove the pre-built linux io latency binary if not on a linux variant
+    #
+    [[ $os_type != "linux" && -d $dir_install_agent/plugins/linux ]] && $RM -rf $dir_install_agent/plugins/linux
+
     case $os_name in
         el*)
             pushd $dir_agent_build >/dev/null
@@ -407,9 +421,10 @@ make_package() {
         *)
             pushd $dir_install >/dev/null
             echo "making tgz for $os_name ($package_name)"
-            $TAR czf $package_name .
-            $CP $package_name $dir_publish
-            $RM $package_name
+            local pkg="${dir_build}/${package_name}"
+            $TAR czf $pkg .
+            $CP $pkg $dir_publish
+            $RM $pkg
             popd >/dev/null
             ;;
     esac

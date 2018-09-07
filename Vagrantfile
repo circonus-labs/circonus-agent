@@ -35,7 +35,7 @@ Vagrant.configure('2') do |config|
                     curl -sSL "$go_url" -o /home/vagrant/$go_tgz
                     [[ $? -eq 0 ]] || { echo "Unable to download go tgz"; exit 1; }
                 }
-                tar -C /usr/local -xzf /home/vagrant/$go_tgz
+                tar -C /usr/local -xf /home/vagrant/$go_tgz
                 [[ $? -eq 0 ]] || { echo "Error unarchiving $go_tgz"; exit 1; }
             fi
             [[ -f /etc/profile.d/go.sh ]] || echo 'export PATH="$PATH:/usr/local/go/bin"' > /etc/profile.d/go.sh
@@ -106,7 +106,7 @@ EORF
                              '/home/vagrant/godev/src/github.com/circonus-labs/circonus-agent',
                              owner: 'vagrant',
                              group: 'vagrant'
-        u16.vm.network 'private_network', ip: '192.168.100.240'
+        u16.vm.network 'private_network', ip: '192.168.100.242'
         u16.vm.provision 'shell', inline: <<-SHELL
             echo "Installing needed packages (e.g. git, go, etc.)"
             apt-get update
@@ -121,7 +121,7 @@ EORF
                     curl -sSL "$go_url" -o /home/vagrant/$go_tgz
                     [[ $? -eq 0 ]] || { echo "Unable to download go tgz"; exit 1; }
                 }
-                tar -C /usr/local -xzf /home/vagrant/$go_tgz
+                tar -C /usr/local -xf /home/vagrant/$go_tgz
                 [[ $? -eq 0 ]] || { echo "Error unarchiving $go_tgz"; exit 1; }
             fi
             [[ -f /etc/profile.d/go.sh ]] || echo 'export PATH="$PATH:/usr/local/go/bin"' > /etc/profile.d/go.sh
@@ -143,7 +143,7 @@ EORF
                              '/home/vagrant/godev/src/github.com/circonus-labs/circonus-agent',
                              owner: 'vagrant',
                              group: 'vagrant'
-        u14.vm.network 'private_network', ip: '192.168.100.240'
+        u14.vm.network 'private_network', ip: '192.168.100.243'
         u14.vm.provision 'shell', inline: <<-SHELL
             echo "Installing needed packages (e.g. git, go, etc.)"
             apt-get update
@@ -158,12 +158,72 @@ EORF
                     curl -sSL "$go_url" -o /home/vagrant/$go_tgz
                     [[ $? -eq 0 ]] || { echo "Unable to download go tgz"; exit 1; }
                 }
-                tar -C /usr/local -xzf /home/vagrant/$go_tgz
+                tar -C /usr/local -xf /home/vagrant/$go_tgz
                 [[ $? -eq 0 ]] || { echo "Error unarchiving $go_tgz"; exit 1; }
             fi
             [[ -f /etc/profile.d/go.sh ]] || echo 'export PATH="$PATH:/usr/local/go/bin"' > /etc/profile.d/go.sh
             [[ $(grep -c GOPATH /home/vagrant/.bashrc) -eq 0 ]] && echo 'export GOPATH="${HOME}/godev"' >> /home/vagrant/.bashrc
             chown vagrant:vagrant ~vagrant/godev
         SHELL
+    end
+
+    #
+    # OmniOS r15
+    #
+    config.vm.define 'o15', autostart: false do |o15|
+        o15.vm.box = 'maier/omnios-r151014-x86_64'
+        o15.vm.provider 'virtualbox' do |vb|
+            vb.name = 'o15_circonus-agent'
+        end
+        o15.vm.network 'private_network', ip: '192.168.100.244'
+        o15.vm.synced_folder '.',
+                             '/home/vagrant/godev/src/github.com/circonus-labs/circonus-agent',
+                             owner: 'vagrant',
+                             group: 'vagrant'
+        o15.vm.provision 'shell', inline: <<-SHELL
+            echo "Installing needed packages (e.g. git, go, etc.)"
+            pkg set-publisher -g http://updates.circonus.net/omnios/r151014/ circonus
+            pkg install -q developer/gcc48
+            [[ $(grep -c "PATH" /root/.bashrc) -eq 0  ]] && {
+                echo '[[ -f ~/.bashrc ]] && source ~/.bashrc' >> /root/.profile
+                echo 'export PATH="$PATH:$(ls -d /opt/gcc*)/bin"' >> /root/.bashrc
+            }
+        SHELL
+    end
+
+    #
+    # FreeBSD 11 builder
+    #
+    config.vm.define 'fb11', autostart: false do |fb11|
+        fb11.vm.guest = :freebsd
+        fb11.vm.box = 'freebsd/FreeBSD-11.2-RELEASE'
+        # fb11.vm.box = 'freebsd/FreeBSD-11.0-RELEASE-p1'
+        # fb11.vm.box = 'freebsd/FreeBSD-11.1-RELEASE'
+        fb11.vm.synced_folder '.', '/vagrant', id: 'vagrant-root', disabled: true
+        fb11.vm.synced_folder '.',
+                              '/home/vagrant/godev/src/github.com/circonus-labs/circonus-agent',
+                              type: 'nfs'
+        # mac not set in base box, just needs to be set to something to avoid vagrant errors
+        fb11.vm.base_mac = ''
+        fb11.ssh.shell = 'sh'
+        fb11.vm.provider 'virtualbox' do |vb|
+            vb.name = 'fb11_circonus-agent'
+            vb.customize ['modifyvm', :id, '--memory', '2048']
+            vb.customize ['modifyvm', :id, '--cpus', '2']
+            vb.customize ['modifyvm', :id, '--hwvirtex', 'on']
+            vb.customize ['modifyvm', :id, '--audio', 'none']
+            vb.customize ['modifyvm', :id, '--nictype1', 'virtio']
+            vb.customize ['modifyvm', :id, '--nictype2', 'virtio']
+        end
+        fb11.vm.network 'private_network', ip: '192.168.100.245'
+        fb11.vm.provision 'shell', inline: <<-SHELL
+            echo "Installing needed packages (e.g. git, gcc, etc.)"
+            pkg install -y -q git gcc gmake bash logrotate curl
+            chsh -s /usr/local/bin/bash vagrant
+        SHELL
+        fb11.vm.provision 'bootstrap',
+                          type: 'shell',
+                          path: 'vprov/fb11.sh',
+                          args: [go_url_base, go_ver]
     end
 end
