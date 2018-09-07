@@ -92,4 +92,78 @@ EORF
             chown vagrant:vagrant ~vagrant/godev ~vagrant/.rpmmacros
         SHELL
     end
+    #
+    # ubuntu16 builder
+    #
+    config.vm.define 'u16', autostart: false do |u16|
+        u16.vm.box = 'maier/ubuntu-16.04-x86_64'
+        u16.vm.provider 'virtualbox' do |vb|
+            vb.name = 'u16_circonus-agent'
+            vb.cpus = 2
+            vb.customize ['modifyvm', :id, '--uartmode1', 'disconnected']
+        end
+        u16.vm.synced_folder '.',
+                             '/home/vagrant/godev/src/github.com/circonus-labs/circonus-agent',
+                             owner: 'vagrant',
+                             group: 'vagrant'
+        u16.vm.network 'private_network', ip: '192.168.100.240'
+        u16.vm.provision 'shell', inline: <<-SHELL
+            echo "Installing needed packages (e.g. git, go, etc.)"
+            apt-get update
+            apt-get --assume-yes install git ruby ruby-dev rubygems build-essential libpcap-dev
+            echo "Installing FPM gem"
+            gem install --no-ri --no-rdoc fpm
+            if [[ ! -x /usr/local/go/bin/go ]]; then
+                go_tgz="go#{go_ver}.linux-amd64.tar.gz"
+                [[ -f /vagrant/${go_tgz} ]] || {
+                    go_url="#{go_url_base}/${go_tgz}"
+                    echo "Downloading ${go_url}"
+                    curl -sSL "$go_url" -o /home/vagrant/$go_tgz
+                    [[ $? -eq 0 ]] || { echo "Unable to download go tgz"; exit 1; }
+                }
+                tar -C /usr/local -xzf /home/vagrant/$go_tgz
+                [[ $? -eq 0 ]] || { echo "Error unarchiving $go_tgz"; exit 1; }
+            fi
+            [[ -f /etc/profile.d/go.sh ]] || echo 'export PATH="$PATH:/usr/local/go/bin"' > /etc/profile.d/go.sh
+            [[ $(grep -c GOPATH /home/vagrant/.bashrc) -eq 0 ]] && echo 'export GOPATH="${HOME}/godev"' >> /home/vagrant/.bashrc
+            chown vagrant:vagrant ~vagrant/godev
+        SHELL
+    end
+    #
+    # ubuntu14 builder
+    #
+    config.vm.define 'u14', autostart: false do |u14|
+        u14.vm.box = 'maier/ubuntu-14.04-x86_64'
+        u14.vm.provider 'virtualbox' do |vb|
+            vb.name = 'u14_circonus-agent'
+            vb.cpus = 2
+            vb.customize ['modifyvm', :id, '--uartmode1', 'disconnected']
+        end
+        u14.vm.synced_folder '.',
+                             '/home/vagrant/godev/src/github.com/circonus-labs/circonus-agent',
+                             owner: 'vagrant',
+                             group: 'vagrant'
+        u14.vm.network 'private_network', ip: '192.168.100.240'
+        u14.vm.provision 'shell', inline: <<-SHELL
+            echo "Installing needed packages (e.g. git, go, etc.)"
+            apt-get update
+            apt-get --assume-yes install git ruby ruby-dev build-essential libpcap-dev
+            echo "Installing FPM gem"
+            gem install --no-ri --no-rdoc fpm
+            if [[ ! -x /usr/local/go/bin/go ]]; then
+                go_tgz="go#{go_ver}.linux-amd64.tar.gz"
+                [[ -f /vagrant/${go_tgz} ]] || {
+                    go_url="#{go_url_base}/${go_tgz}"
+                    echo "Downloading ${go_url}"
+                    curl -sSL "$go_url" -o /home/vagrant/$go_tgz
+                    [[ $? -eq 0 ]] || { echo "Unable to download go tgz"; exit 1; }
+                }
+                tar -C /usr/local -xzf /home/vagrant/$go_tgz
+                [[ $? -eq 0 ]] || { echo "Error unarchiving $go_tgz"; exit 1; }
+            fi
+            [[ -f /etc/profile.d/go.sh ]] || echo 'export PATH="$PATH:/usr/local/go/bin"' > /etc/profile.d/go.sh
+            [[ $(grep -c GOPATH /home/vagrant/.bashrc) -eq 0 ]] && echo 'export GOPATH="${HOME}/godev"' >> /home/vagrant/.bashrc
+            chown vagrant:vagrant ~vagrant/godev
+        SHELL
+    end
 end
