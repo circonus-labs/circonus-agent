@@ -113,7 +113,7 @@ case $os_type in
             os_name="el${relver}"
             package_name="${agent_name}-${agent_version}-1.${os_name}_${os_arch}.rpm"
             [[ -z "$(type -P $RPMBUILD)" ]] && { echo "unable to find '${RPMBUILD}' command in [$PATH]"; exit 1; }
-            [[ -d ~/rpmbuild/RPMS ]] || { echo "~/rpmbuilds/RPMS not found, is rpm building setup?"; exit 1; }
+            [[ -d ~/rpmbuild/RPMS ]] || { echo "~/rpmbuild/RPMS not found, is rpm building setup?"; exit 1; }
         elif [[ -f /etc/lsb-release ]]; then
             install_target="install-ubuntu"
             source /etc/lsb-release
