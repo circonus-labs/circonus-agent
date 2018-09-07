@@ -412,11 +412,17 @@ make_package() {
             pushd $dir_agent_build >/dev/null
             echo "making RPM for $os_name ($package_name)"
             popd >/dev/null
+            echo
+            echo "make_package NOT [fully] IMPLEMENTED YET"
+            echo
             ;;
         ubuntu*)
             pushd $dir_agent_build >/dev/null
             echo "making DEB for $os_name ($package_name)"
             popd >/dev/null
+            echo
+            echo "make_package NOT [fully] IMPLEMENTED YET"
+            echo
             ;;
         *)
             pushd $dir_install >/dev/null
@@ -428,10 +434,6 @@ make_package() {
             popd >/dev/null
             ;;
     esac
-
-    echo
-    echo "make_package NOT [fully] IMPLEMENTED YET"
-    echo
 }
 
 [[ -f "${dir_publish}/${package_name}" ]] && {
