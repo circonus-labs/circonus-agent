@@ -6,14 +6,14 @@
 ### Requires VMs for target OSes due to c plugins and cgo in protocol_observer.
 ### The actual agent is cross-compiled and stored in releases within the github repo.
 ###
-### make,gcc,go
-### rhel:rpmbuild
+### See os provisioning sections in Vagrantfile for packages required to build.
 ###
 
-set -o xtrace
+[[ "$*" =~ (-d|--debug) ]] && set -o xtrace
 set -o errtrace
 set -o errexit
 set -o nounset
+
 umask 0022
 
 # load standard build overrides
@@ -21,7 +21,7 @@ umask 0022
 
 #
 # NOTE: to pull down alternate forks use build.conf to override the explicit
-#       repo url - do not modify these variables
+#       repo url - *do not modify* these variables
 agent_name="circonus-agent"
 plugins_name="circonus-agent-plugins"
 po_name="wirelatency"
@@ -31,17 +31,17 @@ base_repo_url="https://github.com/circonus-labs"
 : ${dir_build:="/tmp/agent-build"}
 : ${dir_install:="/tmp/agent-install"}
 : ${dir_publish:="/tmp/agent-publish"}
-: ${dir_agent_build:="${dir_build}/${agent_name}"}
-: ${dir_plugin_build:="${dir_build}/${plugins_name}"}
-: ${dir_po_build:="${dir_build}/${po_name}"}
-: ${dir_logwatch_build:="${dir_build}/${logwatch_name}"}
+dir_agent_build="${dir_build}/${agent_name}"
+dir_plugin_build="${dir_build}/${plugins_name}"
+dir_po_build="${dir_build}/${po_name}"
+dir_logwatch_build="${dir_build}/${logwatch_name}"
 
 #
 # settings which can be overridden in build.conf
 #
 
 # NOTE: Repos are tag driven, this allows master to be out of sync with
-#       the release cadence and enables reproducing a previous released.
+#       the release cadence and enables reproducing a previous release.
 #       To this end, there are some rules which must be adhered to for this
 #       to all work correctly.
 
@@ -62,7 +62,9 @@ base_repo_url="https://github.com/circonus-labs"
 # changes, commit, tag, run goreleaser to produce a "release" which can be used
 # to build a package for testing.
 : ${url_agent_repo:="${base_repo_url}/${agent_name}"}
+# same caveat as agent
 : ${url_logwatch_repo:="${base_repo_url}/${logwatch_name}"}
+
 # Using a fork for plugins is more straight-forward. Fork, change, set
 # plugin_version in build.conf to 'master' and build the package.
 : ${url_plugin_repo:="${base_repo_url}/${plugins_name}"}
@@ -79,7 +81,7 @@ base_repo_url="https://github.com/circonus-labs"
 : ${CP:="cp"}
 : ${CURL:="curl"}
 : ${GIT:="git"}
-: ${GO:="go"} # for protocol_observer
+: ${GO:="go"} # for protocol_observer (requires cgo)
 : ${MKDIR:="mkdir"}
 : ${RM:="rm"}
 : ${TAR:="tar"}
@@ -95,16 +97,13 @@ done
 os_type=$($UNAME -s | $TR '[:upper:]' '[:lower:]')
 os_arch=$($UNAME -m)
 [[ $os_arch =~ ^(x86_64|amd64)$ ]] || { echo "unsupported architecture ($os_arch) - x86_64 or amd64 only"; exit 1; }
-
-# check for custom target os overrides (e.g. build-linux.conf)
-# NOTE: these are for redefinition, vars will not be backfilled.
-#       setting a required var to something invalid *will* cause problems.
-cust_conf="build-${os_type}.conf"
-[[ -f $cust_conf ]] && source ./$cust_conf
-
 os_name=""
 install_target=""
 package_name=""
+agent_tgz=""
+agent_tgz_url=""
+logwatch_tgz=""
+logwatch_tgz_url=""
 case $os_type in
     linux)
         if [[ -f /etc/redhat-release ]]; then
@@ -128,11 +127,14 @@ case $os_type in
         fi
         ;;
     #
-    # TODO: Should we add omnios/illumos package building here so there is ONE place
+    # TODO: Should add omnios/illumos package building here so there is ONE place
     #       where packages are built, rather than two which need to be kept in sync?
     #       Or, move all of this to the official "packaging" repository for the same
     #       "single source of truth" outcome. Note, the cadence for the agent will,
     #       at times, be higher than for the "all of circonus" packaging cadence.
+    #       Or, build an solaris tgz here and then use the rpm/deb/tgz in the
+    #       'master' product package builder.
+    #       -- point being to have a single source controlling the build to eliminate divergence
     #
     freebsd)
         install_target="install-freebsd"
@@ -154,42 +156,20 @@ esac
 [[ -z "$package_name" ]] && { echo "invalid package_name (empty)"; exit 1; }
 [[ -z "$install_target" ]] && { echo "invalid install_target (empty)"; exit 1; }
 
-if [[ -x /usr/bin/nproc ]]; then
-    nproc=$(nproc)
-elif [[ -f /proc/cpuinfo ]]; then
-    nproc=$(grep -c ^processor /proc/cpuinfo)
-else
-    nproc=$(sysctl -n hw.ncpu)
-fi
-let make_jobs="$nproc + ($nproc / 2)" # 1.5x the number of CPUs
-
-agent_tgz=""
-agent_tgz_url=""
-logwatch_tgz=""
-logwatch_tgz_url=""
-
 ###
 ### start building package
 ###
 
-echo "Building for ${os_name} ${os_arch}"
+echo
+echo "Building circonus-agent package for ${os_name} ${os_arch}"
 echo
 
-[[ -d $dir_build ]] || {
-    echo "-creating build directory"
-    $MKDIR -p $dir_build
-}
-[[ -d $dir_install ]] && {
-    echo "-cleaning previous install directory"
-    $RM -rf $dir_install
-}
-[[ -d $dir_install ]] || {
-    echo "-creating install directory"
-    $MKDIR -p $dir_install
-}
+[[ -d $dir_build ]] || { echo "-creating build directory"; $MKDIR -p $dir_build; }
+[[ -d $dir_install ]] && { echo "-cleaning previous install directory"; $RM -rf $dir_install; }
+[[ -d $dir_install ]] || { echo "-creating install directory"; $MKDIR -p $dir_install; }
 
 ##
-## Agent: use pre-built agent release packages (single source of truth...)
+## Agent: use pre-built release package (single source of truth...)
 ##
 fetch_agent_repo() {
     if [[ -d $dir_agent_build ]]; then
@@ -211,9 +191,9 @@ fetch_agent_repo() {
         # valid tag version in the repository or master.
         pushd $dir_agent_build >/dev/null
         agent_version=$($GIT describe --abbrev=0 --tags)
-        echo "-using agent version ${agent_version}"
         popd >/dev/null
     fi
+    echo "-using agent version ${agent_version}"
 }
 fetch_agent_package() {
     local stripped_ver=${agent_version#v}
@@ -225,16 +205,20 @@ fetch_agent_package() {
     }
 }
 install_agent() {
+    echo
+    echo "Installing circonus-agent from ${url_agent_repo}"
+    echo
+
     fetch_agent_repo
     fetch_agent_package
 
     echo "-unpacking $agent_tgz into $dir_install_agent"
-    [[ -d $dir_install_agent ]] || mkdir -p $dir_install_agent
+    [[ -d $dir_install_agent ]] || $MKDIR -p $dir_install_agent
     $TAR -zxf $agent_tgz -C $dir_install_agent
 }
 
 ##
-## make target specific plugins
+## plugins are target built
 ##
 fetch_plugin_repo() {
     if [[ -d $dir_plugin_build ]]; then
@@ -256,11 +240,15 @@ fetch_plugin_repo() {
         # valid tag version in the repository or master.
         pushd $dir_plugin_build >/dev/null
         plugin_version=$($GIT describe --abbrev=0 --tags)
-        echo "-using plugin version ${plugin_version}"
         popd >/dev/null
     fi
+    echo "-using plugin version ${plugin_version}"
 }
 install_plugins() {
+    echo
+    echo "Installing circonus-agent-plugins from ${url_plugin_repo}"
+    echo
+
     fetch_plugin_repo
 
     pushd $dir_plugin_build >/dev/null
@@ -271,18 +259,18 @@ install_plugins() {
 }
 
 ##
-## use pre-built protocol_observer release packages (single source of truth...)
+## protocol_observer needs to be target built due to cgo
 ##
 fetch_protocol_observer_repo() {
     if [[ -d $dir_po_build ]]; then
-        echo "-updating wirelatency repo"
+        echo "-updating wirelatency [protocol_observer] repo"
         pushd $dir_po_build >/dev/null
         $GIT checkout master # ensure on master branch
         $GIT pull
         popd >/dev/null
     else
         pushd $dir_build >/dev/null
-        echo "-cloning wirelatency repo"
+        echo "-cloning wirelatency [protocol_observer] repo"
         local url_repo=${url_po_repo/#https/git}
         $GIT clone $url_repo
         popd >/dev/null
@@ -293,12 +281,18 @@ fetch_protocol_observer_repo() {
         # valid tag version in the repository or master.
         pushd $dir_po_build >/dev/null
         po_version=$($GIT describe --abbrev=0 --tags)
-        echo "-using protocol_observer version ${po_version}"
         popd >/dev/null
     fi
+    echo "-using wirelatency [protocol_observer] version ${po_version}"
 }
 install_protocol_observer() {
+    echo
+    echo "Installing protocol_observer from ${url_po_repo}"
+    echo
+
     local rm_go_mod="n"
+    local dest_bin="${dir_install_agent}/sbin/protocol-observerd"
+    local dest_doc="${dir_install_agent}/README_protocol-observer.md"
     fetch_protocol_observer_repo
 
     pushd $dir_po_build >/dev/null
@@ -310,7 +304,12 @@ install_protocol_observer() {
     # the following line is for go 1.11 modules (outside of GOPATH)
     [[ -f go.mod ]] || { echo "module github.com/circonus-labs/wirelatency" > go.mod; rm_go_mod="y"; }
     pushd protocol_observer >/dev/null
-    $GO build -o ${dir_install_agent}/sbin/protocol-observerd
+    echo "-building protocol_observer (${dest_bin})"
+    $GO build -o $dest_bin
+    [[ -f README.md ]] && {
+        echo "-installing protocol_observer doc (${dest_doc})"
+        $CP README.md $dest_doc
+    }
     popd >/dev/null
     # the following line is for go 1.11 modules (outside of GOPATH)
     # prevent 'git pull' failing due to dirty local repo
@@ -319,7 +318,7 @@ install_protocol_observer() {
 }
 
 ##
-## Logwatch: use pre-built agent release packages (single source of truth...)
+## Logwatch: use pre-built release package (single source of truth...)
 ##
 fetch_logwatch_repo() {
     if [[ -d $dir_logwatch_build ]]; then
@@ -341,9 +340,9 @@ fetch_logwatch_repo() {
         # valid tag version in the repository or master.
         pushd $dir_logwatch_build >/dev/null
         logwatch_version=$($GIT describe --abbrev=0 --tags)
-        echo "-using logwatch version ${logwatch_version}"
         popd >/dev/null
     fi
+    echo "-using logwatch version ${logwatch_version}"
 }
 fetch_logwatch_package() {
     local stripped_ver=${logwatch_version#v}
@@ -355,11 +354,17 @@ fetch_logwatch_package() {
     }
 }
 install_logwatch() {
+    echo
+    echo "Installing circonus-logwatch from ${url_logwatch_repo}"
+    echo
+
     fetch_logwatch_repo
     fetch_logwatch_package
 
+    # TODO: add service config examples (at least systemd) to logwatch
+
     echo "-unpacking $logwatch_tgz into $dir_install_logwatch"
-    [[ -d $dir_install_logwatch ]] || mkdir -p $dir_install_logwatch
+    [[ -d $dir_install_logwatch ]] || $MKDIR -p $dir_install_logwatch
     $TAR -zxf $logwatch_tgz -C $dir_install_logwatch
 }
 
@@ -367,6 +372,9 @@ install_logwatch() {
 ## install os specific service configuration(s)
 ##
 install_service() {
+    echo
+    echo "Installing circonus-agent service configuration"
+    echo
 
     # TODO: install os specific service
 
@@ -379,6 +387,9 @@ install_service() {
 ## build the target package
 ##
 make_package() {
+    echo
+    echo "Creating circonus-agent package (${package_name})"
+    echo
 
     # TODO: finish os specific packaging
 
@@ -409,7 +420,7 @@ make_package() {
 }
 
 [[ -f "${dir_publish}/${package_name}" ]] && {
-    echo "package ($package_name) already exists SKIPPING build"
+    echo "package ($package_name) already exists, SKIPPING build"
     exit 0
 }
 
