@@ -1,0 +1,87 @@
+#
+# circonus-agent RPM spec for RHEL 6/7
+#
+
+%define		rversion	@@RPMVER@@
+%define		rrelease	1
+%define		_prefix		/opt/circonus
+%define     app_dir     %{_prefix}/agent
+
+# perl is *optional* not required
+# rpmbuild autoreq will include it by default because of scripts with perl shebang
+%if 0%{?el7}
+%define __requires_exclude perl
+%endif
+%if 0%{?el6}
+# rpmbuild on el6 is pre-4.9, does not understand __requires_exclude
+AutoReq: 0
+%endif
+
+Name:		circonus-agent
+Version:	%{rversion}
+Release:	%{rrelease}%{?dist}
+Summary:	Circonus Agent
+Prefix:		%{_prefix}
+Group:		Applications/System
+License:	BSD
+Vendor:		Circonus, Inc.
+URL:		https://github.com/circonus-labs/circonus-agent
+BuildRoot:	%{_tmppath}/%{name}-%{rversion}-%{rrelease}
+
+BuildRequires:	rsync
+Conflicts:	circonus-field-nad, circonus-nodejs, nad-omnibus
+
+%description
+Circonus agent for metric collection. It is the recommended way to collect system metrics for the [Circonus](https://circonus.com/) monitoring platform.
+
+%install
+rm -rf $RPM_BUILD_ROOT
+rsync -a /tmp/agent-install/ $RPM_BUILD_ROOT/
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%post
+if [ -f /lib/systemd/system/circonus-agent.service ]; then
+    /bin/systemctl enable circonus-agent
+    /bin/systemctl start circonus-agent >/dev/null 2>&1
+elif [ -f /etc/init/circonus-agent.conf ]; then
+    /sbin/initctl reload-configuration
+elif [ -f /etc/init.d/circonus-agent ]; then
+    /sbin/chkconfig --add circonus-agent
+    /sbin/service circonus-agent start >/dev/null 2>&1
+fi
+
+%preun
+if [ $1 = 0 ]; then
+    if [ -f /lib/systemd/system/circonus-agent.service ]; then
+        /bin/systemctl disable circonus-agent
+        /bin/systemctl stop circonus-agent >/dev/null 2>&1
+    elif [ -f /etc/init/circonus-agent.conf ]; then
+        /sbin/initctl stop circonus-agent
+    elif [ -f /etc/init.d/circonus-agent ]; then
+        /sbin/chkconfig --del circonus-agent
+        /sbin/service circonus-agent stop >/dev/null 2>&1
+    fi
+fi
+exit 0
+
+%files
+%defattr(-, root, root, 755)
+%if 0%{?el7}
+/lib/systemd/system/circonus-agent.service
+%endif
+%if 0%{?el6}
+### -upstart disabled- /etc/init/circonus-agent.conf
+/etc/init.d/circonus-agent
+/etc/logrotate.d/circonus-agent
+%endif
+%{app_dir}/CHANGELOG.md
+%{app_dir}/etc
+%{app_dir}/LICENSE
+%{app_dir}/plugins
+%{app_dir}/README.md
+%{app_dir}/sbin
+%{app_dir}/service
+%dir %attr(0755, nobody, nobody) %{app_dir}/state
+%{_prefix}/logwatch
