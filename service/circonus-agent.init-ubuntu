@@ -1,0 +1,90 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides:          circonus-agentd
+# Required-Start:    $local_fs
+# Required-Stop:     $local_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Circonus Agent Daemon
+# Description:       The daemon provides a simple mechanism to expose
+#                    system and application metrics externally.
+#                    It inventories all executable programs in its plugins directory
+#                    and executes them upon external request, returning results
+#                    in JSON format.
+### END INIT INFO
+
+set -e
+
+agent="circonus-agentd"
+agent_cmd="@@SBIN@@/${agent}"
+pid_file="/var/run/${agent}.pid"
+
+test -x $agent_cmd || exit 0
+
+. /lib/lsb/init-functions
+
+start_agent() {
+    if start-stop-daemon --start --quiet --pidfile $pid_file --exec $agent_cmd
+    then
+        rc=0
+        sleep 1
+        if ! kill -0 $(cat $pid_file) >/dev/null 2>&1; then
+            log_failure_msg "Circonus agent daemon failed to start"
+            rc=1
+        fi
+    else
+        rc=1
+    fi
+    if [ $rc -eq 0 ]; then
+        log_end_msg 0
+    else
+        log_end_msg 1
+        rm -f $pid_file
+    fi
+} # start_agent
+stop_agent() {
+    start-stop-daemon --stop --quiet --oknodo --pidfile $pid_file
+	log_end_msg $?
+	rm -f $pid_file
+}
+restart_agent() {
+    set +e
+	log_daemon_msg "Restarting Circonus agent daemon" $agent
+	if [ -s $pid_file ] && kill -0 $(cat $pid_file) >/dev/null 2>&1; then
+	    start-stop-daemon --stop --quiet --oknodo --pidfile $pid_file || true
+	    sleep 1
+	else
+	    log_warning_msg "Circonus agent daemon not running, attempting to start."
+		rm -f $pid_file
+	fi
+    start_agent
+}
+
+case "$1" in
+  start)
+	log_daemon_msg "Starting Circonus agent daemon" $agent
+	if [ -s $pid_file ] && kill -0 $(cat $pid_file) >/dev/null 2>&1; then
+	    log_progress_msg "apparently already running"
+	    log_end_msg 0
+	    exit 0
+	fi
+    start_agent
+	;;
+  stop)
+	log_daemon_msg "Stopping Circonus agent daemon" $agent
+    stop_agent
+	;;
+  reload|force-reload|restart)
+    restart_agent
+	;;
+  status)
+	status_of_proc -p $pid_file $agent $agent
+	exit $?	# notreached due to set -e
+	;;
+  *)
+	echo "Usage: /etc/init.d/nad {start|stop|reload|force-reload|restart|status}"
+	exit 1
+esac
+
+exit 0

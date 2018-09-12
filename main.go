@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 //
 
-// +build go1.10
+// +build go1.11
 
 package main
 
