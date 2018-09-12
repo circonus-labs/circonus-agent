@@ -57,3 +57,7 @@ studio.toml
 
 # ignore local build.conf
 package/build.conf
+package/publish/*.rpm
+package/publish/*.deb
+package/publish/*.tgz
+package/rhel/circonus-agent.spec
