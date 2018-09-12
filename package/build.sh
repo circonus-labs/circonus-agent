@@ -436,10 +436,33 @@ make_package() {
         ubuntu*)
             # pushd $dir_agent_build/package >/dev/null
             echo "making DEB for $os_name"
+            deb_file="${dir_build}/circonus-agent-${stripped_ver}-1.${os_name}_${os_arch}.deb"
+
+            if [[ -f $deb_file ]]; then
+                echo "-found previous ${deb_file}, removing file"
+                $RM -f $deb_file
+            fi
+
+            $FPM -s dir \
+                -t deb \
+                -n circonus-agent \
+                -v $stripped_ver \
+                --iteration 1 \
+                -C $dir_install \
+                -p $deb_file \
+                --url "$url_agent_repo" \
+                --vendor "Circonus, Inc." \
+                --license "BSD" \
+                --maintainer "Circonus Support <support@circonus.com>" \
+                --description "Circonus agent daemon" \
+                --deb-no-default-config-files \
+                --deb-user root \
+                --deb-group root \
+                --after-install ${PWD}/ubuntu/postinstall.sh \
+                --after-remove ${PWD}/ubuntu/postremove.sh
+            $CP $deb_file $dir_publish
+            $RM $deb_file
             # popd >/dev/null
-            echo
-            echo "make_package NOT [fully] IMPLEMENTED YET"
-            echo
             ;;
         *)
             pushd $dir_install >/dev/null
