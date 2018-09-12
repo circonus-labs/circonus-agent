@@ -104,7 +104,6 @@ os_arch=$($UNAME -m)
 [[ $os_arch =~ ^(x86_64|amd64)$ ]] || { echo "unsupported architecture ($os_arch) - x86_64 or amd64 only"; exit 1; }
 os_name=""
 install_target=""
-package_name=""
 agent_tgz=""
 agent_tgz_url=""
 logwatch_tgz=""
@@ -116,7 +115,6 @@ case $os_type in
             relver=$(sed -e 's/.*release \(.\).*/\1/' /etc/redhat-release)
             [[ $relver =~ ^(6|7)$ ]] || { echo "unsupported RHEL release ($relver)"; exit 1; }
             os_name="el${relver}"
-            package_name="${agent_name}-${agent_version}-1.${os_name}_${os_arch}.rpm"
             [[ -z "$(type -P $RPMBUILD)" ]] && { echo "unable to find '${RPMBUILD}' command in [$PATH]"; exit 1; }
             [[ -d ~/rpmbuild/RPMS ]] || { echo "~/rpmbuild/RPMS not found, is rpm building setup?"; exit 1; }
         elif [[ -f /etc/lsb-release ]]; then
@@ -124,7 +122,6 @@ case $os_type in
             source /etc/lsb-release
             [[ $DISTRIB_RELEASE =~ ^(14.04|16.04)$ ]] || { echo "unsupported Ubuntu release ($DISTRIB_RELEASE)"; exit 1; }
             os_name="ubuntu.${DISTRIB_RELEASE}"
-            package_name="${agent_name}-${agent_version}-1.${os_name}_${os_arch}.deb"
             [[ -z "$(type -P $FPM)" ]] && { echo "unable to find '${FPM}' command in [$PATH]"; exit 1; }
         else
             echo "unknown/unsupported linux variant '$($UNAME -a)'"
@@ -146,7 +143,6 @@ case $os_type in
         relver=$(freebsd-version -u | cut -d'-' -f1)
         [[ -z $relver ]] && { echo "unsupported FreeBSD release >10 required"; exit 1; }
         os_name="$os_type.$relver"
-        package_name="${agent_name}-${agent_version}-1.${os_name}_${os_arch}.tgz"
         MAKE="gmake"
         ;;
     *)
@@ -158,7 +154,6 @@ esac
 [[ -z "$(type -P $MAKE)" ]] && { echo "unable to find '${MAKE}' command in [$PATH]"; exit 1; }
 
 [[ -z "$os_name" ]] && { echo "invalid os_name (empty)"; exit 1; }
-[[ -z "$package_name" ]] && { echo "invalid package_name (empty)"; exit 1; }
 [[ -z "$install_target" ]] && { echo "invalid install_target (empty)"; exit 1; }
 
 ###
@@ -415,8 +410,10 @@ install_service() {
 ## build the target package
 ##
 make_package() {
+    local stripped_ver=${agent_version#v}
+
     echo
-    echo "Creating circonus-agent package (${package_name})"
+    echo "Creating circonus-agent package"
     echo
 
     # TODO: finish os specific packaging
@@ -428,37 +425,32 @@ make_package() {
 
     case $os_name in
         el*)
-            pushd $dir_agent_build/package >/dev/null
-            echo "making RPM for $os_name ($package_name)"
-            $SED -e "s#@@RPMVER@@#${agent_version}#" rhel/circonus-agent.spec.in > rhel/circonus-agent.spec
+            # pushd $dir_agent_build/package >/dev/null
+            echo "making RPM for $os_name"
+            $SED -e "s#@@RPMVER@@#${stripped_ver}#" rhel/circonus-agent.spec.in > rhel/circonus-agent.spec
             $RPMBUILD -bb rhel/circonus-agent.spec
-            $CP ~/rpmbuild/RPMS/*/circonus-agent-$agent_version-1.el*.*.rpm $dir_publish
+            $CP ~/rpmbuild/RPMS/*/circonus-agent-$stripped_ver-1.$os_name.*.$os_arch.rpm $dir_publish
             $RM rhel/circonus-agent.spec
-            popd >/dev/null
+            # popd >/dev/null
             ;;
         ubuntu*)
-            pushd $dir_agent_build/package >/dev/null
-            echo "making DEB for $os_name ($package_name)"
-            popd >/dev/null
+            # pushd $dir_agent_build/package >/dev/null
+            echo "making DEB for $os_name"
+            # popd >/dev/null
             echo
             echo "make_package NOT [fully] IMPLEMENTED YET"
             echo
             ;;
         *)
             pushd $dir_install >/dev/null
-            echo "making tgz for $os_name ($package_name)"
-            local pkg="${dir_build}/${package_name}"
+            echo "making tgz for $os_name"
+            local pkg="${dir_build}/circonus-agent-${stripped_ver}-1.${os_name}_${os_arch}.tgz"
             $TAR czf $pkg .
             $CP $pkg $dir_publish
             $RM $pkg
             popd >/dev/null
             ;;
     esac
-}
-
-[[ -f "${dir_publish}/${package_name}" ]] && {
-    echo "package ($package_name) already exists, SKIPPING build"
-    exit 0
 }
 
 pushd $dir_build >/dev/null
@@ -468,9 +460,12 @@ install_plugins
 install_protocol_observer
 install_logwatch
 install_service
-make_package
+# make_package
 
 popd >/dev/null
+
+# TODO: TEMPORARILY change to directory where packaging is being developed...
+make_package
 
 # Vim hints
 # vim:ts=4:sw=4:et:
