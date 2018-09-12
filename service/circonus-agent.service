@@ -4,25 +4,9 @@ Documentation=http://github.com/circonus-labs/circonus-agent
 After=network.target
 
 [Service]
-#
-# option: NAD replacement on a system originally setup with cosi (e.g. NAD installed by cosi)
-# ExecStart=/opt/circonus/agent/sbin/circonus-agentd --plugin-dir=/opt/circonus/nad/etc/node-agent.d --reverse --api-key=cosi
-#
-# option: standalone circonus-agent (requires manual circonus-agent installation)
-ExecStart=/opt/circonus/agent/sbin/circonus-agentd --check-create --reverse --api-key=<ADD KEY> --api-app=<ADD APP>
-#
+ExecStart=/opt/circonus/agent/sbin/circonus-agentd
 Restart=always
 User=nobody
 
 [Install]
 WantedBy=multi-user.target
-#
-# Installation:
-#
-# edit ExecStart accordingly, then:
-#
-#[root@centos7 agent]# cp circonus-agent.service /usr/lib/systemd/system/circonus-agent.service
-#[root@centos7 agent]# systemctl enable circonus-agent
-#[root@centos7 agent]# systemctl start circonus-agent
-#[root@centos7 agent]# systemctl status circonus-agent
-#
