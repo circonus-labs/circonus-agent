@@ -209,12 +209,13 @@ install_agent() {
     echo "Installing circonus-agent from ${url_agent_repo}"
     echo
 
+    pushd $dir_build >/dev/null
     fetch_agent_repo
     fetch_agent_package
-
     echo "-unpacking $agent_tgz into $dir_install_agent"
     [[ -d $dir_install_agent ]] || $MKDIR -p $dir_install_agent
     $TAR -xf $agent_tgz -C $dir_install_agent
+    popd >/dev/null
 }
 
 ##
@@ -362,6 +363,7 @@ install_logwatch() {
         echo "Installing circonus-logwatch from ${url_logwatch_repo}"
         echo
 
+        pushd $dir_build >/dev/null
         fetch_logwatch_repo
         fetch_logwatch_package
 
@@ -370,6 +372,7 @@ install_logwatch() {
         echo "-unpacking $logwatch_tgz into $dir_install_logwatch"
         [[ -d $dir_install_logwatch ]] || $MKDIR -p $dir_install_logwatch
         $TAR -xf $logwatch_tgz -C $dir_install_logwatch
+        popd >/dev/null
     fi
 }
 
@@ -382,28 +385,23 @@ install_service() {
     echo
 
     # NOTE: just copy the file, let packaging handle perms
-
-    pushd $dir_agent_build >/dev/null
-
     case $os_name in
         el7|ubuntu16)
             $MKDIR -p $dir_install/lib/systemd/system
-            $CP service/circonus-agent.service $dir_install/lib/systemd/system
+            $CP ../service/circonus-agent.service $dir_install/lib/systemd/system
             ;;
         el6)
             $MKDIR -p $dir_install/etc/init.d
-            $CP service/circonus-agent.init-rhel $dir_install/etc/init.d/circonus-agent
+            $CP ../service/circonus-agent.init-rhel $dir_install/etc/init.d/circonus-agent
             ;;
         ubuntu14)
             $MKDIR -p $dir_install/etc/init.d
-            $CP service/circonus-agent.init-ubuntu $dir_install/etc/init.d/circonus-agent
+            $CP ../service/circonus-agent.init-ubuntu $dir_install/etc/init.d/circonus-agent
             ;;
         *)
-            echo "no service configuration available for $os_name"
+            echo "no pre-built service configuration available for $os_name"
             ;;
     esac
-
-    popd >/dev/null
 }
 
 ##
@@ -416,25 +414,21 @@ make_package() {
     echo "Creating circonus-agent package"
     echo
 
-    # TODO: finish os specific packaging
-
     #
     # remove the pre-built linux io latency binary if not on a linux variant
+    # TODO: migrate io latency plugin from circonus-agent repo to circonus-agent-plugins repo
     #
     [[ $os_type != "linux" && -d $dir_install_agent/plugins/linux ]] && $RM -rf $dir_install_agent/plugins/linux
 
     case $os_name in
         el*)
-            # pushd $dir_agent_build/package >/dev/null
             echo "making RPM for $os_name"
             $SED -e "s#@@RPMVER@@#${stripped_ver}#" rhel/circonus-agent.spec.in > rhel/circonus-agent.spec
             $RPMBUILD -bb rhel/circonus-agent.spec
-            $CP ~/rpmbuild/RPMS/*/circonus-agent-$stripped_ver-1.$os_name.*.$os_arch.rpm $dir_publish
+            $CP ~/rpmbuild/RPMS/*/circonus-agent-$stripped_ver-1.*.$os_arch.rpm $dir_publish
             $RM rhel/circonus-agent.spec
-            # popd >/dev/null
             ;;
         ubuntu*)
-            # pushd $dir_agent_build/package >/dev/null
             echo "making DEB for $os_name"
             deb_file="${dir_build}/circonus-agent-${stripped_ver}-1.${os_name}_${os_arch}.deb"
 
@@ -462,7 +456,6 @@ make_package() {
                 --after-remove ${PWD}/ubuntu/postremove.sh
             $CP $deb_file $dir_publish
             $RM $deb_file
-            # popd >/dev/null
             ;;
         *)
             pushd $dir_install >/dev/null
@@ -476,18 +469,14 @@ make_package() {
     esac
 }
 
-pushd $dir_build >/dev/null
-
+#
+## creating a circonus-agent package
+#
 install_agent
 install_plugins
 install_protocol_observer
 install_logwatch
 install_service
-# make_package
-
-popd >/dev/null
-
-# TODO: TEMPORARILY change to directory where packaging is being developed...
 make_package
 
 # Vim hints
