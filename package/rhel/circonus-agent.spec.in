@@ -67,12 +67,10 @@ exit 0
 %files
 %defattr(-, root, root, 755)
 %if 0%{?el7}
-/lib/systemd/system/circonus-agent.service
+%attr(0644, root, root) /lib/systemd/system/circonus-agent.service
 %endif
 %if 0%{?el6}
-### -upstart disabled- /etc/init/circonus-agent.conf
-/etc/init.d/circonus-agent
-/etc/logrotate.d/circonus-agent
+%attr(0755, root, root) /etc/init.d/circonus-agent
 %endif
 %{app_dir}/CHANGELOG.md
 %{app_dir}/etc
@@ -81,5 +79,6 @@ exit 0
 %{app_dir}/README.md
 %{app_dir}/sbin
 %{app_dir}/service
+# NOTE: will be obsolete when allow/deny list support released
 %dir %attr(0755, nobody, nobody) %{app_dir}/state
 %{_prefix}/logwatch

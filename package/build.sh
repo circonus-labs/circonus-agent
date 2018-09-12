@@ -88,10 +88,11 @@ dir_logwatch_build="${dir_build}/${logwatch_name}"
 : ${GO:="go"} # for protocol_observer (requires cgo)
 : ${MKDIR:="mkdir"}
 : ${RM:="rm"}
+: ${SED:="sed"}
 : ${TAR:="tar"}
 : ${TR:="tr"}
 : ${UNAME:="uname"}
-for cmd in $CURL $GIT $GO $TAR $TR $UNAME; do
+for cmd in $CP $CURL $GIT $GO $MKDIR $RM $SED $TAR $TR $UNAME; do
     [[ -z "$(type -P $cmd)" ]] && { echo "unable to find '${cmd}' command in [$PATH]"; exit 1; }
 done
 : ${FPM:="/usr/local/bin/fpm"}  # only used by Ubuntu builds
@@ -385,23 +386,29 @@ install_service() {
     echo "Installing circonus-agent service configuration"
     echo
 
+    # NOTE: just copy the file, let packaging handle perms
+
+    pushd $dir_agent_build >/dev/null
+
     case $os_name in
         el7|ubuntu16)
-            mkdir -p $dir_install/lib/systemd/system
-            cp ../service/circonus-agent.service $dir_install/lib/systemd/system
+            $MKDIR -p $dir_install/lib/systemd/system
+            $CP service/circonus-agent.service $dir_install/lib/systemd/system
             ;;
         el6)
-            mkdir -p $dir_install/etc/init.d
-            cp ../service/circonus-agent.init-rhel $dir_install/etc/init.d/circonus-agent
+            $MKDIR -p $dir_install/etc/init.d
+            $CP service/circonus-agent.init-rhel $dir_install/etc/init.d/circonus-agent
             ;;
         ubuntu14)
-            mkdir -p $dir_install/etc/init.d
-            cp ../service/circonus-agent.init-ubuntu $dir_install/etc/init.d/circonus-agent
+            $MKDIR -p $dir_install/etc/init.d
+            $CP service/circonus-agent.init-ubuntu $dir_install/etc/init.d/circonus-agent
             ;;
         *)
             echo "no service configuration available for $os_name"
             ;;
     esac
+
+    popd >/dev/null
 }
 
 ##
@@ -421,15 +428,16 @@ make_package() {
 
     case $os_name in
         el*)
-            pushd $dir_agent_build >/dev/null
+            pushd $dir_agent_build/package >/dev/null
             echo "making RPM for $os_name ($package_name)"
+            $SED -e "s#@@RPMVER@@#${agent_version}#" rhel/circonus-agent.spec.in > rhel/circonus-agent.spec
+            $RPMBUILD -bb rhel/circonus-agent.spec
+            $CP ~/rpmbuild/RPMS/*/circonus-agent-$agent_version-1.el*.*.rpm $dir_publish
+            $RM rhel/circonus-agent.spec
             popd >/dev/null
-            echo
-            echo "make_package NOT [fully] IMPLEMENTED YET"
-            echo
             ;;
         ubuntu*)
-            pushd $dir_agent_build >/dev/null
+            pushd $dir_agent_build/package >/dev/null
             echo "making DEB for $os_name ($package_name)"
             popd >/dev/null
             echo
