@@ -385,11 +385,23 @@ install_service() {
     echo "Installing circonus-agent service configuration"
     echo
 
-    # TODO: install os specific service
-
-    echo
-    echo "install_service NOT IMPLEMENTED YET"
-    echo
+    case $os_name in
+        el7|ubuntu16)
+            mkdir -p $dir_install/lib/systemd/system
+            cp ../service/circonus-agent.service $dir_install/lib/systemd/system
+            ;;
+        el6)
+            mkdir -p $dir_install/etc/init.d
+            cp ../service/circonus-agent.init-rhel $dir_install/etc/init.d/circonus-agent
+            ;;
+        ubuntu14)
+            mkdir -p $dir_install/etc/init.d
+            cp ../service/circonus-agent.init-ubuntu $dir_install/etc/init.d/circonus-agent
+            ;;
+        *)
+            echo "no service configuration available for $os_name"
+            ;;
+    esac
 }
 
 ##
