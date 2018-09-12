@@ -42,11 +42,11 @@ rsync -a /tmp/agent-install/ $RPM_BUILD_ROOT/
 rm -rf $RPM_BUILD_ROOT
 
 %post
+# NOTE: systemd configs should be installed but NOT enabled/started by default
+#       https://fedoraproject.org/wiki/Packaging:Scriptlets?rd=Packaging:ScriptletSnippets#Systemd
 if [ -f /lib/systemd/system/circonus-agent.service ]; then
     /bin/systemctl enable circonus-agent
     /bin/systemctl start circonus-agent >/dev/null 2>&1
-elif [ -f /etc/init/circonus-agent.conf ]; then
-    /sbin/initctl reload-configuration
 elif [ -f /etc/init.d/circonus-agent ]; then
     /sbin/chkconfig --add circonus-agent
     /sbin/service circonus-agent start >/dev/null 2>&1
@@ -57,8 +57,6 @@ if [ $1 = 0 ]; then
     if [ -f /lib/systemd/system/circonus-agent.service ]; then
         /bin/systemctl disable circonus-agent
         /bin/systemctl stop circonus-agent >/dev/null 2>&1
-    elif [ -f /etc/init/circonus-agent.conf ]; then
-        /sbin/initctl stop circonus-agent
     elif [ -f /etc/init.d/circonus-agent ]; then
         /sbin/chkconfig --del circonus-agent
         /sbin/service circonus-agent stop >/dev/null 2>&1
