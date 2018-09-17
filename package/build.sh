@@ -390,15 +390,19 @@ install_service() {
 
     # NOTE: just copy the file, let packaging handle perms
     case $os_name in
-        el7|ubuntu16)
+        el7)
             $MKDIR -p $dir_install/lib/systemd/system
-            $SED -e "${sed_script}" ../service/circonus-agent.service > $dir_install/lib/systemd/system
+            $SED -e "${sed_script}" ../service/circonus-agent.service > $dir_install/lib/systemd/system/circonus-agent.service
             ;;
         el6)
             $MKDIR -p $dir_install/etc/init.d
             $SED -e "${sed_script}" ../service/circonus-agent.init-rhel > $dir_install/etc/init.d/circonus-agent
             ;;
-        ubuntu14)
+        ubuntu\.16*)
+            $MKDIR -p $dir_install/lib/systemd/system
+            $SED -e "${sed_script}" ../service/circonus-agent.service > $dir_install/lib/systemd/system/circonus-agent.service
+            ;;
+        ubuntu\.14*)
             $MKDIR -p $dir_install/etc/init.d
             $SED -e "${sed_script}" ../service/circonus-agent.init-ubuntu > $dir_install/etc/init.d/circonus-agent
             ;;
