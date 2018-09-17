@@ -82,11 +82,7 @@ case "$1" in
         status -p $pid_file $agent
         RETVAL=$?
         ;;
-    reload|force-reload)
-        stop
-        start
-        ;;
-    restart)
+    reload|force-reload|restart)
         stop
         start
         ;;
