@@ -25,7 +25,7 @@ test -x $agent_cmd || exit 0
 . /lib/lsb/init-functions
 
 start_agent() {
-    if start-stop-daemon --start --quiet --pidfile $pid_file --exec $agent_cmd
+    if start-stop-daemon --start --quiet --pidfile $pid_file --exec $agent_cmd -- --log-level=disabled
     then
         rc=0
         sleep 1

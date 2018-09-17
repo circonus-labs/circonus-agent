@@ -386,19 +386,21 @@ install_service() {
     echo "Installing circonus-agent service configuration"
     echo
 
+    local sed_script="s#@@SBIN@@#${dir_install_prefix}/agent/sbin#"
+
     # NOTE: just copy the file, let packaging handle perms
     case $os_name in
         el7|ubuntu16)
             $MKDIR -p $dir_install/lib/systemd/system
-            $CP $CP_ARGS ../service/circonus-agent.service $dir_install/lib/systemd/system
+            $SED -e "${sed_script}" ../service/circonus-agent.service > $dir_install/lib/systemd/system
             ;;
         el6)
             $MKDIR -p $dir_install/etc/init.d
-            $CP $CP_ARGS ../service/circonus-agent.init-rhel $dir_install/etc/init.d/circonus-agent
+            $SED -e "${sed_script}" ../service/circonus-agent.init-rhel > $dir_install/etc/init.d/circonus-agent
             ;;
         ubuntu14)
             $MKDIR -p $dir_install/etc/init.d
-            $CP $CP_ARGS ../service/circonus-agent.init-ubuntu $dir_install/etc/init.d/circonus-agent
+            $SED -e "${sed_script}" ../service/circonus-agent.init-ubuntu > $dir_install/etc/init.d/circonus-agent
             ;;
         *)
             echo "no pre-built service configuration available for $os_name"

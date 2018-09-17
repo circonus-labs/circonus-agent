@@ -4,7 +4,7 @@ Documentation=http://github.com/circonus-labs/circonus-agent
 After=network.target
 
 [Service]
-ExecStart=/opt/circonus/agent/sbin/circonus-agentd
+ExecStart=@@SBIN@@/circonus-agentd
 Restart=always
 User=nobody
 
