@@ -25,7 +25,7 @@ test -x $agent_cmd || exit 0
 . /lib/lsb/init-functions
 
 start_agent() {
-    if start-stop-daemon --start --quiet --pidfile $pid_file --exec $agent_cmd -- --log-level=disabled
+    if start-stop-daemon --start --background --quiet --pidfile $pid_file --make-pidfile --exec $agent_cmd -- --log-level=disabled
     then
         rc=0
         sleep 1
@@ -52,12 +52,14 @@ restart_agent() {
     set +e
 	log_daemon_msg "Restarting Circonus agent daemon" $agent
 	if [ -s $pid_file ] && kill -0 $(cat $pid_file) >/dev/null 2>&1; then
-	    start-stop-daemon --stop --quiet --oknodo --pidfile $pid_file || true
-	    sleep 1
+        # NOTE: retry is used because if the agent is in reverse mode the daemon
+        #       can take a bit to timeout waiting for commands from the broker
+	    start-stop-daemon --stop --quiet --oknodo --retry 15 --pidfile $pid_file
 	else
 	    log_warning_msg "Circonus agent daemon not running, attempting to start."
 		rm -f $pid_file
 	fi
+    set -e
     start_agent
 }
 
