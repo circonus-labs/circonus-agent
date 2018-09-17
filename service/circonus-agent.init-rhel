@@ -28,7 +28,7 @@ agent_cmd="@@SBIN@@/${agent}"
 pid_file="/var/run/${agent}.pid"
 
 start_agent() {
-    $agent_cmd 2>&1 >/dev/null &
+    $agent_cmd --log-level=disabled &
     pid=$!
     RETVAL=$?
     if [[ $RETVAL -eq 0 ]]; then
@@ -82,11 +82,7 @@ case "$1" in
         status -p $pid_file $agent
         RETVAL=$?
         ;;
-    reload|force-reload)
-        stop
-        start
-        ;;
-    restart)
+    reload|force-reload|restart)
         stop
         start
         ;;

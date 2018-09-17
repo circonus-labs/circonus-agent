@@ -1,3 +1,19 @@
+# v0.16.2
+
+* upd: goreleaser, turn off draft
+* upd: refactor rhel sysv restart
+* fix: ubuntu start-stop-daemon add timeout to stops to allow conns to cleanup
+* fix: ubuntu init.d/circonus-agent 0755
+* upd: fix ubuntu service config installs
+* upd: centos build vm to 7.4
+* upd: disable logging for sysv init scripts
+* upd: use `@@SBIN@@` in service configs and builder script
+* upd: service script installs to account for alternate install_prefix
+* upd: show file copies
+* upd: builder (el6, el7, ubuntu14, ubuntu16, tgz)
+* doc: service directory configs
+* add: sysv init configs
+
 # v0.16.1
 
 * wip: package builder (incomplete)

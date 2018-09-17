@@ -83,6 +83,7 @@ dir_logwatch_build="${dir_build}/${logwatch_name}"
 # commands used during build/install
 #
 : ${CP:="cp"}
+: ${CP_ARGS:="-v"}
 : ${CURL:="curl"}
 : ${GIT:="git"}
 : ${GO:="go"} # for protocol_observer (requires cgo)
@@ -307,9 +308,10 @@ install_protocol_observer() {
     pushd protocol_observer >/dev/null
     echo "-building protocol_observer (${dest_bin})"
     $GO build -o $dest_bin
+    echo "-installed ${dest_bin}"
     [[ -f README.md ]] && {
         echo "-installing protocol_observer doc (${dest_doc})"
-        $CP README.md $dest_doc
+        $CP $CP_ARGS README.md $dest_doc
     }
     popd >/dev/null
     # the following line is for go 1.11 modules (outside of GOPATH)
@@ -384,19 +386,26 @@ install_service() {
     echo "Installing circonus-agent service configuration"
     echo
 
+    local sed_script="s#@@SBIN@@#${dir_install_prefix}/agent/sbin#"
+
     # NOTE: just copy the file, let packaging handle perms
     case $os_name in
-        el7|ubuntu16)
+        el7)
             $MKDIR -p $dir_install/lib/systemd/system
-            $CP ../service/circonus-agent.service $dir_install/lib/systemd/system
+            $SED -e "${sed_script}" ../service/circonus-agent.service > $dir_install/lib/systemd/system/circonus-agent.service
             ;;
         el6)
             $MKDIR -p $dir_install/etc/init.d
-            $CP ../service/circonus-agent.init-rhel $dir_install/etc/init.d/circonus-agent
+            $SED -e "${sed_script}" ../service/circonus-agent.init-rhel > $dir_install/etc/init.d/circonus-agent
             ;;
-        ubuntu14)
+        ubuntu\.16*)
+            $MKDIR -p $dir_install/lib/systemd/system
+            $SED -e "${sed_script}" ../service/circonus-agent.service > $dir_install/lib/systemd/system/circonus-agent.service
+            ;;
+        ubuntu\.14*)
             $MKDIR -p $dir_install/etc/init.d
-            $CP ../service/circonus-agent.init-ubuntu $dir_install/etc/init.d/circonus-agent
+            $SED -e "${sed_script}" ../service/circonus-agent.init-ubuntu > $dir_install/etc/init.d/circonus-agent
+            chmod 755 $dir_install/etc/init.d/circonus-agent
             ;;
         *)
             echo "no pre-built service configuration available for $os_name"
@@ -425,7 +434,7 @@ make_package() {
             echo "making RPM for $os_name"
             $SED -e "s#@@RPMVER@@#${stripped_ver}#" rhel/circonus-agent.spec.in > rhel/circonus-agent.spec
             $RPMBUILD -bb rhel/circonus-agent.spec
-            $CP ~/rpmbuild/RPMS/*/circonus-agent-$stripped_ver-1.*.$os_arch.rpm $dir_publish
+            $CP $CP_ARGS ~/rpmbuild/RPMS/*/circonus-agent-$stripped_ver-1.*.$os_arch.rpm $dir_publish
             $RM rhel/circonus-agent.spec
             ;;
         ubuntu*)
@@ -454,7 +463,7 @@ make_package() {
                 --deb-group root \
                 --after-install ${PWD}/ubuntu/postinstall.sh \
                 --after-remove ${PWD}/ubuntu/postremove.sh
-            $CP $deb_file $dir_publish
+            $CP $CP_ARGS $deb_file $dir_publish
             $RM $deb_file
             ;;
         *)
@@ -462,7 +471,7 @@ make_package() {
             echo "making tgz for $os_name"
             local pkg="${dir_build}/circonus-agent-${stripped_ver}-1.${os_name}_${os_arch}.tgz"
             $TAR czf $pkg .
-            $CP $pkg $dir_publish
+            $CP $CP_ARGS $pkg $dir_publish
             $RM $pkg
             popd >/dev/null
             ;;
