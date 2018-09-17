@@ -14,7 +14,7 @@ Vagrant.configure('2') do |config|
     # el7 builder
     #
     config.vm.define 'c7', autostart: false do |c7|
-        c7.vm.box = 'maier/centos-7.3.1611-x86_64'
+        c7.vm.box = 'maier/centos-7.4.1708-x86_64'
         c7.vm.provider 'virtualbox' do |vb|
             vb.name = 'c7_circonus-agent'
             vb.cpus = 2
