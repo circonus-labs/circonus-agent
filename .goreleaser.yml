@@ -63,7 +63,7 @@ release:
         owner: circonus-labs
         name: circonus-agent
 
-    draft: true
+    draft: false
 
 snapshot:
     name_template: SNAPSHOT-{{.Commit}}
