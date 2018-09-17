@@ -405,6 +405,7 @@ install_service() {
         ubuntu\.14*)
             $MKDIR -p $dir_install/etc/init.d
             $SED -e "${sed_script}" ../service/circonus-agent.init-ubuntu > $dir_install/etc/init.d/circonus-agent
+            chmod 755 $dir_install/etc/init.d/circonus-agent
             ;;
         *)
             echo "no pre-built service configuration available for $os_name"
