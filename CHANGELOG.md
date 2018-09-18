@@ -1,3 +1,11 @@
+# v0.17.0
+
+* fix: version wedge when using snapshot releases for deb packages
+* upd: allow 'snapshot' releases to be used in builds for dev/testing
+* upd: release file names use x86_64, facilitate automated builds and testing
+* upd: dependencies
+* upd: refactor/condense api, prep for release
+
 # v0.16.2
 
 * upd: goreleaser, turn off draft
