@@ -49,7 +49,7 @@ dir_logwatch_build="${dir_build}/${logwatch_name}"
 #       To this end, there are some rules which must be adhered to for this
 #       to all work correctly.
 
-# NOTE: circonus-agent version must be 'latest' or a specific release tag.
+# NOTE: circonus-agent version must be 'latest', 'snapshot', or a specific release tag.
 #       It cannot be 'master' or a branch name. See 'goreleaser' below.
 : ${agent_version:="latest"}
 : ${logwatch_version:="latest"} # same caveat as agent
@@ -197,13 +197,21 @@ fetch_agent_repo() {
     echo "-using agent version ${agent_version}"
 }
 fetch_agent_package() {
-    local stripped_ver=${agent_version#v}
-    agent_tgz="${agent_name}_${stripped_ver}_${os_type}_64-bit.tar.gz"
-    agent_tgz_url="${url_agent_repo}/releases/download/${agent_version}/$agent_tgz"
-    [[ -f $agent_tgz ]] || {
-        echo "-fetching agent package (${agent_tgz}) - ${agent_tgz_url}"
-        $CURL -fsSL "$agent_tgz_url" -o $agent_tgz
-    }
+    if [[ "$agent_version" != "snapshot" ]]; then
+        local stripped_ver=${agent_version#v}
+        agent_tgz="${agent_name}_${stripped_ver}_${os_type}_64-bit.tar.gz"
+        agent_tgz_url="${url_agent_repo}/releases/download/${agent_version}/$agent_tgz"
+        [[ -f $agent_tgz ]] || {
+            echo "-fetching agent package (${agent_tgz}) - ${agent_tgz_url}"
+            $CURL -fsSL "$agent_tgz_url" -o $agent_tgz
+        }
+    else
+        dir_dist="${dir_current}/../dist"
+        [[ -d $dir_dist ]] || { echo "'dist' directory (${dir_dist}) not found"; exit 1; }
+        agent_tgz=$(ls ${dir_dist}/circonus-agent*${os_type}_${os_arch}.tar.gz)
+        [[ $? -eq 0 ]] || { echo "unable to find snapshot in ../dist"; exit 1; }
+        [[ -f $agent_tgz ]] || { echo "unable to isolate ONE snapshot file (${agent_tgz})"; exit 1; }
+    fi
 }
 install_agent() {
     echo
@@ -446,6 +454,10 @@ make_package() {
                 $RM -f $deb_file
             fi
 
+            # when snapshots are used, the embedded Version field in the deb needs
+            # to start with a number. fudge it since these are !!ONLY!! for testing.
+            [[ "$agent_version" == "snapshot" ]] && stripped_ver="1.${agent_version}"
+
             $FPM -s dir \
                 -t deb \
                 -n circonus-agent \
@@ -481,6 +493,7 @@ make_package() {
 #
 ## creating a circonus-agent package
 #
+dir_current=$(pwd)
 install_agent
 install_plugins
 install_protocol_observer
