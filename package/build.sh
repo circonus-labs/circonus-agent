@@ -454,6 +454,10 @@ make_package() {
                 $RM -f $deb_file
             fi
 
+            # when snapshots are used, the embedded Version field in the deb needs
+            # to start with a number. fudge it since these are !!ONLY!! for testing.
+            [[ "$agent_version" == "snapshot" ]] && stripped_ver="1.${agent_version}"
+
             $FPM -s dir \
                 -t deb \
                 -n circonus-agent \
