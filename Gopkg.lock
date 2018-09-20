@@ -21,8 +21,8 @@
     "api/config",
     "checkmgr"
   ]
-  revision = "dd698dc110872f6e554abf74a7740fc363354086"
-  version = "v2.2.1"
+  revision = "9d192ed44ccf1aea13b1c385be95683a0d65568f"
+  version = "v2.2.2"
 
 [[projects]]
   branch = "master"
@@ -210,7 +210,7 @@
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "1561086e645b2809fb9f8a1e2a38160bf8d53bf4"
+  revision = "d641721ec2dead6fe5ca284096fe4b1fcd49e427"
 
 [[projects]]
   name = "golang.org/x/text"
