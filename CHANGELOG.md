@@ -1,3 +1,11 @@
+# v0.17.1
+
+* add: dev package builder script (`vbuild.sh` uses Vagrant VMs to build development packages for testing)
+* upd: default to blank statsd host prefix - send all to system check
+* add: go.{mod,sum} to facilitate builds outside of GOPATH w/go1.11
+* upd: switch agent/logwatch package names 64-bit -> x86_64
+* upd: dependencies
+
 # v0.17.0
 
 * fix: version wedge when using snapshot releases for deb packages
