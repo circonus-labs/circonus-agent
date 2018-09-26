@@ -21,8 +21,8 @@
     "api/config",
     "checkmgr"
   ]
-  revision = "dd698dc110872f6e554abf74a7740fc363354086"
-  version = "v2.2.1"
+  revision = "45b42878bb7aca6fc64fe0a6641a2aa1a5cb2723"
+  version = "v2.2.3"
 
 [[projects]]
   branch = "master"
@@ -152,8 +152,8 @@
     "internal/json",
     "log"
   ]
-  revision = "77db4b4f350e31be66a57c332acb7721cf9ff9bb"
-  version = "v1.8.0"
+  revision = "338f9bc14084d22cb8eeacd6492861f8449d715c"
+  version = "v1.9.1"
 
 [[projects]]
   name = "github.com/spf13/afero"
@@ -204,13 +204,13 @@
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context"]
-  revision = "26e67e76b6c3f6ce91f7c52def5af501b4e0f3a2"
+  revision = "4dfa2610cdf3b287375bbba5b8f2a14d3b01d8de"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "d0be0721c37eeb5299f245a996a483160fc36940"
+  revision = "c2ed4eda69e7f62900806e4cd6e45f0429f859fa"
 
 [[projects]]
   name = "golang.org/x/text"
