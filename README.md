@@ -197,3 +197,5 @@ To disable all default builtin collectors pass `--connectors=""` on the command 
 1. Dependencies, run `dep ensure` (requires [dep](https://github.com/golang/dep) utility)
 1. Build `go build -o circonus-agentd`
 1. Install `cp circonus-agentd /opt/circonus/agent/sbin`
+
+Unless otherwise noted, the source files are distributed under the BSD-style license found in the [LICENSE](LICENSE) file.
