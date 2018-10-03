@@ -121,7 +121,7 @@ case $os_type in
         elif [[ -f /etc/lsb-release ]]; then
             install_target="install-ubuntu"
             source /etc/lsb-release
-            [[ $DISTRIB_RELEASE =~ ^(14.04|16.04)$ ]] || { echo "unsupported Ubuntu release ($DISTRIB_RELEASE)"; exit 1; }
+            [[ $DISTRIB_RELEASE =~ ^(14.04|16.04|18.04)$ ]] || { echo "unsupported Ubuntu release ($DISTRIB_RELEASE)"; exit 1; }
             os_name="ubuntu.${DISTRIB_RELEASE}"
             [[ -z "$(type -P $FPM)" ]] && { echo "unable to find '${FPM}' command in [$PATH]"; exit 1; }
         else
@@ -406,7 +406,7 @@ install_service() {
             $MKDIR -p $dir_install/etc/init.d
             $SED -e "${sed_script}" ../service/circonus-agent.init-rhel > $dir_install/etc/init.d/circonus-agent
             ;;
-        ubuntu\.16*)
+        ubuntu\.1[68]*)
             $MKDIR -p $dir_install/lib/systemd/system
             $SED -e "${sed_script}" ../service/circonus-agent.service > $dir_install/lib/systemd/system/circonus-agent.service
             ;;

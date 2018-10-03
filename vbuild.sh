@@ -2,7 +2,7 @@
 
 set -e
 
-distros="c7 c6 u16 u14 fb11"
+distros="c7 c6 u18 u16 u14 fb11"
 [[ -n "$1" ]] && distros="$1"
 
 for dist in $distros; do

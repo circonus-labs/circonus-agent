@@ -4,8 +4,8 @@ go_base_url="$1"
 go_ver="$2"
 
 if [[ $(grep -c fdescfs /etc/fstab) -eq 0 ]]; then
-    mount -t fdescfs fdescfs /dev/fd
-    echo 'fdescfs	/dev/fd		fdescfs		rw,late	0	0' >> /etc/fstab
+    sudo mount -t fdescfs fdescfs /dev/fd
+    sudo sh -c "echo 'fdescfs	/dev/fd		fdescfs		rw,late	0	0' >> /etc/fstab"
 fi
 
 if [[ ! -x /usr/local/go/bin/go ]]; then
@@ -16,7 +16,7 @@ if [[ ! -x /usr/local/go/bin/go ]]; then
         curl -sSL "$go_url" -o /home/vagrant/$go_tgz
         [[ $? -eq 0 ]] || { echo "Unable to download go tgz"; exit 1; }
     }
-    tar -C /usr/local -xf /home/vagrant/$go_tgz
+    sudo tar -C /usr/local -xf /home/vagrant/$go_tgz
     [[ $? -eq 0 ]] || { echo "Error unarchiving $go_tgz"; exit 1; }
 fi
 
