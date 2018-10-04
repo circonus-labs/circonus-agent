@@ -44,17 +44,17 @@ func TestNew(t *testing.T) {
 		}
 	}
 
-	if runtime.GOOS != "windows" {
-		t.Log("invalid - no access")
-		{
-			viper.Set(config.KeyPluginDir, path.Join("testdata", "noaccess"))
-
-			_, err := New(context.Background())
-			if err == nil {
-				t.Fatal("expected error")
-			}
-		}
-	}
+	// if runtime.GOOS != "windows" {
+	// 	t.Log("invalid - no access")
+	// 	{
+	// 		viper.Set(config.KeyPluginDir, path.Join("testdata", "noaccess"))
+	//
+	// 		_, err := New(context.Background())
+	// 		if err == nil {
+	// 			t.Fatal("expected error")
+	// 		}
+	// 	}
+	// }
 
 	t.Log("valid plugin directory")
 	{
