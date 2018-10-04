@@ -96,6 +96,13 @@ func (p *Plugins) scanPluginDirectory(b *builtins.Builtins) error {
 	for _, fi := range files {
 		fileName := fi.Name()
 
+		// skip the README.md file placed in the default plugins
+		// directory during installation. (it "appears" executable
+		// on Windows).
+		if strings.ToLower(fileName) == "readme.md" {
+			continue
+		}
+
 		p.logger.Debug().
 			Str("path", filepath.Join(p.pluginDir, fileName)).
 			Msg("checking plugin directory entry")
