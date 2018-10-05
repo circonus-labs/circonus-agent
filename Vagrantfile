@@ -113,7 +113,8 @@ Vagrant.configure('2') do |config|
         fb11.vm.synced_folder '.', agent_src_path, type: 'nfs'
         # mac not set in base box, just needs to be set to something to avoid vagrant errors
         fb11.vm.base_mac = ''
-        fb11.ssh.shell = 'test -x /usr/local/bin/bash && /usr/local/bin/bash -l || sh'
+        #fb11.ssh.shell = 'test -x /usr/local/bin/bash && /usr/local/bin/bash -l || sh'
+        fb11.ssh.shell = 'sh'
         fb11.vm.provider 'virtualbox' do |vb|
             vb.name = 'fb11_circonus-agent'
             vb.customize ['modifyvm', :id, '--memory', '2048']
