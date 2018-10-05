@@ -1,3 +1,12 @@
+# v0.17.2
+
+* doc: add preview blurb to readme
+* upd: explicitly skip "README.md" when scanning for plugins
+* fix: fb11 use sudo for specific provision commands (needed for re-provisioning)
+* add: Ubuntu 18.04 builder
+* upd: allow building specific targets with vbuild.sh
+* upd: bash login shell for freebsd builder
+
 # v0.17.1
 
 * add: dev package builder script (`vbuild.sh` uses Vagrant VMs to build development packages for testing)
