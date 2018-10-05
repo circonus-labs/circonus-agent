@@ -1,3 +1,44 @@
+# PRE-RELEASE Preview
+
+A _pre-release preview_ of cosi w/[circonus-agent](https://github.com/circonus-labs/circonus-agent) is now available.
+
+Based on the normal cosi command available in the Circonus UI (Integrations>Hosts>[New+]), make the following modifications:
+
+```
+curl -sSL https://setup.circonus.com/install | bash \
+    -s -- \
+    --cosiurl https://setup.circonus.com/ \
+    --key <insert api key from original cosi command here> \
+    --app <insert api app from original cosi command here>
+```
+
+After modifying the command it will use the new cosi version to install the circonus-agent.
+
+The circonus-agent is comprised of:
+
+  * replacement for NAD, written in go, with builtin plugins for the common metrics needed for cosi visuals (graphs, worksheets, & dashboards)
+  * includes (if OS supports) [protocol_observer](https://github.com/circonus-labs/wirelatency), no longer needs to be built/installed manually
+  * includes (if OS supports) [circonus-logwatch](https://github.com/circonus-labs/circonus-logwatch), no longer needs to be installed manually
+  * includes OS/version/architecture-specific NAD plugins (non-javascript only) -- **Note:** the circonus-agent is **not** capable of using NAD _native plugins_ since they require NodeJS
+
+The cosi-tool does **not** currently include a functional `cosi plugin` command. This capability will be included in a future release, as the individual `cosi plugin ...` sub-commands (postgres and cassandra) are completed.
+
+Supported Operating Systems (x86_64 and/or amd64):
+
+  * RHEL7 (CentOS, RedHat, Oracle)
+  * RHEL6 (CentOS, RedHat, amzn)
+  * Ubuntu18
+  * Ubuntu16
+  * Ubuntu14
+  * Debian9
+  * Debian8
+  * FreeBSD 12
+  * FreeBSD 11
+
+Please continue to use the original cosi(w/NAD) for OmniOS and Raspian - cosi v2 support for these is TBD. Note: after installing NAD a binary circonus-agent can be used as a drop-in replacement (configure circonus-agent _plugins directory_ to be NAD plugins directory -- javascript plugins will not function). Binaries for OmniOS (`solaris_x86_64`) and Raspian (`linux_arm`) are available in the [circonus-agent repository](https://github.com/circonus-labs/circonus-agent/releases/latest).
+
+---
+
 # Circonus Agent
 
 >NOTE: This is an "in development" project. As such, there are a few things to be aware of at this time...
@@ -197,3 +238,5 @@ To disable all default builtin collectors pass `--connectors=""` on the command 
 1. Dependencies, run `dep ensure` (requires [dep](https://github.com/golang/dep) utility)
 1. Build `go build -o circonus-agentd`
 1. Install `cp circonus-agentd /opt/circonus/agent/sbin`
+
+Unless otherwise noted, the source files are distributed under the BSD-style license found in the [LICENSE](LICENSE) file.
