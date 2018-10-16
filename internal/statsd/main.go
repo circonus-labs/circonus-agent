@@ -6,23 +6,66 @@
 package statsd
 
 import (
+	"context"
 	"crypto/x509"
 	"io/ioutil"
 	stdlog "log"
 	"net"
 	"regexp"
 	"strconv"
+	"sync"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/maier/go-appstats"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
+	"golang.org/x/sync/errgroup"
+	// tomb "gopkg.in/tomb.v2"
+)
+
+// Server defines a statsd server
+type Server struct {
+	group                 *errgroup.Group
+	groupCtx              context.Context
+	disabled              bool
+	address               *net.UDPAddr
+	hostMetrics           *cgm.CirconusMetrics
+	hostMetricsmu         sync.Mutex
+	groupMetrics          *cgm.CirconusMetrics
+	groupMetricsmu        sync.Mutex
+	logger                zerolog.Logger
+	hostPrefix            string
+	hostCategory          string
+	groupCID              string
+	groupPrefix           string
+	groupCounterOp        string
+	groupGaugeOp          string
+	groupSetOp            string
+	metricRegex           *regexp.Regexp
+	metricRegexGroupNames []string
+	apiKey                string
+	apiApp                string
+	apiURL                string
+	apiCAFile             string
+	debugCGM              bool
+	listener              *net.UDPConn
+	packetCh              chan []byte
+	// t                     tomb.Tomb
+}
+
+const (
+	maxPacketSize   = 1472
+	packetQueueSize = 1000
+	destHost        = "host"
+	destGroup       = "group"
+	destIgnore      = "ignore"
 )
 
 // New returns a statsd server definition
-func New() (*Server, error) {
+func New(ctx context.Context) (*Server, error) {
 	s := Server{
 		disabled: viper.GetBool(config.KeyStatsdDisabled),
 		logger:   log.With().Str("pkg", "statsd").Logger(),
@@ -38,7 +81,11 @@ func New() (*Server, error) {
 		return nil, err
 	}
 
+	g, gctx := errgroup.WithContext(ctx)
+
 	s = Server{
+		group:          g,
+		groupCtx:       gctx,
 		disabled:       viper.GetBool(config.KeyStatsdDisabled),
 		logger:         log.With().Str("pkg", "statsd").Logger(),
 		hostPrefix:     viper.GetString(config.KeyStatsdHostPrefix),
@@ -93,34 +140,48 @@ func (s *Server) Start() error {
 		return nil
 	}
 
-	s.t.Go(s.reader)
-	s.t.Go(s.processor)
+	s.group.Go(s.reader)
+	s.group.Go(s.processor)
 
-	return s.t.Wait()
+	go func() {
+		s.group.Wait()
+		// only try to flush group metrics since they go
+		// directly to a broker. there is no point in trying
+		// to flush host metrics as the 'server' portion of
+		// the agent may have already closed.
+		if s.groupMetrics != nil {
+			s.logger.Info().Msg("flushing group metrics")
+			s.groupMetricsmu.Lock()
+			s.groupMetrics.Flush()
+			s.groupMetricsmu.Unlock()
+		}
+	}()
+
+	return s.group.Wait()
 }
 
 // Stop the server
-func (s *Server) Stop() error {
-	if s.disabled {
-		s.logger.Info().Msg("disabled, nothing to stop")
-		return nil
-	}
-
-	s.logger.Info().Msg("stopping StatsD Server")
-
-	if s.t.Alive() {
-		s.t.Kill(nil)
-	}
-
-	if s.groupMetrics != nil {
-		s.logger.Info().Msg("flushing group metrics")
-		s.groupMetricsmu.Lock()
-		s.groupMetrics.Flush()
-		s.groupMetricsmu.Unlock()
-	}
-
-	return nil
-}
+// func (s *Server) Stop() error {
+// 	if s.disabled {
+// 		s.logger.Info().Msg("disabled, nothing to stop")
+// 		return nil
+// 	}
+//
+// 	s.logger.Info().Msg("stopping StatsD Server")
+//
+// 	// if s.t.Alive() {
+// 	// 	s.t.Kill(nil)
+// 	// }
+//
+// 	if s.groupMetrics != nil {
+// 		s.logger.Info().Msg("flushing group metrics")
+// 		s.groupMetricsmu.Lock()
+// 		s.groupMetrics.Flush()
+// 		s.groupMetricsmu.Unlock()
+// 	}
+//
+// 	return nil
+// }
 
 // Flush *host* metrics only
 // NOTE: group metrics flush independently to a different check via circonus-gometrics
@@ -236,7 +297,7 @@ func (s *Server) processor() error {
 	defer s.listener.Close()
 	for {
 		select {
-		case <-s.t.Dying():
+		case <-s.groupCtx.Done():
 			return nil
 		case pkt := <-s.packetCh:
 			err := s.processPacket(pkt)
@@ -252,7 +313,7 @@ func (s *Server) processor() error {
 // shutdown checks whether tomb is dying
 func (s *Server) shutdown() bool {
 	select {
-	case <-s.t.Dying():
+	case <-s.groupCtx.Done():
 		return true
 	default:
 		return false

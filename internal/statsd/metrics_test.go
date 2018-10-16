@@ -6,6 +6,7 @@
 package statsd
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -23,7 +24,7 @@ func TestProcessPacket(t *testing.T) {
 	viper.Set(config.KeyStatsdDisabled, false)
 	viper.Set(config.KeyStatsdPort, "65125")
 	viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
-	s, err := New()
+	s, err := New(context.Background())
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
@@ -74,7 +75,7 @@ func TestGetMetricDest(t *testing.T) {
 		viper.Set(config.KeyStatsdDisabled, false)
 		viper.Set(config.KeyStatsdPort, "65125")
 		viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
-		s, err := New()
+		s, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -113,7 +114,7 @@ func TestGetMetricDest(t *testing.T) {
 		viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
 		viper.Set(config.KeyStatsdHostPrefix, "host.")
 		viper.Set(config.KeyStatsdGroupPrefix, "group.")
-		s, err := New()
+		s, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -151,7 +152,7 @@ func TestGetMetricDest(t *testing.T) {
 		viper.Set(config.KeyStatsdPort, "65125")
 		viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
 		viper.Set(config.KeyStatsdGroupPrefix, "group.")
-		s, err := New()
+		s, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -189,7 +190,7 @@ func TestGetMetricDest(t *testing.T) {
 		viper.Set(config.KeyStatsdPort, "65125")
 		viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
 		viper.Set(config.KeyStatsdHostPrefix, "host.")
-		s, err := New()
+		s, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -218,7 +219,7 @@ func TestParseMetric(t *testing.T) {
 	viper.Set(config.KeyStatsdDisabled, false)
 	viper.Set(config.KeyStatsdPort, "65125")
 	viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
-	s, err := New()
+	s, err := New(context.Background())
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}

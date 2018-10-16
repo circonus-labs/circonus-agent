@@ -6,6 +6,7 @@
 package statsd
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -25,7 +26,7 @@ func TestNew(t *testing.T) {
 	t.Log("Disabled")
 	{
 		viper.Set(config.KeyStatsdDisabled, true)
-		s, err := New()
+		s, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -39,7 +40,7 @@ func TestNew(t *testing.T) {
 	{
 		viper.Set(config.KeyStatsdDisabled, false)
 		expect := errors.New("Invalid StatsD port (empty)")
-		_, err := New()
+		_, err := New(context.Background())
 		if err == nil {
 			t.Fatal("expect error")
 		}
@@ -54,7 +55,7 @@ func TestNew(t *testing.T) {
 		viper.Set(config.KeyStatsdDisabled, false)
 		viper.Set(config.KeyStatsdPort, "65125")
 		expect := errors.New("Invalid StatsD host category (empty)")
-		_, err := New()
+		_, err := New(context.Background())
 		if err == nil {
 			t.Fatal("expect error")
 		}
@@ -69,7 +70,7 @@ func TestNew(t *testing.T) {
 		viper.Set(config.KeyStatsdDisabled, false)
 		viper.Set(config.KeyStatsdPort, "65125")
 		viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
-		s, err := New()
+		s, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -86,7 +87,7 @@ func TestStart(t *testing.T) {
 	t.Log("Disabled")
 	{
 		viper.Set(config.KeyStatsdDisabled, true)
-		s, err := New()
+		s, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -99,7 +100,8 @@ func TestStart(t *testing.T) {
 		viper.Set(config.KeyStatsdDisabled, false)
 		viper.Set(config.KeyStatsdPort, "65125")
 		viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
-		s, err := New()
+		ctx, cancel := context.WithCancel(context.Background())
+		s, err := New(ctx)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -107,9 +109,12 @@ func TestStart(t *testing.T) {
 			t.Fatal("expected not nil")
 		}
 		time.AfterFunc(1*time.Second, func() {
-			s.Stop()
+			cancel()
 		})
-		s.Start()
+
+		if err := s.Start(); err != nil {
+			t.Fatalf("unexpected error (%s)", err)
+		}
 		viper.Reset()
 	}
 
@@ -118,7 +123,7 @@ func TestStart(t *testing.T) {
 		viper.Set(config.KeyStatsdDisabled, false)
 		viper.Set(config.KeyStatsdPort, "65125")
 		viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
-		s, err := New()
+		s, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -128,46 +133,55 @@ func TestStart(t *testing.T) {
 		time.AfterFunc(1*time.Second, func() {
 			s.listener.Close()
 		})
-		s.Start()
+		err = s.Start()
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if err.Error() != "reader: read udp 127.0.0.1:65125: use of closed network connection" {
+			t.Fatalf("unexpected error (%s)", err)
+		}
 		viper.Reset()
 	}
 }
 
-func TestStop(t *testing.T) {
-	t.Log("Testing Stop")
-
-	zerolog.SetGlobalLevel(zerolog.Disabled)
-
-	t.Log("Disabled")
-	{
-		viper.Set(config.KeyStatsdDisabled, true)
-		s, err := New()
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		s.Stop()
-		viper.Reset()
-	}
-
-	t.Log("Enabled")
-	{
-		viper.Set(config.KeyStatsdDisabled, false)
-		viper.Set(config.KeyStatsdPort, "65125")
-		viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
-		s, err := New()
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if s == nil {
-			t.Fatal("expected not nil")
-		}
-		time.AfterFunc(1*time.Second, func() {
-			s.Stop()
-		})
-		s.Start()
-		viper.Reset()
-	}
-}
+// func TestStop(t *testing.T) {
+// 	t.Log("Testing Stop")
+//
+// 	zerolog.SetGlobalLevel(zerolog.Disabled)
+//
+// 	t.Log("Disabled")
+// 	{
+// 		viper.Set(config.KeyStatsdDisabled, true)
+// 		s, err := New(context.Background())
+// 		if err != nil {
+// 			t.Fatalf("expected NO error, got (%s)", err)
+// 		}
+// 		if !s.disabled {
+// 			t.Fatal("expected disabled")
+// 		}
+// 		viper.Reset()
+// 	}
+//
+// 	t.Log("Enabled")
+// 	{
+// 		viper.Set(config.KeyStatsdDisabled, false)
+// 		viper.Set(config.KeyStatsdPort, "65125")
+// 		viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
+// 		ctx, cancel := context.WithCancel(context.Background())
+// 		s, err := New(ctx)
+// 		if err != nil {
+// 			t.Fatalf("expected NO error, got (%s)", err)
+// 		}
+// 		if s == nil {
+// 			t.Fatal("expected not nil")
+// 		}
+// 		time.AfterFunc(1*time.Second, func() {
+// 			cancel()
+// 		})
+// 		s.Start()
+// 		viper.Reset()
+// 	}
+// }
 
 func TestFlush(t *testing.T) {
 	t.Log("Testing Flush")
@@ -177,7 +191,7 @@ func TestFlush(t *testing.T) {
 	t.Log("Flush (disabled)")
 	{
 		viper.Set(config.KeyStatsdDisabled, true)
-		s, err := New()
+		s, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -194,7 +208,7 @@ func TestFlush(t *testing.T) {
 		viper.Set(config.KeyStatsdDisabled, false)
 		viper.Set(config.KeyStatsdPort, "65125")
 		viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
-		s, err := New()
+		s, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -214,7 +228,7 @@ func TestFlush(t *testing.T) {
 		viper.Set(config.KeyStatsdDisabled, false)
 		viper.Set(config.KeyStatsdPort, "65125")
 		viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
-		s, err := New()
+		s, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
