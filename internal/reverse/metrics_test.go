@@ -7,6 +7,7 @@ package reverse
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -32,7 +33,8 @@ func TestSendMetricData(t *testing.T) {
 	if cerr != nil {
 		t.Fatalf("expected no error, got (%s)", cerr)
 	}
-	s, err := New(chk, defaults.Listen)
+	ctx, cancel := context.WithCancel(context.Background())
+	s, err := New(ctx, chk, defaults.Listen)
 	if err != nil {
 		t.Fatalf("expected no error, got (%s)", err)
 	}
@@ -66,6 +68,7 @@ func TestSendMetricData(t *testing.T) {
 	if !bytes.Equal(m, data) {
 		t.Fatalf("expected (%s) got (%s)", string(data), string(m))
 	}
+	cancel()
 }
 
 func TestFetchMetricData(t *testing.T) {
@@ -93,7 +96,8 @@ func TestFetchMetricData(t *testing.T) {
 	if cerr != nil {
 		t.Fatalf("expected no error, got (%s)", cerr)
 	}
-	s, err := New(chk, defaults.Listen)
+	ctx, cancel := context.WithCancel(context.Background())
+	s, err := New(ctx, chk, defaults.Listen)
 	if err != nil {
 		t.Fatalf("expected no error, got (%s)", err)
 	}
@@ -116,4 +120,5 @@ func TestFetchMetricData(t *testing.T) {
 		fmt.Println(string(*data))
 		t.Fatalf("%s", string(*data))
 	}
+	cancel()
 }

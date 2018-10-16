@@ -21,7 +21,7 @@ func (c *Connection) newCommandReader(done <-chan interface{}, conn *tls.Conn) <
 		for {
 			cmd := c.readCommand(conn)
 			select {
-			case <-c.t.Dying():
+			case <-c.groupCtx.Done():
 				c.logger.Debug().Msg("reverse dying, cmd reader")
 				return
 			case <-done:
@@ -123,7 +123,7 @@ func (c *Connection) newCommandProcessor(done <-chan interface{}, cmds <-chan co
 		for cmd := range cmds {
 			cmdResult := c.processCommand(cmd)
 			select {
-			case <-c.t.Dying():
+			case <-c.groupCtx.Done():
 				c.logger.Debug().Msg("reverse dying, cmd processor")
 				return
 			case <-done:

@@ -7,6 +7,7 @@ package reverse
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"testing"
 
@@ -200,7 +201,8 @@ func TestReadFrameFromBroker(t *testing.T) {
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
-		s, err := New(chk, defaults.Listen)
+		ctx, cancel := context.WithCancel(context.Background())
+		s, err := New(ctx, chk, defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -225,5 +227,6 @@ func TestReadFrameFromBroker(t *testing.T) {
 		if string(p.payload) != tst.payload {
 			t.Fatalf("expected (%s) got (%s)", tst.payload, string(p.payload))
 		}
+		cancel()
 	}
 }

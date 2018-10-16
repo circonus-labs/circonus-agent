@@ -6,6 +6,7 @@
 package reverse
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -175,7 +176,8 @@ func TestNew(t *testing.T) {
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
-		c, err := New(chk, defaults.Listen)
+		ctx, cancel := context.WithCancel(context.Background())
+		c, err := New(ctx, chk, defaults.Listen)
 		viper.Reset()
 
 		if err != nil {
@@ -185,12 +187,14 @@ func TestNew(t *testing.T) {
 		if c == nil {
 			t.Fatal("expected not nil")
 		}
+		cancel()
 	}
 
 	t.Log("Reverse enabled (no config)")
 	{
 		viper.Set(config.KeyReverse, true)
-		_, err := New(nil, defaults.Listen)
+		ctx, cancel := context.WithCancel(context.Background())
+		_, err := New(ctx, nil, defaults.Listen)
 		viper.Reset()
 
 		if err == nil {
@@ -199,6 +203,7 @@ func TestNew(t *testing.T) {
 		if err.Error() != "invalid check value (empty)" {
 			t.Fatalf("unexpected error (%s)", err)
 		}
+		cancel()
 	}
 }
 
@@ -214,7 +219,8 @@ func TestStart(t *testing.T) {
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
-		c, err := New(chk, defaults.Listen)
+		ctx, cancel := context.WithCancel(context.Background())
+		c, err := New(ctx, chk, defaults.Listen)
 		viper.Reset()
 
 		if err != nil {
@@ -225,6 +231,9 @@ func TestStart(t *testing.T) {
 			t.Fatal("expected not nil")
 		}
 
+		time.AfterFunc(2*time.Second, func() {
+			cancel()
+		})
 		err = c.Start()
 
 		if err != nil {
@@ -285,7 +294,8 @@ func TestStart(t *testing.T) {
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
-		s, err := New(chk, l.Addr().String())
+		ctx, cancel := context.WithCancel(context.Background())
+		s, err := New(ctx, chk, l.Addr().String())
 		if err != nil {
 			t.Fatalf("expected no error got (%s)", err)
 		}
@@ -310,7 +320,7 @@ func TestStart(t *testing.T) {
 		s.dialerTimeout = 1 * time.Second
 
 		time.AfterFunc(2*time.Second, func() {
-			s.Stop()
+			cancel()
 		})
 
 		if err := s.Start(); err != nil {
@@ -343,10 +353,14 @@ func TestStartLong(t *testing.T) {
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
-		c, err := New(chk, defaults.Listen)
+		ctx, cancel := context.WithCancel(context.Background())
+		c, err := New(ctx, chk, defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
+		time.AfterFunc(1*time.Second, func() {
+			cancel()
+		})
 		err = c.Start()
 		viper.Reset()
 
@@ -372,12 +386,12 @@ func TestStop(t *testing.T) {
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
-		c, err := New(chk, defaults.Listen)
+		ctx, cancel := context.WithCancel(context.Background())
+		_, err := New(ctx, chk, defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
-
-		c.Stop()
+		cancel()
 	}
 
 	t.Log("nil conn")
@@ -387,14 +401,14 @@ func TestStop(t *testing.T) {
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
-		c, err := New(chk, defaults.Listen)
+		ctx, cancel := context.WithCancel(context.Background())
+		c, err := New(ctx, chk, defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
 
 		c.enabled = true
-
-		c.Stop()
+		cancel()
 	}
 
 }

@@ -7,6 +7,7 @@ package reverse
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -39,7 +40,8 @@ func TestReadCommand(t *testing.T) {
 	if cerr != nil {
 		t.Fatalf("expected no error, got (%s)", cerr)
 	}
-	s, err := New(chk, defaults.Listen)
+	ctx, cancel := context.WithCancel(context.Background())
+	s, err := New(ctx, chk, defaults.Listen)
 	if err != nil {
 		t.Fatalf("expected no error, got (%s)", err)
 	}
@@ -87,6 +89,7 @@ func TestReadCommand(t *testing.T) {
 			t.Fatalf("expected (%v), got (%v)", test.payloadFrame, cmd.request)
 		}
 	}
+	cancel()
 }
 
 func TestProcessCommand(t *testing.T) {
@@ -117,7 +120,8 @@ func TestProcessCommand(t *testing.T) {
 	if cerr != nil {
 		t.Fatalf("expected no error, got (%s)", cerr)
 	}
-	s, err := New(chk, defaults.Listen)
+	ctx, cancel := context.WithCancel(context.Background())
+	s, err := New(ctx, chk, defaults.Listen)
 	if err != nil {
 		t.Fatalf("expected no error, got (%s)", err)
 	}
@@ -154,4 +158,5 @@ func TestProcessCommand(t *testing.T) {
 			}
 		}
 	}
+	cancel()
 }
