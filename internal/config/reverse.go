@@ -34,10 +34,10 @@ func validateReverseOptions() error {
 		// or, long form: with '/check_bundle/' prefix (e.g. --cid "/check_bundle/123")
 		ok, err := IsValidCheckID(cid)
 		if err != nil {
-			return errors.Wrap(err, "Reverse Check ID")
+			return errors.Wrap(err, "reverse Check ID")
 		}
 		if !ok {
-			return errors.Errorf("Invalid Reverse Check ID (%s)", cid)
+			return errors.Errorf("invalid Reverse Check ID (%s)", cid)
 		}
 		log.Debug().Str("cid", cid).Msg("reverse, specified cid")
 	}
