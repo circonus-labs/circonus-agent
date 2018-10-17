@@ -68,7 +68,7 @@ func TestParsePluginOutput(t *testing.T) {
 	t.Log("blank")
 	{
 		p.metrics = nil
-		expectedErr := errors.Errorf("Zero lines of output")
+		expectedErr := errors.Errorf("zero lines of output")
 		err := p.parsePluginOutput([]string{})
 		if err == nil {
 			t.Fatalf("expected error")

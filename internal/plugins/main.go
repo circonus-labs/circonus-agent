@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -19,8 +20,48 @@ import (
 	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/maier/go-appstats"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
+)
+
+// Plugins defines plugin manager
+type Plugins struct {
+	active        map[string]*plugin
+	ctx           context.Context
+	logger        zerolog.Logger
+	pluginDir     string
+	reservedNames map[string]bool
+	running       bool
+	sync.RWMutex
+}
+
+// Plugin defines a specific plugin
+type plugin struct {
+	cmd             *exec.Cmd
+	command         string
+	ctx             context.Context
+	id              string
+	instanceArgs    []string
+	instanceID      string
+	lastError       error
+	lastRunDuration time.Duration
+	lastStart       time.Time
+	lastEnd         time.Time
+	logger          zerolog.Logger
+	metrics         *cgm.Metrics
+	name            string
+	prevMetrics     *cgm.Metrics
+	runDir          string
+	running         bool
+	runTTL          time.Duration
+	sync.Mutex
+}
+
+const (
+	fieldDelimiter  = "\t"
+	metricDelimiter = "`"
+	nullMetricValue = "[[null]]"
 )
 
 // New returns a new instance of the plugins manager

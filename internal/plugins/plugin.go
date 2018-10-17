@@ -54,7 +54,7 @@ func (p *plugin) parsePluginOutput(output []string) error {
 
 	if len(output) == 0 {
 		p.metrics = &cgm.Metrics{}
-		return errors.Errorf("Zero lines of output")
+		return errors.Errorf("zero lines of output")
 	}
 
 	metrics := cgm.Metrics{}

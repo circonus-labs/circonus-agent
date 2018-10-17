@@ -153,7 +153,7 @@ func (p *Plugins) scanPluginDirectory(b *builtins.Builtins) error {
 				p.logger.Warn().
 					Err(err).
 					Str("file", fi.Name()).
-					Msg("Error resolving symlink, ignoring")
+					Msg("error resolving symlink, ignoring")
 				continue
 			}
 			cmdName = resolvedSymlink
@@ -177,7 +177,7 @@ func (p *Plugins) scanPluginDirectory(b *builtins.Builtins) error {
 		}
 
 		if b != nil && b.IsBuiltin(fileBase) {
-			p.logger.Warn().Str("id", fileBase).Msg("Builtin collector already enabled, skipping plugin")
+			p.logger.Warn().Str("id", fileBase).Msg("builtin collector already enabled, skipping plugin")
 			continue
 		}
 
