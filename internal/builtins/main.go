@@ -14,8 +14,17 @@ import (
 	cgm "github.com/circonus-labs/circonus-gometrics"
 	appstats "github.com/maier/go-appstats"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
+
+// Builtins defines the internal metric collector manager
+type Builtins struct {
+	collectors map[string]collector.Collector
+	logger     zerolog.Logger
+	running    bool
+	sync.Mutex
+}
 
 // New creates a new builtins manager
 func New() (*Builtins, error) {

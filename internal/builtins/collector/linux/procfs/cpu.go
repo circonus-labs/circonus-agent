@@ -29,11 +29,11 @@ type CPU struct {
 	pfscommon
 	numCPU        float64 // number of cpus
 	clockNorm     float64 // cpu clock normalized to 100Hz tick rate
-	reportAllCPUs bool    // OPT report all cpus (vs just total) may be overriden in config file
+	reportAllCPUs bool    // OPT report all cpus (vs just total) may be overridden in config file
 	file          string
 }
 
-// cpuOptions defines what elements can be overriden in a config file
+// cpuOptions defines what elements can be overridden in a config file
 type cpuOptions struct {
 	// common
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
@@ -49,13 +49,13 @@ type cpuOptions struct {
 }
 
 // NewCPUCollector creates new procfs cpu collector
-func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
+func NewCPUCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
 	procFile := "stat"
 
 	c := CPU{}
-	c.id = "cpu"
-	c.pkgID = "builtins.linux.procfs." + c.id
-	c.procFSPath = "/proc"
+	c.id = CPU_NAME
+	c.pkgID = PFS_PREFIX + c.id
+	c.procFSPath = procFSPath
 	c.file = filepath.Join(c.procFSPath, procFile)
 	c.logger = log.With().Str("pkg", c.pkgID).Logger()
 	c.metricStatus = map[string]bool{}
@@ -215,8 +215,8 @@ func (c *CPU) Collect() error {
 			}
 			c.addMetric(&metrics, c.id, "context_switch", "L", v)
 
-		case strings.HasPrefix(fields[0], "cpu"):
-			if fields[0] != "cpu" && !c.reportAllCPUs {
+		case strings.HasPrefix(fields[0], CPU_NAME):
+			if fields[0] != CPU_NAME && !c.reportAllCPUs {
 				continue
 			}
 			cpuMetrics, err := c.parseCPU(fields)
@@ -316,7 +316,7 @@ func (c *CPU) parseCPU(fields []string) (*cgm.Metrics, error) {
 	}
 
 	metrics := cgm.Metrics{
-		metricBase + "user":                                        cgm.Metric{Type: metricType, Value: ((userNormal + userNice) / numCPU) / c.clockNorm},
+		metricBase + "user": cgm.Metric{Type: metricType, Value: ((userNormal + userNice) / numCPU) / c.clockNorm},
 		metricBase + "user" + metricNameSeparator + "normal":       cgm.Metric{Type: metricType, Value: (userNormal / numCPU) / c.clockNorm},
 		metricBase + "user" + metricNameSeparator + "nice":         cgm.Metric{Type: metricType, Value: (userNice / numCPU) / c.clockNorm},
 		metricBase + "kernel":                                      cgm.Metric{Type: metricType, Value: ((sys + guest + guestNice) / numCPU) / c.clockNorm},

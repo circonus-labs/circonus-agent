@@ -35,7 +35,7 @@ type Diskstats struct {
 	sectorSizeCache   map[string]uint64
 }
 
-// diskstatsOptions defines what elements can be overriden in a config file
+// diskstatsOptions defines what elements can be overridden in a config file
 type diskstatsOptions struct {
 	// common
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
@@ -69,13 +69,13 @@ type dstats struct {
 }
 
 // NewDiskstatsCollector creates new procfs cpu collector
-func NewDiskstatsCollector(cfgBaseName string) (collector.Collector, error) {
-	procFile := "diskstats"
+func NewDiskstatsCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
+	procFile := DISKSTATS_NAME
 
 	c := Diskstats{}
-	c.id = "diskstats"
-	c.pkgID = "builtins.linux.procfs." + c.id
-	c.procFSPath = "/proc"
+	c.id = DISKSTATS_NAME
+	c.pkgID = PFS_PREFIX + c.id
+	c.procFSPath = procFSPath
 	c.file = filepath.Join(c.procFSPath, procFile)
 	c.logger = log.With().Str("pkg", c.pkgID).Logger()
 	c.metricStatus = map[string]bool{}
@@ -407,7 +407,7 @@ func (c *Diskstats) parse(fields []string) (*dstats, error) {
 }
 
 func (c *Diskstats) parsemdstat() map[string][]string {
-	mdstatPath := strings.Replace(c.file, "diskstats", "mdstat", -1)
+	mdstatPath := strings.Replace(c.file, DISKSTATS_NAME, "mdstat", -1)
 	mdList := make(map[string][]string)
 	f, err := os.Open(mdstatPath)
 	if err != nil {
