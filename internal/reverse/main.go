@@ -49,7 +49,6 @@ type Connection struct {
 	minDelayStep     int
 	revConfig        check.ReverseConfig
 	sync.Mutex
-	// t tomb.Tomb
 }
 
 // noitHeader defines the header received from the noit/broker

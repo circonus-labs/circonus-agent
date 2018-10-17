@@ -62,10 +62,6 @@ required = ["github.com/go-ole/go-ole"]
 
 [[constraint]]
   branch = "v2"
-  name = "gopkg.in/tomb.v2"
-
-[[constraint]]
-  branch = "v2"
   name = "gopkg.in/yaml.v2"
 
 # gzip'ing manually now - broker cannot handle chunked gzip'd

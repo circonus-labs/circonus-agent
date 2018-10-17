@@ -34,7 +34,6 @@ type Agent struct {
 	reverseConn  *reverse.Connection
 	signalCh     chan os.Signal
 	statsdServer *statsd.Server
-	// t            tomb.Tomb
 }
 
 // New returns a new agent instance
@@ -116,12 +115,6 @@ func (a *Agent) Start() error {
 func (a *Agent) Stop() {
 	a.stopSignalHandler()
 	a.groupCancel()
-	// a.plugins.Stop()
-	// a.statsdServer.Stop()
-	// a.reverseConn.Stop()
-	// a.listenServer.Stop()
-	//
-	// a.t.Kill(nil)
 
 	log.Debug().
 		Int("pid", os.Getpid()).

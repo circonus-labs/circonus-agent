@@ -23,7 +23,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 	"golang.org/x/sync/errgroup"
-	// tomb "gopkg.in/tomb.v2"
 )
 
 // Server defines a statsd server
@@ -53,7 +52,6 @@ type Server struct {
 	debugCGM              bool
 	listener              *net.UDPConn
 	packetCh              chan []byte
-	// t                     tomb.Tomb
 }
 
 const (
