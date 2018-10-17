@@ -55,7 +55,7 @@ type NetTCP struct {
 	ipv6Enabled bool
 }
 
-// NetTCPOptions defines what elements can be overriden in a config file
+// NetTCPOptions defines what elements can be overridden in a config file
 type NetTCPOptions struct {
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
 	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`

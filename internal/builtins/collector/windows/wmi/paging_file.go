@@ -35,7 +35,7 @@ type PagingFile struct {
 	exclude *regexp.Regexp
 }
 
-// pagingFileOptions defines what elements can be overriden in a config file
+// pagingFileOptions defines what elements can be overridden in a config file
 type pagingFileOptions struct {
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
 	IncludeRegex         string   `json:"include_regex" toml:"include_regex" yaml:"include_regex"`

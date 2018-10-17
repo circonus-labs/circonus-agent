@@ -59,7 +59,7 @@ type Cache struct {
 	wmicommon
 }
 
-// cacheOptions defines what elements can be overriden in a config file
+// cacheOptions defines what elements can be overridden in a config file
 type cacheOptions struct {
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
 	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`

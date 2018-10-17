@@ -86,7 +86,7 @@ type Disk struct {
 	exclude  *regexp.Regexp
 }
 
-// diskOptions defines what elements can be overriden in a config file
+// diskOptions defines what elements can be overridden in a config file
 type diskOptions struct {
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
 	IncludeLogical       string   `json:"logical_disks" toml:"logical_disks" yaml:"logical_disks"`

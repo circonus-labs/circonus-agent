@@ -62,7 +62,7 @@ type Processes struct {
 	exclude *regexp.Regexp
 }
 
-// ProcessesOptions defines what elements can be overriden in a config file
+// ProcessesOptions defines what elements can be overridden in a config file
 type ProcessesOptions struct {
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
 	IncludeRegex         string   `json:"include_regex" toml:"include_regex" yaml:"include_regex"`

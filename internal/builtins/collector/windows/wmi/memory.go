@@ -60,7 +60,7 @@ type Memory struct {
 	wmicommon
 }
 
-// memoryOptions defines what elements can be overriden in a config file
+// memoryOptions defines what elements can be overridden in a config file
 type memoryOptions struct {
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
 	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`

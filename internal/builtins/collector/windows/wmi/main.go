@@ -8,15 +8,55 @@
 package wmi
 
 import (
+	"fmt"
 	"path"
+	"regexp"
 	"runtime"
+	"sync"
+	"time"
 
 	"github.com/StackExchange/wmi"
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
+)
+
+// wmicommon defines WMI metrics common elements
+type wmicommon struct {
+	id                  string          // id of the collector (used as metric name prefix)
+	pkgID               string          // package prefix used for logging and errors
+	lastEnd             time.Time       // last collection end time
+	lastError           string          // last collection error
+	lastMetrics         cgm.Metrics     // last metrics collected
+	lastRunDuration     time.Duration   // last collection duration
+	lastStart           time.Time       // last collection start time
+	logger              zerolog.Logger  // collector logging instance
+	metricDefaultActive bool            // OPT default status for metrics NOT explicitly in metricStatus, may be overridden in config file
+	metricNameChar      string          // OPT character(s) used as replacement for metricNameRegex, may be overridden in config
+	metricNameRegex     *regexp.Regexp  // OPT regex for cleaning names, may be overridden in config
+	metricStatus        map[string]bool // OPT list of metrics and whether they should be collected or not, may be overridden in config file
+	running             bool            // is collector currently running
+	runTTL              time.Duration   // OPT ttl for collections, may be overridden in config file (default is for every request)
+	sync.Mutex
+}
+
+const (
+	defaultMetricChar   = "_"                           // character used to replace invalid characters in metric name
+	metricNameSeparator = "`"                           // character used to separate parts of metric names
+	metricStatusEnabled = "enabled"                     // setting string indicating metrics should be made 'active'
+	nameFieldName       = "Name"                        // name of the 'name' field in wmi results
+	regexPat            = `^(?:%s)$`                    // fmt pattern used compile include/exclude regular expressions
+	totalName           = "_Total"                      // value of the Name field for 'totals'
+	totalPrefix         = metricNameSeparator + "total" // metric name prefix to use for 'totals'
+)
+
+var (
+	defaultExcludeRegex    = regexp.MustCompile(fmt.Sprintf(regexPat, ``))
+	defaultIncludeRegex    = regexp.MustCompile(fmt.Sprintf(regexPat, `.+`))
+	defaultMetricNameRegex = regexp.MustCompile(`[^a-zA-Z0-9.-_:` + metricNameSeparator + `]`)
 )
 
 func initialize() error {
