@@ -10,7 +10,9 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"regexp"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins"
@@ -19,14 +21,68 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
 	"github.com/circonus-labs/circonus-agent/internal/statsd"
+	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
+	"golang.org/x/sync/errgroup"
+)
+
+type httpServer struct {
+	address *net.TCPAddr
+	server  *http.Server
+}
+
+type socketServer struct {
+	address  *net.UnixAddr
+	listener *net.UnixListener
+	server   *http.Server
+}
+
+type sslServer struct {
+	address  *net.TCPAddr
+	certFile string
+	keyFile  string
+	server   *http.Server
+}
+
+// Server defines the listening servers
+type Server struct {
+	group      *errgroup.Group
+	groupCtx   context.Context
+	builtins   *builtins.Builtins
+	check      *check.Check
+	ctx        context.Context
+	logger     zerolog.Logger
+	plugins    *plugins.Plugins
+	svrHTTP    []*httpServer
+	svrHTTPS   *sslServer
+	svrSockets []*socketServer
+	statsdSvr  *statsd.Server
+}
+
+type previousMetrics struct {
+	metrics *cgm.Metrics
+	ts      time.Time
+}
+
+var (
+	pluginPathRx    = regexp.MustCompile("^/(run(/[a-zA-Z0-9_-]*)?)?$")
+	inventoryPathRx = regexp.MustCompile("^/inventory/?$")
+	writePathRx     = regexp.MustCompile("^/write/[a-zA-Z0-9_-]+$")
+	statsPathRx     = regexp.MustCompile("^/stats/?$")
+	promPathRx      = regexp.MustCompile("^/prom/?$")
+	lastMetrics     = &previousMetrics{}
+	lastMetricsmu   sync.Mutex
 )
 
 // New creates a new instance of the listening servers
-func New(c *check.Check, b *builtins.Builtins, p *plugins.Plugins, ss *statsd.Server) (*Server, error) {
+func New(ctx context.Context, c *check.Check, b *builtins.Builtins, p *plugins.Plugins, ss *statsd.Server) (*Server, error) {
+	g, gctx := errgroup.WithContext(ctx)
 	s := Server{
+		group:     g,
+		groupCtx:  gctx,
 		logger:    log.With().Str("pkg", "server").Logger(),
 		builtins:  b,
 		plugins:   p,
@@ -124,11 +180,6 @@ func New(c *check.Check, b *builtins.Builtins, p *plugins.Plugins, ss *statsd.Se
 		}
 	}
 
-	// validation moved to New so, there will always be at least ONE http server
-	// if len(s.svrHTTP) == 0 && s.svrHTTPS == nil && len(s.svrSockets) == 0 {
-	// 	return nil, errors.New("No servers defined")
-	// }
-
 	return &s, nil
 }
 
@@ -147,48 +198,28 @@ func (s *Server) Start() error {
 		return errors.New("No servers defined")
 	}
 
-	s.t.Go(s.startHTTPS)
+	s.group.Go(s.startHTTPS)
 
 	for _, svrHTTP := range s.svrHTTP {
-		s.t.Go(func() error {
+		s.group.Go(func() error {
 			return s.startHTTP(svrHTTP)
 		})
 	}
 
 	for _, svrSocket := range s.svrSockets {
-		s.t.Go(func() error {
+		s.group.Go(func() error {
 			return s.startSocket(svrSocket)
 		})
 	}
 
-	// start a tomb dying listener so that if one server fails to start
-	// all other servers will be stopped. since http.servers don't have
-	// listen with context (yet) and will block waiting for a request
-	// in order to receive <-s.t.Dying. this is more 'immediate'.
 	go func() {
-
-		<-s.t.Dying()
-
-		if s.t.Err() == nil { // don't fire if a normal s.Stop() was initiated
-			return
+		select {
+		case <-s.groupCtx.Done():
+			s.Stop()
 		}
-		if s.svrHTTPS != nil && s.svrHTTPS.server != nil {
-			s.svrHTTPS.server.Close()
-		}
-		for _, svr := range s.svrHTTP {
-			svr.server.Close()
-		}
-		for _, svr := range s.svrSockets {
-			if svr.server != nil {
-				svr.server.Close()
-			} else if svr.listener != nil {
-				svr.listener.Close()
-			}
-		}
-
 	}()
 
-	return s.t.Wait()
+	return s.group.Wait()
 }
 
 // Stop the servers in an orderly, graceful fashion
@@ -218,10 +249,6 @@ func (s *Server) Stop() {
 		if err != nil {
 			s.logger.Warn().Err(err).Str("server", svrSocket.address.Name).Msg("closing Socket server")
 		}
-	}
-
-	if s.t.Alive() {
-		s.t.Kill(nil)
 	}
 }
 

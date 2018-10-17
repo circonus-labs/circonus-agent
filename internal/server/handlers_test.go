@@ -69,13 +69,14 @@ func TestRun(t *testing.T) {
 		t.Fatalf("expected no error, got (%s)", cerr)
 	}
 
-	s, err := New(c, b, p, nil)
+	ctx, cancel := context.WithCancel(context.Background())
+	s, err := New(ctx, c, b, p, nil)
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
 
 	for _, runReq := range runTests {
-		time.Sleep(1 * time.Second)
+		time.Sleep(100 * time.Millisecond)
 		t.Logf("GET %s -> %d", runReq.path, runReq.code)
 		req := httptest.NewRequest("GET", runReq.path, nil)
 		w := httptest.NewRecorder()
@@ -88,6 +89,7 @@ func TestRun(t *testing.T) {
 			t.Fatalf("expected %d, got %d", runReq.code, resp.StatusCode)
 		}
 	}
+	cancel()
 }
 
 func TestInventory(t *testing.T) {
@@ -112,12 +114,13 @@ func TestInventory(t *testing.T) {
 		t.Fatalf("expected no error, got (%s)", cerr)
 	}
 
-	s, err := New(c, nil, p, nil)
+	ctx, cancel := context.WithCancel(context.Background())
+	s, err := New(ctx, c, nil, p, nil)
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
 
-	time.Sleep(1 * time.Second) // let plugins initialize
+	time.Sleep(200 * time.Millisecond) // let plugins initialize
 
 	t.Logf("GET /inventory -> %d", http.StatusOK)
 	req := httptest.NewRequest("GET", "/inventory", nil)
@@ -130,6 +133,7 @@ func TestInventory(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected %d, got %d", http.StatusOK, resp.StatusCode)
 	}
+	cancel()
 }
 
 func TestWrite(t *testing.T) {
@@ -143,7 +147,8 @@ func TestWrite(t *testing.T) {
 		t.Fatalf("expected no error, got (%s)", cerr)
 	}
 
-	s, err := New(c, nil, nil, nil)
+	ctx, cancel := context.WithCancel(context.Background())
+	s, err := New(ctx, c, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
@@ -207,6 +212,8 @@ func TestWrite(t *testing.T) {
 			t.Fatalf("expected %d, got %d", http.StatusNoContent, resp.StatusCode)
 		}
 	}
+
+	cancel()
 }
 
 func TestPromReceiver(t *testing.T) {
@@ -266,7 +273,8 @@ func TestPromReceiver(t *testing.T) {
 		t.Fatalf("expected no error, got (%s)", cerr)
 	}
 
-	s, err := New(c, nil, nil, nil)
+	ctx, cancel := context.WithCancel(context.Background())
+	s, err := New(ctx, c, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
@@ -286,6 +294,8 @@ func TestPromReceiver(t *testing.T) {
 		}
 	}
 
+	cancel()
+
 }
 
 func TestSocketHandler(t *testing.T) {
@@ -299,7 +309,8 @@ func TestSocketHandler(t *testing.T) {
 		t.Fatalf("expected no error, got (%s)", cerr)
 	}
 
-	s, err := New(c, nil, nil, nil)
+	ctx, cancel := context.WithCancel(context.Background())
+	s, err := New(ctx, c, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
@@ -371,6 +382,8 @@ func TestSocketHandler(t *testing.T) {
 			t.Fatalf("expected %d, got %d", http.StatusNoContent, resp.StatusCode)
 		}
 	}
+
+	cancel()
 }
 
 func TestPromOutput(t *testing.T) {
@@ -384,7 +397,8 @@ func TestPromOutput(t *testing.T) {
 		t.Fatalf("expected no error, got (%s)", cerr)
 	}
 
-	s, err := New(c, nil, nil, nil)
+	ctx, cancel := context.WithCancel(context.Background())
+	s, err := New(ctx, c, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
@@ -429,6 +443,8 @@ func TestPromOutput(t *testing.T) {
 			t.Fatalf("expected (%s) got (%s)", expect, string(body))
 		}
 	}
+
+	cancel()
 }
 
 func TestMetricsToPromFormat(t *testing.T) {
@@ -442,7 +458,8 @@ func TestMetricsToPromFormat(t *testing.T) {
 		t.Fatalf("expected no error, got (%s)", cerr)
 	}
 
-	s, err := New(c, nil, nil, nil)
+	ctx, cancel := context.WithCancel(context.Background())
+	s, err := New(ctx, c, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
@@ -584,4 +601,6 @@ func TestMetricsToPromFormat(t *testing.T) {
 			t.Fatalf("expected (%s) got (%s)", expect, b.String())
 		}
 	}
+
+	cancel()
 }

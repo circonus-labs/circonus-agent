@@ -19,37 +19,38 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/server"
 	"github.com/circonus-labs/circonus-agent/internal/statsd"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/sync/errgroup"
 )
+
+// Agent holds the main circonus-agent process
+type Agent struct {
+	group        *errgroup.Group
+	groupCtx     context.Context
+	groupCancel  context.CancelFunc
+	builtins     *builtins.Builtins
+	check        *check.Check
+	listenServer *server.Server
+	plugins      *plugins.Plugins
+	reverseConn  *reverse.Connection
+	signalCh     chan os.Signal
+	statsdServer *statsd.Server
+	// t            tomb.Tomb
+}
 
 // New returns a new agent instance
 func New() (*Agent, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	g, gctx := errgroup.WithContext(ctx)
+
 	var err error
 	a := Agent{
-		signalCh: make(chan os.Signal, 10),
+		group:       g,
+		groupCtx:    gctx,
+		groupCancel: cancel,
+		signalCh:    make(chan os.Signal, 10),
 	}
 
-	//
-	// validate the configuration
-	//
 	err = config.Validate()
-	if err != nil {
-		return nil, err
-	}
-
-	a.builtins, err = builtins.New()
-	if err != nil {
-		return nil, err
-	}
-
-	a.plugins, err = plugins.New(a.t.Context(context.Background()))
-	if err != nil {
-		return nil, err
-	}
-	if err = a.plugins.Scan(a.builtins); err != nil {
-		return nil, err
-	}
-
-	a.statsdServer, err = statsd.New()
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +60,25 @@ func New() (*Agent, error) {
 		return nil, err
 	}
 
-	a.listenServer, err = server.New(a.check, a.builtins, a.plugins, a.statsdServer)
+	a.builtins, err = builtins.New()
+	if err != nil {
+		return nil, err
+	}
+
+	a.plugins, err = plugins.New(a.groupCtx)
+	if err != nil {
+		return nil, err
+	}
+	if err = a.plugins.Scan(a.builtins); err != nil {
+		return nil, err
+	}
+
+	a.statsdServer, err = statsd.New(a.groupCtx)
+	if err != nil {
+		return nil, err
+	}
+
+	a.listenServer, err = server.New(a.groupCtx, a.check, a.builtins, a.plugins, a.statsdServer)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +87,7 @@ func New() (*Agent, error) {
 	if err != nil {
 		return nil, err
 	}
-	a.reverseConn, err = reverse.New(a.check, agentAddress)
+	a.reverseConn, err = reverse.New(a.groupCtx, a.check, agentAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -80,29 +99,29 @@ func New() (*Agent, error) {
 
 // Start the agent
 func (a *Agent) Start() error {
-	go a.handleSignals()
-
-	a.t.Go(a.statsdServer.Start)
-	a.t.Go(a.reverseConn.Start)
-	a.t.Go(a.listenServer.Start)
+	a.group.Go(a.handleSignals)
+	a.group.Go(a.statsdServer.Start)
+	a.group.Go(a.reverseConn.Start)
+	a.group.Go(a.listenServer.Start)
 
 	log.Debug().
 		Int("pid", os.Getpid()).
 		Str("name", release.NAME).
 		Str("ver", release.VERSION).Msg("Starting wait")
 
-	return a.t.Wait()
+	return a.group.Wait()
 }
 
 // Stop cleans up and shuts down the Agent
 func (a *Agent) Stop() {
 	a.stopSignalHandler()
-	a.plugins.Stop()
-	a.statsdServer.Stop()
-	a.reverseConn.Stop()
-	a.listenServer.Stop()
-
-	a.t.Kill(nil)
+	a.groupCancel()
+	// a.plugins.Stop()
+	// a.statsdServer.Stop()
+	// a.reverseConn.Stop()
+	// a.listenServer.Stop()
+	//
+	// a.t.Kill(nil)
 
 	log.Debug().
 		Int("pid", os.Getpid()).
