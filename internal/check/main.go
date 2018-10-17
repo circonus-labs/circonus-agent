@@ -6,8 +6,12 @@
 package check
 
 import (
+	"crypto/tls"
 	stdlog "log"
+	"net"
+	"net/url"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
@@ -15,9 +19,47 @@ import (
 	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/circonus-labs/circonus-gometrics/api"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
+
+// metricStates holds the status of known metrics persisted to metrics.json in defaults.StatePath
+type metricStates map[string]string
+
+// Check exposes the check bundle management interface
+type Check struct {
+	statusActiveMetric    string
+	statusActiveBroker    string
+	brokerMaxResponseTime time.Duration
+	brokerMaxRetries      int
+	bundle                *api.CheckBundle
+	client                API
+	lastRefresh           time.Time
+	logger                zerolog.Logger
+	manage                bool
+	metricStates          *metricStates
+	metricStateUpdate     bool
+	refreshTTL            time.Duration
+	revConfig             *ReverseConfig
+	stateFile             string
+	statePath             string
+	sync.Mutex
+}
+
+// Meta contains check id meta data
+type Meta struct {
+	BundleID string
+	CheckIDs []string
+}
+
+// ReverseConfig contains the reverse configuration for the check
+type ReverseConfig struct {
+	BrokerAddr *net.TCPAddr
+	BrokerID   string
+	ReverseURL *url.URL
+	TLSConfig  *tls.Config
+}
 
 // New returns a new check instance
 func New(apiClient API) (*Check, error) {
