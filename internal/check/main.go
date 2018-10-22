@@ -241,7 +241,7 @@ func (c *Check) EnableNewMetrics(m *cgm.Metrics) error {
 
 	if len(newMetrics) > 0 {
 		if err := c.updateCheckBundleMetrics(&newMetrics); err != nil {
-			c.logger.Error().Err(err).Msg("adding mew metrics to check bundle")
+			c.logger.Error().Err(err).Msg("adding new metrics to check bundle")
 		}
 	}
 
