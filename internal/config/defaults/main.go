@@ -143,6 +143,9 @@ var (
 	// and be owned by the user running circonus-agentd (i.e. 'nobody').
 	CheckMetricStatePath = "" // (e.g. /opt/circonus/agent/state)
 
+	// CheckMetricFilters defines default filter to be used with new check creation
+	CheckMetricFilters = [][]string{[]string{"^$", "deny", ""}, []string{"allow", "^.+$", ""}}
+
 	// SSLCertFile returns the deefault ssl cert file name
 	SSLCertFile = "" // (e.g. /opt/circonus/agent/etc/agent.pem)
 

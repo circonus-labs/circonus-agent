@@ -47,6 +47,7 @@ type Check struct {
 	BundleID         string `mapstructure:"bundle_id" json:"bundle_id" yaml:"bundle_id" toml:"bundle_id"`
 	Create           bool   `mapstructure:"create" json:"create" yaml:"create" toml:"create"`
 	EnableNewMetrics bool   `mapstructure:"enable_new_metrics" json:"enable_new_metrics" yaml:"enable_new_metrics" toml:"enable_new_metrics"`
+	MetricFilters    string `mapstructure:"metric_filters" json:"metric_filters" yaml:"metric_filters" toml:"metric_filters"` // needs to be json embedded in a string because rules are positional
 	MetricStateDir   string `mapstructure:"metric_state_dir" json:"metric_state_dir" yaml:"metric_state_dir" toml:"metric_state_dir"`
 	MetricRefreshTTL string `mapstructure:"metric_refresh_ttl" json:"metric_refresh_ttl" yaml:"metric_refresh_ttl" toml:"metric_refresh_ttl"`
 	Tags             string `json:"tags" yaml:"tags" toml:"tags"`
@@ -232,6 +233,25 @@ const (
 	KeyCheckMetricStateDir = "check.metric_state_dir"
 	// KeyCheckMetricRefreshTTL determines how often to refresh check bundle metrics from API when enable new metrics is turned on
 	KeyCheckMetricRefreshTTL = "check.metric_refresh_ttl"
+	// KeyMetricFilters sets the filters used to automatically enable metrics on NEW checks.
+	// The format [][]string{[]string{"allow|deny","rule_regex(pcre)","comment"},...}
+	// If no metric filters are provided and enable new metrics is turned on. When creating a
+	// new check a default set of filters will be used. (`[][]string{[]string{"deny","^$",""},[]string{"allow","^.+$",""}}`
+	// thereby allowing all metrics.) See: "Metric Filters" section of https://login.circonus.com/resources/api/calls/check_bundle
+	// for more information on filters. When filters are used, the agent will
+	// NOT interact with the API to update the check to enable metrics. (the MetricStateDir
+	// and MetricRefreshTTL are not applicable and will be ignored/deprecated going forward.)
+	// The syntax for filters is embedded json (metric filters are positional, first match wins):
+	// command line or environment variable
+	//  `CA_CHECK_METRIC_FILTERS='[["deny","^$",""],["allow","^.+$",""]]'`
+	//  `--check-metric-filters='[["deny","^$",""],["allow","^.+$",""]]'`
+	// JSON configuration file:
+	//  `"metric_filters": "[[\"deny\",\"^$\",\"\"],[\"allow\",\"^.+$\",\"\"]]"`
+	// YAML configuration file:
+	//  `metric_filters: '[["deny","^$",""],["allow","^.+$",""]]'`
+	// TOML configuration file:
+	//  `metric_filters = '''[["deny","$^",""],["allow","^.+$",""]]'''`
+	KeyCheckMetricFilters = "check.metric_filters"
 
 	// KeyCheckCreate toggles creating a new check bundle when a check bundle id is not supplied
 	KeyCheckCreate = "check.create"
