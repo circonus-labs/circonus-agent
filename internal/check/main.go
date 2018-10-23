@@ -79,8 +79,6 @@ func New(apiClient API) (*Check, error) {
 		statusActiveMetric:    "active",
 	}
 
-	c.stateFile = filepath.Join(c.statePath, "metrics.json")
-
 	isCreate := viper.GetBool(config.KeyCheckCreate)
 	isManaged := viper.GetBool(config.KeyCheckEnableNewMetrics)
 	isReverse := viper.GetBool(config.KeyReverse)
@@ -114,60 +112,59 @@ func New(apiClient API) (*Check, error) {
 
 	c.client = apiClient
 
-	/*
-	   if err := c.initCheck(cid, isCreate); err != nil {
-	       return nil, errorrs.Wrap(err, "initializing check")
-	   }
-	   if isManaged && len(c.bundle.MetricFilters) > 0 {
-	       isManaged = false
-	       c.manage = false
-	   } else {
-	       c.setMetricStates()
-	   }
-	   if isReverse {
-	       c.setReverse()
-	       c.reverse = true
-	   }
-	*/
-
-	// initCheck(cid, isCreate)
-
-	if isManaged {
-		// preload the last known metric states so that states coming down
-		// from the API when fetching the check bundle will be merged into
-		// the known states since the fresh states have a higher precedence
-		if ok, err := c.verifyStatePath(); ok {
-			ms, err := c.loadState()
-			if err != nil {
-				c.logger.Error().Err(err).Msg("unable to load existing metric states, all metrics considered existing")
-			} else {
-				c.metricStates = ms
-				c.logger.Debug().Interface("metric_states", len(*c.metricStates)).Msg("loaded metric states")
-			}
-		} else {
-			if err != nil {
-				c.logger.Error().Err(err).Msg("verify state path")
-			}
-			c.logger.Warn().Str("state_path", c.statePath).Msg("encountered state path issue(s), disabling check-enable-new-metrics")
-			viper.Set(config.KeyCheckEnableNewMetrics, false)
-			isManaged = false
-			c.manage = false
-		}
+	if err := c.initCheck(cid, isCreate); err != nil {
+		return nil, errors.Wrap(err, "initializing check")
 	}
 
-	// fetch or create check bundle
-	if err := c.setCheck(); err != nil {
-		return nil, errors.Wrap(err, "unable to configure check")
-	}
-
-	// ensure a) the global check bundle id is set and b) it is set correctly to the
-	// check bundle actually being used - need to do this even if the check was
-	// created initially since user 'nobody' cannot create or update the configuration
+	// ensure a) the global check bundle id is set and b) it is set correctly
+	// to the check bundle actually being used - need to do this even if the
+	// check was created initially since user 'nobody' cannot create or update
+	// the configuration (if one was used)
 	viper.Set(config.KeyCheckBundleID, c.bundle.CID)
 
+	if isReverse {
+		err := c.setReverseConfig()
+		if err != nil {
+			return nil, errors.Wrap(err, "setting up reverse configuration")
+		}
+		c.reverse = true
+	}
+
 	if !isManaged {
+		c.manage = false
 		return &c, nil
 	}
+
+	if isManaged && len(c.bundle.MetricFilters) > 0 {
+		c.manage = false
+		return &c, nil
+	}
+
+	c.stateFile = filepath.Join(c.statePath, "metrics.json")
+
+	if ok, err := c.verifyStatePath(); ok {
+		ms, err := c.loadState()
+		if err != nil {
+			c.logger.Error().Err(err).Msg("unable to load existing metric states, all metrics considered existing")
+		} else {
+			c.metricStates = ms
+			c.logger.Debug().Interface("metric_states", len(*c.metricStates)).Msg("loaded metric states")
+		}
+	} else {
+		if err != nil {
+			c.logger.Error().Err(err).Msg("verify state path")
+		}
+		c.logger.Warn().Str("state_path", c.statePath).Msg("encountered state path issue(s), disabling check-enable-new-metrics")
+		viper.Set(config.KeyCheckEnableNewMetrics, false)
+		c.manage = false
+		return &c, nil
+	}
+
+	err := c.setMetricStates(&c.bundle.Metrics)
+	if err != nil {
+		return nil, errors.Wrap(err, "setting metric states")
+	}
+	c.bundle.Metrics = []apiclient.CheckBundleMetric{} // save a little memory (or a lot depending on how many metrics are being managed...)
 
 	// check metrics refresh ttl
 	ttl, err := time.ParseDuration(viper.GetString(config.KeyCheckMetricRefreshTTL))
@@ -189,6 +186,9 @@ func New(apiClient API) (*Check, error) {
 
 // CheckMeta returns check bundle id and check ids
 func (c *Check) CheckMeta() (*Meta, error) {
+	c.Lock()
+	defer c.Unlock()
+
 	if c.bundle != nil {
 		return &Meta{
 			BundleID: c.bundle.CID,
@@ -202,8 +202,30 @@ func (c *Check) CheckMeta() (*Meta, error) {
 func (c *Check) RefreshCheckConfig() error {
 	c.Lock()
 	defer c.Unlock()
+
 	c.logger.Debug().Msg("refreshing check configuration using API")
-	return c.setCheck()
+
+	b, err := c.fetchCheck(viper.GetString(config.KeyCheckBundleID))
+	if err != nil {
+		return errors.Wrap(err, "refresh check, fetching check")
+	}
+
+	c.bundle = b
+
+	if c.manage {
+		c.logger.Debug().Msg("setting metric states")
+		err := c.setMetricStates(&c.bundle.Metrics)
+		if err != nil {
+			return errors.Wrap(err, "setting metric states")
+		}
+	}
+	c.bundle.Metrics = []apiclient.CheckBundleMetric{} // save a little memory (or a lot depending on how many metrics are being managed...)
+
+	if err := c.setReverseConfig(); err != nil {
+		return errors.Wrap(err, "refresh check, setting reverse config")
+	}
+
+	return nil
 }
 
 // GetReverseConfig returns the reverse configuration to use for the broker
