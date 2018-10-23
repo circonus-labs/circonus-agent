@@ -116,6 +116,8 @@ func New(apiClient API) (*Check, error) {
 		return nil, errors.Wrap(err, "initializing check")
 	}
 
+	c.logger.Debug().Interface("check_config", c.bundle).Msg("using check bundle config")
+
 	// ensure a) the global check bundle id is set and b) it is set correctly
 	// to the check bundle actually being used - need to do this even if the
 	// check was created initially since user 'nobody' cannot create or update
@@ -130,12 +132,13 @@ func New(apiClient API) (*Check, error) {
 		c.reverse = true
 	}
 
-	if !isManaged {
+	if len(c.bundle.MetricFilters) > 0 {
+		c.logger.Debug().Msg("setting managed off, check has metric_filters")
 		c.manage = false
 		return &c, nil
 	}
 
-	if isManaged && len(c.bundle.MetricFilters) > 0 {
+	if !isManaged {
 		c.manage = false
 		return &c, nil
 	}
