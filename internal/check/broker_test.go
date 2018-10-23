@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	"github.com/circonus-labs/circonus-gometrics/api"
+	"github.com/circonus-labs/go-apiclient"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
@@ -139,7 +139,7 @@ func TestBrokerSupportsCheckType(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	details := api.BrokerDetail{Modules: []string{"json", "httptrap"}}
+	details := apiclient.BrokerDetail{Modules: []string{"json", "httptrap"}}
 
 	t.Log("unsupported (foo)")
 	{

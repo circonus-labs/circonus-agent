@@ -31,6 +31,15 @@
   revision = "5eb751da55c6d3091faf3861ec5062ae91fee9d0"
 
 [[projects]]
+  name = "github.com/circonus-labs/go-apiclient"
+  packages = [
+    ".",
+    "config"
+  ]
+  revision = "adb72bc548261c251e5ab341b695c3d678ed5c99"
+  version = "v0.5.0"
+
+[[projects]]
   name = "github.com/fatih/structs"
   packages = ["."]
   revision = "4966fc68f5b7593aafa6cbbba2d65ec6e1416047"
@@ -142,7 +151,7 @@
     "internal/bitbucket.org/ww/goautoneg",
     "model"
   ]
-  revision = "bcb74de08d37a417cb6789eec1d6c810040f0470"
+  revision = "7e9e6cabbd393fc208072eedef99188d0ce788b6"
 
 [[projects]]
   name = "github.com/rs/zerolog"
@@ -174,7 +183,7 @@
   branch = "master"
   name = "github.com/spf13/cobra"
   packages = ["."]
-  revision = "8d114be902bc9f08717804830a55c48378108a28"
+  revision = "fe5e611709b0c57fa4a89136deaa8e1d4004d053"
 
 [[projects]]
   name = "github.com/spf13/jwalterweatherman"
@@ -204,7 +213,7 @@
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context"]
-  revision = "49bb7cea24b1df9410e1712aa6433dae904ff66a"
+  revision = "9b4f9f5ad5197c79fd623a3638e70d8b26cef344"
 
 [[projects]]
   branch = "master"
@@ -216,7 +225,7 @@
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "fa43e7bc11baaae89f3f902b2b4d832b68234844"
+  revision = "44b849a8bc13eb42e95e6c6c5e360481b73ec710"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -240,6 +249,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9b4962d2d5e18871f3f87068d0760ff048a2f4488f7a027b181193218e740846"
+  inputs-digest = "13c7c946b197fddc2c38e9ca24e283ade457956c52495cf8808cd36175ad5afc"
   solver-name = "gps-cdcl"
   solver-version = 1

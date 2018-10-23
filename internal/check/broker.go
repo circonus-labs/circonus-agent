@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	"github.com/circonus-labs/circonus-gometrics/api"
+	"github.com/circonus-labs/go-apiclient"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
@@ -85,7 +85,7 @@ func (c *Check) brokerTLSConfig(cid string, reverseURL *url.URL) (*tls.Config, e
 		return nil, errors.Errorf("invalid broker cid (%s)", cid)
 	}
 
-	broker, err := c.client.FetchBroker(api.CIDType(&bcid))
+	broker, err := c.client.FetchBroker(apiclient.CIDType(&bcid))
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to retrieve broker (%s)", cid)
 	}
@@ -113,7 +113,7 @@ func (c *Check) brokerTLSConfig(cid string, reverseURL *url.URL) (*tls.Config, e
 	return tlsConfig, nil
 }
 
-func (c *Check) getBrokerCN(broker *api.Broker, reverseURL *url.URL) (string, error) {
+func (c *Check) getBrokerCN(broker *apiclient.Broker, reverseURL *url.URL) (string, error) {
 	host := reverseURL.Hostname()
 
 	// OK...
@@ -182,7 +182,7 @@ func (c *Check) fetchBrokerCA() ([]byte, error) {
 
 // Select a broker for use when creating a check, if a specific broker
 // was not specified.
-func (c *Check) selectBroker(checkType string) (*api.Broker, error) {
+func (c *Check) selectBroker(checkType string) (*apiclient.Broker, error) {
 	brokerList, err := c.client.FetchBrokers()
 	if err != nil {
 		return nil, errors.Wrap(err, "select broker")
@@ -192,7 +192,7 @@ func (c *Check) selectBroker(checkType string) (*api.Broker, error) {
 		return nil, errors.New("no brokers returned from API")
 	}
 
-	validBrokers := make(map[string]api.Broker)
+	validBrokers := make(map[string]apiclient.Broker)
 	haveEnterprise := false
 	threshold := 10 * time.Second
 
@@ -205,7 +205,7 @@ func (c *Check) selectBroker(checkType string) (*api.Broker, error) {
 			} else if dur == threshold {
 				validBrokers[broker.CID] = broker
 			} else if dur < threshold {
-				validBrokers = make(map[string]api.Broker)
+				validBrokers = make(map[string]apiclient.Broker)
 				haveEnterprise = false
 				threshold = dur
 				validBrokers[broker.CID] = broker
@@ -228,7 +228,7 @@ func (c *Check) selectBroker(checkType string) (*api.Broker, error) {
 		return nil, errors.Errorf("found %d broker(s), zero are valid", len(*brokerList))
 	}
 
-	var selectedBroker api.Broker
+	var selectedBroker apiclient.Broker
 	validBrokerKeys := reflect.ValueOf(validBrokers).MapKeys()
 	if len(validBrokerKeys) == 1 {
 		selectedBroker = validBrokers[validBrokerKeys[0].String()]
@@ -242,7 +242,7 @@ func (c *Check) selectBroker(checkType string) (*api.Broker, error) {
 }
 
 // Is the broker valid (active, supports check type, and reachable)
-func (c *Check) isValidBroker(broker *api.Broker, checkType string) (time.Duration, bool) {
+func (c *Check) isValidBroker(broker *apiclient.Broker, checkType string) (time.Duration, bool) {
 	var brokerHost string
 	var brokerPort string
 	var connDuration time.Duration
@@ -320,7 +320,7 @@ func (c *Check) isValidBroker(broker *api.Broker, checkType string) (time.Durati
 }
 
 // brokerSupportsCheckType verifies a broker supports the check type to be used
-func brokerSupportsCheckType(checkType string, details *api.BrokerDetail) bool {
+func brokerSupportsCheckType(checkType string, details *apiclient.BrokerDetail) bool {
 	baseType := string(checkType)
 
 	if idx := strings.Index(baseType, ":"); idx > 0 {

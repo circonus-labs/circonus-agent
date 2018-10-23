@@ -5,19 +5,19 @@
 
 package check
 
-//go:generate moq -out api_test.go . API
+import "github.com/circonus-labs/go-apiclient"
 
-import "github.com/circonus-labs/circonus-gometrics/api"
+//go:generate moq -out api_test.go . API
 
 // API interface abstraction of circonus api (for mocking)
 type API interface {
 	Get(url string) ([]byte, error)
-	FetchBroker(cid api.CIDType) (*api.Broker, error)
-	FetchBrokers() (*[]api.Broker, error)
-	CreateCheckBundle(cfg *api.CheckBundle) (*api.CheckBundle, error)
-	FetchCheckBundleMetrics(cid api.CIDType) (*api.CheckBundleMetrics, error)
-	FetchCheckBundle(cid api.CIDType) (*api.CheckBundle, error)
-	SearchCheckBundles(searchCriteria *api.SearchQueryType, filterCriteria *map[string][]string) (*[]api.CheckBundle, error)
-	UpdateCheckBundle(cfg *api.CheckBundle) (*api.CheckBundle, error)
-	UpdateCheckBundleMetrics(cfg *api.CheckBundleMetrics) (*api.CheckBundleMetrics, error)
+	FetchBroker(cid apiclient.CIDType) (*apiclient.Broker, error)
+	FetchBrokers() (*[]apiclient.Broker, error)
+	CreateCheckBundle(cfg *apiclient.CheckBundle) (*apiclient.CheckBundle, error)
+	FetchCheckBundleMetrics(cid apiclient.CIDType) (*apiclient.CheckBundleMetrics, error)
+	FetchCheckBundle(cid apiclient.CIDType) (*apiclient.CheckBundle, error)
+	SearchCheckBundles(searchCriteria *apiclient.SearchQueryType, filterCriteria *map[string][]string) (*[]apiclient.CheckBundle, error)
+	UpdateCheckBundle(cfg *apiclient.CheckBundle) (*apiclient.CheckBundle, error)
+	UpdateCheckBundleMetrics(cfg *apiclient.CheckBundleMetrics) (*apiclient.CheckBundleMetrics, error)
 }

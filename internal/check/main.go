@@ -17,7 +17,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	cgm "github.com/circonus-labs/circonus-gometrics"
-	"github.com/circonus-labs/circonus-gometrics/api"
+	"github.com/circonus-labs/go-apiclient"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -33,7 +33,7 @@ type Check struct {
 	statusActiveBroker    string
 	brokerMaxResponseTime time.Duration
 	brokerMaxRetries      int
-	bundle                *api.CheckBundle
+	bundle                *apiclient.CheckBundle
 	client                API
 	lastRefresh           time.Time
 	logger                zerolog.Logger
@@ -41,6 +41,7 @@ type Check struct {
 	metricStates          *metricStates
 	metricStateUpdate     bool
 	refreshTTL            time.Duration
+	reverse               bool
 	revConfig             *ReverseConfig
 	stateFile             string
 	statePath             string
@@ -72,6 +73,7 @@ func New(apiClient API) (*Check, error) {
 		manage:                false,
 		metricStateUpdate:     false,
 		refreshTTL:            time.Duration(0),
+		reverse:               false,
 		statePath:             viper.GetString(config.KeyCheckMetricStateDir),
 		statusActiveBroker:    "active",
 		statusActiveMetric:    "active",
@@ -96,14 +98,14 @@ func New(apiClient API) (*Check, error) {
 
 	if apiClient == nil {
 		// create an API client
-		cfg := &api.Config{
+		cfg := &apiclient.Config{
 			TokenKey: viper.GetString(config.KeyAPITokenKey),
 			TokenApp: viper.GetString(config.KeyAPITokenApp),
 			URL:      viper.GetString(config.KeyAPIURL),
 			Log:      stdlog.New(c.logger.With().Str("pkg", "check.api").Logger(), "", 0),
 			Debug:    viper.GetBool(config.KeyDebugCGM),
 		}
-		client, err := api.New(cfg)
+		client, err := apiclient.New(cfg)
 		if err != nil {
 			return nil, errors.Wrap(err, "creating circonus api client")
 		}
@@ -111,6 +113,24 @@ func New(apiClient API) (*Check, error) {
 	}
 
 	c.client = apiClient
+
+	/*
+	   if err := c.initCheck(cid, isCreate); err != nil {
+	       return nil, errorrs.Wrap(err, "initializing check")
+	   }
+	   if isManaged && len(c.bundle.MetricFilters) > 0 {
+	       isManaged = false
+	       c.manage = false
+	   } else {
+	       c.setMetricStates()
+	   }
+	   if isReverse {
+	       c.setReverse()
+	       c.reverse = true
+	   }
+	*/
+
+	// initCheck(cid, isCreate)
 
 	if isManaged {
 		// preload the last known metric states so that states coming down
@@ -230,7 +250,7 @@ func (c *Check) EnableNewMetrics(m *cgm.Metrics) error {
 
 	c.logger.Debug().Msg("scanning for new metrics")
 
-	newMetrics := map[string]api.CheckBundleMetric{}
+	newMetrics := map[string]apiclient.CheckBundleMetric{}
 
 	for mn, mv := range *m {
 		if _, known := (*c.metricStates)[mn]; !known {

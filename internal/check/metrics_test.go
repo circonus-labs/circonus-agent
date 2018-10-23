@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	cgm "github.com/circonus-labs/circonus-gometrics"
-	"github.com/circonus-labs/circonus-gometrics/api"
+	"github.com/circonus-labs/go-apiclient"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -20,7 +20,7 @@ func TestGetFullCheckMetrics(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	client := genMockClient()
-	c := Check{bundle: &api.CheckBundle{CID: ""}, client: client}
+	c := Check{bundle: &apiclient.CheckBundle{CID: ""}, client: client}
 
 	t.Log("api error")
 	{
@@ -66,7 +66,7 @@ func TestUpdateCheckBundleMetrics(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	client := genMockClient()
-	c := Check{bundle: &api.CheckBundle{CID: ""}, client: client}
+	c := Check{bundle: &apiclient.CheckBundle{CID: ""}, client: client}
 
 	t.Log("nil metrics")
 	{
@@ -81,7 +81,7 @@ func TestUpdateCheckBundleMetrics(t *testing.T) {
 
 	t.Log("short circuit (0 metrics)")
 	{
-		metrics := map[string]api.CheckBundleMetric{}
+		metrics := map[string]apiclient.CheckBundleMetric{}
 		err := c.updateCheckBundleMetrics(&metrics)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
@@ -91,8 +91,8 @@ func TestUpdateCheckBundleMetrics(t *testing.T) {
 	t.Log("api error")
 	{
 		c.bundle.CID = "/check_bundle/000"
-		metrics := map[string]api.CheckBundleMetric{
-			"foo": api.CheckBundleMetric{Name: "foo", Type: "n", Status: "active"},
+		metrics := map[string]apiclient.CheckBundleMetric{
+			"foo": apiclient.CheckBundleMetric{Name: "foo", Type: "n", Status: "active"},
 		}
 		err := c.updateCheckBundleMetrics(&metrics)
 		if err == nil {
@@ -106,8 +106,8 @@ func TestUpdateCheckBundleMetrics(t *testing.T) {
 	t.Log("update error")
 	{
 		c.bundle.CID = "/check_bundle/0002"
-		metrics := map[string]api.CheckBundleMetric{
-			"foo": api.CheckBundleMetric{Name: "foo", Type: "n", Status: "active"},
+		metrics := map[string]apiclient.CheckBundleMetric{
+			"foo": apiclient.CheckBundleMetric{Name: "foo", Type: "n", Status: "active"},
 		}
 		err := c.updateCheckBundleMetrics(&metrics)
 		if err == nil {
@@ -121,8 +121,8 @@ func TestUpdateCheckBundleMetrics(t *testing.T) {
 	t.Log("new metric")
 	{
 		c.bundle.CID = "/check_bundle/1234"
-		metrics := map[string]api.CheckBundleMetric{
-			"foo": api.CheckBundleMetric{Name: "foo", Type: "n", Status: "active"},
+		metrics := map[string]apiclient.CheckBundleMetric{
+			"foo": apiclient.CheckBundleMetric{Name: "foo", Type: "n", Status: "active"},
 		}
 		err := c.updateCheckBundleMetrics(&metrics)
 		if err != nil {

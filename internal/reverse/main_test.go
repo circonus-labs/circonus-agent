@@ -26,7 +26,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/check"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
-	"github.com/circonus-labs/circonus-gometrics/api"
+	"github.com/circonus-labs/go-apiclient"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
@@ -39,8 +39,8 @@ type pkicacert struct {
 var (
 	brokerSim       = httptest.NewTLSServer(http.HandlerFunc(brokerHandler))
 	apiSim          = httptest.NewServer(http.HandlerFunc(apiHandler))
-	testCheckBundle api.CheckBundle
-	testBroker      api.Broker
+	testCheckBundle apiclient.CheckBundle
+	testBroker      apiclient.Broker
 	cacert          pkicacert
 )
 
@@ -101,7 +101,7 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(200)
 				fmt.Fprintln(w, "[]")
 			} else if strings.Contains(reqURL, "multiple") {
-				c := []api.CheckBundle{{}, {}}
+				c := []apiclient.CheckBundle{{}, {}}
 				ret, err := json.Marshal(c)
 				if err != nil {
 					panic(err)
@@ -112,7 +112,7 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(500)
 				fmt.Fprintln(w, `{"error":"requested an error"}`)
 			} else if strings.Contains(reqURL, "test") {
-				c := []api.CheckBundle{testCheckBundle}
+				c := []apiclient.CheckBundle{testCheckBundle}
 				ret, err := json.Marshal(c)
 				if err != nil {
 					panic(err)
