@@ -189,6 +189,7 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 		}()
 	}
 
+	s.logger.Debug().Msg("waiting for metric collection from input conduits")
 	wg.Wait()
 
 	s.logger.Debug().Msg("lock metrics for lastMetrics upd, enable metrics, and response")
