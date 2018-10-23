@@ -234,6 +234,7 @@ func (c *Check) createCheck() (*apiclient.CheckBundle, error) {
 	cfg.Brokers = []string{brokerCID}
 
 	if viper.GetBool(config.KeyCheckEnableNewMetrics) {
+		cfg.Metrics = []apiclient.CheckBundleMetric{}
 		cfg.MetricFilters = defaults.CheckMetricFilters
 		if viper.GetString(config.KeyCheckMetricFilters) != "" {
 			var filters [][]string
