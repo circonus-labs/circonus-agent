@@ -21,7 +21,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
 	"github.com/circonus-labs/circonus-agent/internal/statsd"
-	cgm "github.com/circonus-labs/circonus-gometrics"
+	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"

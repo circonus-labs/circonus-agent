@@ -8,7 +8,7 @@ package check
 import (
 	"testing"
 
-	cgm "github.com/circonus-labs/circonus-gometrics"
+	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/circonus-labs/go-apiclient"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"

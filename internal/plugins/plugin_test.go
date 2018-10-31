@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	cgm "github.com/circonus-labs/circonus-gometrics"
+	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 )

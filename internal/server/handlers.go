@@ -22,7 +22,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/server/promrecv"
 	"github.com/circonus-labs/circonus-agent/internal/server/receiver"
-	cgm "github.com/circonus-labs/circonus-gometrics"
+	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	appstats "github.com/maier/go-appstats"
 	"github.com/spf13/viper"
 )

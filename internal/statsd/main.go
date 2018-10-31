@@ -16,7 +16,7 @@ import (
 	"sync"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	cgm "github.com/circonus-labs/circonus-gometrics"
+	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/maier/go-appstats"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
