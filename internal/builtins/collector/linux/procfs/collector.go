@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
-	cgm "github.com/circonus-labs/circonus-gometrics"
+	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
 )
 
@@ -19,7 +19,7 @@ import (
 //
 // The individual wmi collector implementations must override Collect and Flush.
 //
-// ID and Inventory are generic and do not need to be overriden unless the
+// ID and Inventory are generic and do not need to be overridden unless the
 // collector implementation requires it.
 
 // Collect returns collector metrics

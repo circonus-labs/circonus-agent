@@ -6,23 +6,64 @@
 package statsd
 
 import (
+	"context"
 	"crypto/x509"
 	"io/ioutil"
 	stdlog "log"
 	"net"
 	"regexp"
 	"strconv"
+	"sync"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	cgm "github.com/circonus-labs/circonus-gometrics"
+	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/maier/go-appstats"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
+	"golang.org/x/sync/errgroup"
+)
+
+// Server defines a statsd server
+type Server struct {
+	group                 *errgroup.Group
+	groupCtx              context.Context
+	disabled              bool
+	address               *net.UDPAddr
+	hostMetrics           *cgm.CirconusMetrics
+	hostMetricsmu         sync.Mutex
+	groupMetrics          *cgm.CirconusMetrics
+	groupMetricsmu        sync.Mutex
+	logger                zerolog.Logger
+	hostPrefix            string
+	hostCategory          string
+	groupCID              string
+	groupPrefix           string
+	groupCounterOp        string
+	groupGaugeOp          string
+	groupSetOp            string
+	metricRegex           *regexp.Regexp
+	metricRegexGroupNames []string
+	apiKey                string
+	apiApp                string
+	apiURL                string
+	apiCAFile             string
+	debugCGM              bool
+	listener              *net.UDPConn
+	packetCh              chan []byte
+}
+
+const (
+	maxPacketSize   = 1472
+	packetQueueSize = 1000
+	destHost        = "host"
+	destGroup       = "group"
+	destIgnore      = "ignore"
 )
 
 // New returns a statsd server definition
-func New() (*Server, error) {
+func New(ctx context.Context) (*Server, error) {
 	s := Server{
 		disabled: viper.GetBool(config.KeyStatsdDisabled),
 		logger:   log.With().Str("pkg", "statsd").Logger(),
@@ -38,7 +79,11 @@ func New() (*Server, error) {
 		return nil, err
 	}
 
+	g, gctx := errgroup.WithContext(ctx)
+
 	s = Server{
+		group:          g,
+		groupCtx:       gctx,
 		disabled:       viper.GetBool(config.KeyStatsdDisabled),
 		logger:         log.With().Str("pkg", "statsd").Logger(),
 		hostPrefix:     viper.GetString(config.KeyStatsdHostPrefix),
@@ -69,11 +114,11 @@ func New() (*Server, error) {
 
 	if !s.disabled {
 		if ierr := s.initHostMetrics(); ierr != nil {
-			return nil, errors.Wrap(ierr, "Initializing host metrics for StatsD")
+			return nil, errors.Wrap(ierr, "initializing host metrics for StatsD")
 		}
 
 		if ierr := s.initGroupMetrics(); ierr != nil {
-			return nil, errors.Wrap(ierr, "Initializing group metrics for StatsD")
+			return nil, errors.Wrap(ierr, "initializing group metrics for StatsD")
 		}
 	}
 
@@ -93,33 +138,24 @@ func (s *Server) Start() error {
 		return nil
 	}
 
-	s.t.Go(s.reader)
-	s.t.Go(s.processor)
+	s.group.Go(s.reader)
+	s.group.Go(s.processor)
 
-	return s.t.Wait()
-}
+	go func() {
+		s.group.Wait()
+		// only try to flush group metrics since they go
+		// directly to a broker. there is no point in trying
+		// to flush host metrics as the 'server' portion of
+		// the agent may have already closed.
+		if s.groupMetrics != nil {
+			s.logger.Info().Msg("flushing group metrics")
+			s.groupMetricsmu.Lock()
+			s.groupMetrics.Flush()
+			s.groupMetricsmu.Unlock()
+		}
+	}()
 
-// Stop the server
-func (s *Server) Stop() error {
-	if s.disabled {
-		s.logger.Info().Msg("disabled, nothing to stop")
-		return nil
-	}
-
-	s.logger.Info().Msg("stopping StatsD Server")
-
-	if s.t.Alive() {
-		s.t.Kill(nil)
-	}
-
-	if s.groupMetrics != nil {
-		s.logger.Info().Msg("flushing group metrics")
-		s.groupMetricsmu.Lock()
-		s.groupMetrics.Flush()
-		s.groupMetricsmu.Unlock()
-	}
-
-	return nil
+	return s.group.Wait()
 }
 
 // Flush *host* metrics only
@@ -236,7 +272,7 @@ func (s *Server) processor() error {
 	defer s.listener.Close()
 	for {
 		select {
-		case <-s.t.Dying():
+		case <-s.groupCtx.Done():
 			return nil
 		case pkt := <-s.packetCh:
 			err := s.processPacket(pkt)
@@ -252,7 +288,7 @@ func (s *Server) processor() error {
 // shutdown checks whether tomb is dying
 func (s *Server) shutdown() bool {
 	select {
-	case <-s.t.Dying():
+	case <-s.groupCtx.Done():
 		return true
 	default:
 		return false
@@ -266,17 +302,17 @@ func validateStatsdOptions() error {
 
 	port := viper.GetString(config.KeyStatsdPort)
 	if port == "" {
-		return errors.New("Invalid StatsD port (empty)")
+		return errors.New("invalid StatsD port (empty)")
 	}
 	if ok, err := regexp.MatchString("^[0-9]+$", port); err != nil {
-		return errors.Wrapf(err, "Invalid StatsD port (%s)", port)
+		return errors.Wrapf(err, "invalid StatsD port (%s)", port)
 	} else if !ok {
-		return errors.Errorf("Invalid StatsD port (%s)", port)
+		return errors.Errorf("invalid StatsD port (%s)", port)
 	}
 	if pnum, err := strconv.ParseUint(port, 10, 32); err != nil {
-		return errors.Wrap(err, "Invalid StatsD port")
+		return errors.Wrap(err, "invalid StatsD port")
 	} else if pnum < 1024 || pnum > 65535 {
-		return errors.Errorf("Invalid StatsD port 1024>%s<65535", port)
+		return errors.Errorf("invalid StatsD port 1024>%s<65535", port)
 	}
 
 	// can be empty (all metrics go to host)
@@ -285,7 +321,7 @@ func validateStatsdOptions() error {
 
 	hostCat := viper.GetString(config.KeyStatsdHostCategory)
 	if hostCat == "" {
-		return errors.New("Invalid StatsD host category (empty)")
+		return errors.New("invalid StatsD host category (empty)")
 	}
 
 	groupCID := viper.GetString(config.KeyStatsdGroupCID)
@@ -307,7 +343,7 @@ func validateStatsdOptions() error {
 		return errors.Wrap(err, "StatsD Group Check ID")
 	}
 	if !ok {
-		return errors.Errorf("Invalid StatsD Group Check ID (%s)", groupCID)
+		return errors.Errorf("invalid StatsD Group Check ID (%s)", groupCID)
 	}
 
 	groupPrefix := viper.GetString(config.KeyStatsdGroupPrefix)
@@ -321,32 +357,32 @@ func validateStatsdOptions() error {
 
 	counterOp := viper.GetString(config.KeyStatsdGroupCounters)
 	if counterOp == "" {
-		return errors.New("Invalid StatsD counter operator (empty)")
+		return errors.New("invalid StatsD counter operator (empty)")
 	}
 	if ok, err := regexp.MatchString("^(average|sum)$", counterOp); err != nil {
-		return errors.Wrapf(err, "Invalid StatsD counter operator (%s)", counterOp)
+		return errors.Wrapf(err, "invalid StatsD counter operator (%s)", counterOp)
 	} else if !ok {
-		return errors.Errorf("Invalid StatsD counter operator (%s)", counterOp)
+		return errors.Errorf("invalid StatsD counter operator (%s)", counterOp)
 	}
 
 	gaugeOp := viper.GetString(config.KeyStatsdGroupGauges)
 	if gaugeOp == "" {
-		return errors.New("Invalid StatsD gauge operator (empty)")
+		return errors.New("invalid StatsD gauge operator (empty)")
 	}
 	if ok, err := regexp.MatchString("^(average|sum)$", gaugeOp); err != nil {
-		return errors.Wrapf(err, "Invalid StatsD gauge operator (%s)", gaugeOp)
+		return errors.Wrapf(err, "invalid StatsD gauge operator (%s)", gaugeOp)
 	} else if !ok {
-		return errors.Errorf("Invalid StatsD gauge operator (%s)", gaugeOp)
+		return errors.Errorf("invalid StatsD gauge operator (%s)", gaugeOp)
 	}
 
 	setOp := viper.GetString(config.KeyStatsdGroupSets)
 	if setOp == "" {
-		return errors.New("Invalid StatsD set operator (empty)")
+		return errors.New("invalid StatsD set operator (empty)")
 	}
 	if ok, err := regexp.MatchString("^(average|sum)$", setOp); err != nil {
-		return errors.Wrapf(err, "Invalid StatsD set operator (%s)", setOp)
+		return errors.Wrapf(err, "invalid StatsD set operator (%s)", setOp)
 	} else if !ok {
-		return errors.Errorf("Invalid StatsD set operator (%s)", setOp)
+		return errors.Errorf("invalid StatsD set operator (%s)", setOp)
 	}
 
 	return nil

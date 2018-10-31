@@ -214,6 +214,7 @@ func init() {
 		RootCmd.Flags().Int(longOpt, defaultValue, desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
+		viper.SetDefault(key, defaultValue)
 	}
 
 	//
@@ -304,6 +305,20 @@ func init() {
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
 		viper.SetDefault(key, defaults.CheckTags)
+	}
+
+	{
+		const (
+			key          = config.KeyCheckMetricFilters
+			longOpt      = "check-metric-filters"
+			defaultValue = ""
+			envVar       = release.ENVPREFIX + "_CHECK_METRIC_FILTERS"
+			description  = "List of filters used to manage which metrics are collected by the broker"
+		)
+
+		RootCmd.Flags().String(longOpt, defaultValue, desc(description, envVar))
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
 	}
 
 	{

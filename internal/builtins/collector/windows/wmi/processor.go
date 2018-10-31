@@ -17,7 +17,7 @@ import (
 	"github.com/StackExchange/wmi"
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	cgm "github.com/circonus-labs/circonus-gometrics"
+	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
@@ -45,10 +45,10 @@ type Win32_PerfFormattedData_PerfOS_Processor struct {
 type Processor struct {
 	wmicommon
 	numCPU        float64
-	reportAllCPUs bool // may be overriden in config file
+	reportAllCPUs bool // may be overridden in config file
 }
 
-// processorOptions defines what elements can be overriden in a config file
+// processorOptions defines what elements can be overridden in a config file
 type processorOptions struct {
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
 	AllCPU               string   `json:"report_all_cpus" toml:"report_all_cpus" yaml:"report_all_cpus"`

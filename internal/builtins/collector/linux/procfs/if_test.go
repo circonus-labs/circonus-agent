@@ -25,7 +25,7 @@ func TestNewIFCollector(t *testing.T) {
 
 	t.Log("no config")
 	{
-		_, err := NewIFCollector("")
+		_, err := NewIFCollector("", PROC_FS_PATH)
 		if runtime.GOOS == "linux" {
 			if err != nil {
 				t.Fatalf("expected NO error, got (%s)", err)
@@ -39,7 +39,7 @@ func TestNewIFCollector(t *testing.T) {
 
 	t.Log("config (missing)")
 	{
-		_, err := NewIFCollector(filepath.Join("testdata", "missing"))
+		_, err := NewIFCollector(filepath.Join("testdata", "missing"), PROC_FS_PATH)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -47,7 +47,7 @@ func TestNewIFCollector(t *testing.T) {
 
 	t.Log("config (bad syntax)")
 	{
-		_, err := NewIFCollector(filepath.Join("testdata", "bad_syntax"))
+		_, err := NewIFCollector(filepath.Join("testdata", "bad_syntax"), PROC_FS_PATH)
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -55,7 +55,7 @@ func TestNewIFCollector(t *testing.T) {
 
 	t.Log("config (config no settings)")
 	{
-		c, err := NewIFCollector(filepath.Join("testdata", "config_no_settings"))
+		c, err := NewIFCollector(filepath.Join("testdata", "config_no_settings"), PROC_FS_PATH)
 		if runtime.GOOS == "linux" {
 			if err != nil {
 				t.Fatalf("expected NO error, got (%s)", err)
@@ -75,7 +75,7 @@ func TestNewIFCollector(t *testing.T) {
 
 	t.Log("config (id setting)")
 	{
-		c, err := NewIFCollector(filepath.Join("testdata", "config_id_setting"))
+		c, err := NewIFCollector(filepath.Join("testdata", "config_id_setting"), PROC_FS_PATH)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -86,7 +86,7 @@ func TestNewIFCollector(t *testing.T) {
 
 	t.Log("config (procfs path setting)")
 	{
-		c, err := NewIFCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"))
+		c, err := NewIFCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), PROC_FS_PATH)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -98,7 +98,7 @@ func TestNewIFCollector(t *testing.T) {
 
 	t.Log("config (procfs path setting invalid)")
 	{
-		_, err := NewIFCollector(filepath.Join("testdata", "config_procfs_path_invalid_setting"))
+		_, err := NewIFCollector(filepath.Join("testdata", "config_procfs_path_invalid_setting"), PROC_FS_PATH)
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -106,7 +106,7 @@ func TestNewIFCollector(t *testing.T) {
 
 	t.Log("config (include regex)")
 	{
-		c, err := NewIFCollector(filepath.Join("testdata", "config_include_regex_valid_setting"))
+		c, err := NewIFCollector(filepath.Join("testdata", "config_include_regex_valid_setting"), PROC_FS_PATH)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -118,7 +118,7 @@ func TestNewIFCollector(t *testing.T) {
 
 	t.Log("config (include regex invalid)")
 	{
-		_, err := NewIFCollector(filepath.Join("testdata", "config_include_regex_invalid_setting"))
+		_, err := NewIFCollector(filepath.Join("testdata", "config_include_regex_invalid_setting"), PROC_FS_PATH)
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -126,7 +126,7 @@ func TestNewIFCollector(t *testing.T) {
 
 	t.Log("config (exclude regex)")
 	{
-		c, err := NewIFCollector(filepath.Join("testdata", "config_exclude_regex_valid_setting"))
+		c, err := NewIFCollector(filepath.Join("testdata", "config_exclude_regex_valid_setting"), PROC_FS_PATH)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -138,7 +138,7 @@ func TestNewIFCollector(t *testing.T) {
 
 	t.Log("config (exclude regex invalid)")
 	{
-		_, err := NewIFCollector(filepath.Join("testdata", "config_exclude_regex_invalid_setting"))
+		_, err := NewIFCollector(filepath.Join("testdata", "config_exclude_regex_invalid_setting"), PROC_FS_PATH)
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -146,7 +146,7 @@ func TestNewIFCollector(t *testing.T) {
 
 	t.Log("config (metrics enabled setting)")
 	{
-		c, err := NewIFCollector(filepath.Join("testdata", "config_metrics_enabled_setting"))
+		c, err := NewIFCollector(filepath.Join("testdata", "config_metrics_enabled_setting"), PROC_FS_PATH)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -164,7 +164,7 @@ func TestNewIFCollector(t *testing.T) {
 
 	t.Log("config (metrics disabled setting)")
 	{
-		c, err := NewIFCollector(filepath.Join("testdata", "config_metrics_disabled_setting"))
+		c, err := NewIFCollector(filepath.Join("testdata", "config_metrics_disabled_setting"), PROC_FS_PATH)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -182,7 +182,7 @@ func TestNewIFCollector(t *testing.T) {
 
 	t.Log("config (metrics default status enabled)")
 	{
-		c, err := NewIFCollector(filepath.Join("testdata", "config_metrics_default_status_enabled_setting"))
+		c, err := NewIFCollector(filepath.Join("testdata", "config_metrics_default_status_enabled_setting"), PROC_FS_PATH)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -193,7 +193,7 @@ func TestNewIFCollector(t *testing.T) {
 
 	t.Log("config (metrics default status disabled)")
 	{
-		c, err := NewIFCollector(filepath.Join("testdata", "config_metrics_default_status_disabled_setting"))
+		c, err := NewIFCollector(filepath.Join("testdata", "config_metrics_default_status_disabled_setting"), PROC_FS_PATH)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -204,7 +204,7 @@ func TestNewIFCollector(t *testing.T) {
 
 	t.Log("config (metrics default status invalid)")
 	{
-		_, err := NewIFCollector(filepath.Join("testdata", "config_metrics_default_status_invalid_setting"))
+		_, err := NewIFCollector(filepath.Join("testdata", "config_metrics_default_status_invalid_setting"), PROC_FS_PATH)
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -212,7 +212,7 @@ func TestNewIFCollector(t *testing.T) {
 
 	t.Log("config (run ttl 5m)")
 	{
-		c, err := NewIFCollector(filepath.Join("testdata", "config_run_ttl_valid_setting"))
+		c, err := NewIFCollector(filepath.Join("testdata", "config_run_ttl_valid_setting"), PROC_FS_PATH)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -223,7 +223,7 @@ func TestNewIFCollector(t *testing.T) {
 
 	t.Log("config (run ttl invalid)")
 	{
-		_, err := NewIFCollector(filepath.Join("testdata", "config_run_ttl_invalid_setting"))
+		_, err := NewIFCollector(filepath.Join("testdata", "config_run_ttl_invalid_setting"), PROC_FS_PATH)
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -235,7 +235,7 @@ func TestIFFlush(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	c, err := NewIFCollector(filepath.Join("testdata", "config_file_valid_setting"))
+	c, err := NewIFCollector(filepath.Join("testdata", "config_file_valid_setting"), PROC_FS_PATH)
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
@@ -256,7 +256,7 @@ func TestIFCollect(t *testing.T) {
 
 	t.Log("already running")
 	{
-		c, err := NewIFCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"))
+		c, err := NewIFCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), PROC_FS_PATH)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -274,7 +274,7 @@ func TestIFCollect(t *testing.T) {
 
 	t.Log("ttl not expired")
 	{
-		c, err := NewIFCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"))
+		c, err := NewIFCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), PROC_FS_PATH)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -293,7 +293,7 @@ func TestIFCollect(t *testing.T) {
 
 	t.Log("good")
 	{
-		c, err := NewIFCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"))
+		c, err := NewIFCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), PROC_FS_PATH)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}

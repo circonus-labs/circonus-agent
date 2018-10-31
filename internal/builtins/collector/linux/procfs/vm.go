@@ -18,7 +18,7 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	cgm "github.com/circonus-labs/circonus-gometrics"
+	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
@@ -28,7 +28,7 @@ type VM struct {
 	pfscommon
 }
 
-// vmOptions defines what elements can be overriden in a config file
+// vmOptions defines what elements can be overridden in a config file
 type vmOptions struct {
 	// common
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
@@ -40,13 +40,13 @@ type vmOptions struct {
 }
 
 // NewVMCollector creates new procfs cpu collector
-func NewVMCollector(cfgBaseName string) (collector.Collector, error) {
+func NewVMCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
 	procFile := "meminfo"
 
 	c := VM{}
-	c.id = "vm"
-	c.pkgID = "builtins.linux.procfs." + c.id
-	c.procFSPath = "/proc"
+	c.id = VM_NAME
+	c.pkgID = PFS_PREFIX + c.id
+	c.procFSPath = procFSPath
 	c.file = filepath.Join(c.procFSPath, procFile)
 	c.logger = log.With().Str("pkg", c.pkgID).Logger()
 	c.metricStatus = map[string]bool{}

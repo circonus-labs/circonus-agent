@@ -22,7 +22,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/server/promrecv"
 	"github.com/circonus-labs/circonus-agent/internal/server/receiver"
-	cgm "github.com/circonus-labs/circonus-gometrics"
+	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	appstats "github.com/maier/go-appstats"
 	"github.com/spf13/viper"
 )
@@ -189,6 +189,7 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 		}()
 	}
 
+	s.logger.Debug().Msg("waiting for metric collection from input conduits")
 	wg.Wait()
 
 	s.logger.Debug().Msg("lock metrics for lastMetrics upd, enable metrics, and response")

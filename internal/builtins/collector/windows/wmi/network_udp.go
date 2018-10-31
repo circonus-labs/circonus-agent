@@ -16,7 +16,7 @@ import (
 	"github.com/StackExchange/wmi"
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	cgm "github.com/circonus-labs/circonus-gometrics"
+	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/fatih/structs"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -47,7 +47,7 @@ type NetUDP struct {
 	ipv6Enabled bool
 }
 
-// NetUDPOptions defines what elements can be overriden in a config file
+// NetUDPOptions defines what elements can be overridden in a config file
 type NetUDPOptions struct {
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
 	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`

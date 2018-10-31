@@ -14,7 +14,7 @@ import (
 
 func verifyFile(fileName string) (string, error) {
 	if fileName == "" {
-		return "", errors.New("Invalid file name (empty)")
+		return "", errors.New("invalid file name (empty)")
 	}
 
 	var absFileName string

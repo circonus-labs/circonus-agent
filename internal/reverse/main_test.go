@@ -6,6 +6,7 @@
 package reverse
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -25,7 +26,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/check"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
-	"github.com/circonus-labs/circonus-gometrics/api"
+	"github.com/circonus-labs/go-apiclient"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
@@ -38,8 +39,8 @@ type pkicacert struct {
 var (
 	brokerSim       = httptest.NewTLSServer(http.HandlerFunc(brokerHandler))
 	apiSim          = httptest.NewServer(http.HandlerFunc(apiHandler))
-	testCheckBundle api.CheckBundle
-	testBroker      api.Broker
+	testCheckBundle apiclient.CheckBundle
+	testBroker      apiclient.Broker
 	cacert          pkicacert
 )
 
@@ -100,7 +101,7 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(200)
 				fmt.Fprintln(w, "[]")
 			} else if strings.Contains(reqURL, "multiple") {
-				c := []api.CheckBundle{{}, {}}
+				c := []apiclient.CheckBundle{{}, {}}
 				ret, err := json.Marshal(c)
 				if err != nil {
 					panic(err)
@@ -111,7 +112,7 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(500)
 				fmt.Fprintln(w, `{"error":"requested an error"}`)
 			} else if strings.Contains(reqURL, "test") {
-				c := []api.CheckBundle{testCheckBundle}
+				c := []apiclient.CheckBundle{testCheckBundle}
 				ret, err := json.Marshal(c)
 				if err != nil {
 					panic(err)
@@ -175,7 +176,8 @@ func TestNew(t *testing.T) {
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
-		c, err := New(chk, defaults.Listen)
+		ctx, cancel := context.WithCancel(context.Background())
+		c, err := New(ctx, chk, defaults.Listen)
 		viper.Reset()
 
 		if err != nil {
@@ -185,12 +187,14 @@ func TestNew(t *testing.T) {
 		if c == nil {
 			t.Fatal("expected not nil")
 		}
+		cancel()
 	}
 
 	t.Log("Reverse enabled (no config)")
 	{
 		viper.Set(config.KeyReverse, true)
-		_, err := New(nil, defaults.Listen)
+		ctx, cancel := context.WithCancel(context.Background())
+		_, err := New(ctx, nil, defaults.Listen)
 		viper.Reset()
 
 		if err == nil {
@@ -199,6 +203,7 @@ func TestNew(t *testing.T) {
 		if err.Error() != "invalid check value (empty)" {
 			t.Fatalf("unexpected error (%s)", err)
 		}
+		cancel()
 	}
 }
 
@@ -214,7 +219,8 @@ func TestStart(t *testing.T) {
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
-		c, err := New(chk, defaults.Listen)
+		ctx, cancel := context.WithCancel(context.Background())
+		c, err := New(ctx, chk, defaults.Listen)
 		viper.Reset()
 
 		if err != nil {
@@ -225,6 +231,9 @@ func TestStart(t *testing.T) {
 			t.Fatal("expected not nil")
 		}
 
+		time.AfterFunc(2*time.Second, func() {
+			cancel()
+		})
 		err = c.Start()
 
 		if err != nil {
@@ -285,7 +294,8 @@ func TestStart(t *testing.T) {
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
-		s, err := New(chk, l.Addr().String())
+		ctx, cancel := context.WithCancel(context.Background())
+		s, err := New(ctx, chk, l.Addr().String())
 		if err != nil {
 			t.Fatalf("expected no error got (%s)", err)
 		}
@@ -310,7 +320,7 @@ func TestStart(t *testing.T) {
 		s.dialerTimeout = 1 * time.Second
 
 		time.AfterFunc(2*time.Second, func() {
-			s.Stop()
+			cancel()
 		})
 
 		if err := s.Start(); err != nil {
@@ -343,10 +353,14 @@ func TestStartLong(t *testing.T) {
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
-		c, err := New(chk, defaults.Listen)
+		ctx, cancel := context.WithCancel(context.Background())
+		c, err := New(ctx, chk, defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
+		time.AfterFunc(1*time.Second, func() {
+			cancel()
+		})
 		err = c.Start()
 		viper.Reset()
 
@@ -372,12 +386,12 @@ func TestStop(t *testing.T) {
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
-		c, err := New(chk, defaults.Listen)
+		ctx, cancel := context.WithCancel(context.Background())
+		_, err := New(ctx, chk, defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
-
-		c.Stop()
+		cancel()
 	}
 
 	t.Log("nil conn")
@@ -387,14 +401,14 @@ func TestStop(t *testing.T) {
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
-		c, err := New(chk, defaults.Listen)
+		ctx, cancel := context.WithCancel(context.Background())
+		c, err := New(ctx, chk, defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
 
 		c.enabled = true
-
-		c.Stop()
+		cancel()
 	}
 
 }

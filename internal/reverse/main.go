@@ -6,18 +6,82 @@
 package reverse
 
 import (
+	"context"
 	crand "crypto/rand"
 	"math"
 	"math/big"
 	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/check"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
+	"golang.org/x/sync/errgroup"
 )
+
+// Connection defines a reverse connection
+type Connection struct {
+	group            *errgroup.Group
+	groupCtx         context.Context
+	agentAddress     string
+	check            *check.Check
+	cmdConnect       string
+	cmdReset         string
+	commTimeout      time.Duration
+	commTimeouts     int
+	configRetryLimit int
+	connAttempts     int
+	delay            time.Duration
+	dialerTimeout    time.Duration
+	enabled          bool
+	logger           zerolog.Logger
+	maxCommTimeouts  int
+	maxConnRetry     int
+	maxDelay         time.Duration
+	maxDelayStep     int
+	maxPayloadLen    uint32
+	maxRequests      int
+	metricTimeout    time.Duration
+	minDelayStep     int
+	revConfig        check.ReverseConfig
+	sync.Mutex
+}
+
+// noitHeader defines the header received from the noit/broker
+type noitHeader struct {
+	channelID  uint16
+	isCommand  bool
+	payloadLen uint32
+}
+
+// noitFrame defines the header + the payload (described by the header) received from the noit/broker
+type noitFrame struct {
+	header  *noitHeader
+	payload []byte
+}
+
+// connError returned from connect(), adds flag indicating whether the error is
+// a warning or fatal.
+type connError struct {
+	err   error
+	fatal bool
+}
+
+// command contains details of the command received from the broker
+type command struct {
+	err       error
+	ignore    bool
+	fatal     bool
+	reset     bool
+	channelID uint16
+	name      string
+	request   []byte
+	metrics   *[]byte
+}
 
 func init() {
 	n, err := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
@@ -29,7 +93,7 @@ func init() {
 }
 
 // New creates a new connection
-func New(check *check.Check, agentAddress string) (*Connection, error) {
+func New(ctx context.Context, check *check.Check, agentAddress string) (*Connection, error) {
 	const (
 		// NOTE: TBD, make some of these user-configurable
 		commTimeoutSeconds    = 10 // seconds, when communicating with noit
@@ -48,7 +112,10 @@ func New(check *check.Check, agentAddress string) (*Connection, error) {
 	if agentAddress == "" {
 		return nil, errors.New("invalid agent address (empty)")
 	}
+	g, gctx := errgroup.WithContext(ctx)
 	c := Connection{
+		group:            g,
+		groupCtx:         gctx,
 		agentAddress:     agentAddress,
 		check:            check,
 		commTimeout:      commTimeoutSeconds * time.Second,
@@ -102,29 +169,21 @@ func (c *Connection) Start() error {
 		Str("agent", c.agentAddress).
 		Msg("configuration")
 
-	c.t.Go(c.startReverse)
+	c.group.Go(c.startReverse)
+	go func() {
+		select {
+		case <-c.groupCtx.Done():
+			c.logger.Warn().Msg("sent stop signal, may take a minute for timeout")
+		}
+	}()
 
-	return c.t.Wait()
+	return c.group.Wait()
 }
 
-// Stop the reverse connection
-func (c *Connection) Stop() {
-	if !c.enabled {
-		return
-	}
-
-	c.logger.Info().Msg("stopping")
-
-	if c.t.Alive() {
-		c.logger.Warn().Msg("sent stop signal, may take a minute for timeout")
-		c.t.Kill(nil)
-	}
-}
-
-// shutdown checks whether tomb is dying
+// shutdown checks for context being done
 func (c *Connection) shutdown() bool {
 	select {
-	case <-c.t.Dying():
+	case <-c.groupCtx.Done():
 		return true
 	default:
 		return false

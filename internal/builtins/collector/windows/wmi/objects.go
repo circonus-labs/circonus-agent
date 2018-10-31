@@ -15,7 +15,7 @@ import (
 	"github.com/StackExchange/wmi"
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	cgm "github.com/circonus-labs/circonus-gometrics"
+	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/fatih/structs"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -36,7 +36,7 @@ type Objects struct {
 	wmicommon
 }
 
-// objectsOptions defines what elements can be overriden in a config file
+// objectsOptions defines what elements can be overridden in a config file
 type objectsOptions struct {
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
 	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`

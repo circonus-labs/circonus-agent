@@ -11,11 +11,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/circonus-labs/circonus-gometrics/api"
+	"github.com/circonus-labs/go-apiclient"
 	"github.com/pkg/errors"
 )
 
-func (c *Check) setMetricStates(m *[]api.CheckBundleMetric) error {
+func (c *Check) setMetricStates(m *[]apiclient.CheckBundleMetric) error {
 	if m == nil {
 		metrics, err := c.getFullCheckMetrics()
 		if err != nil {

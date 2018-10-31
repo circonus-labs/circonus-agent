@@ -40,7 +40,8 @@ func TestRouter(t *testing.T) {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
 
-		s, err := New(c, nil, nil, nil)
+		ctx, cancel := context.WithCancel(context.Background())
+		s, err := New(ctx, c, nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -55,6 +56,7 @@ func TestRouter(t *testing.T) {
 				t.Fatalf("expected %d, got %d", http.StatusMethodNotAllowed, resp.StatusCode)
 			}
 		}
+		cancel()
 	}
 
 	t.Log("invalid paths")
@@ -86,7 +88,8 @@ func TestRouter(t *testing.T) {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
 
-		s, err := New(c, b, p, nil)
+		ctx, cancel := context.WithCancel(context.Background())
+		s, err := New(ctx, c, b, p, nil)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -100,6 +103,7 @@ func TestRouter(t *testing.T) {
 				t.Fatalf("expected %d, got %d", http.StatusNotFound, resp.StatusCode)
 			}
 		}
+		cancel()
 	}
 
 	t.Log("valid")
@@ -121,7 +125,8 @@ func TestRouter(t *testing.T) {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
 
-		s, err := New(c, b, p, nil)
+		ctx, cancel := context.WithCancel(context.Background())
+		s, err := New(ctx, c, b, p, nil)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -152,6 +157,7 @@ func TestRouter(t *testing.T) {
 				t.Fatalf("expected %d, got %d", reqtest.code, resp.StatusCode)
 			}
 		}
+		cancel()
 
 		// zerolog.SetGlobalLevel(zerolog.Disabled)
 	}
@@ -175,7 +181,8 @@ func TestRouter(t *testing.T) {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
 
-		s, err := New(c, b, p, nil)
+		ctx, cancel := context.WithCancel(context.Background())
+		s, err := New(ctx, c, b, p, nil)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -188,6 +195,7 @@ func TestRouter(t *testing.T) {
 			t.Fatalf("expected %d, got %d", http.StatusBadRequest, resp.StatusCode)
 		}
 		viper.Reset()
+		cancel()
 	}
 
 	t.Log("OK (PUT /write/foo) w/data")
@@ -199,7 +207,8 @@ func TestRouter(t *testing.T) {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
 
-		s, err := New(c, nil, nil, nil)
+		ctx, cancel := context.WithCancel(context.Background())
+		s, err := New(ctx, c, nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -211,6 +220,7 @@ func TestRouter(t *testing.T) {
 		if resp.StatusCode != http.StatusNoContent {
 			t.Fatalf("expected %d, got %d", http.StatusNoContent, resp.StatusCode)
 		}
+		cancel()
 	}
 
 	t.Log("OK (PUT /prom) w/data")
@@ -222,7 +232,8 @@ func TestRouter(t *testing.T) {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
 
-		s, err := New(c, nil, nil, nil)
+		ctx, cancel := context.WithCancel(context.Background())
+		s, err := New(ctx, c, nil, nil, nil)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -234,5 +245,6 @@ func TestRouter(t *testing.T) {
 		if resp.StatusCode != http.StatusNoContent {
 			t.Fatalf("expected %d, got %d", http.StatusNoContent, resp.StatusCode)
 		}
+		cancel()
 	}
 }

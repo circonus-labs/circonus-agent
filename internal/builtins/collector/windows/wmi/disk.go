@@ -17,7 +17,7 @@ import (
 	"github.com/StackExchange/wmi"
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	cgm "github.com/circonus-labs/circonus-gometrics"
+	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/fatih/structs"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -86,7 +86,7 @@ type Disk struct {
 	exclude  *regexp.Regexp
 }
 
-// diskOptions defines what elements can be overriden in a config file
+// diskOptions defines what elements can be overridden in a config file
 type diskOptions struct {
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
 	IncludeLogical       string   `json:"logical_disks" toml:"logical_disks" yaml:"logical_disks"`

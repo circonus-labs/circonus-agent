@@ -19,7 +19,7 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	cgm "github.com/circonus-labs/circonus-gometrics"
+	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
@@ -31,7 +31,7 @@ type IF struct {
 	exclude *regexp.Regexp
 }
 
-// ifOptions defines what elements can be overriden in a config file
+// ifOptions defines what elements can be overridden in a config file
 type ifOptions struct {
 	// common
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
@@ -47,13 +47,13 @@ type ifOptions struct {
 }
 
 // NewIFCollector creates new procfs cpu collector
-func NewIFCollector(cfgBaseName string) (collector.Collector, error) {
+func NewIFCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
 	procFile := filepath.Join("net", "dev")
 
 	c := IF{}
-	c.id = "if"
-	c.pkgID = "builtins.linux.procfs." + c.id
-	c.procFSPath = "/proc"
+	c.id = IF_NAME
+	c.pkgID = PFS_PREFIX + c.id
+	c.procFSPath = procFSPath
 	c.file = filepath.Join(c.procFSPath, procFile)
 	c.logger = log.With().Str("pkg", c.pkgID).Logger()
 	c.metricStatus = map[string]bool{}

@@ -6,6 +6,7 @@
 package reverse
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"io"
@@ -98,7 +99,8 @@ func TestConnect(t *testing.T) {
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
-		s, err := New(chk, defaults.Listen)
+		ctx, cancel := context.WithCancel(context.Background())
+		s, err := New(ctx, chk, defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error got (%s)", err)
 		}
@@ -137,8 +139,9 @@ func TestConnect(t *testing.T) {
 			}
 			s.logger.Debug().Int("bytes", dlen).Bytes("data", data).Msg("read data")
 			conn.Close()
-			s.Stop()
+			// s.Stop()
 			l.Close()
+			cancel()
 		}
 	}
 
@@ -156,11 +159,11 @@ func TestConnect(t *testing.T) {
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
-		s, err := New(chk, defaults.Listen)
+		ctx, cancel := context.WithCancel(context.Background())
+		s, err := New(ctx, chk, defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error got (%s)", err)
 		}
-		defer s.Stop()
 
 		tsURL, err := url.Parse("http://" + l.Addr().String() + "/check/foo-bar-baz#abc123")
 		if err != nil {
@@ -188,6 +191,8 @@ func TestConnect(t *testing.T) {
 		} else if cerr.Error() != expect.Error() {
 			t.Fatalf("expected (%s) got (%s)", expect, cerr)
 		}
+
+		cancel()
 	}
 
 	t.Log("error (closed connection)")
@@ -210,7 +215,8 @@ func TestConnect(t *testing.T) {
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
-		s, err := New(chk, defaults.Listen)
+		ctx, cancel := context.WithCancel(context.Background())
+		s, err := New(ctx, chk, defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error got (%s)", err)
 		}
@@ -239,8 +245,9 @@ func TestConnect(t *testing.T) {
 		} else if !strings.Contains(cerr.Error(), l.Addr().String()) {
 			t.Fatalf("expected (%s) got (%s)", l.Addr().String(), cerr)
 		}
-		s.Stop()
+		// s.Stop()
 		l.Close()
+		cancel()
 	}
 }
 
@@ -256,7 +263,8 @@ func TestSetNextDelay(t *testing.T) {
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
-		c, err := New(chk, defaults.Listen)
+		ctx, cancel := context.WithCancel(context.Background())
+		c, err := New(ctx, chk, defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -266,6 +274,7 @@ func TestSetNextDelay(t *testing.T) {
 		if delay != c.maxDelay {
 			t.Fatalf("delay changed, not set to max")
 		}
+		cancel()
 	}
 
 	t.Log("valid change")
@@ -275,7 +284,8 @@ func TestSetNextDelay(t *testing.T) {
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
-		c, err := New(chk, defaults.Listen)
+		ctx, cancel := context.WithCancel(context.Background())
+		c, err := New(ctx, chk, defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -297,6 +307,7 @@ func TestSetNextDelay(t *testing.T) {
 		if diff > max {
 			t.Fatalf("delay increment (%s) > maximum (%s)", diff.String(), max.String())
 		}
+		cancel()
 	}
 
 	t.Log("reset to max")
@@ -306,7 +317,8 @@ func TestSetNextDelay(t *testing.T) {
 		if cerr != nil {
 			t.Fatalf("expected no error, got (%s)", cerr)
 		}
-		c, err := New(chk, defaults.Listen)
+		ctx, cancel := context.WithCancel(context.Background())
+		c, err := New(ctx, chk, defaults.Listen)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -318,6 +330,7 @@ func TestSetNextDelay(t *testing.T) {
 		if delay != c.maxDelay {
 			t.Fatalf("delay did NOT reset %s == %s", delay.String(), c.maxDelay)
 		}
+		cancel()
 	}
 }
 
@@ -331,7 +344,8 @@ func TestResetConnectionAttempts(t *testing.T) {
 	if cerr != nil {
 		t.Fatalf("expected no error, got (%s)", cerr)
 	}
-	c, err := New(chk, defaults.Listen)
+	ctx, cancel := context.WithCancel(context.Background())
+	c, err := New(ctx, chk, defaults.Listen)
 	if err != nil {
 		t.Fatalf("expected no error, got (%s)", err)
 	}
@@ -348,4 +362,5 @@ func TestResetConnectionAttempts(t *testing.T) {
 	if c.connAttempts != 0 {
 		t.Fatalf("attempts not reset (%d)", c.connAttempts)
 	}
+	cancel()
 }

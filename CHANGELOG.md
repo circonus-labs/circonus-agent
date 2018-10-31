@@ -1,3 +1,23 @@
+# v0.18.0
+
+* upd: remove Gopkg.* 
+* upd: switch to github.com/circonus-labs/circonus-gometrics/v3
+* fix: default metric_filters setting
+* upd: short-circuit when using metric_filters to disable check management
+* fix: remove placeholder metrics when creating a check with metric_filters
+* upd: refactor to allow metric_filters to override manual check management
+* upd: switch to github.com/circonus-labs/go-apiclient from github.com/circonus-labs/circonus-gometrics/api
+* add: Check Metric Filter config option
+* add: debug message before wait
+* fix: typo in error message
+* fix: missing cgm import after condense
+* upd: reorg/condense
+* upd: add consts for repeated strings
+* upd: normalize proc fs path
+* upd: cleanup error messages
+* upd: refactor tomb -> errgroup and context
+* fix: tweak for unattended fb11 build
+
 # v0.17.2
 
 * doc: add preview blurb to readme

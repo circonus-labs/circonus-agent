@@ -8,7 +8,7 @@ package collector
 import (
 	"errors"
 
-	cgm "github.com/circonus-labs/circonus-gometrics"
+	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 )
 
 // Collector defines the interface for builtin metric collectors

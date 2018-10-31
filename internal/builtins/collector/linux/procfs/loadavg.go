@@ -18,7 +18,7 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	cgm "github.com/circonus-labs/circonus-gometrics"
+	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
@@ -29,7 +29,7 @@ type Loadavg struct {
 	file string
 }
 
-// loadavgOptions defines what elements can be overriden in a config file
+// loadavgOptions defines what elements can be overridden in a config file
 type loadavgOptions struct {
 	// common
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
@@ -41,13 +41,13 @@ type loadavgOptions struct {
 }
 
 // NewLoadavgCollector creates new procfs cpu collector
-func NewLoadavgCollector(cfgBaseName string) (collector.Collector, error) {
-	procFile := "loadavg"
+func NewLoadavgCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
+	procFile := LOADAVG_NAME
 
 	c := Loadavg{}
-	c.id = "loadavg"
-	c.pkgID = "builtins.linux.procfs." + c.id
-	c.procFSPath = "/proc"
+	c.id = LOADAVG_NAME
+	c.pkgID = PFS_PREFIX + c.id
+	c.procFSPath = procFSPath
 	c.file = filepath.Join(c.procFSPath, procFile)
 	c.logger = log.With().Str("pkg", c.pkgID).Logger()
 	c.metricStatus = map[string]bool{}

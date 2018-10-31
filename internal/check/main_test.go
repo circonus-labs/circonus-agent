@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	"github.com/circonus-labs/circonus-gometrics/api"
+	"github.com/circonus-labs/go-apiclient"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
@@ -23,8 +23,8 @@ type pkicacert struct {
 }
 
 var (
-	testCheckBundle api.CheckBundle
-	testBroker      api.Broker
+	testCheckBundle apiclient.CheckBundle
+	testBroker      apiclient.Broker
 	cacert          pkicacert
 )
 
@@ -54,20 +54,20 @@ func init() {
 
 func genMockClient() *APIMock {
 	return &APIMock{
-		CreateCheckBundleFunc: func(cfg *api.CheckBundle) (*api.CheckBundle, error) {
+		CreateCheckBundleFunc: func(cfg *apiclient.CheckBundle) (*apiclient.CheckBundle, error) {
 			panic("TODO: mock out the CreateCheckBundle method")
 		},
 
-		FetchBrokerFunc: func(cid api.CIDType) (*api.Broker, error) {
+		FetchBrokerFunc: func(cid apiclient.CIDType) (*apiclient.Broker, error) {
 			switch *cid {
 			case "/broker/000":
 				return nil, errors.New("forced mock api call error")
 			case "/broker/123":
-				return &api.Broker{
+				return &apiclient.Broker{
 					CID:  "/broker/123",
 					Name: "foo",
 					Type: "xxx",
-					Details: []api.BrokerDetail{
+					Details: []apiclient.BrokerDetail{
 						{
 							Status:  "active",
 							Modules: []string{"abc", "selfcheck", "hidden:abc123", "abcdef", "abcdefghi", "abcdefghijkl", "abcdefghijklmnopqrstu"},
@@ -78,11 +78,11 @@ func genMockClient() *APIMock {
 					},
 				}, nil
 			case "/broker/456":
-				return &api.Broker{
+				return &apiclient.Broker{
 					CID:  "/broker/456",
 					Name: "bar",
 					Type: "yyy",
-					Details: []api.BrokerDetail{
+					Details: []apiclient.BrokerDetail{
 						{
 							Status: "foobar",
 						},
@@ -95,15 +95,15 @@ func genMockClient() *APIMock {
 			}
 		},
 
-		FetchBrokersFunc: func() (*[]api.Broker, error) {
-			return &[]api.Broker{
+		FetchBrokersFunc: func() (*[]apiclient.Broker, error) {
+			return &[]apiclient.Broker{
 				{CID: "/broker/123", Name: "foo", Type: "circonus"},
 				{CID: "/broker/456", Name: "bar", Type: "enterprise"},
 				{CID: "/broker/789", Name: "baz", Type: "circonus"},
 			}, nil
 		},
 
-		FetchCheckBundleFunc: func(cid api.CIDType) (*api.CheckBundle, error) {
+		FetchCheckBundleFunc: func(cid apiclient.CIDType) (*apiclient.CheckBundle, error) {
 			switch *cid {
 			case "/check_bundle/000":
 				return nil, errors.New("forced mock api call error")
@@ -118,7 +118,7 @@ func genMockClient() *APIMock {
 			}
 		},
 
-		FetchCheckBundleMetricsFunc: func(cid api.CIDType) (*api.CheckBundleMetrics, error) {
+		FetchCheckBundleMetricsFunc: func(cid apiclient.CIDType) (*apiclient.CheckBundleMetrics, error) {
 			panic("TODO: mock out the FetchCheckBundleMetrics method")
 		},
 
@@ -135,10 +135,10 @@ func genMockClient() *APIMock {
 			case "/check_bundle_metrics/0001?query_broker=1":
 				return []byte("{"), nil
 			case "/check_bundle_metrics/1234?query_broker=1":
-				m := api.CheckBundleMetrics{
+				m := apiclient.CheckBundleMetrics{
 					CID: "/check_bundle_metrics/1234",
-					Metrics: []api.CheckBundleMetric{
-						api.CheckBundleMetric{Name: "foo", Type: "n", Status: "active"},
+					Metrics: []apiclient.CheckBundleMetric{
+						apiclient.CheckBundleMetric{Name: "foo", Type: "n", Status: "active"},
 					},
 				}
 				data, err := json.Marshal(m)
@@ -147,27 +147,27 @@ func genMockClient() *APIMock {
 				}
 				return data, nil
 			default:
-				return nil, errors.Errorf("bad api.Get(%s), no handler for url", url)
+				return nil, errors.Errorf("bad apiclient.Get(%s), no handler for url", url)
 			}
 		},
 
-		SearchCheckBundlesFunc: func(searchCriteria *api.SearchQueryType, filterCriteria *map[string][]string) (*[]api.CheckBundle, error) {
+		SearchCheckBundlesFunc: func(searchCriteria *apiclient.SearchQueryType, filterCriteria *map[string][]string) (*[]apiclient.CheckBundle, error) {
 			if strings.Contains(string(*searchCriteria), `target:"000"`) {
 				return nil, errors.New("forced mock api call error")
 			}
 			if strings.Contains(string(*searchCriteria), `target:"not_found"`) {
-				return &[]api.CheckBundle{}, nil
+				return &[]apiclient.CheckBundle{}, nil
 			}
 			if strings.Contains(string(*searchCriteria), `target:"multiple"`) {
-				return &[]api.CheckBundle{testCheckBundle, testCheckBundle}, nil
+				return &[]apiclient.CheckBundle{testCheckBundle, testCheckBundle}, nil
 			}
 			if strings.Contains(string(*searchCriteria), `target:"valid"`) {
-				return &[]api.CheckBundle{testCheckBundle}, nil
+				return &[]apiclient.CheckBundle{testCheckBundle}, nil
 			}
 			return nil, errors.Errorf("don't know what to do with search criteria (%s)", string(*searchCriteria))
 		},
 
-		UpdateCheckBundleFunc: func(cfg *api.CheckBundle) (*api.CheckBundle, error) {
+		UpdateCheckBundleFunc: func(cfg *apiclient.CheckBundle) (*apiclient.CheckBundle, error) {
 			switch cfg.CID {
 			case "/check_bundle/1234":
 				return cfg, nil
@@ -178,7 +178,7 @@ func genMockClient() *APIMock {
 			}
 		},
 
-		UpdateCheckBundleMetricsFunc: func(cfg *api.CheckBundleMetrics) (*api.CheckBundleMetrics, error) {
+		UpdateCheckBundleMetricsFunc: func(cfg *apiclient.CheckBundleMetrics) (*apiclient.CheckBundleMetrics, error) {
 			panic("TODO: mock out the UpdateCheckBundleMetrics method")
 		},
 	}

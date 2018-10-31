@@ -34,8 +34,6 @@ func (a *Agent) handleSignals() error {
 
 	for {
 		select {
-		case <-a.t.Dying():
-			return nil
 		case sig := <-a.signalCh:
 			log.Info().Str("signal", sig.String()).Msg("received signal")
 			switch sig {
@@ -49,6 +47,8 @@ func (a *Agent) handleSignals() error {
 			default:
 				log.Warn().Str("signal", sig.String()).Msg("unsupported")
 			}
+		case <-a.groupCtx.Done():
+			return nil
 		}
 	}
 }

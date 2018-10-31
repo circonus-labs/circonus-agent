@@ -13,13 +13,22 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
-	cgm "github.com/circonus-labs/circonus-gometrics"
+	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
+)
+
+var (
+	metricsmu        sync.Mutex
+	metrics          *cgm.CirconusMetrics
+	histogramRx      *regexp.Regexp // encoded histogram regular express (e.g. coming from a cgm put to /write)
+	histogramRxNames []string
+	logger           = log.With().Str("pkg", "receiver").Logger()
 )
 
 func init() {

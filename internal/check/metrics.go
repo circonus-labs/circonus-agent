@@ -10,12 +10,12 @@ import (
 	"reflect"
 	"strings"
 
-	cgm "github.com/circonus-labs/circonus-gometrics"
-	"github.com/circonus-labs/circonus-gometrics/api"
+	cgm "github.com/circonus-labs/circonus-gometrics/v3"
+	"github.com/circonus-labs/go-apiclient"
 	"github.com/pkg/errors"
 )
 
-func (c *Check) getFullCheckMetrics() (*[]api.CheckBundleMetric, error) {
+func (c *Check) getFullCheckMetrics() (*[]apiclient.CheckBundleMetric, error) {
 	cbmPath := strings.Replace(c.bundle.CID, "check_bundle", "check_bundle_metrics", -1)
 	cbmPath += "?query_broker=1" // force for full set of metrics (active and available)
 
@@ -24,7 +24,7 @@ func (c *Check) getFullCheckMetrics() (*[]api.CheckBundleMetric, error) {
 		return nil, errors.Wrap(err, "fetching check bundle metrics")
 	}
 
-	var metrics api.CheckBundleMetrics
+	var metrics apiclient.CheckBundleMetrics
 	if err := json.Unmarshal(data, &metrics); err != nil {
 		return nil, errors.Wrap(err, "parsing check bundle metrics")
 	}
@@ -32,7 +32,7 @@ func (c *Check) getFullCheckMetrics() (*[]api.CheckBundleMetric, error) {
 	return &metrics.Metrics, nil
 }
 
-func (c *Check) updateCheckBundleMetrics(m *map[string]api.CheckBundleMetric) error {
+func (c *Check) updateCheckBundleMetrics(m *map[string]apiclient.CheckBundleMetric) error {
 	if m == nil {
 		return errors.New("nil metrics passed to update")
 	}
@@ -43,12 +43,12 @@ func (c *Check) updateCheckBundleMetrics(m *map[string]api.CheckBundleMetric) er
 	}
 
 	cid := c.bundle.CID
-	bundle, err := c.client.FetchCheckBundle(api.CIDType(&cid))
+	bundle, err := c.client.FetchCheckBundle(apiclient.CIDType(&cid))
 	if err != nil {
 		return errors.Wrap(err, "unable to fetch up-to-date copy of check")
 	}
 
-	metrics := make([]api.CheckBundleMetric, 0, len(*m))
+	metrics := make([]apiclient.CheckBundleMetric, 0, len(*m))
 
 	for mn, mv := range *m {
 		c.logger.Debug().Str("name", mn).Msg("configuring new check bundle metric")
@@ -68,14 +68,14 @@ func (c *Check) updateCheckBundleMetrics(m *map[string]api.CheckBundleMetric) er
 	}
 
 	c.bundle = newBundle
-	c.bundle.Metrics = []api.CheckBundleMetric{}
+	c.bundle.Metrics = []apiclient.CheckBundleMetric{}
 
 	return nil
 }
 
-func (c *Check) configMetric(mn string, mv cgm.Metric) api.CheckBundleMetric {
+func (c *Check) configMetric(mn string, mv cgm.Metric) apiclient.CheckBundleMetric {
 
-	cm := api.CheckBundleMetric{
+	cm := apiclient.CheckBundleMetric{
 		Name:   mn,
 		Status: c.statusActiveMetric,
 	}
