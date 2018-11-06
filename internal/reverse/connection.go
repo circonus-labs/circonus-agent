@@ -106,9 +106,8 @@ func (c *Connection) connect() (*tls.Conn, *connError) {
 		// fatal, no attempt is made to resolve.
 		if c.connAttempts%c.configRetryLimit == 0 {
 			c.logger.Info().Int("attempts", c.connAttempts).Msg("reconfig triggered")
-			c.logger.Debug().Str("check_bundle", viper.GetString(config.KeyCheckBundleID)).Msg("refreshing check")
 			if err := c.check.RefreshCheckConfig(); err != nil {
-				return nil, &connError{fatal: true, err: errors.Wrap(err, "refreshing check configuration")}
+				return nil, &connError{fatal: false, err: errors.Wrap(err, "refreshing check configuration")}
 			}
 			c.logger.Debug().Str("check_bundle", viper.GetString(config.KeyCheckBundleID)).Msg("setting reverse config")
 			rc, err := c.check.GetReverseConfig()
