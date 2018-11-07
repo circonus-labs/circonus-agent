@@ -87,6 +87,7 @@ func (c *Connection) connect() (*tls.Conn, *connError) {
 	c.Lock()
 	if c.connAttempts > 0 {
 		if c.maxConnRetry != -1 && c.connAttempts >= c.maxConnRetry {
+			c.Unlock()
 			return nil, &connError{fatal: true, err: errors.Errorf("max broker connection attempts reached (%d of %d)", c.connAttempts, c.maxConnRetry)}
 		}
 
@@ -107,20 +108,22 @@ func (c *Connection) connect() (*tls.Conn, *connError) {
 		if c.connAttempts%c.configRetryLimit == 0 {
 			c.logger.Info().Int("attempts", c.connAttempts).Msg("reconfig triggered")
 			if err := c.check.RefreshCheckConfig(); err != nil {
+				c.Unlock()
 				return nil, &connError{fatal: false, err: errors.Wrap(err, "refreshing check configuration")}
 			}
-			c.logger.Debug().Str("check_bundle", viper.GetString(config.KeyCheckBundleID)).Msg("setting reverse config")
+			c.logger.Debug().Msg("setting reverse config")
 			rc, err := c.check.GetReverseConfig()
 			if err != nil {
+				c.Unlock()
 				return nil, &connError{fatal: true, err: errors.Wrap(err, "reconfiguring reverse connection")}
 			}
 			if rc == nil {
-				return nil, &connError{fatal: true, err: errors.Wrap(err, "invalid reverse configuration (nil)")}
+				c.Unlock()
+				return nil, &connError{fatal: true, err: errors.New("invalid reverse configuration (nil)")}
 			}
 			c.revConfig = *rc
 			c.logger = log.With().Str("pkg", "reverse").Str("cid", viper.GetString(config.KeyCheckBundleID)).Logger()
 			c.logger.Info().
-				Str("check_bundle", viper.GetString(config.KeyCheckBundleID)).
 				Str("rev_host", c.revConfig.ReverseURL.Hostname()).
 				Str("rev_port", c.revConfig.ReverseURL.Port()).
 				Str("rev_path", c.revConfig.ReverseURL.Path).
