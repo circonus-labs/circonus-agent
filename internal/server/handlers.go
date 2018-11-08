@@ -63,11 +63,12 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	metrics := cgm.Metrics{}
-	metricsCh := make(chan *cgm.Metrics, 5)
-	var wg sync.WaitGroup
-
-	// default to true if id is blank, otherwise set all to false
+	type conduit struct {
+		id string
+		metrics *cgm.Metrics
+	}
+	conduitCh := make(chan conduit, 5) // number of conduits
+	// default conduits to true if id is blank, otherwise set all to false
 	runBuiltins := id == ""
 	runPlugins := id == ""
 	flushProm := id == ""
@@ -75,7 +76,7 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 	flushStatsd := id == ""
 
 	if id != "" {
-		// identify _what_ to run based on the id
+		// identify conduit to collect from based on id passed
 		switch {
 		case id == "prom":
 			flushProm = true
@@ -90,6 +91,8 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var wg sync.WaitGroup
+
 	if runBuiltins {
 		wg.Add(1)
 		go func() {
@@ -98,7 +101,7 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 			builtinMetrics := s.builtins.Flush(id)
 			if builtinMetrics != nil && len(*builtinMetrics) > 0 {
 				s.logger.Debug().Int("num_metrics", len(*builtinMetrics)).Msg("builtins flushed")
-				metricsCh <- builtinMetrics
+				conduitCh <- conduit{id:"builtins", metrics: builtinMetrics}
 			}
 			s.logger.Debug().Msg("builtin done")
 			wg.Done()
@@ -116,9 +119,9 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 			pluginMetrics := s.plugins.Flush(id)
 			if pluginMetrics != nil && len(*pluginMetrics) > 0 {
 				s.logger.Debug().Int("num_metrics", len(*pluginMetrics)).Msg("plugins flushed")
-				metricsCh <- pluginMetrics
+				conduitCh <- conduit{id: "plugins", metrics: pluginMetrics}
 			}
-			s.logger.Debug().Msg("unlock, plugin done")
+			s.logger.Debug().Msg("plugin done")
 			wg.Done()
 		}()
 	}
@@ -130,9 +133,9 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 			receiverMetrics := receiver.Flush()
 			if receiverMetrics != nil && len(*receiverMetrics) > 0 {
 				s.logger.Debug().Int("num_metrics", len(*receiverMetrics)).Msg("receiver flushed")
-				metricsCh <- receiverMetrics
+				conduitCh <- conduit{id:"receiver", metrics: receiverMetrics}
 			}
-			s.logger.Debug().Msg("unlock, receiver done")
+			s.logger.Debug().Msg("receiver done")
 			wg.Done()
 		}()
 	}
@@ -145,9 +148,9 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 				statsdMetrics := s.statsdSvr.Flush()
 				if statsdMetrics != nil && len(*statsdMetrics) > 0 {
 					s.logger.Debug().Int("num_metrics", len(*statsdMetrics)).Msg("statsd flushed")
-					metricsCh <- statsdMetrics
+					conduitCh <- conduit{id:"statsd", metrics: statsdMetrics}
 				}
-				s.logger.Debug().Msg("unlock, statsd done")
+				s.logger.Debug().Msg("statsd done")
 				wg.Done()
 			}()
 		}
@@ -160,21 +163,22 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 			promMetrics := promrecv.Flush()
 			if promMetrics != nil && len(*promMetrics) > 0 {
 				s.logger.Debug().Int("num_metrics", len(*promMetrics)).Msg("prom flushed")
-				metricsCh <- promMetrics
+				conduitCh <- conduit{id:"prom",metrics: promMetrics}
 			}
-			s.logger.Debug().Msg("unlock, promrecv done")
+			s.logger.Debug().Msg("promrecv done")
 			wg.Done()
 		}()
 	}
 
 	s.logger.Debug().Msg("waiting for metric collection from input conduits")
 	wg.Wait()
-	close(metricsCh)
+	close(conduitCh)
 
 	s.logger.Debug().Msg("aggregating metrics")
-	for fm := range metricsCh {
-		s.logger.Debug().Int("num_metrics", len(*fm)).Msg("adding metrics")
-		for m,v := range *fm {
+	metrics := cgm.Metrics{}
+	for cm := range conduitCh {
+		s.logger.Debug().Str("conduit_id",cm.id).Int("num_metrics", len(*cm.metrics)).Msg("adding metrics")
+		for m,v := range *cm.metrics {
 			metrics[m] = v
 		}
 	}
