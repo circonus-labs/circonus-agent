@@ -129,6 +129,7 @@ func (s *Server) parseMetric(metric string) error {
 		dest = s.groupMetrics
 	} else if metricDest == destHost {
 		dest = s.hostMetrics
+		metricName = s.hostCategory+config.MetricNameSeparator+metricName
 	}
 
 	if dest == nil {
