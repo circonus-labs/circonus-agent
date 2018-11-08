@@ -1,22 +1,30 @@
 # v0.18.0
 
-* upd: remove Gopkg.* 
-* upd: switch to github.com/circonus-labs/circonus-gometrics/v3
-* fix: default metric_filters setting
-* upd: short-circuit when using metric_filters to disable check management
-* fix: remove placeholder metrics when creating a check with metric_filters
-* upd: refactor to allow metric_filters to override manual check management
-* upd: switch to github.com/circonus-labs/go-apiclient from github.com/circonus-labs/circonus-gometrics/api
-* add: Check Metric Filter config option
-* add: debug message before wait
-* fix: typo in error message
-* fix: missing cgm import after condense
-* upd: reorg/condense
-* upd: add consts for repeated strings
-* upd: normalize proc fs path
-* upd: cleanup error messages
-* upd: refactor tomb -> errgroup and context
-* fix: tweak for unattended fb11 build
+* **alpha1**
+  * doc: add markdown linter config
+  * upd: refactor metrics flush/aggregate, channel vs mutex lock, improve debug messages
+  * upd: add host metric category prefix in statsd not in run handler
+  * upd: remove dead refactored code for check initialization
+  * upd: unlock before return for non-fatal errors
+  * upd: retry on reverse check refresh failures, attempt to address DNS failures in unstable infrastructures
+* **alpha**
+  * upd: remove Gopkg.*
+  * upd: switch to github.com/circonus-labs/circonus-gometrics/v3
+  * fix: default metric_filters setting
+  * upd: short-circuit when using metric_filters to disable check management
+  * fix: remove placeholder metrics when creating a check with metric_filters
+  * upd: refactor to allow metric_filters to override manual check management
+  * upd: switch to github.com/circonus-labs/go-apiclient from github.com/circonus-labs/circonus-gometrics/api
+  * add: Check Metric Filter config option
+  * add: debug message before wait
+  * fix: typo in error message
+  * fix: missing cgm import after condense
+  * upd: reorg/condense
+  * upd: add consts for repeated strings
+  * upd: normalize proc fs path
+  * upd: cleanup error messages
+  * upd: refactor tomb -> errgroup and context
+  * fix: tweak for unattended fb11 build
 
 # v0.17.2
 
@@ -234,8 +242,8 @@
 * add: builtin collector framework
 * new: configuration option `--collectors` (for platforms which have builtin collectors - windows only in this release)
 * add: wmi builtin collectors for windows
-    * available WMI collectors: cache, disk, interface, ip, memory, object, paging_file, processes, processor, tcp, udp
-    * default WMI collectors enabled `['cache', 'disk', 'ip', 'interface', 'memory', 'object', 'paging_file' 'processor', 'tcp', 'udp']`
+  * available WMI collectors: cache, disk, interface, ip, memory, object, paging_file, processes, processor, tcp, udp
+  * default WMI collectors enabled `['cache', 'disk', 'ip', 'interface', 'memory', 'object', 'paging_file' 'processor', 'tcp', 'udp']`
 * new: collectors take precedence over plugins (e.g. collector named `cpu` would prevent plugin named `cpu` from running)
 * upd: plugin directory is now optional - valid use case to run w/o plugins - e.g. only builtins, statsd, receiver or a combination of the three
 * upd: select _fastest_ broker rather than picking randomly from list of _all_ available brokers. If multiple brokers are equally fast, fallback to picking randomly, from the list of _fastest_ brokers.
@@ -246,9 +254,9 @@
 * exit agent is issue creating/starting any server (http, ssl, sock)
 * config file setting renamed `plugin-dir` -> `plugin_dir` to match other settings
 * add unix socket listener support (for `/write` endpoint only)
-    * command line option, one or more, `-L </path/to/socket_file>` or `--listen-socket=</path/to/socket_file>`
-    * config file `listen_socket` (array of strings)
-    * handle encoded histograms (e.g. cgm sending to agent `/write` endpoint)
+  * command line option, one or more, `-L </path/to/socket_file>` or `--listen-socket=</path/to/socket_file>`
+  * config file `listen_socket` (array of strings)
+  * handle encoded histograms (e.g. cgm sending to agent `/write` endpoint)
 * add ttl capability to plugins; parsed from plugin name (e.g. `test_ttl5m.sh` run once every five minutes) valid units `ms`, `s`, `m`, `h`.
 * allow multiple listen ip:port specs to be used (e.g. `-l 127.0.0.1:2609 -l 192.168.1.2:2630 ...`)
 * migrate configuration validation to (server|statsd|plugins).New functions
@@ -291,7 +299,6 @@ client.Increment("metric_name")
 
 // resulting in metric: prefix_id`metric_name numeric 1
 ```
-
 
 # v0.5.0
 
