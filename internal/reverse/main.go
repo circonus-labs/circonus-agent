@@ -162,7 +162,6 @@ func (c *Connection) Start() error {
 	}
 
 	c.logger.Info().
-		Str("check_bundle", viper.GetString(config.KeyCheckBundleID)).
 		Str("rev_host", c.revConfig.ReverseURL.Hostname()).
 		Str("rev_port", c.revConfig.ReverseURL.Port()).
 		Str("rev_path", c.revConfig.ReverseURL.Path).
