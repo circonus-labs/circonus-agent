@@ -10,7 +10,6 @@ import (
 	"expvar"
 	"fmt"
 	"io"
-	"path/filepath"
 
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	toml "github.com/pelletier/go-toml"
@@ -105,14 +104,11 @@ type Config struct {
 	ListenSocket     []string `mapstructure:"listen_socket" json:"listen_socket" yaml:"listen_socket" toml:"listen_socket"`
 	Log              Log      `json:"log" yaml:"log" toml:"log"`
 	PluginDir        string   `mapstructure:"plugin_dir" json:"plugin_dir" yaml:"plugin_dir" toml:"plugin_dir"`
+	PluginList       []string `mapstructure:"plugin_list" json:"plugin_list" yaml:"plugin_list" toml:"plugin_list"`
 	PluginTTLUnits   string   `mapstructure:"plugin_ttl_units" json:"plugin_ttl_units" yaml:"plugin_ttl_units" toml:"plugin_ttl_units"`
 	Reverse          Reverse  `json:"reverse" yaml:"reverse" toml:"reverse"`
 	SSL              SSL      `json:"ssl" yaml:"ssl" toml:"ssl"`
 	StatsD           StatsD   `json:"statsd" yaml:"statsd" toml:"statsd"`
-}
-
-type cosiCheckConfig struct {
-	CID string `json:"_cid"`
 }
 
 //
@@ -156,6 +152,8 @@ const (
 
 	// KeyPluginDir plugin directory
 	KeyPluginDir = "plugin_dir"
+	// KeyPluginList is a list of explicit commands to run as plugins
+	KeyPluginList = "plugin_list"
 
 	// KeyPluginTTLUnits plugin run ttl units
 	KeyPluginTTLUnits = "plugin_ttl_units"
@@ -269,8 +267,6 @@ const (
 )
 
 var (
-	cosiCfgFile = filepath.Join(defaults.BasePath, "..", cosiName, "etc", "cosi.json")
-
 	// MetricNameSeparator defines character used to delimit metric name parts
 	MetricNameSeparator = defaults.MetricNameSeparator // var, TBD whether it will become configurable
 )

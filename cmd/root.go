@@ -150,10 +150,22 @@ func init() {
 			description = "Plugin directory"
 		)
 
-		RootCmd.Flags().StringP(longOpt, shortOpt, defaults.PluginPath, desc(description, envVar))
+		RootCmd.Flags().StringP(longOpt, shortOpt, "", desc(description, envVar))
 		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
 		viper.BindEnv(key, envVar)
-		viper.SetDefault(key, defaults.PluginPath)
+	}
+
+	{
+		const (
+			key         = config.KeyPluginList
+			longOpt     = "plugin-list"
+			envVar      = release.ENVPREFIX + "_PLUGIN_LIST"
+			description = "List of explicit plugin commands to run"
+		)
+
+		RootCmd.Flags().StringSlice(longOpt, []string{}, desc(description, envVar))
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
 	}
 
 	{
