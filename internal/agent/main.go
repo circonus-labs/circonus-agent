@@ -64,7 +64,7 @@ func New() (*Agent, error) {
 		return nil, err
 	}
 
-	a.plugins, err = plugins.New(a.groupCtx)
+	a.plugins, err = plugins.New(a.groupCtx, defaults.PluginPath)
 	if err != nil {
 		return nil, err
 	}

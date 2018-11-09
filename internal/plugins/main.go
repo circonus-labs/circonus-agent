@@ -65,7 +65,7 @@ const (
 )
 
 // New returns a new instance of the plugins manager
-func New(ctx context.Context) (*Plugins, error) {
+func New(ctx context.Context, defaultPluginPath string) (*Plugins, error) {
 	p := Plugins{
 		ctx:           ctx,
 		running:       false,
@@ -74,14 +74,28 @@ func New(ctx context.Context) (*Plugins, error) {
 		active:        make(map[string]*plugin),
 	}
 
-	errMsg := "Invalid plugin directory"
-
 	pluginDir := viper.GetString(config.KeyPluginDir)
+	pluginList := viper.GetStringSlice(config.KeyPluginList)
 
-	if pluginDir == "" {
-		return nil, errors.New(errMsg + " (none)")
+	// if neither specified, use default plugin directory
+	if pluginDir == "" && len(pluginList) == 0 {
+		pluginDir = defaultPluginPath
 	}
 
+	if pluginDir != "" && len(pluginList) > 0 {
+		return nil, errors.New("invalid configuration cannot specifiy plugin-dir AND plugin-list")
+	}
+
+	if pluginDir == "" {
+		for _, cmdSpec := range pluginList {
+			if _, err := os.Stat(cmdSpec); err != nil {
+				p.logger.Warn().Err(err).Str("cmd", cmdSpec).Msg("skipping")
+			}
+		}
+		return &p, nil
+	}
+
+	errMsg := "Invalid plugin directory"
 	absDir, err := filepath.Abs(pluginDir)
 	if err != nil {
 		return nil, errors.Wrap(err, errMsg)
