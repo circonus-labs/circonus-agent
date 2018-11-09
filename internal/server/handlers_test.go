@@ -57,7 +57,7 @@ func TestRun(t *testing.T) {
 	if berr != nil {
 		t.Fatalf("expected no error, got (%s)", berr)
 	}
-	p, perr := plugins.New(context.Background())
+	p, perr := plugins.New(context.Background(), "")
 	if perr != nil {
 		t.Fatalf("expected NO error, got (%s)", perr)
 	}
@@ -105,7 +105,7 @@ func TestInventory(t *testing.T) {
 	viper.Reset()
 	viper.Set(config.KeyListen, ":2609")
 	viper.Set(config.KeyPluginDir, testDir)
-	p, perr := plugins.New(context.Background())
+	p, perr := plugins.New(context.Background(), "")
 	if perr != nil {
 		t.Fatalf("expected NO error, got (%s)", perr)
 	}
