@@ -7,6 +7,7 @@ package plugins
 
 import (
 	"context"
+	"path"
 	"testing"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins"
@@ -30,11 +31,12 @@ func TestScan(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	t.Log("Valid plugin directory")
+	t.Log("valid - plugin directory")
 	{
+		viper.Reset()
 		viper.Set(config.KeyPluginDir, "testdata/")
 
-		p, nerr := New(context.Background())
+		p, nerr := New(context.Background(), "")
 		if nerr != nil {
 			t.Fatalf("expected NO error, got (%s)", nerr)
 		}
@@ -48,6 +50,25 @@ func TestScan(t *testing.T) {
 		}
 	}
 
+	t.Log("valid - plugin list")
+	{
+		viper.Reset()
+		viper.Set(config.KeyPluginDir, "")
+		viper.Set(config.KeyPluginList, []string{path.Join("testdata", "test.sh")})
+
+		p, nerr := New(context.Background(), "")
+		if nerr != nil {
+			t.Fatalf("expected NO error, got (%s)", nerr)
+		}
+		b, berr := builtins.New()
+		if berr != nil {
+			t.Fatalf("expected NO error, got (%s)", berr)
+		}
+		err := p.Scan(b)
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
+	}
 }
 
 func TestScanPluginDirectory(t *testing.T) {
@@ -55,7 +76,7 @@ func TestScanPluginDirectory(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	p, nerr := New(context.Background())
+	p, nerr := New(context.Background(), "")
 	if nerr != nil {
 		t.Fatalf("new err %s", nerr)
 	}

@@ -68,7 +68,7 @@ func TestRouter(t *testing.T) {
 		if berr != nil {
 			t.Fatalf("expected no error, got (%s)", berr)
 		}
-		p, perr := plugins.New(context.Background())
+		p, perr := plugins.New(context.Background(), "")
 		if perr != nil {
 			t.Fatalf("expected NO error, got (%s)", perr)
 		}
@@ -116,7 +116,7 @@ func TestRouter(t *testing.T) {
 		if berr != nil {
 			t.Fatalf("expected no error, got (%s)", berr)
 		}
-		p, perr := plugins.New(context.Background())
+		p, perr := plugins.New(context.Background(), "")
 		if perr != nil {
 			t.Fatalf("expected NO error, got (%s)", perr)
 		}
@@ -172,7 +172,7 @@ func TestRouter(t *testing.T) {
 		if berr != nil {
 			t.Fatalf("expected no error, got (%s)", berr)
 		}
-		p, perr := plugins.New(context.Background())
+		p, perr := plugins.New(context.Background(), "")
 		if perr != nil {
 			t.Fatalf("expected NO error, got (%s)", perr)
 		}

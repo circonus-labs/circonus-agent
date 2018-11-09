@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -24,46 +25,39 @@ func TestNew(t *testing.T) {
 	t.Log("Testing New")
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	t.Log("invalid - empty string")
-	{
-		viper.Set(config.KeyPluginDir, "")
-
-		_, err := New(context.Background())
-		if err == nil {
-			t.Fatal("expected error")
-		}
+	tests := []struct {
+		id         string
+		defaultDir string
+		dir        string
+		list       []string
+		shouldFail bool
+		errMsg     string
+	}{
+		{"invalid - both dir/list specified", "testdata", "testdata", []string{path.Join("testdata", "test.sh")}, true, "invalid configuration cannot specifiy plugin-dir AND plugin-list"},
+		{"invalid - not a dir", "testdata", path.Join("testdata", "test.sh"), []string{}, true, "Invalid plugin directory"},
+		{"valid - no dir/list, default to dir", "testdata", "", []string{}, false, ""},
+		{"valid - dir", "", "testdata", []string{}, false, ""},
+		{"valid - list", "", "", []string{path.Join("testdata", "test.sh")}, false, ""},
 	}
 
-	t.Log("invalid - not a directory")
-	{
-		viper.Set(config.KeyPluginDir, path.Join("testdata", "test.sh"))
-
-		_, err := New(context.Background())
-		if err == nil {
-			t.Fatal("expected error")
-		}
-	}
-
-	// if runtime.GOOS != "windows" {
-	// 	t.Log("invalid - no access")
-	// 	{
-	// 		viper.Set(config.KeyPluginDir, path.Join("testdata", "noaccess"))
-	//
-	// 		_, err := New(context.Background())
-	// 		if err == nil {
-	// 			t.Fatal("expected error")
-	// 		}
-	// 	}
-	// }
-
-	t.Log("valid plugin directory")
-	{
-		viper.Set(config.KeyPluginDir, "testdata")
-
-		_, err := New(context.Background())
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
+	for _, test := range tests {
+		tst := test
+		t.Run(tst.id, func(t *testing.T) {
+			viper.Set(config.KeyPluginList, tst.list)
+			viper.Set(config.KeyPluginDir, tst.dir)
+			_, err := New(context.Background(), tst.defaultDir)
+			if tst.shouldFail {
+				if err == nil {
+					t.Fatal("expected error")
+				} else if !strings.HasPrefix(err.Error(), tst.errMsg) {
+					t.Fatalf("unexpected error (%s)", err)
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("unexpected error (%s)", err)
+				}
+			}
+		})
 	}
 }
 
@@ -76,8 +70,9 @@ func TestRun(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to get cwd (%s)", err)
 	}
+	viper.Reset()
 	viper.Set(config.KeyPluginDir, path.Join(dir, "testdata"))
-	p, nerr := New(context.Background())
+	p, nerr := New(context.Background(), "")
 	if nerr != nil {
 		t.Fatalf("new err %s", nerr)
 	}
@@ -135,7 +130,8 @@ func TestFlush(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	p, nerr := New(context.Background())
+	viper.Reset()
+	p, nerr := New(context.Background(), "testdata/")
 	if nerr != nil {
 		t.Fatalf("new err %s", nerr)
 	}
@@ -204,8 +200,9 @@ func TestIsValid(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
+	viper.Reset()
 	viper.Set(config.KeyPluginDir, "testdata")
-	p, nerr := New(context.Background())
+	p, nerr := New(context.Background(), "")
 	if nerr != nil {
 		t.Fatalf("new err %s", nerr)
 	}
@@ -250,9 +247,10 @@ func TestIsInternal(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
+	viper.Reset()
 	viper.Set(config.KeyPluginDir, "testdata")
 
-	p, nerr := New(context.Background())
+	p, nerr := New(context.Background(), "")
 	if nerr != nil {
 		t.Fatalf("new err %s", nerr)
 	}
@@ -305,9 +303,10 @@ func TestInventory(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
+	viper.Reset()
 	viper.Set(config.KeyPluginDir, "testdata")
 
-	p, nerr := New(context.Background())
+	p, nerr := New(context.Background(), "")
 	if nerr != nil {
 		t.Fatalf("new err %s", nerr)
 	}

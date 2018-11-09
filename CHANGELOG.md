@@ -1,5 +1,12 @@
 # v0.18.0
 
+* **alpha2**
+  * add: `--plugin-list` (`plugin_list` config file) option
+    * `plugin-list` and `plugin-dir` are mutually exclusive, use one **or** the other
+    * `plugin-list` is an _explcit_ list of commands to run as plugins
+    * If neither is supplied use default `plugin-dir` (`/opt/circonus/agent/plugins`)
+    * If `plugin-list` is supplied **only** those plugins will be run; any plugins in the `plugin-dir` will be ignored
+    * If both `plugin-dir` and `plugin-list` are supplied, agent will exit with a mis-configuration error
 * **alpha1**
   * doc: add markdown linter config
   * upd: refactor metrics flush/aggregate, channel vs mutex lock, improve debug messages

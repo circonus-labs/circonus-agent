@@ -28,10 +28,6 @@ func (p *Plugins) Scan(b *builtins.Builtins) error {
 	p.Lock()
 	defer p.Unlock()
 
-	if p.pluginDir == "" {
-		return nil
-	}
-
 	// initialRun fires each plugin one time. Unlike 'Run' it does
 	// not wait for plugins to finish this will provides:
 	//
@@ -48,17 +44,131 @@ func (p *Plugins) Scan(b *builtins.Builtins) error {
 		return nil
 	}
 
-	// only applicable if dynamic reloading implemented
-	// if err := p.Stop(); err != nil {
-	// 	return errors.Wrap(err, "stopping plugin(s)")
-	// }
+	pluginList := viper.GetStringSlice(config.KeyPluginList)
 
-	if err := p.scanPluginDirectory(b); err != nil {
-		return errors.Wrap(err, "plugin directory scan")
+	if p.pluginDir != "" {
+		if err := p.scanPluginDirectory(b); err != nil {
+			return errors.Wrap(err, "plugin directory scan")
+		}
+	} else if len(pluginList) > 0 {
+		if err := p.verifyPluginList(pluginList); err != nil {
+			return errors.Wrap(err, "verifying plugin list")
+		}
 	}
 
 	if err := initialRun(); err != nil {
 		return errors.Wrap(err, "initializing plugin(s)")
+	}
+
+	if len(p.active) == 0 {
+		p.logger.Warn().Msg("no active plugins found")
+	}
+
+	return nil
+}
+
+// verifyPluginList checks supplied list of plugin commands
+func (p *Plugins) verifyPluginList(l []string) error {
+	if len(l) == 0 {
+		return errors.New("invalid plugin list (empty)")
+	}
+
+	ttlRx, err := regexp.Compile(`_ttl(.+)$`)
+	if err != nil {
+		return errors.Wrap(err, "compiling ttl regex")
+	}
+	ttlUnitRx, err := regexp.Compile(`(ms|s|m|h)$`)
+	if err != nil {
+		return errors.Wrap(err, "compiling ttl unit regex")
+	}
+
+	for _, fileSpec := range l {
+		fileDir, fileName := filepath.Split(fileSpec)
+		fileBase := fileName
+		fileExt := filepath.Ext(fileName)
+
+		if fileExt != "" {
+			fileBase = strings.Replace(fileName, fileExt, "", -1)
+		}
+
+		fs, err := os.Stat(fileSpec)
+		if err != nil {
+			p.logger.Warn().Err(err).Str("file", fileSpec).Msg("skipping")
+			continue
+		}
+		if fs.IsDir() {
+			p.logger.Warn().Str("file", fileSpec).Msg("directory, skipping")
+		}
+
+		var cmdName string
+
+		switch mode := fs.Mode(); {
+		case mode.IsRegular():
+			cmdName = fileSpec
+		case mode&os.ModeSymlink != 0:
+			resolvedSymlink, err := filepath.EvalSymlinks(fileSpec)
+			if err != nil {
+				p.logger.Warn().
+					Err(err).
+					Str("file", fileSpec).
+					Msg("error resolving symlink, ignoring")
+				continue
+			}
+			cmdName = resolvedSymlink
+		default:
+			p.logger.Debug().
+				Str("file", fileSpec).
+				Msg("not a regular file or symlink, ignoring")
+			continue // just ignore it
+		}
+
+		if runtime.GOOS != "windows" {
+			// windows doesn't have an e'x'ecutable bit, all files are
+			// 'potentially' executable - binary exe, interpreted scripts, etc.
+			if perm := fs.Mode().Perm() & 0111; perm != 73 {
+				p.logger.Warn().
+					Str("file", fileSpec).
+					Str("perms", fmt.Sprintf("%q", fs.Mode().Perm())).
+					Msg("executable bit not set, ignoring")
+				continue
+			}
+		}
+
+		// parse fileBase for _ttl(.+)
+		matches := ttlRx.FindAllStringSubmatch(fileBase, -1)
+		var runTTL time.Duration
+		if len(matches) > 0 && len(matches[0]) > 1 {
+			ttl := matches[0][1]
+			if ttl != "" {
+				if !ttlUnitRx.MatchString(ttl) {
+					ttl += viper.GetString(config.KeyPluginTTLUnits)
+				}
+
+				if d, err := time.ParseDuration(ttl); err != nil {
+					p.logger.Warn().Err(err).Str("file", fileSpec).Str("ttl", ttl).Msg("parsing plugin ttl, ignoring ttl")
+				} else {
+					runTTL = d
+				}
+			}
+		}
+
+		plug, ok := p.active[fileBase]
+		if !ok {
+			p.active[fileBase] = &plugin{
+				ctx:    p.ctx,
+				id:     fileBase,
+				name:   fileBase,
+				logger: p.logger.With().Str("plugin", fileBase).Logger(),
+				runDir: fileDir,
+				runTTL: runTTL,
+			}
+			plug = p.active[fileBase]
+		}
+
+		appstats.IncrementInt("plugins.total")
+		// appstats.MapIncrementInt("plugins", "total")
+		plug.command = cmdName
+		p.logger.Info().Str("id", fileBase).Str("cmd", cmdName).Msg("activating")
 	}
 
 	return nil
@@ -272,10 +382,6 @@ func (p *Plugins) scanPluginDirectory(b *builtins.Builtins) error {
 
 			}
 		}
-	}
-
-	if len(p.active) == 0 {
-		p.logger.Warn().Msg("no active plugins found")
 	}
 
 	return nil

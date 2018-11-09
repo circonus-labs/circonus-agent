@@ -13,6 +13,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/builtins"
 	"github.com/circonus-labs/circonus-agent/internal/check"
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
 	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/reverse"
@@ -64,7 +65,7 @@ func New() (*Agent, error) {
 		return nil, err
 	}
 
-	a.plugins, err = plugins.New(a.groupCtx)
+	a.plugins, err = plugins.New(a.groupCtx, defaults.PluginPath)
 	if err != nil {
 		return nil, err
 	}
