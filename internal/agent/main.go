@@ -13,6 +13,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/builtins"
 	"github.com/circonus-labs/circonus-agent/internal/check"
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
 	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/reverse"
