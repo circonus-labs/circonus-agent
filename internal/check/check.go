@@ -144,8 +144,15 @@ func (c *Check) createCheck() (*apiclient.CheckBundle, error) {
 	cfg.Notes = &note
 	cfg.Type = "json:nad"
 	cfg.Config = apiclient.CheckBundleConfig{apiconf.URL: "http://" + targetAddr + "/"}
-	cfg.Metrics = []apiclient.CheckBundleMetric{
-		{Name: "placeholder", Type: "text", Status: c.statusActiveMetric}, // one metric is required again
+
+	cfg.Metrics = []apiclient.CheckBundleMetric{}
+	cfg.MetricFilters = defaults.CheckMetricFilters
+	if viper.GetString(config.KeyCheckMetricFilters) != "" {
+		var filters [][]string
+		if err := json.Unmarshal([]byte(viper.GetString(config.KeyCheckMetricFilters)), &filters); err != nil {
+			return nil, errors.Wrap(err, "parsing check metric filters")
+		}
+		cfg.MetricFilters = filters
 	}
 
 	tags := viper.GetString(config.KeyCheckTags)
@@ -168,18 +175,6 @@ func (c *Check) createCheck() (*apiclient.CheckBundle, error) {
 	}
 
 	cfg.Brokers = []string{brokerCID}
-
-	if viper.GetBool(config.KeyCheckEnableNewMetrics) {
-		cfg.Metrics = []apiclient.CheckBundleMetric{}
-		cfg.MetricFilters = defaults.CheckMetricFilters
-		if viper.GetString(config.KeyCheckMetricFilters) != "" {
-			var filters [][]string
-			if err := json.Unmarshal([]byte(viper.GetString(config.KeyCheckMetricFilters)), &filters); err != nil {
-				return nil, errors.Wrap(err, "parsing check metric filters")
-			}
-			cfg.MetricFilters = filters
-		}
-	}
 
 	bundle, err := c.client.CreateCheckBundle(cfg)
 	if err != nil {
