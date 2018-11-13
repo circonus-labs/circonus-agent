@@ -75,7 +75,7 @@ in JSON format.`,
 func init() {
 	zerolog.TimeFieldFormat = time.RFC3339Nano
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	zlog := zerolog.New(zerolog.SyncWriter(os.Stderr)).With().Timestamp().Logger()
+	zlog := zerolog.New(zerolog.SyncWriter(os.Stdout)).With().Timestamp().Logger()
 	log.Logger = zlog
 
 	stdlog.SetFlags(0)
