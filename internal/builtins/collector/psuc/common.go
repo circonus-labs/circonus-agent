@@ -1,36 +1,49 @@
-// Copyright © 2017 Circonus, Inc. <support@circonus.com>
+// Copyright © 2018 Circonus, Inc. <support@circonus.com>
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 //
 
-// +build linux
-
-package procfs
+package psuc
 
 import (
+	"regexp"
+	"sync"
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 )
 
-// Define stubs to satisfy the collector.Collector interface.
-//
-// The individual collector implementations must override Collect and Flush.
-//
-// ID and Inventory are generic and do not need to be overridden unless the
-// collector implementation requires it.
+// common defines psutils metrics common elements
+type common struct {
+	id                  string          // OPT id of the collector (used as metric name prefix)
+	pkgID               string          // package prefix used for logging and errors
+	lastEnd             time.Time       // last collection end time
+	lastError           string          // last collection error
+	lastMetrics         cgm.Metrics     // last metrics collected
+	lastRunDuration     time.Duration   // last collection duration
+	lastStart           time.Time       // last collection start time
+	logger              zerolog.Logger  // collector logging instance
+	metricDefaultActive bool            // OPT default status for metrics NOT explicitly in metricStatus
+	metricNameChar      string          // OPT character(s) used as replacement for metricNameRegex
+	metricNameRegex     *regexp.Regexp  // OPT regex for cleaning names, may be overridden in config
+	metricStatus        map[string]bool // OPT list of metrics and whether they should be collected or not
+	running             bool            // is collector currently running
+	runTTL              time.Duration   // OPT ttl for collectors (default is for every request)
+	sync.Mutex
+}
 
 // Collect returns collector metrics
-func (c *pfscommon) Collect() error {
+func (c *common) Collect() error {
 	c.Lock()
 	defer c.Unlock()
 	return collector.ErrNotImplemented
 }
 
 // Flush returns last metrics collected
-func (c *pfscommon) Flush() cgm.Metrics {
+func (c *common) Flush() cgm.Metrics {
 	c.Lock()
 	defer c.Unlock()
 	if c.lastMetrics == nil {
@@ -40,14 +53,14 @@ func (c *pfscommon) Flush() cgm.Metrics {
 }
 
 // ID returns the id of the instance
-func (c *pfscommon) ID() string {
+func (c *common) ID() string {
 	c.Lock()
 	defer c.Unlock()
 	return c.id
 }
 
 // Inventory returns collector stats for /inventory endpoint
-func (c *pfscommon) Inventory() collector.InventoryStats {
+func (c *common) Inventory() collector.InventoryStats {
 	c.Lock()
 	defer c.Unlock()
 	return collector.InventoryStats{
@@ -60,7 +73,7 @@ func (c *pfscommon) Inventory() collector.InventoryStats {
 }
 
 // cleanName is used to clean the metric name
-func (c *pfscommon) cleanName(name string) string {
+func (c *common) cleanName(name string) string {
 	// metric names are not dynamic for linux procfs - reintroduce cleaner if
 	// procfs sources used return dirty dynamic names.
 	//
@@ -69,7 +82,7 @@ func (c *pfscommon) cleanName(name string) string {
 }
 
 // addMetric to internal buffer if metric is active
-func (c *pfscommon) addMetric(metrics *cgm.Metrics, prefix string, mname, mtype string, mval interface{}) error {
+func (c *common) addMetric(metrics *cgm.Metrics, prefix string, mname, mtype string, mval interface{}) error {
 	if metrics == nil {
 		return errors.New("invalid metric submission")
 	}
@@ -100,7 +113,7 @@ func (c *pfscommon) addMetric(metrics *cgm.Metrics, prefix string, mname, mtype 
 }
 
 // setStatus is used in Collect to set the collector status
-func (c *pfscommon) setStatus(metrics cgm.Metrics, err error) {
+func (c *common) setStatus(metrics cgm.Metrics, err error) {
 	c.Lock()
 	if err == nil {
 		c.lastError = ""

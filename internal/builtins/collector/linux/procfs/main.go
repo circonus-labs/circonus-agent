@@ -79,39 +79,37 @@ func New() ([]collector.Collector, error) {
 		return none, nil
 	}
 
-	procFSPath := PROC_FS_PATH
-
 	collectors := make([]collector.Collector, 0, len(enbledCollectors))
 	initErrMsg := "initializing builtin collector"
 	for _, name := range enbledCollectors {
 		cfgBase := name + "_collector"
 		switch name {
-		case "cpu":
-			c, err := NewCPUCollector(path.Join(defaults.EtcPath, cfgBase), procFSPath)
+		case CPU_NAME:
+			c, err := NewCPUCollector(path.Join(defaults.EtcPath, cfgBase), PROC_FS_PATH)
 			if err != nil {
 				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
 				continue
 			}
 			collectors = append(collectors, c)
 
-		case "diskstats":
-			c, err := NewDiskstatsCollector(path.Join(defaults.EtcPath, cfgBase), procFSPath)
+		case DISKSTATS_NAME:
+			c, err := NewDiskstatsCollector(path.Join(defaults.EtcPath, cfgBase), PROC_FS_PATH)
 			if err != nil {
 				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
 				continue
 			}
 			collectors = append(collectors, c)
 
-		case "if":
-			c, err := NewIFCollector(path.Join(defaults.EtcPath, cfgBase), procFSPath)
+		case IF_NAME:
+			c, err := NewIFCollector(path.Join(defaults.EtcPath, cfgBase), PROC_FS_PATH)
 			if err != nil {
 				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
 				continue
 			}
 			collectors = append(collectors, c)
 
-		case "loadavg":
-			c, err := NewLoadavgCollector(path.Join(defaults.EtcPath, cfgBase), procFSPath)
+		case LOADAVG_NAME:
+			c, err := NewLoadavgCollector(path.Join(defaults.EtcPath, cfgBase), PROC_FS_PATH)
 			if err != nil {
 				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
 				continue
@@ -119,7 +117,7 @@ func New() ([]collector.Collector, error) {
 			collectors = append(collectors, c)
 
 		case VM_NAME:
-			c, err := NewVMCollector(path.Join(defaults.EtcPath, cfgBase), procFSPath)
+			c, err := NewVMCollector(path.Join(defaults.EtcPath, cfgBase), PROC_FS_PATH)
 			if err != nil {
 				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
 				continue
