@@ -19,10 +19,11 @@ import (
 )
 
 const (
-	PSUC_PREFIX         = "generic/"
+	GENERIC_PREFIX      = "generic/"
 	LOG_PREFIX          = "builtins.generic."
 	CPU_NAME            = "cpu"
-	DISK_NAME           = "disk"
+	DISKSTATS_NAME      = "diskstats"
+	FS_NAME             = "fs"
 	LOAD_NAME           = "load"
 	VM_NAME             = "vm"
 	IF_NAME             = "net_if"
@@ -52,10 +53,10 @@ func New() ([]collector.Collector, error) {
 	collectors := make([]collector.Collector, 0, len(enbledCollectors))
 	initErrMsg := "initializing builtin collector"
 	for _, name := range enbledCollectors {
-		if !strings.HasPrefix(name, PSUC_PREFIX) {
+		if !strings.HasPrefix(name, GENERIC_PREFIX) {
 			continue
 		}
-		name = strings.Replace(name, PSUC_PREFIX, "", -1)
+		name = strings.Replace(name, GENERIC_PREFIX, "", -1)
 		cfgBase := "generic_" + name + "_collector"
 		switch name {
 		case CPU_NAME:
@@ -66,8 +67,16 @@ func New() ([]collector.Collector, error) {
 			}
 			collectors = append(collectors, c)
 
-		case DISK_NAME:
-			c, err := NewDiskCollector(path.Join(defaults.EtcPath, cfgBase))
+		case DISKSTATS_NAME:
+			c, err := NewDiskstatsCollector(path.Join(defaults.EtcPath, cfgBase))
+			if err != nil {
+				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
+				continue
+			}
+			collectors = append(collectors, c)
+
+		case FS_NAME:
+			c, err := NewDiskFSCollector(path.Join(defaults.EtcPath, cfgBase))
 			if err != nil {
 				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
 				continue

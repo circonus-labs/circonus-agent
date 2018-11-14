@@ -213,7 +213,8 @@ func init() {
 	default:
 		Collectors = []string{
 			"generic/cpu",
-			"generic/disk",
+			"generic/diskstats",
+			"generic/fs",
 			"generic/load",
 			"generic/if",
 			"generic/proto",

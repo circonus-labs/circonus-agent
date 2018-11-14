@@ -8,7 +8,6 @@ package generic
 import (
 	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -20,17 +19,15 @@ import (
 	"github.com/shirou/gopsutil/disk"
 )
 
-// Disk metrics from the Linux ProcFS
-type Disk struct {
+// FS metrics from the Linux ProcFS
+type FS struct {
 	common
 	includeFS *regexp.Regexp
 	excludeFS *regexp.Regexp
-	enableIO  bool
-	ioDevices []string
 }
 
-// DiskOptions defines what elements can be overridden in a config file
-type DiskOptions struct {
+// fsOptions defines what elements can be overridden in a config file
+type fsOptions struct {
 	// common
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
 	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
@@ -39,16 +36,14 @@ type DiskOptions struct {
 	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 
 	// collector specific
-	IncludeRegexFS   string   `json:"include_fs_regex" toml:"include_fs_regex" yaml:"include_fs_regex"`
-	ExcludeRegexFS   string   `json:"exclude_fs_regex" toml:"exclude_fs_regex" yaml:"exclude_fs_regex"`
-	EnableIOCounters string   `json:"enable_io_counters" toml:"enable_io_counters" yaml:"enable_io_counters"`
-	IODevices        []string `json:"io_devices" toml:"io_devices" yaml:"io_devices"`
+	IncludeRegexFS string `json:"include_fs_regex" toml:"include_fs_regex" yaml:"include_fs_regex"`
+	ExcludeRegexFS string `json:"exclude_fs_regex" toml:"exclude_fs_regex" yaml:"exclude_fs_regex"`
 }
 
-// NewDiskCollector creates new psutils disk collector
-func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
-	c := Disk{}
-	c.id = DISK_NAME
+// NewDiskFSCollector creates new psutils disk collector
+func NewDiskFSCollector(cfgBaseName string) (collector.Collector, error) {
+	c := FS{}
+	c.id = FS_NAME
 	c.pkgID = LOG_PREFIX + c.id
 	c.logger = log.With().Str("pkg", c.pkgID).Logger()
 	c.metricStatus = map[string]bool{}
@@ -56,10 +51,8 @@ func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 
 	c.includeFS = defaultIncludeRegex
 	c.excludeFS = defaultExcludeRegex
-	c.enableIO = false
-	c.ioDevices = []string{}
 
-	var opts DiskOptions
+	var opts fsOptions
 	err := config.LoadConfigFile(cfgBaseName, &opts)
 	if err != nil {
 		if strings.Contains(err.Error(), "no config found matching") {
@@ -85,18 +78,6 @@ func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 			return nil, errors.Wrapf(err, "%s compiling exclude FS regex", c.pkgID)
 		}
 		c.excludeFS = rx
-	}
-
-	if opts.EnableIOCounters != "" {
-		rpt, err := strconv.ParseBool(opts.EnableIOCounters)
-		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing enable_io_counters", c.pkgID)
-		}
-		c.enableIO = rpt
-	}
-
-	if len(opts.IODevices) > 0 {
-		c.ioDevices = opts.IODevices
 	}
 
 	if opts.ID != "" {
@@ -133,8 +114,8 @@ func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 	return &c, nil
 }
 
-// Collect disk metrics
-func (c *Disk) Collect() error {
+// Collect disk fs metrics
+func (c *FS) Collect() error {
 	metrics := cgm.Metrics{}
 
 	c.Lock()
@@ -155,27 +136,6 @@ func (c *Disk) Collect() error {
 	c.running = true
 	c.lastStart = time.Now()
 	c.Unlock()
-
-	if c.enableIO {
-		ios, err := disk.IOCounters(c.ioDevices...)
-		if err != nil {
-			c.logger.Warn().Err(err).Str("id", c.id).Msg("collecting disk io counter metrics")
-		} else {
-			for device, counters := range ios {
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "read_count"), "L", counters.ReadCount)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "merged_read_count"), "L", counters.MergedReadCount)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "write_count"), "L", counters.WriteCount)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "merged_write_count"), "L", counters.MergedWriteCount)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "read_bytes"), "L", counters.ReadBytes)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "write_bytes"), "L", counters.WriteBytes)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "read_time"), "L", counters.ReadTime)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "write_time"), "L", counters.WriteTime)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "iops_in_progress"), "L", counters.IopsInProgress)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "io_time"), "L", counters.IoTime)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "weighted_io"), "L", counters.WeightedIO)
-			}
-		}
-	}
 
 	partitions, err := disk.Partitions(false)
 	if err != nil {
