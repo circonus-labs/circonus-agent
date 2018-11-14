@@ -87,7 +87,8 @@ func New() ([]collector.Collector, error) {
 		if !strings.HasPrefix(name, PROCFS_PREFIX) {
 			continue
 		}
-		cfgBase := PROCFS_PREFIX + "_" + name + "_collector"
+		name = strings.Replace(name, PROCFS_PREFIX, "", -1)
+		cfgBase := "procfs_" + name + "_collector"
 		switch name {
 		case CPU_NAME:
 			c, err := NewCPUCollector(path.Join(defaults.EtcPath, cfgBase), PROC_FS_PATH)

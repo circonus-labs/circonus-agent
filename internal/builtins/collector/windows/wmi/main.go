@@ -106,7 +106,8 @@ func New() ([]collector.Collector, error) {
 		if !strings.HasPrefix(name, WMI_PREFIX) {
 			continue
 		}
-		cfgBase := WMI_PREFIX + "_" + name + "_collector"
+		name = strings.Replace(name, WMI_PREFIX, "", -1)
+		cfgBase := "wmi_" + name + "_collector"
 		switch name {
 		case "cache":
 			c, err := NewCacheCollector(path.Join(defaults.EtcPath, cfgBase))
