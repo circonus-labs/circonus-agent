@@ -8,6 +8,7 @@ package generic
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,8 +23,10 @@ import (
 // FS metrics from the Linux ProcFS
 type FS struct {
 	common
-	includeFS *regexp.Regexp
-	excludeFS *regexp.Regexp
+	includeFS     *regexp.Regexp
+	excludeFS     *regexp.Regexp
+	excludeFSType map[string]bool
+	allFSDevices  bool
 }
 
 // fsOptions defines what elements can be overridden in a config file
@@ -36,8 +39,10 @@ type fsOptions struct {
 	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 
 	// collector specific
-	IncludeRegexFS string `json:"include_fs_regex" toml:"include_fs_regex" yaml:"include_fs_regex"`
-	ExcludeRegexFS string `json:"exclude_fs_regex" toml:"exclude_fs_regex" yaml:"exclude_fs_regex"`
+	IncludeRegexFS    string   `json:"include_fs_regex" toml:"include_fs_regex" yaml:"include_fs_regex"`
+	ExcludeRegexFS    string   `json:"exclude_fs_regex" toml:"exclude_fs_regex" yaml:"exclude_fs_regex"`
+	ExcludeFSType     []string `json:"exclude_fs_type" toml:"exclude_fs_type" yaml:"exclude_fs_type"`
+	IncludeAllDevices string   `json:"include_all_devices" toml:"include_all_devices" yaml:"include_all_devices"`
 }
 
 // NewFSCollector creates new psutils disk collector
@@ -51,6 +56,8 @@ func NewFSCollector(cfgBaseName string) (collector.Collector, error) {
 
 	c.includeFS = defaultIncludeRegex
 	c.excludeFS = defaultExcludeRegex
+	c.excludeFSType = map[string]bool{}
+	c.allFSDevices = false
 
 	var opts fsOptions
 	err := config.LoadConfigFile(cfgBaseName, &opts)
@@ -78,6 +85,20 @@ func NewFSCollector(cfgBaseName string) (collector.Collector, error) {
 			return nil, errors.Wrapf(err, "%s compiling exclude FS regex", c.pkgID)
 		}
 		c.excludeFS = rx
+	}
+
+	if len(opts.ExcludeFSType) > 0 {
+		for _, fstype := range opts.ExcludeFSType {
+			c.excludeFSType[fstype] = true
+		}
+	}
+
+	if opts.IncludeAllDevices != "" {
+		rpt, err := strconv.ParseBool(opts.IncludeAllDevices)
+		if err != nil {
+			return nil, errors.Wrapf(err, "%s parsing include_all_devices", c.pkgID)
+		}
+		c.allFSDevices = rpt
 	}
 
 	if opts.ID != "" {
@@ -116,10 +137,7 @@ func NewFSCollector(cfgBaseName string) (collector.Collector, error) {
 
 // Collect disk fs metrics
 func (c *FS) Collect() error {
-	metrics := cgm.Metrics{}
-
 	c.Lock()
-
 	if c.runTTL > time.Duration(0) {
 		if time.Since(c.lastEnd) < c.runTTL {
 			c.logger.Warn().Msg(collector.ErrTTLNotExpired.Error())
@@ -137,19 +155,32 @@ func (c *FS) Collect() error {
 	c.lastStart = time.Now()
 	c.Unlock()
 
-	partitions, err := disk.Partitions(false)
+	metrics := cgm.Metrics{}
+	partitions, err := disk.Partitions(c.allFSDevices)
 	if err != nil {
-		c.logger.Warn().Err(err).Str("id", c.id).Msg("collecting disk filesystem/partition metrics")
+		c.logger.Warn().Err(err).Msg("collecting disk filesystem/partition metrics")
 	} else {
 		for _, partition := range partitions {
+			l := c.logger.With().
+				Str("fs_device", partition.Device).
+				Str("fs_type", partition.Fstype).
+				Str("fs_mount", partition.Mountpoint).Logger()
+
 			if c.excludeFS.MatchString(partition.Mountpoint) || !c.includeFS.MatchString(partition.Mountpoint) {
-				c.logger.Debug().Str("mount_point", partition.Mountpoint).Msg("excluded FS, ignoring")
+				l.Debug().Msg("excluded FS, ignoring")
 				continue
 			}
 
+			if _, exclude := c.excludeFSType[partition.Fstype]; exclude {
+				l.Debug().Msg("excluded FS type, ignoring")
+				continue
+			}
+
+			l.Debug().Msg("filesystem")
+
 			usage, err := disk.Usage(partition.Mountpoint)
 			if err != nil {
-				c.logger.Warn().Err(err).Str("mount_point", partition.Mountpoint).Msg("collecting disk usage")
+				l.Warn().Err(err).Msg("collecting disk usage")
 				continue
 			}
 
