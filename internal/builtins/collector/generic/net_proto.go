@@ -118,10 +118,9 @@ func (c *Proto) Collect() error {
 	c.Unlock()
 
 	metrics := cgm.Metrics{}
-
 	counters, err := net.ProtoCounters(c.protocols)
 	if err != nil {
-		c.logger.Warn().Err(err).Str("id", c.id).Msg("collecting network protocol metrics")
+		c.logger.Warn().Err(err).Msg("collecting network protocol metrics")
 	} else {
 		for _, counter := range counters {
 			for name, val := range counter.Stats {

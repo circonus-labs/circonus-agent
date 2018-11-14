@@ -100,10 +100,7 @@ func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 
 // Collect disk device metrics
 func (c *Disk) Collect() error {
-	metrics := cgm.Metrics{}
-
 	c.Lock()
-
 	if c.runTTL > time.Duration(0) {
 		if time.Since(c.lastEnd) < c.runTTL {
 			c.logger.Warn().Msg(collector.ErrTTLNotExpired.Error())
@@ -121,9 +118,10 @@ func (c *Disk) Collect() error {
 	c.lastStart = time.Now()
 	c.Unlock()
 
+	metrics := cgm.Metrics{}
 	ios, err := disk.IOCounters(c.ioDevices...)
 	if err != nil {
-		c.logger.Warn().Err(err).Str("id", c.id).Msg("collecting disk io counter metrics")
+		c.logger.Warn().Err(err).Msg("collecting disk io counter metrics")
 	} else {
 		for device, counters := range ios {
 			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "read_count"), "L", counters.ReadCount)

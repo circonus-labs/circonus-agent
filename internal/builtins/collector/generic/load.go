@@ -109,10 +109,9 @@ func (c *Load) Collect() error {
 	c.Unlock()
 
 	metrics := cgm.Metrics{}
-
 	loadavg, err := load.Avg()
 	if err != nil {
-		c.logger.Warn().Err(err).Str("id", c.id).Msg("collecting load metrics")
+		c.logger.Warn().Err(err).Msg("collecting load metrics")
 	} else {
 		c.addMetric(&metrics, c.id, "1min", "n", loadavg.Load1)
 		c.addMetric(&metrics, c.id, "5min", "n", loadavg.Load5)
@@ -121,7 +120,7 @@ func (c *Load) Collect() error {
 
 	misc, err := load.Misc()
 	if err != nil {
-		c.logger.Warn().Err(err).Str("id", c.id).Msg("collecting misc load metrics")
+		c.logger.Warn().Err(err).Msg("collecting misc load metrics")
 	} else {
 		c.addMetric(&metrics, c.id, "procs_running", "i", misc.ProcsRunning)
 		c.addMetric(&metrics, c.id, "procs_blocked", "i", misc.ProcsBlocked)

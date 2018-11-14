@@ -110,10 +110,9 @@ func (c *VM) Collect() error {
 	c.Unlock()
 
 	metrics := cgm.Metrics{}
-
 	swap, err := mem.SwapMemory()
 	if err != nil {
-		c.logger.Warn().Err(err).Str("id", c.id).Msg("collecting swap memory metrics")
+		c.logger.Warn().Err(err).Msg("collecting swap memory metrics")
 	} else {
 		c.addMetric(&metrics, c.id, "swap_total", "L", swap.Total)
 		c.addMetric(&metrics, c.id, "swap_used", "L", swap.Used)
@@ -125,7 +124,7 @@ func (c *VM) Collect() error {
 
 	vm, err := mem.VirtualMemory()
 	if err != nil {
-		c.logger.Warn().Err(err).Str("id", c.id).Msg("collecting virtual memory metrics")
+		c.logger.Warn().Err(err).Msg("collecting virtual memory metrics")
 	} else {
 		c.addMetric(&metrics, c.id, "total", "L", vm.Total)
 		c.addMetric(&metrics, c.id, "available", "L", vm.Available)

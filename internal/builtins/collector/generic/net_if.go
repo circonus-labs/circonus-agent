@@ -135,10 +135,9 @@ func (c *IF) Collect() error {
 	c.Unlock()
 
 	metrics := cgm.Metrics{}
-
 	ifaces, err := net.IOCounters(true)
 	if err != nil {
-		c.logger.Warn().Err(err).Str("id", c.id).Msg("collecting network interface metrics")
+		c.logger.Warn().Err(err).Msg("collecting network interface metrics")
 	} else {
 		for _, iface := range ifaces {
 			if c.exclude.MatchString(iface.Name) || !c.include.MatchString(iface.Name) {
