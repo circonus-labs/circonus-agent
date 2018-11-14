@@ -8,7 +8,6 @@
 package procfs
 
 import (
-	"runtime"
 	"testing"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
@@ -19,8 +18,8 @@ func TestNew(t *testing.T) {
 	t.Log("Testing New")
 
 	viper.Set(config.KeyCollectors, []string{
-		"cpu",
-		"disk",
+		"procfs/cpu",
+		"procfs/disk",
 	})
 
 	c, err := New()
@@ -28,13 +27,7 @@ func TestNew(t *testing.T) {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
 
-	if runtime.GOOS == "linux" {
-		if len(c) == 0 {
-			t.Fatal("expected at least 1 collector.Collector")
-		}
-	} else {
-		if len(c) != 0 {
-			t.Fatal("expected 0 collectors")
-		}
+	if len(c) == 0 {
+		t.Fatal("expected at least 1 collector.Collector")
 	}
 }
