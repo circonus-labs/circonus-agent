@@ -26,8 +26,8 @@ const (
 	FS_NAME             = "fs"
 	LOAD_NAME           = "load"
 	VM_NAME             = "vm"
-	IF_NAME             = "net_if"
-	PROTO_NAME          = "net_proto"
+	IF_NAME             = "if"
+	PROTO_NAME          = "proto"
 	metricNameSeparator = "`"        // character used to separate parts of metric names
 	metricStatusEnabled = "enabled"  // setting string indicating metrics should be made 'active'
 	regexPat            = `^(?:%s)$` // fmt pattern used compile include/exclude regular expressions
