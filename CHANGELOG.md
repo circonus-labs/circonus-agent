@@ -1,5 +1,21 @@
 # v0.18.0
 
+* **alpha3**
+  * upd: all collectors use prefixes for collector names and config files:
+    * procfs: e.g. collectors list `procfs/cpu`, config file `procfs_cpu_collector.(json|yaml|toml)`
+    * wmi: e.g. collectors list `wmi/disk`, config file `wmi_disk_collector.(json|yaml|toml)`
+    * generic: e.g. collectors list `generic/vm`, config file `generic_vm_collector.(json|yaml|toml)`
+  * upd: use stdout vs stderr for logging
+  * upd: all builtins use prefixes `procfs/`, `wmi/`, `generic/`
+  * add: psutils as a _generic_ system metrics builtin
+    * metrics for: cpu, disk, fs, load, net interfaces, net protocols, virtual memory
+    * usage:
+      * use only generic collectors: `--collectors="generic/cpu,generic/disk,generic/fs,generic/load,generic/if,generic/proto,generic/vm"`
+      * use only generic fs collector, procfs for remainder: `--collectors="procfs/cpu,procfs/diskstats,generic/fs,procfs/loadavg,procfs/if,procfs/vm"`
+    * procfs collectors of same name take precedence over generic collectors (for cosi visuals) e.g. if both `procfs/cpu` and `generic/cpu` are in collectors list, only `procfs/cpu` builtin would be enabled
+  * upd: all new checks use metric_filters (regardless of `--check-enable-new-metrics` setting)
+  * add: debug messages for metric aggregating in run
+  * upd: remove redundant locks when using cgm instance (has locks internally), only gate instance itself
 * **alpha2**
   * add: `--plugin-list` (`plugin_list` config file) option
     * `plugin-list` and `plugin-dir` are mutually exclusive, use one **or** the other
