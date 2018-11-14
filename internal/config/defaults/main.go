@@ -190,25 +190,25 @@ func init() {
 	switch runtime.GOOS {
 	case "linux":
 		Collectors = []string{
-			"cpu",
-			"diskstats",
-			"if",
-			"loadavg",
-			"vm",
+			"procfs/cpu",
+			"procfs/diskstats",
+			"procfs/if",
+			"procfs/loadavg",
+			"procfs/vm",
 		}
 	case "windows":
 		Collectors = []string{
-			"cache",
-			"disk", // logical and physical
-			"interface",
-			"ip", // ipv4 and ipv6
-			"memory",
-			"objects",
-			"paging_file",
-			// "processes",
-			"processor",
-			"tcp", // ipv4 and ipv6
-			"udp", // ipv4 and ipv6
+			"wmi/cache",
+			"wmi/disk", // logical and physical
+			"wmi/interface",
+			"wmi/ip", // ipv4 and ipv6
+			"wmi/memory",
+			"wmi/objects",
+			"wmi/paging_file",
+			// "wmi/processes",
+			"wmi/processor",
+			"wmi/tcp", // ipv4 and ipv6
+			"wmi/udp", // ipv4 and ipv6
 		}
 	default:
 		Collectors = []string{
