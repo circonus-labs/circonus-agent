@@ -57,7 +57,7 @@ func New() ([]collector.Collector, error) {
 			continue
 		}
 		name = strings.Replace(name, GENERIC_PREFIX, "", -1)
-		cfgBase := "generic_" + name + "_collector"
+		cfgBase := GENERIC_PREFIX + "_" + name + "_collector"
 		switch name {
 		case CPU_NAME:
 			c, err := NewCPUCollector(path.Join(defaults.EtcPath, cfgBase))
