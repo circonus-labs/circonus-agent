@@ -46,7 +46,7 @@ type wmicommon struct {
 }
 
 const (
-	GENERIC_PREFIX      = "generic/"
+	WMI_PREFIX          = "wmi/"
 	defaultMetricChar   = "_"                           // character used to replace invalid characters in metric name
 	metricNameSeparator = "`"                           // character used to separate parts of metric names
 	metricStatusEnabled = "enabled"                     // setting string indicating metrics should be made 'active'
@@ -103,10 +103,10 @@ func New() ([]collector.Collector, error) {
 
 	collectors := make([]collector.Collector, 0, len(enbledCollectors))
 	for _, name := range enbledCollectors {
-		if strings.HasPrefix(name, GENERIC_PREFIX) {
+		if !strings.HasPrefix(name, WMI_PREFIX) {
 			continue
 		}
-		cfgBase := name + "_collector"
+		cfgBase := WMI_PREFIX + "_" + name + "_collector"
 		switch name {
 		case "cache":
 			c, err := NewCacheCollector(path.Join(defaults.EtcPath, cfgBase))

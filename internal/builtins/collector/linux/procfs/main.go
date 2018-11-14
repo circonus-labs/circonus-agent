@@ -47,7 +47,7 @@ type pfscommon struct {
 }
 
 const (
-	GENERIC_PREFIX      = "generic/"
+	PROCFS_PREFIX       = "procfs/"
 	PROC_FS_PATH        = "/proc"
 	PFS_PREFIX          = "builtins.linux.procfs."
 	CPU_NAME            = "cpu"
@@ -84,10 +84,10 @@ func New() ([]collector.Collector, error) {
 	collectors := make([]collector.Collector, 0, len(enbledCollectors))
 	initErrMsg := "initializing builtin collector"
 	for _, name := range enbledCollectors {
-		if strings.HasPrefix(name, GENERIC_PREFIX) {
+		if !strings.HasPrefix(name, PROCFS_PREFIX) {
 			continue
 		}
-		cfgBase := name + "_collector"
+		cfgBase := PROCFS_PREFIX + "_" + name + "_collector"
 		switch name {
 		case CPU_NAME:
 			c, err := NewCPUCollector(path.Join(defaults.EtcPath, cfgBase), PROC_FS_PATH)
