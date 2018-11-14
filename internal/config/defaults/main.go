@@ -210,5 +210,14 @@ func init() {
 			"tcp", // ipv4 and ipv6
 			"udp", // ipv4 and ipv6
 		}
+	default:
+		Collectors = []string{
+			"generic/cpu",
+			"generic/disk",
+			"generic/load",
+			"generic/if",
+			"generic/proto",
+			"generic/vm",
+		}
 	}
 }

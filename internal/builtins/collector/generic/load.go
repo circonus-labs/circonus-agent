@@ -3,12 +3,10 @@
 // license that can be found in the LICENSE file.
 //
 
-package psuc
+package generic
 
 import (
-	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -17,39 +15,34 @@ import (
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
-	"github.com/shirou/gopsutil/cpu"
+	"github.com/shirou/gopsutil/load"
 )
 
-// CPU metrics from psutils
-type CPU struct {
+// Load metrics
+type Load struct {
 	common
-	reportAllCPUs bool // OPT report all cpus (vs just total) may be overridden in config file
 }
 
-// cpuOptions defines what elements can be overridden in a config file
-type cpuOptions struct {
+// loadOptions defines what elements can be overridden in a config file
+type loadOptions struct {
 	// common
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
 	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
 	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
 	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
 	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
-
-	// collector specific
-	AllCPU string `json:"report_all_cpus" toml:"report_all_cpus" yaml:"report_all_cpus"`
 }
 
-// NewCPUCollector creates new psutils cpu collector
-func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
-	c := CPU{}
-	c.id = CPU_NAME
+// NewLoadCollector creates new psutils collector
+func NewLoadCollector(cfgBaseName string) (collector.Collector, error) {
+	c := Load{}
+	c.id = LOAD_NAME
 	c.pkgID = LOG_PREFIX + c.id
 	c.logger = log.With().Str("pkg", c.pkgID).Logger()
 	c.metricStatus = map[string]bool{}
 	c.metricDefaultActive = true
-	c.reportAllCPUs = false
 
-	var opts cpuOptions
+	var opts loadOptions
 	err := config.LoadConfigFile(cfgBaseName, &opts)
 	if err != nil {
 		if strings.Contains(err.Error(), "no config found matching") {
@@ -60,14 +53,6 @@ func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
 	}
 
 	c.logger.Debug().Interface("config", opts).Msg("loaded config")
-
-	if opts.AllCPU != "" {
-		rpt, err := strconv.ParseBool(opts.AllCPU)
-		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing report_all_cpus", c.pkgID)
-		}
-		c.reportAllCPUs = rpt
-	}
 
 	if opts.ID != "" {
 		c.id = opts.ID
@@ -103,8 +88,8 @@ func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
 	return &c, nil
 }
 
-// Collect cpu metrics
-func (c *CPU) Collect() error {
+// Collect load metrics
+func (c *Load) Collect() error {
 	c.Lock()
 	if c.runTTL > time.Duration(0) {
 		if time.Since(c.lastEnd) < c.runTTL {
@@ -125,32 +110,22 @@ func (c *CPU) Collect() error {
 
 	metrics := cgm.Metrics{}
 
-	pcts, err := cpu.Percent(time.Duration(0), true)
+	loadavg, err := load.Avg()
 	if err != nil {
-		c.logger.Warn().Err(err).Str("id", c.id).Msg("collecting metrics, cpu%")
+		c.logger.Warn().Err(err).Str("id", c.id).Msg("collecting load metrics")
 	} else {
-		for idx, v := range pcts {
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%d", idx), "n", v)
-		}
+		c.addMetric(&metrics, c.id, "1min", "n", loadavg.Load1)
+		c.addMetric(&metrics, c.id, "5min", "n", loadavg.Load5)
+		c.addMetric(&metrics, c.id, "15min", "n", loadavg.Load15)
 	}
 
-	ts, err := cpu.Times(c.reportAllCPUs)
+	misc, err := load.Misc()
 	if err != nil {
-		c.logger.Warn().Err(err).Str("id", c.id).Msg("collecting metrics, cpu times")
+		c.logger.Warn().Err(err).Str("id", c.id).Msg("collecting misc load metrics")
 	} else {
-		for idx, v := range ts {
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "user"), "n", v.User)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "system"), "n", v.System)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "idle"), "n", v.Idle)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "nice"), "n", v.Nice)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "iowait"), "n", v.Iowait)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "irq"), "n", v.Irq)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "soft_irq"), "n", v.Softirq)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "steal"), "n", v.Steal)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "guest"), "n", v.Guest)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "guest_nice"), "n", v.GuestNice)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "stolen"), "n", v.Stolen)
-		}
+		c.addMetric(&metrics, c.id, "procs_running", "i", misc.ProcsRunning)
+		c.addMetric(&metrics, c.id, "procs_blocked", "i", misc.ProcsBlocked)
+		c.addMetric(&metrics, c.id, "ctxt", "i", misc.Ctxt)
 	}
 
 	c.setStatus(metrics, nil)

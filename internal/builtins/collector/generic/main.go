@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 //
 
-package psuc
+package generic
 
 import (
 	"fmt"
@@ -19,10 +19,14 @@ import (
 )
 
 const (
-	PSUC_PREFIX         = "psuc/"
-	LOG_PREFIX          = "builtins.psuc."
+	PSUC_PREFIX         = "generic/"
+	LOG_PREFIX          = "builtins.generic."
 	CPU_NAME            = "cpu"
 	DISK_NAME           = "disk"
+	LOAD_NAME           = "load"
+	VM_NAME             = "vm"
+	IF_NAME             = "net_if"
+	PROTO_NAME          = "net_proto"
 	metricNameSeparator = "`"        // character used to separate parts of metric names
 	metricStatusEnabled = "enabled"  // setting string indicating metrics should be made 'active'
 	regexPat            = `^(?:%s)$` // fmt pattern used compile include/exclude regular expressions
@@ -37,7 +41,7 @@ var (
 func New() ([]collector.Collector, error) {
 	none := []collector.Collector{}
 
-	l := log.With().Str("pkg", "builtins.psuc").Logger()
+	l := log.With().Str("pkg", "builtins.generic").Logger()
 
 	enbledCollectors := viper.GetStringSlice(config.KeyCollectors)
 	if len(enbledCollectors) == 0 {
@@ -52,7 +56,7 @@ func New() ([]collector.Collector, error) {
 			continue
 		}
 		name = strings.Replace(name, PSUC_PREFIX, "", -1)
-		cfgBase := "psuc_" + name + "_collector"
+		cfgBase := "generic_" + name + "_collector"
 		switch name {
 		case CPU_NAME:
 			c, err := NewCPUCollector(path.Join(defaults.EtcPath, cfgBase))
@@ -64,6 +68,38 @@ func New() ([]collector.Collector, error) {
 
 		case DISK_NAME:
 			c, err := NewDiskCollector(path.Join(defaults.EtcPath, cfgBase))
+			if err != nil {
+				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
+				continue
+			}
+			collectors = append(collectors, c)
+
+		case LOAD_NAME:
+			c, err := NewLoadCollector(path.Join(defaults.EtcPath, cfgBase))
+			if err != nil {
+				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
+				continue
+			}
+			collectors = append(collectors, c)
+
+		case VM_NAME:
+			c, err := NewVMCollector(path.Join(defaults.EtcPath, cfgBase))
+			if err != nil {
+				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
+				continue
+			}
+			collectors = append(collectors, c)
+
+		case IF_NAME:
+			c, err := NewNetIFCollector(path.Join(defaults.EtcPath, cfgBase))
+			if err != nil {
+				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
+				continue
+			}
+			collectors = append(collectors, c)
+
+		case PROTO_NAME:
+			c, err := NewNetProtoCollector(path.Join(defaults.EtcPath, cfgBase))
 			if err != nil {
 				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
 				continue

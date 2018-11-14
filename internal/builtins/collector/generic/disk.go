@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 //
 
-package psuc
+package generic
 
 import (
 	"fmt"
@@ -159,27 +159,27 @@ func (c *Disk) Collect() error {
 	if c.enableIO {
 		ios, err := disk.IOCounters(c.ioDevices...)
 		if err != nil {
-			c.logger.Warn().Err(err).Msg("collecting disk io counters")
+			c.logger.Warn().Err(err).Str("id", c.id).Msg("collecting disk io counter metrics")
 		} else {
 			for device, counters := range ios {
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "read_count"), "n", counters.ReadCount)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "merged_read_count"), "n", counters.MergedReadCount)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "write_count"), "n", counters.WriteCount)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "merged_write_count"), "n", counters.MergedWriteCount)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "read_bytes"), "n", counters.ReadBytes)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "write_bytes"), "n", counters.WriteBytes)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "read_time"), "n", counters.ReadTime)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "write_time"), "n", counters.WriteTime)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "iops_in_progress"), "n", counters.IopsInProgress)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "io_time"), "n", counters.IoTime)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "weighted_io"), "n", counters.WeightedIO)
+				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "read_count"), "L", counters.ReadCount)
+				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "merged_read_count"), "L", counters.MergedReadCount)
+				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "write_count"), "L", counters.WriteCount)
+				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "merged_write_count"), "L", counters.MergedWriteCount)
+				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "read_bytes"), "L", counters.ReadBytes)
+				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "write_bytes"), "L", counters.WriteBytes)
+				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "read_time"), "L", counters.ReadTime)
+				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "write_time"), "L", counters.WriteTime)
+				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "iops_in_progress"), "L", counters.IopsInProgress)
+				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "io_time"), "L", counters.IoTime)
+				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "weighted_io"), "L", counters.WeightedIO)
 			}
 		}
 	}
 
 	partitions, err := disk.Partitions(false)
 	if err != nil {
-		c.logger.Warn().Err(err).Msg("collecting disk partitions")
+		c.logger.Warn().Err(err).Str("id", c.id).Msg("collecting disk filesystem/partition metrics")
 	} else {
 		for _, partition := range partitions {
 			if c.excludeFS.MatchString(partition.Mountpoint) || !c.includeFS.MatchString(partition.Mountpoint) {

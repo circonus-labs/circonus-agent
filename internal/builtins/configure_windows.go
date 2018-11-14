@@ -8,6 +8,7 @@
 package builtins
 
 import (
+	"github.com/circonus-labs/circonus-agent/internal/builtins/collector/generic"
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector/prometheus"
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector/windows/wmi"
 	appstats "github.com/maier/go-appstats"
@@ -17,23 +18,45 @@ import (
 func (b *Builtins) configure() error {
 	l := log.With().Str("pkg", "builtins").Logger()
 
-	l.Debug().Msg("calling wmi.New")
-	collectors, err := wmi.New()
-	if err != nil {
-		return err
+	{
+		// WMI collecctors
+		l.Debug().Msg("calling wmi.New")
+		collectors, err := wmi.New()
+		if err != nil {
+			return err
+		}
+		for _, c := range collectors {
+			appstats.IncrementInt("builtins.total")
+			b.logger.Info().Str("id", c.ID()).Msg("enabled wmi builtin")
+			b.collectors[c.ID()] = c
+		}
 	}
-	for _, c := range collectors {
-		appstats.IncrementInt("builtins.total")
-		// appstats.MapIncrementInt("builtins", "total")
-		b.logger.Info().Str("id", c.ID()).Msg("enabled builtin")
-		b.collectors[c.ID()] = c
+
+	{
+		// PSUtils
+		// NOTE: enable any explicit generic builtins - wmi will take precdence if
+		//       there is a metric namespace collision.
+		//       e.g. if wmi.cpu and generic.cpu are both enabled, wmi.cpu will
+		//       take precedence and the generic.cpu instance will be dropped.
+		l.Debug().Msg("calling generic.New")
+		collectors, err := generic.New()
+		if err != nil {
+			return err
+		}
+		for _, c := range collectors {
+			if _, exists := b.collectors[c.ID()]; !exists {
+				appstats.IncrementInt("builtins.total")
+				b.logger.Info().Str("id", c.ID()).Msg("enabled generic builtin")
+				b.collectors[c.ID()] = c
+			}
+		}
 	}
+
 	prom, err := prometheus.New("")
 	if err != nil {
 		b.logger.Warn().Err(err).Msg("prom collector, disabling")
 	} else {
 		appstats.IncrementInt("builtins.total")
-		// appstats.MapIncrementInt("builtins", "total")
 		b.collectors[prom.ID()] = prom
 	}
 	return nil
