@@ -39,7 +39,7 @@ type vmOptions struct {
 	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
-// NewVMCollector creates new procfs cpu collector
+// NewVMCollector creates new procfs vm collector
 func NewVMCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
 	procFile := "meminfo"
 

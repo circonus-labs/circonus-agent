@@ -31,7 +31,7 @@ Edit the resulting file to customize configuration settings. When done, rename f
 
 ---
 
-# Collector configurations
+# Builtin Collector Configurations
 
 Three formats are supported (json, toml, yaml) for collector configurations. Collector configurations should be stored in the `etc` directory where the agent was installed (for example: `/opt/circonus/agent/etc` or `C:\circonus-agent\etc`).
 
@@ -51,31 +51,33 @@ All ProcFS collectors have a basic set of configuration options:
 
 Additionally, each collector may have more configuration options specific to _what_ is being collected. (e.g. include/exclude regular expression for items such as network interfaces, disks, etc.)
 
+Example usage: `--collectors="procfs/cpu,procfs/diskstats,procfs/if,procfs/loadavg,procfs/vm"`
+
 * CPU
-    * ID: `cpu`
-    * Config file: `cpu_collector.(json|toml|yaml)`
+    * ID: `procfs/cpu`
+    * Config file: `procfs_cpu_collector.(json|toml|yaml)`
     * Options:
         * `report_all_cpus` string, include all cpus, not just total (default "false")
 * Disk stats
-    * ID: `diskstats`
-    * Config file: `diskstats_collector.(json|toml|yaml)`
+    * ID: `procfs/diskstats`
+    * Config file: `procfs_diskstats_collector.(json|toml|yaml)`
     * Options:
         * `include_regex` string, regular expression for disk inclusion - default `.+`
         * `exclude_regex` string, regular expression for disk exclusion - default empty
 * Network interfaces
-    * ID: `if`
-    * Config file: `if_collector.(json|toml|yaml)`
+    * ID: `procfs/if`
+    * Config file: `procfs_if_collector.(json|toml|yaml)`
     * Options:
         * `include_regex` string, regular expression for interface inclusion - default `.+`
         * `exclude_regex` string, regular expression for interface exclusion - default `lo`
 * Memory
-    * ID: `vm`
-    * Config file: `vm_collector.(json|toml|yaml)`
-    * Options: only the common options
+    * ID: `procfs/vm`
+    * Config file: `procfs_vm_collector.(json|toml|yaml)`
+    * Options: _only the common options_
 * System load
-    * ID: `loadavg`
-    * Config file: `loadavg_collector.(json|toml|yaml)`
-    * Options: only the common options
+    * ID: `procfs/loadavg`
+    * Config file: `procfs_loadavg_collector.(json|toml|yaml)`
+    * Options: _only the common options_
 
 # Windows
 
@@ -95,68 +97,124 @@ All WMI collectors have a basic set of configuration options:
 
 Additionally, each collector may have more configuration options specific to _what_ is being collected. (e.g. include/exclude regular expression for items such as network interfaces, disks, processes, file systems, etc.)
 
+Example usage: `--collectors="wmi/cache,wmi/disk,wmi/memory,wmi/interface,wmi/ip,wmi/tcp,wmi/udp,wmi/objects,wmi/processor,wmi/processes"`
+
 * Cache
-    * ID: `cache`
-    * Config file: `cache_collector.(json|toml|yaml)`
+    * ID: `wmi/cache`
+    * Config file: `wmi_cache_collector.(json|toml|yaml)`
     * Options: only the common options
 * Disk
-    * ID: `disk`
-    * Config file: `disk_collector.(json|toml|yaml)`
+    * ID: `wmi/disk`
+    * Config file: `wmi_disk_collector.(json|toml|yaml)`
     * Options:
         * `logical_disks` string(true|false), include logical disks (default "true")
         * `physical_disks` string(true|false), include physical disks (default "true")
         * `include_regex` string, regular expression for disk inclusion - default `.+`
         * `exclude_regex` string, regular expression for disk exclusion - default empty
 * Memory
-    * ID: `memory`
-    * Config file: `memory_collector.(json|toml|yaml)`
+    * ID: `wmi/memory`
+    * Config file: `wmi_memory_collector.(json|toml|yaml)`
     * Options: only the common options
 * Network interfaces
-    * ID: `interface`
-    * Config file: `interface_collector.(json|toml|yaml)`
+    * ID: `wmi/interface`
+    * Config file: `wmi_interface_collector.(json|toml|yaml)`
     * Options:
         * `include_regex` string, regular expression for interface inclusion - default `.+`
         * `exclude_regex` string, regular expression for interface exclusion - default empty
 * IP network protocol
-    * ID: `ip`
-    * Config file: `ip_collector.(json|toml|yaml)`
+    * ID: `wmi/ip`
+    * Config file: `wmi_ip_collector.(json|toml|yaml)`
     * Options:
         * `enable_ipv4` string(true|false), include IPv4 metrics - default "true"
         * `enable_ipv6` string(true|false), include IPv6 metrics - default "true"
 * TCP network protocol
-    * ID: `tcp`
-    * Config file: `tcp_collector.(json|toml|yaml)`
+    * ID: `wmi/tcp`
+    * Config file: `wmi_tcp_collector.(json|toml|yaml)`
     * Options:
         * `enable_ipv4` string(true|false), include IPv4 metrics - default "true"
         * `enable_ipv6` string(true|false), include IPv6 metrics - default "true"
 * UDP network protocol
-    * ID: `udp`
-    * Config file: `udp_collector.(json|toml|yaml)`
+    * ID: `wmi/udp`
+    * Config file: `wmi_udp_collector.(json|toml|yaml)`
     * Options:
         * `enable_ipv4` string(true|false), include IPv4 metrics - default "true"
         * `enable_ipv6` string(true|false), include IPv6 metrics - default "true"
 * Objects
-    * ID: `objects`
-    * Config file: `objects_collector.(json|toml|yaml)`
-    * Options: only the common options
+    * ID: `wmi/objects`
+    * Config file: `wmi_objects_collector.(json|toml|yaml)`
+    * Options: _only the common options_
 * Paging file
-    * ID: `paging_file`
-    * Config file: `paging_file_collector.(json|toml|yaml)`
+    * ID: `wmi/paging_file`
+    * Config file: `wmi_paging_file_collector.(json|toml|yaml)`
     * Options:
         * `include_regex` string, regular expression for file inclusion - default `.+`
         * `exclude_regex` string, regular expression for file exclusion - default empty
 * Processors
-    * ID: `processor`
-    * Config file: `processor_collector.(json|toml|yaml)`
+    * ID: `wmi/processor`
+    * Config file: `wmi_processor_collector.(json|toml|yaml)`
     * Options:
         * `report_all_cpus` string, include all cpus, not just total (default "true")
 * Processes
-    * ID: `processes`
+    * ID: `wmi/processes`
     * NOTE: disabled by default (28 metrics _per_ process)
-    * Config file: `processes_collector.(json|toml|yaml)`
+    * Config file: `wmi_processes_collector.(json|toml|yaml)`
     * Options:
         * `include_regex` string, regular expression for process inclusion - default `.+`
         * `exclude_regex` string, regular expression for process exclusion - default empty
+
+# Generic collectors
+
+All Generic collectors have a basic set of configuration options:
+
+| Option                   | Type             | Default            | Description |
+| ------------------------ | ---------------- | ------------------ | ----------- |
+| `id`                     | string           | name of collector  | ID/Name of the collector (used as prefix for metrics). |
+| `metrics_enabled`        | array of strings | empty              | list of metrics which are enabled (to be collected) |
+| `metrics_disabled`       | array of strings | empty              | list of metrics which are disabled (should NOT be collected) |
+| `metrics_default_status` | string           | `enabled`          | how a metric NOT in the enabled/disabled lists should be handled ("enabled" or "disabled") |
+| `run_ttl`                | string           | empty              | indicating collector will run no more frequently than TTL (e.g. "10s", "5m", etc. - for expensive collectors) |
+
+Additionally, each collector may have more configuration options specific to _what_ is being collected. (e.g. include/exclude regular expression for items such as network interfaces, disks, filesystems, devices, etc.)
+
+Example usage: `--collectors="generic/cpu,generic/disk,generic/fs,generic/load,generic/if,generic/proto,generic/vm"`
+
+* CPU
+    * ID: `generic/cpu`
+    * Config file: `generic_cpu_collector.(json|toml|yaml)`
+    * Options:
+        * `report_all_cpus` string, include all cpus, not just total (default "false")
+* Disk
+    * ID: `generic/disk`
+    * Config file: `generic_disk_collector.(json|toml|yaml)`
+    * Options:
+        * `io_devices` list of strings, specific devices to include (default <empty list> == all devices)
+* Filesystem
+    * ID: `generic/fs`
+    * Config file: `generic_fs_collector.(json|toml|yaml)`
+    * Options:
+        * `include_fs_regex` string, regular expression for filesystem mount point inclusion - default `.+`
+        * `exclude_fs_regex` string, regular expression for filesystem mount point exclusion - default empty
+        * `exclude_fs_type` list of strings, specific filesystem types to exclude (default <empty list> == include all types)
+        * `include_all_devices` string, include all devices, not just "drives" (default "false")
+* Load
+    * ID: `generic/load`
+    * Config file: `generic_load_collector.(json|toml|yaml)`
+    * Options: _only the common options_
+* Network interfaces
+    * ID: `generic/if`
+    * Config file: `generic_if_collector.(json|toml|yaml)`
+    * Options:
+        * `include_regex` string, regular expression for interface inclusion - default `.+`
+        * `exclude_regex` string, regular expression for interface exclusion - default `lo`
+* Network protocols
+    * ID: `generic/proto`
+    * Config file: `generic_proto_collector.(json|toml|yaml)`
+    * Options:
+        * `protocols` list of strings, specific network protocols to exclude (default <empty list> == include all "ip,icmp,icmpmsg,tcp,udp,udplite")
+* Virtual Memory
+    * ID: `generic/vm`
+    * Config file: `generic_vm_collector.(json|toml|yaml)`
+    * Options: _only the common options_
 
 # Common
 

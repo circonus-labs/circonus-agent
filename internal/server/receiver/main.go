@@ -64,14 +64,18 @@ func initCGM() error {
 // Flush returns current metrics
 func Flush() *cgm.Metrics {
 	initCGM()
-	metricsmu.Lock()
-	defer metricsmu.Unlock()
+	// metricsmu.Lock()
+	// defer metricsmu.Unlock()
 
 	return metrics.FlushMetrics()
 }
 
 // Parse handles incoming PUT/POST requests
 func Parse(id string, data io.ReadCloser) error {
+	initCGM()
+	// metricsmu.Lock()
+	// defer metricsmu.Unlock()
+
 	var tmp tags.JSONMetrics // cgm.Metrics
 	if err := json.NewDecoder(data).Decode(&tmp); err != nil {
 		if serr, ok := err.(*json.SyntaxError); ok {
@@ -79,10 +83,6 @@ func Parse(id string, data io.ReadCloser) error {
 		}
 		return errors.Wrapf(err, "parsing json for %s", id)
 	}
-
-	initCGM()
-	metricsmu.Lock()
-	defer metricsmu.Unlock()
 
 	for name, metric := range tmp {
 		metricName := strings.Join([]string{id, name}, config.MetricNameSeparator)

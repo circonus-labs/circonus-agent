@@ -1,18 +1,12 @@
-// Copyright © 2017 Circonus, Inc. <support@circonus.com>
+// Copyright © 2018 Circonus, Inc. <support@circonus.com>
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 //
 
-// +build linux
-
-package procfs
+package generic
 
 import (
-	"bufio"
-	"os"
-	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -21,46 +15,34 @@ import (
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
+	"github.com/shirou/gopsutil/load"
 )
 
-// Loadavg metrics from the Linux ProcFS (actually from unix.Sysinfo call)
-type Loadavg struct {
-	pfscommon
-	file string
+// Load metrics
+type Load struct {
+	common
 }
 
-// loadavgOptions defines what elements can be overridden in a config file
-type loadavgOptions struct {
+// loadOptions defines what elements can be overridden in a config file
+type loadOptions struct {
 	// common
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	ProcFSPath           string   `json:"procfs_path" toml:"procfs_path" yaml:"procfs_path"`
 	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
 	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
 	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
 	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
-// NewLoadavgCollector creates new procfs loadavg collector
-func NewLoadavgCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
-	procFile := LOADAVG_NAME
-
-	c := Loadavg{}
-	c.id = LOADAVG_NAME
-	c.pkgID = PFS_PREFIX + c.id
-	c.procFSPath = procFSPath
-	c.file = filepath.Join(c.procFSPath, procFile)
+// NewLoadCollector creates new psutils collector
+func NewLoadCollector(cfgBaseName string) (collector.Collector, error) {
+	c := Load{}
+	c.id = LOAD_NAME
+	c.pkgID = LOG_PREFIX + c.id
 	c.logger = log.With().Str("pkg", c.pkgID).Logger()
 	c.metricStatus = map[string]bool{}
 	c.metricDefaultActive = true
 
-	if cfgBaseName == "" {
-		if _, err := os.Stat(c.file); os.IsNotExist(err) {
-			return nil, errors.Wrap(err, c.pkgID)
-		}
-		return &c, nil
-	}
-
-	var opts loadavgOptions
+	var opts loadOptions
 	err := config.LoadConfigFile(cfgBaseName, &opts)
 	if err != nil {
 		if strings.Contains(err.Error(), "no config found matching") {
@@ -74,11 +56,6 @@ func NewLoadavgCollector(cfgBaseName, procFSPath string) (collector.Collector, e
 
 	if opts.ID != "" {
 		c.id = opts.ID
-	}
-
-	if opts.ProcFSPath != "" {
-		c.procFSPath = opts.ProcFSPath
-		c.file = filepath.Join(c.procFSPath, procFile)
 	}
 
 	if len(opts.MetricsEnabled) > 0 {
@@ -108,19 +85,12 @@ func NewLoadavgCollector(cfgBaseName, procFSPath string) (collector.Collector, e
 		c.runTTL = dur
 	}
 
-	if _, err := os.Stat(c.file); os.IsNotExist(err) {
-		return nil, errors.Wrap(err, c.pkgID)
-	}
-
 	return &c, nil
 }
 
-// Collect metrics from the procfs resource
-func (c *Loadavg) Collect() error {
-	metrics := cgm.Metrics{}
-
+// Collect load metrics
+func (c *Load) Collect() error {
 	c.Lock()
-
 	if c.runTTL > time.Duration(0) {
 		if time.Since(c.lastEnd) < c.runTTL {
 			c.logger.Warn().Msg(collector.ErrTTLNotExpired.Error())
@@ -138,49 +108,23 @@ func (c *Loadavg) Collect() error {
 	c.lastStart = time.Now()
 	c.Unlock()
 
-	f, err := os.Open(c.file)
+	metrics := cgm.Metrics{}
+	loadavg, err := load.Avg()
 	if err != nil {
-		c.setStatus(metrics, err)
-		return errors.Wrap(err, c.pkgID)
-	}
-	defer f.Close()
-
-	metricType := "n"
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := scanner.Text()
-		fields := strings.Fields(line)
-
-		if len(fields) < 3 {
-			c.logger.Warn().Int("fields", len(fields)).Msg("invalid number of fields")
-			continue
-		}
-
-		if v, err := strconv.ParseFloat(fields[0], 64); err != nil {
-			c.logger.Warn().Err(err).Msg("parsing 1min field")
-			continue
-		} else {
-			c.addMetric(&metrics, c.id, "1", metricType, v)
-		}
-
-		if v, err := strconv.ParseFloat(fields[1], 64); err != nil {
-			c.logger.Warn().Err(err).Msg("parsing 5min field")
-			continue
-		} else {
-			c.addMetric(&metrics, c.id, "5", metricType, v)
-		}
-
-		if v, err := strconv.ParseFloat(fields[2], 64); err != nil {
-			c.logger.Warn().Err(err).Msg("parsing 15min field")
-			continue
-		} else {
-			c.addMetric(&metrics, c.id, "15", metricType, v)
-		}
+		c.logger.Warn().Err(err).Msg("collecting load metrics")
+	} else {
+		c.addMetric(&metrics, c.id, "1min", "n", loadavg.Load1)
+		c.addMetric(&metrics, c.id, "5min", "n", loadavg.Load5)
+		c.addMetric(&metrics, c.id, "15min", "n", loadavg.Load15)
 	}
 
-	if err := scanner.Err(); err != nil {
-		c.setStatus(metrics, err)
-		return errors.Wrapf(err, "%s parsing %s", c.pkgID, f.Name())
+	misc, err := load.Misc()
+	if err != nil {
+		c.logger.Warn().Err(err).Msg("collecting misc load metrics")
+	} else {
+		c.addMetric(&metrics, c.id, "procs_running", "i", misc.ProcsRunning)
+		c.addMetric(&metrics, c.id, "procs_blocked", "i", misc.ProcsBlocked)
+		c.addMetric(&metrics, c.id, "ctxt", "i", misc.Ctxt)
 	}
 
 	c.setStatus(metrics, nil)

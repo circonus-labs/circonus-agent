@@ -70,14 +70,18 @@ func initCGM() error {
 // Flush returns current metrics
 func Flush() *cgm.Metrics {
 	initCGM()
-	metricsmu.Lock()
-	defer metricsmu.Unlock()
+	// metricsmu.Lock()
+	// defer metricsmu.Unlock()
 
 	return metrics.FlushMetrics()
 }
 
 // Parse handles incoming PUT/POST requests
 func Parse(data io.ReadCloser) error {
+	initCGM()
+	// metricsmu.Lock()
+	// defer metricsmu.Unlock()
+
 	var parser expfmt.TextParser
 
 	// formats supported from https://prometheus.io/docs/instrumenting/exposition_formats/
@@ -86,10 +90,6 @@ func Parse(data io.ReadCloser) error {
 	if err != nil {
 		return err
 	}
-
-	initCGM()
-	metricsmu.Lock()
-	defer metricsmu.Unlock()
 
 	for mn, mf := range metricFamilies {
 		for _, m := range mf.Metric {

@@ -277,6 +277,10 @@ func (p *plugin) exec() error {
 
 	p.running = true
 	p.lastStart = time.Now()
+	// TBD: timeouts, create a new deadline context
+	//      Problem is some plugins do not exit intentionally - long running.
+	//      There is no way [currently] to know whether a plugin is
+	//      intentionally "long running".
 	p.cmd = exec.CommandContext(p.ctx, p.command)
 	p.cmd.Dir = p.runDir
 	if p.instanceArgs != nil {

@@ -68,7 +68,7 @@ type dstats struct {
 	iomsWeighted    uint64
 }
 
-// NewDiskstatsCollector creates new procfs cpu collector
+// NewDiskstatsCollector creates new procfs diskstats collector
 func NewDiskstatsCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
 	procFile := DISKSTATS_NAME
 

@@ -19,6 +19,7 @@ require (
 	github.com/prometheus/client_model v0.0.0-20180712105110-5c3871d89910
 	github.com/prometheus/common v0.0.0-20180801064454-c7de2306084e
 	github.com/rs/zerolog v1.9.1
+	github.com/shirou/gopsutil v2.18.10+incompatible
 	github.com/spf13/cobra v0.0.0-20180915222204-8d114be902bc
 	github.com/spf13/viper v1.2.0
 	github.com/stretchr/testify v1.2.2 // indirect
