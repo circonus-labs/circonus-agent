@@ -46,7 +46,7 @@ type ifOptions struct {
 	ExcludeRegex string `json:"exclude_regex" toml:"exclude_regex" yaml:"exclude_regex"`
 }
 
-// NewIFCollector creates new procfs cpu collector
+// NewIFCollector creates new procfs if collector
 func NewIFCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
 	procFile := filepath.Join("net", "dev")
 

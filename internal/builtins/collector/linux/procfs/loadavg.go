@@ -40,7 +40,7 @@ type loadavgOptions struct {
 	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
-// NewLoadavgCollector creates new procfs cpu collector
+// NewLoadavgCollector creates new procfs loadavg collector
 func NewLoadavgCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
 	procFile := LOADAVG_NAME
 
