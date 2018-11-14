@@ -22,7 +22,7 @@ const (
 	GENERIC_PREFIX      = "generic/"
 	LOG_PREFIX          = "builtins.generic."
 	CPU_NAME            = "cpu"
-	DISKSTATS_NAME      = "diskstats"
+	DISK_NAME           = "disk"
 	FS_NAME             = "fs"
 	LOAD_NAME           = "load"
 	VM_NAME             = "vm"
@@ -67,8 +67,8 @@ func New() ([]collector.Collector, error) {
 			}
 			collectors = append(collectors, c)
 
-		case DISKSTATS_NAME:
-			c, err := NewDiskstatsCollector(path.Join(defaults.EtcPath, cfgBase))
+		case DISK_NAME:
+			c, err := NewDiskCollector(path.Join(defaults.EtcPath, cfgBase))
 			if err != nil {
 				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
 				continue
@@ -76,7 +76,7 @@ func New() ([]collector.Collector, error) {
 			collectors = append(collectors, c)
 
 		case FS_NAME:
-			c, err := NewDiskFSCollector(path.Join(defaults.EtcPath, cfgBase))
+			c, err := NewFSCollector(path.Join(defaults.EtcPath, cfgBase))
 			if err != nil {
 				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
 				continue
