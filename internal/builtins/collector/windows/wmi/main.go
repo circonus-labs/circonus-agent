@@ -12,6 +12,7 @@ import (
 	"path"
 	"regexp"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -45,6 +46,7 @@ type wmicommon struct {
 }
 
 const (
+	GENERIC_PREFIX      = "generic/"
 	defaultMetricChar   = "_"                           // character used to replace invalid characters in metric name
 	metricNameSeparator = "`"                           // character used to separate parts of metric names
 	metricStatusEnabled = "enabled"                     // setting string indicating metrics should be made 'active'
@@ -101,6 +103,9 @@ func New() ([]collector.Collector, error) {
 
 	collectors := make([]collector.Collector, 0, len(enbledCollectors))
 	for _, name := range enbledCollectors {
+		if strings.HasPrefix(name, GENERIC_PREFIX) {
+			continue
+		}
 		cfgBase := name + "_collector"
 		switch name {
 		case "cache":
