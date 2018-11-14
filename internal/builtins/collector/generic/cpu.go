@@ -124,32 +124,49 @@ func (c *CPU) Collect() error {
 	c.Unlock()
 
 	metrics := cgm.Metrics{}
-
 	pcts, err := cpu.Percent(time.Duration(0), c.reportAllCPUs)
 	if err != nil {
-		c.logger.Warn().Err(err).Str("id", c.id).Msg("collecting metrics, cpu%")
+		c.logger.Warn().Err(err).Msg("collecting metrics, cpu%")
 	} else {
-		for idx, pct := range pcts {
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "used_pct"), "n", pct)
+		if !c.reportAllCPUs && len(pcts) == 1 {
+			c.addMetric(&metrics, c.id, "used_pct", "n", pcts[0])
+		} else {
+			for idx, pct := range pcts {
+				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "used_pct"), "n", pct)
+			}
 		}
 	}
 
 	ts, err := cpu.Times(c.reportAllCPUs)
 	if err != nil {
-		c.logger.Warn().Err(err).Str("id", c.id).Msg("collecting metrics, cpu times")
+		c.logger.Warn().Err(err).Msg("collecting metrics, cpu times")
 	} else {
-		for idx, v := range ts {
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "user"), "n", v.User)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "system"), "n", v.System)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "idle"), "n", v.Idle)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "nice"), "n", v.Nice)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "iowait"), "n", v.Iowait)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "irq"), "n", v.Irq)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "soft_irq"), "n", v.Softirq)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "steal"), "n", v.Steal)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "guest"), "n", v.Guest)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "guest_nice"), "n", v.GuestNice)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "stolen"), "n", v.Stolen)
+		if !c.reportAllCPUs && len(ts) == 1 {
+			c.addMetric(&metrics, c.id, "user", "n", ts[0].User)
+			c.addMetric(&metrics, c.id, "system", "n", ts[0].System)
+			c.addMetric(&metrics, c.id, "idle", "n", ts[0].Idle)
+			c.addMetric(&metrics, c.id, "nice", "n", ts[0].Nice)
+			c.addMetric(&metrics, c.id, "iowait", "n", ts[0].Iowait)
+			c.addMetric(&metrics, c.id, "irq", "n", ts[0].Irq)
+			c.addMetric(&metrics, c.id, "soft_irq", "n", ts[0].Softirq)
+			c.addMetric(&metrics, c.id, "steal", "n", ts[0].Steal)
+			c.addMetric(&metrics, c.id, "guest", "n", ts[0].Guest)
+			c.addMetric(&metrics, c.id, "guest_nice", "n", ts[0].GuestNice)
+			c.addMetric(&metrics, c.id, "stolen", "n", ts[0].Stolen)
+		} else {
+			for idx, v := range ts {
+				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "user"), "n", v.User)
+				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "system"), "n", v.System)
+				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "idle"), "n", v.Idle)
+				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "nice"), "n", v.Nice)
+				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "iowait"), "n", v.Iowait)
+				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "irq"), "n", v.Irq)
+				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "soft_irq"), "n", v.Softirq)
+				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "steal"), "n", v.Steal)
+				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "guest"), "n", v.Guest)
+				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "guest_nice"), "n", v.GuestNice)
+				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "stolen"), "n", v.Stolen)
+			}
 		}
 	}
 
