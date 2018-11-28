@@ -4,9 +4,9 @@ require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6
 	github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf
-	github.com/circonus-labs/circonus-gometrics/v3 v3.0.0-alpha.5
-	github.com/circonus-labs/circonusllhist v0.1.2
-	github.com/circonus-labs/go-apiclient v0.5.2
+	github.com/circonus-labs/circonus-gometrics/v3 v3.0.0-beta
+	github.com/circonus-labs/circonusllhist v0.1.3
+	github.com/circonus-labs/go-apiclient v0.5.3
 	github.com/fatih/structs v1.0.0
 	github.com/go-ole/go-ole v0.0.0-20180625085808-7a0fa49edf48 // indirect
 	github.com/golang/protobuf v1.2.0 // indirect
