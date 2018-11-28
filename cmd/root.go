@@ -659,7 +659,22 @@ func init() {
 			longOpt      = "debug-cgm"
 			defaultValue = false
 			envVar       = release.ENVPREFIX + "_DEBUG_CGM"
-			description  = "Enable CGM & API debug messages"
+			description  = "Enable CGM debug messages"
+		)
+
+		RootCmd.Flags().Bool(longOpt, defaultValue, desc(description, envVar))
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+		viper.SetDefault(key, defaultValue)
+	}
+
+	{
+		const (
+			key          = config.KeyDebugAPI
+			longOpt      = "debug-api"
+			defaultValue = false
+			envVar       = release.ENVPREFIX + "_DEBUG_API"
+			description  = "Enable Circonus API debug messages"
 		)
 
 		RootCmd.Flags().Bool(longOpt, defaultValue, desc(description, envVar))

@@ -99,6 +99,7 @@ type Config struct {
 	Collectors       []string `json:"collectors" yaml:"collectors" toml:"collectors"`
 	Debug            bool     `json:"debug" yaml:"debug" toml:"debug"`
 	DebugCGM         bool     `mapstructure:"debug_cgm" json:"debug_cgm" yaml:"debug_cgm" toml:"debug_cgm"`
+	DebugAPI         bool     `mapstructure:"debug_api" json:"debug_api" yaml:"debug_api" toml:"debug_api"`
 	DebugDumpMetrics string   `mapstructure:"debug_dump_metrics" json:"debug_dump_metrics" yaml:"debug_dump_metrics" toml:"debug_dump_metrics"`
 	Listen           []string `json:"listen" yaml:"listen" toml:"listen"`
 	ListenSocket     []string `mapstructure:"listen_socket" json:"listen_socket" yaml:"listen_socket" toml:"listen_socket"`
@@ -132,6 +133,9 @@ const (
 
 	// KeyDebugCGM enables debug messages for circonus-gometrics
 	KeyDebugCGM = "debug_cgm"
+
+	// KeyDebugAPI enables debug messages for circonus API calls
+	KeyDebugAPI = "debug_api"
 
 	// KeyDebugDumpMetrics enables dumping metrics to a file as they are submitted to circonus
 	// it should contain a directory name where the user running circonus-agentd has write
