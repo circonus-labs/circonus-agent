@@ -9,7 +9,6 @@ import (
 	"context"
 	"crypto/x509"
 	"io/ioutil"
-	stdlog "log"
 	"net"
 	"regexp"
 	"strconv"
@@ -175,6 +174,15 @@ func (s *Server) Flush() *cgm.Metrics {
 	return s.hostMetrics.FlushMetrics()
 }
 
+// logshim is used to satisfy apiclient Logger interface (avoiding ptr receiver issue)
+type logshim struct {
+	logh zerolog.Logger
+}
+
+func (l logshim) Printf(fmt string, v ...interface{}) {
+	l.logh.Printf(fmt, v...)
+}
+
 // initHostMetrics initializes the host metrics circonus-gometrics instance
 func (s *Server) initHostMetrics() error {
 	s.hostMetricsmu.Lock()
@@ -182,7 +190,7 @@ func (s *Server) initHostMetrics() error {
 
 	cmc := &cgm.Config{
 		Debug: s.debugCGM,
-		Log:   stdlog.New(s.logger.With().Str("pkg", "statsd-host-check").Logger(), "", 0),
+		Log:   logshim{logh: s.logger.With().Str("pkg", "cgm.statsd-host-check").Logger()},
 	}
 	// put cgm into manual mode (no interval, no api key, invalid submission url)
 	cmc.Interval = "0"                            // disable automatic flush
@@ -214,7 +222,7 @@ func (s *Server) initGroupMetrics() error {
 
 	cmc := &cgm.Config{
 		Debug: s.debugCGM,
-		Log:   stdlog.New(s.logger.With().Str("pkg", "statsd-group-check").Logger(), "", 0),
+		Log:   logshim{logh: s.logger.With().Str("pkg", "cgm.statsd-group-check").Logger()},
 	}
 	cmc.CheckManager.API.TokenKey = s.apiKey
 	cmc.CheckManager.API.TokenApp = s.apiApp

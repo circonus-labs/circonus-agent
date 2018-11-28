@@ -11,7 +11,6 @@ package promrecv
 import (
 	"fmt"
 	"io"
-	stdlog "log"
 	"math"
 	"regexp"
 	"strings"
@@ -23,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
@@ -37,6 +37,15 @@ var (
 	logger              = log.With().Str("pkg", "promrecv").Logger()
 )
 
+// logshim is used to satisfy apiclient Logger interface (avoiding ptr receiver issue)
+type logshim struct {
+	logh zerolog.Logger
+}
+
+func (l logshim) Printf(fmt string, v ...interface{}) {
+	l.logh.Printf(fmt, v...)
+}
+
 func initCGM() error {
 	metricsmu.Lock()
 	defer metricsmu.Unlock()
@@ -47,7 +56,7 @@ func initCGM() error {
 
 	cmc := &cgm.Config{
 		Debug: viper.GetBool(config.KeyDebugCGM),
-		Log:   stdlog.New(log.With().Str("pkg", "promrecv").Logger(), "", 0),
+		Log:   logshim{logh: log.With().Str("pkg", "cgm.promrecv").Logger()},
 	}
 	// put cgm into manual mode (no interval, no api key, invalid submission url)
 	cmc.Interval = "0"                            // disable automatic flush
