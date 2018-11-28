@@ -1,53 +1,67 @@
-# v0.18.0
+# v0.18.0-beta
 
-* **alpha3**
-  * upd: all collectors use prefixes for collector names and config files:
+* upd: dependencies (circonus go-apiclient, circonus-gometrics/v3, circonusllhist, zerolog, cobra, viper)
+* upd: add logging shims to satisfy go-apiclient and circonus-gometrics/v3 Logger interfaces
+* upd: api mocks for CGM's `SearchCheckBundles` method signature fix/update
+* add: `--debug-api` option for specifically debugging API (only) use
+    * Note: `--debug-cgm` still controls CGM's use of its own API instance (statsd group check specifically)
+* doc: reformat alpha release changes in this file
+
+# v0.18.0-alpha.3
+
+* upd: all collectors use prefixes for collector names and config files:
     * procfs: e.g. collectors list `procfs/cpu`, config file `procfs_cpu_collector.(json|yaml|toml)`
     * wmi: e.g. collectors list `wmi/disk`, config file `wmi_disk_collector.(json|yaml|toml)`
     * generic: e.g. collectors list `generic/vm`, config file `generic_vm_collector.(json|yaml|toml)`
-  * upd: use stdout vs stderr for logging
-  * upd: all builtins use prefixes `procfs/`, `wmi/`, `generic/`
-  * add: psutils as a _generic_ system metrics builtin
+* upd: use stdout vs stderr for logging
+* upd: all builtins use prefixes `procfs/`, `wmi/`, `generic/`
+* add: psutils as a _generic_ system metrics builtin
     * metrics for: cpu, disk, fs, load, net interfaces, net protocols, virtual memory
-    * usage:
-      * use only generic collectors: `--collectors="generic/cpu,generic/disk,generic/fs,generic/load,generic/if,generic/proto,generic/vm"`
-      * use only generic fs collector, procfs for remainder: `--collectors="procfs/cpu,procfs/diskstats,generic/fs,procfs/loadavg,procfs/if,procfs/vm"`
-    * procfs collectors of same name take precedence over generic collectors (for cosi visuals) e.g. if both `procfs/cpu` and `generic/cpu` are in collectors list, only `procfs/cpu` builtin would be enabled
-  * upd: all new checks use metric_filters (regardless of `--check-enable-new-metrics` setting)
-  * add: debug messages for metric aggregating in run
-  * upd: remove redundant locks when using cgm instance (has locks internally), only gate instance itself
-* **alpha2**
-  * add: `--plugin-list` (`plugin_list` config file) option
+* usage:
+  * use only generic collectors: `--collectors="generic/cpu,generic/disk,generic/fs,generic/load,generic/if,generic/proto,generic/vm"`
+  * use only generic fs collector, procfs for remainder: `--collectors="procfs/cpu,procfs/diskstats,generic/fs,procfs/loadavg,procfs/if,procfs/vm"`
+  * procfs collectors of same name take precedence over generic collectors (for cosi visuals) e.g. if both `procfs/cpu` and `generic/cpu` are in collectors list, only `procfs/cpu` builtin would be enabled
+* upd: all new checks use metric_filters (regardless of `--check-enable-new-metrics` setting)
+* add: debug messages for metric aggregating in run
+* upd: remove redundant locks when using cgm instance (has locks internally), only gate instance itself
+
+# v0.18.0-alpha.2
+
+* add: `--plugin-list` (`plugin_list` config file) option
     * `plugin-list` and `plugin-dir` are mutually exclusive, use one **or** the other
-    * `plugin-list` is an _explcit_ list of commands to run as plugins
+    * `plugin-list` is an _explicit_ list of commands to run as plugins
     * If neither is supplied use default `plugin-dir` (`/opt/circonus/agent/plugins`)
     * If `plugin-list` is supplied **only** those plugins will be run; any plugins in the `plugin-dir` will be ignored
     * If both `plugin-dir` and `plugin-list` are supplied, agent will exit with a mis-configuration error
-* **alpha1**
-  * doc: add markdown linter config
-  * upd: refactor metrics flush/aggregate, channel vs mutex lock, improve debug messages
-  * upd: add host metric category prefix in statsd not in run handler
-  * upd: remove dead refactored code for check initialization
-  * upd: unlock before return for non-fatal errors
-  * upd: retry on reverse check refresh failures, attempt to address DNS failures in unstable infrastructures
-* **alpha**
-  * upd: remove Gopkg.*
-  * upd: switch to github.com/circonus-labs/circonus-gometrics/v3
-  * fix: default metric_filters setting
-  * upd: short-circuit when using metric_filters to disable check management
-  * fix: remove placeholder metrics when creating a check with metric_filters
-  * upd: refactor to allow metric_filters to override manual check management
-  * upd: switch to github.com/circonus-labs/go-apiclient from github.com/circonus-labs/circonus-gometrics/api
-  * add: Check Metric Filter config option
-  * add: debug message before wait
-  * fix: typo in error message
-  * fix: missing cgm import after condense
-  * upd: reorg/condense
-  * upd: add consts for repeated strings
-  * upd: normalize proc fs path
-  * upd: cleanup error messages
-  * upd: refactor tomb -> errgroup and context
-  * fix: tweak for unattended fb11 build
+
+# v0.18.0-alpha.1
+
+* doc: add markdown linter config
+* upd: refactor metrics flush/aggregate, channel vs mutex lock, improve debug messages
+* upd: add host metric category prefix in statsd not in run handler
+* upd: remove dead refactored code for check initialization
+* upd: unlock before return for non-fatal errors
+* upd: retry on reverse check refresh failures, attempt to address DNS failures in unstable infrastructures
+
+# v0.18.0-alpha
+
+* upd: remove Gopkg.*
+* upd: switch to github.com/circonus-labs/circonus-gometrics/v3
+* fix: default metric_filters setting
+* upd: short-circuit when using metric_filters to disable check management
+* fix: remove placeholder metrics when creating a check with metric_filters
+* upd: refactor to allow metric_filters to override manual check management
+* upd: switch to github.com/circonus-labs/go-apiclient from github.com/circonus-labs/circonus-gometrics/api
+* add: Check Metric Filter config option
+* add: debug message before wait
+* fix: typo in error message
+* fix: missing cgm import after condense
+* upd: reorg/condense
+* upd: add consts for repeated strings
+* upd: normalize proc fs path
+* upd: cleanup error messages
+* upd: refactor tomb -> errgroup and context
+* fix: tweak for unattended fb11 build
 
 # v0.17.2
 

@@ -18,8 +18,8 @@ func TestNew(t *testing.T) {
 	t.Log("Testing New")
 
 	viper.Set(config.KeyCollectors, []string{
-		"memory",
-		"processor",
+		"wmi/memory",
+		"wmi/processor",
 	})
 
 	c, err := New()

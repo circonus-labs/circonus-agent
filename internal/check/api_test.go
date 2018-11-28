@@ -80,7 +80,7 @@ type APIMock struct {
 	GetFunc func(url string) ([]byte, error)
 
 	// SearchCheckBundlesFunc mocks the SearchCheckBundles method.
-	SearchCheckBundlesFunc func(searchCriteria *apiclient.SearchQueryType, filterCriteria *map[string][]string) (*[]apiclient.CheckBundle, error)
+	SearchCheckBundlesFunc func(searchCriteria *apiclient.SearchQueryType, filterCriteria *apiclient.SearchFilterType) (*[]apiclient.CheckBundle, error)
 
 	// UpdateCheckBundleFunc mocks the UpdateCheckBundle method.
 	UpdateCheckBundleFunc func(cfg *apiclient.CheckBundle) (*apiclient.CheckBundle, error)
@@ -123,7 +123,7 @@ type APIMock struct {
 			// SearchCriteria is the searchCriteria argument value.
 			SearchCriteria *apiclient.SearchQueryType
 			// FilterCriteria is the filterCriteria argument value.
-			FilterCriteria *map[string][]string
+			FilterCriteria *apiclient.SearchFilterType
 		}
 		// UpdateCheckBundle holds details about calls to the UpdateCheckBundle method.
 		UpdateCheckBundle []struct {
@@ -320,13 +320,13 @@ func (mock *APIMock) GetCalls() []struct {
 }
 
 // SearchCheckBundles calls SearchCheckBundlesFunc.
-func (mock *APIMock) SearchCheckBundles(searchCriteria *apiclient.SearchQueryType, filterCriteria *map[string][]string) (*[]apiclient.CheckBundle, error) {
+func (mock *APIMock) SearchCheckBundles(searchCriteria *apiclient.SearchQueryType, filterCriteria *apiclient.SearchFilterType) (*[]apiclient.CheckBundle, error) {
 	if mock.SearchCheckBundlesFunc == nil {
 		panic("moq: APIMock.SearchCheckBundlesFunc is nil but API.SearchCheckBundles was just called")
 	}
 	callInfo := struct {
 		SearchCriteria *apiclient.SearchQueryType
-		FilterCriteria *map[string][]string
+		FilterCriteria *apiclient.SearchFilterType
 	}{
 		SearchCriteria: searchCriteria,
 		FilterCriteria: filterCriteria,
@@ -342,11 +342,11 @@ func (mock *APIMock) SearchCheckBundles(searchCriteria *apiclient.SearchQueryTyp
 //     len(mockedAPI.SearchCheckBundlesCalls())
 func (mock *APIMock) SearchCheckBundlesCalls() []struct {
 	SearchCriteria *apiclient.SearchQueryType
-	FilterCriteria *map[string][]string
+	FilterCriteria *apiclient.SearchFilterType
 } {
 	var calls []struct {
 		SearchCriteria *apiclient.SearchQueryType
-		FilterCriteria *map[string][]string
+		FilterCriteria *apiclient.SearchFilterType
 	}
 	lockAPIMockSearchCheckBundles.RLock()
 	calls = mock.calls.SearchCheckBundles

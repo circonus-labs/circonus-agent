@@ -122,6 +122,9 @@ func (c *Proto) Collect() error {
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting network protocol metrics")
 	} else {
+		if len(counters) == 0 {
+			return errors.New("no network protocol metrics available")
+		}
 		for _, counter := range counters {
 			for name, val := range counter.Stats {
 				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", counter.Protocol, metricNameSeparator, name), "L", val)

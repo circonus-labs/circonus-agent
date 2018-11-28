@@ -7,7 +7,6 @@ package check
 
 import (
 	"crypto/tls"
-	stdlog "log"
 	"net"
 	"net/url"
 	"path/filepath"
@@ -62,6 +61,15 @@ type ReverseConfig struct {
 	TLSConfig  *tls.Config
 }
 
+// logshim is used to satisfy apiclient Logger interface (avoiding ptr receiver issue)
+type logshim struct {
+	logh zerolog.Logger
+}
+
+func (l logshim) Printf(fmt string, v ...interface{}) {
+	l.logh.Printf(fmt, v...)
+}
+
 // New returns a new check instance
 func New(apiClient API) (*Check, error) {
 	// NOTE: TBD, make broker max retries and response time configurable
@@ -97,11 +105,11 @@ func New(apiClient API) (*Check, error) {
 	if apiClient == nil {
 		// create an API client
 		cfg := &apiclient.Config{
-			TokenKey: viper.GetString(config.KeyAPITokenKey),
+			Debug:    viper.GetBool(config.KeyDebugAPI),
+			Log:      logshim{logh: c.logger.With().Str("pkg", "circ.api").Logger()},
 			TokenApp: viper.GetString(config.KeyAPITokenApp),
+			TokenKey: viper.GetString(config.KeyAPITokenKey),
 			URL:      viper.GetString(config.KeyAPIURL),
-			Log:      stdlog.New(c.logger.With().Str("pkg", "check.api").Logger(), "", 0),
-			Debug:    viper.GetBool(config.KeyDebugCGM),
 		}
 		client, err := apiclient.New(cfg)
 		if err != nil {

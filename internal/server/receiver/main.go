@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	stdlog "log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -19,6 +18,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
@@ -36,6 +36,15 @@ func init() {
 	histogramRxNames = histogramRx.SubexpNames()
 }
 
+// logshim is used to satisfy apiclient Logger interface (avoiding ptr receiver issue)
+type logshim struct {
+	logh zerolog.Logger
+}
+
+func (l logshim) Printf(fmt string, v ...interface{}) {
+	l.logh.Printf(fmt, v...)
+}
+
 func initCGM() error {
 	metricsmu.Lock()
 	defer metricsmu.Unlock()
@@ -46,7 +55,7 @@ func initCGM() error {
 
 	cmc := &cgm.Config{
 		Debug: viper.GetBool(config.KeyDebugCGM),
-		Log:   stdlog.New(log.With().Str("pkg", "receiver").Logger(), "", 0),
+		Log:   logshim{logh: log.With().Str("pkg", "cgm.receiver").Logger()},
 	}
 	// put cgm into manual mode (no interval, no api key, invalid submission url)
 	cmc.Interval = "0"                            // disable automatic flush

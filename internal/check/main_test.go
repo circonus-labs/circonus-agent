@@ -151,7 +151,7 @@ func genMockClient() *APIMock {
 			}
 		},
 
-		SearchCheckBundlesFunc: func(searchCriteria *apiclient.SearchQueryType, filterCriteria *map[string][]string) (*[]apiclient.CheckBundle, error) {
+		SearchCheckBundlesFunc: func(searchCriteria *apiclient.SearchQueryType, filterCriteria *apiclient.SearchFilterType) (*[]apiclient.CheckBundle, error) {
 			if strings.Contains(string(*searchCriteria), `target:"000"`) {
 				return nil, errors.New("forced mock api call error")
 			}

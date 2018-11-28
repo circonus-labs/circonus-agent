@@ -1,11 +1,9 @@
-// Copyright © 2017 Circonus, Inc. <support@circonus.com>
+// Copyright © 2018 Circonus, Inc. <support@circonus.com>
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 //
 
-// +build linux
-
-package procfs
+package generic
 
 import (
 	"testing"
@@ -18,8 +16,8 @@ func TestNew(t *testing.T) {
 	t.Log("Testing New")
 
 	viper.Set(config.KeyCollectors, []string{
-		"procfs/cpu",
-		"procfs/disk",
+		"generic/cpu",
+		"generic/disk",
 	})
 
 	c, err := New()
