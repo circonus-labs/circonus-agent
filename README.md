@@ -1,27 +1,36 @@
-# PRE-RELEASE Preview
+# Circonus Agent
 
-A _pre-release preview_ of cosi w/[circonus-agent](https://github.com/circonus-labs/circonus-agent) is now available.
+The circonus-agent is intended to be a drop-in replacement for NAD. There is, however, one specific caveat -- native plugins (.js) do not work. Unless modified to run `node` independently and follow [plugin output guidelines](#output)
 
-Based on the normal cosi command available in the Circonus UI (Integrations>Hosts>[New+]), make the following modifications:
+
+# Features
+
+1. Replacement for NAD, written in go
+1. Builtin metric [collectors](#builtin-collectors) -- the default Linux builtins emit the common metrics needed for cosi visuals (graphs, worksheets, & dashboards)
+1. [Plugin](#plugins) architecture for local metric collection
+1. Local HTTP [Receiver](#receiver) for POST/PUT metric collection
+1. Local [StatsD](#statsd) listener for application metrics
+1. Prometheus format support
+    1. Receive HTTP `PUT|POST` to `/prom` endpoint (e.g. `PUT http://127.0.0.1:2609/prom`)
+    1. Fetch (see [Prometheus collector](https://github.com/circonus-labs/circonus-agent/blob/master/etc/README.md#prometheus-collector) for details)
+    1. Extract HTTP `GET` of `/prom` endpoint will emit metrics in Prometheus format (e.g. `GET http://127.0.0.1:2609/prom`)
+
+
+# Install via COSI
 
 ```
 curl -sSL https://setup.circonus.com/install | bash \
     -s -- \
     --cosiurl https://setup.circonus.com/ \
-    --key <insert api key from original cosi command here> \
-    --app <insert api app from original cosi command here>
+    --key <insert api key> \
+    --app <insert api app>
 ```
 
-After modifying the command it will use the new cosi version to install the circonus-agent.
+Features of the COSI installed circonus-agent on Linux systems:
 
-The circonus-agent is comprised of:
-
-  * replacement for NAD, written in go, with builtin plugins for the common metrics needed for cosi visuals (graphs, worksheets, & dashboards)
   * includes (if OS supports) [protocol_observer](https://github.com/circonus-labs/wirelatency), no longer needs to be built/installed manually
   * includes (if OS supports) [circonus-logwatch](https://github.com/circonus-labs/circonus-logwatch), no longer needs to be installed manually
   * includes OS/version/architecture-specific NAD plugins (non-javascript only) -- **Note:** the circonus-agent is **not** capable of using NAD _native plugins_ since they require NodeJS
-
-The cosi-tool does **not** currently include a functional `cosi plugin` command. This capability will be included in a future release, as the individual `cosi plugin ...` sub-commands (postgres and cassandra) are completed.
 
 Supported Operating Systems (x86_64 and/or amd64):
 
@@ -37,43 +46,20 @@ Supported Operating Systems (x86_64 and/or amd64):
 
 Please continue to use the original cosi(w/NAD) for OmniOS and Raspian - cosi v2 support for these is TBD. Note: after installing NAD a binary circonus-agent can be used as a drop-in replacement (configure circonus-agent _plugins directory_ to be NAD plugins directory -- javascript plugins will not function). Binaries for OmniOS (`solaris_x86_64`) and Raspian (`linux_arm`) are available in the [circonus-agent repository](https://github.com/circonus-labs/circonus-agent/releases/latest).
 
----
-
-# Circonus Agent
-
->NOTE: This is an "in development" project. As such, there are a few things to be aware of at this time...
->
-> Caveats:
-> * The code is *changing frequently* - please ensure the [latest release](../../releases/latest) is being used
-> * No target specific packages. (e.g. rpm|deb|pkg)
-> * No service configurations provided. (e.g. systemd, upstart, init, svc)
-> * Native plugins (.js) do not work. Unless modified to run `node` independently and follow [plugin output guidelines](#output)
-
-> :warning: **v0.10.0 BREAKING changes** -- Update command line and configuration files accordingly. See `circonus-agentd -h` and/or `circonus-agentd --show-config=<format>` for details. Notably, the check configuration options are in a dedicated *check* section in the configuration now (no longer under *reverse*). Additionally, automatic enabling of new metrics **requires** that a `state` directory be present and it must be owned by the user `circonus-agentd` runs as (i.e. *nobody*).
-
-# Features
-
-1. Builtin metric [collectors](#builtin-collectors)
-1. [Plugin](#plugins) architecture for local metric collection
-1. Local HTTP [Receiver](#receiver) for POST/PUT metric collection
-1. Local [StatsD](#statsd) listener for application metrics
-1. Prometheus format support
-    1. Receive HTTP `PUT|POST` to `/prom` endpoint (e.g. `PUT http://127.0.0.1:2609/prom`)
-    1. Fetch (see [Prometheus collector](https://github.com/circonus-labs/circonus-agent/blob/master/etc/README.md#prometheus-collector) for details)
-    1. Extract HTTP `GET` of `/prom` endpoint will emit metrics in Prometheus format (e.g. `GET http://127.0.0.1:2609/prom`)
-
 
 # Quick Start
 
-> Installing on a system which has already had [cosi](https://github.com/circonus-labs/circonus-one-step-install) install and configure NAD.
+**Manually** installing on a system where the original [cosi](https://github.com/circonus-labs/circonus-one-step-install) installed and configured NAD.
 
 1. `mkdir -p /opt/circonus/agent`
 1. Download [latest release](../../releases/latest) from repository
 1. Extract archive into `/opt/circonus/agent`
-1. If planning to use `--check-enable-new-metrics`, ensure the `state` directory is owned by the user `circonus-agentd` will run as
-1. If NAD installed, stop (e.g. `systemctl stop nad`)
-1. Create a [config](https://github.com/circonus-labs/circonus-agent/blob/master/etc/README.md#main-configuration) or use command line parameters
-1. Run `sbin/circonus-agentd` (optionally, for systems with `systemd`, edit and use `service/circonus-agent.service`.)
+1. If planning to use `--check-enable-new-metrics`, ensure the `state` directory is owned by the user `circonus-agentd` will run as -- note, this is no longer required if a **new** check is created by cosi or the circonus-agent
+1. Create a [config](https://github.com/circonus-labs/circonus-agent/blob/master/etc/README.md#main-configuration) (see minimal example below) or use command line parameters
+1. Copy, edit, and install one of the service configurations in `service/`
+1. Stop NAD (e.g. `systemctl stop nad` or `/etc/init.d/nad stop`)
+1. Start the circonus-agent (e.g. `systemctl start circonus-agent` or `/etc/init.d/circonus-agent start`)
+1. Disable NAD service so that it will not start at next reboot
 
 Example, minimal, configuration using existing cosi install, configuration would be placed into `/opt/circonus/agent/etc/circonus-agent.toml`:
 
@@ -109,24 +95,28 @@ Flags:
       --api-url string                    [ENV: CA_API_URL] Circonus API URL (default "https://api.circonus.com/v2/")
       --check-broker string               [ENV: CA_CHECK_BROKER] ID of Broker to use or 'select' for random selection of valid broker, if creating a check bundle (default "select")
   -C, --check-create                      [ENV: CA_CHECK_CREATE] Create check bundle (for reverse and auto enable new metrics)
-      --check-enable-new-metrics          [ENV: CA_CHECK_ENABLE_NEW_METRICS] Automatically enable all new metrics
+  -E, --check-enable-new-metrics          [ENV: CA_CHECK_ENABLE_NEW_METRICS] Automatically enable all new metrics - OBSOLETE: v0.18.0+ if new check created
   -I, --check-id string                   [ENV: CA_CHECK_ID] Check Bundle ID or 'cosi' for cosi system check (for reverse and auto enable new metrics)
+      --check-metric-filters string       [ENV: CA_CHECK_METRIC_FILTERS] List of filters used to manage which metrics are collected by the broker
       --check-metric-refresh-ttl string   [ENV: CA_CHECK_METRIC_REFRESH_TTL] Refresh check metrics TTL (default "5m")
+      --check-metric-state-dir string     [ENV: CA_CHECK_METRIC_STATE_DIR] Metric state directory for enable new metrics (must be writeable by user running agent) (default "/opt/circonus/agent/state") OBSOLETE: v0.18.0+ if new check created
       --check-tags string                 [ENV: CA_CHECK_TAGS] Tags [comma separated list] to use, if creating a check bundle
   -T, --check-target string               [ENV: CA_CHECK_TARGET] Check target host (for creating a new check) (default <hostname>)
       --check-title string                [ENV: CA_CHECK_TITLE] Title [display name] to use, if creating a check bundle (default "<check-target> /agent")
       --collectors stringSlice            [ENV: CA_COLLECTORS] List of builtin collectors to enable
   -c, --config string                     config file (default is /opt/circonus/agent/etc/circonus-agent.(json|toml|yaml)
   -d, --debug                             [ENV: CA_DEBUG] Enable debug messages
-      --debug-cgm                         [ENV: CA_DEBUG_CGM] Enable CGM & API debug messages
+      --debug-api                         [ENV: CA_DEBUG_API] Enable Circonus API debug messages
+      --debug-cgm                         [ENV: CA_DEBUG_CGM] Enable CGM debug messages
   -h, --help                              help for circonus-agent
-  -l, --listen stringSlice                [ENV: CA_LISTEN] Listen spec e.g. :2609, [::1], [::1]:2609, 127.0.0.1, 127.0.0.1:2609, foo.bar.baz, foo.bar.baz:2609 (default ":2609")
-  -L, --listen-socket stringSlice         [ENV: CA_LISTEN_SOCKET] Unix socket to create
+  -l, --listen strings                    [ENV: CA_LISTEN] Listen spec e.g. :2609, [::1], [::1]:2609, 127.0.0.1, 127.0.0.1:2609, foo.bar.baz, foo.bar.baz:2609 (default ":2609")
+  -L, --listen-socket strings            [ENV: CA_LISTEN_SOCKET] Unix socket to create
       --log-level string                  [ENV: CA_LOG_LEVEL] Log level [(panic|fatal|error|warn|info|debug|disabled)] (default "info")
       --log-pretty                        [ENV: CA_LOG_PRETTY] Output formatted/colored log lines [ignored on windows]
       --no-gzip                           Disable gzip HTTP responses
       --no-statsd                         [ENV: CA_NO_STATSD] Disable StatsD listener
   -p, --plugin-dir string                 [ENV: CA_PLUGIN_DIR] Plugin directory (default "/opt/circonus/agent/plugins")
+      --plugin-list strings               [ENV: CA_PLUGIN_LIST] List of explicit plugin commands to run
       --plugin-ttl-units string           [ENV: CA_PLUGIN_TTL_UNITS] Default plugin TTL units (default "s")
   -r, --reverse                           [ENV: CA_REVERSE] Enable reverse connection
       --reverse-broker-ca-file string     [ENV: CA_REVERSE_BROKER_CA_FILE] Broker CA certificate file
@@ -145,7 +135,6 @@ Flags:
       --statsd-port string                [ENV: CA_STATSD_PORT] StatsD port (default "8125")
   -V, --version                           Show version and exit
  ```
-
 
 
 # Configuration
@@ -224,18 +213,19 @@ Configuration:
 * Environment `CA_COLLECTORS` (space delimited list)
 * Config file `collectors` (array of strings)
 
-* Windows default WMI collectors: `['cache', 'disk', 'ip', 'interface', 'memory', 'object', 'paging_file' 'processor', 'tcp', 'udp']`
-* Linux default ProcFS collectors: `['cpu','diskstats','if','loadavg','vm']`
+* Windows default WMI collectors: `['wmi/cache', 'wmi/disk', 'wmi/ip', 'wmi/interface', 'wmi/memory', 'wmi/object', 'wmi/paging_file' 'wmi/processor', 'wmi/tcp', 'wmi/udp']`
+* Linux default ProcFS collectors: `['procfs/cpu','procfs/diskstats','procfs/if','procfs/loadavg','procfs/vm']`
 * Common `prometheus` (disabled if no configuration file exists)
 
 For complete list of collectors and details on collector specific configuration see [etc/README.md](etc/README.md#collector-configurations).
 
-To disable all default builtin collectors pass `--connectors=""` on the command line or configure `collectors` attribute in a configuration file.
+To **disable** all default builtin collectors pass `--collectors=""` on the command line or configure `collectors` attribute in a configuration file.
 
 # Manual build
 
 1. Clone repo `git clone https://github.com/circonus-labs/circonus-agent.git`
-1. Dependencies, run `dep ensure` (requires [dep](https://github.com/golang/dep) utility)
+  * circonus-agent uses go modules, go1.11+ is required
+  * clone **oustide** of `GOPATH` (or use `GO111MODULE=on`)
 1. Build `go build -o circonus-agentd`
 1. Install `cp circonus-agentd /opt/circonus/agent/sbin`
 
