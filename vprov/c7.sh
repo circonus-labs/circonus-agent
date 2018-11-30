@@ -27,5 +27,4 @@ fi
 
 mkdir -p ~vagrant/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS} && chown -R vagrant:vagrant ~vagrant/rpmbuild
 echo '%_topdir %(echo $HOME)/rpmbuild' > ~vagrant/.rpmmacros
-
 chown vagrant:vagrant ~vagrant/godev ~vagrant/.rpmmacros ~vagrant/.bashrc
