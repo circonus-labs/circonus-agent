@@ -20,7 +20,7 @@ Vagrant.configure('2') do |config|
             vb.cpus = 2
         end
         c7.vm.synced_folder '.', agent_src_path, owner: 'vagrant', group: 'vagrant'
-        c7.vm.network 'private_network', ip: '192.168.100.240', virtualbox__intnet: true, nic_type: 'virtio'
+        c7.vm.network 'private_network', ip: '192.168.100.240'
         c7.vm.provision 'shell', path: 'vprov/c7.sh', args: [go_url_base, go_ver]
     end
     #
@@ -33,7 +33,7 @@ Vagrant.configure('2') do |config|
             vb.cpus = 2
         end
         c6.vm.synced_folder '.', agent_src_path, owner: 'vagrant', group: 'vagrant'
-        c6.vm.network 'private_network', ip: '192.168.100.241', virtualbox__intnet: true, nic_type: 'virtio'
+        c6.vm.network 'private_network', ip: '192.168.100.241'
         c6.vm.provision 'shell', path: 'vprov/c6.sh', args: [go_url_base, go_ver]
     end
     #
@@ -47,7 +47,7 @@ Vagrant.configure('2') do |config|
             vb.customize ['modifyvm', :id, '--uartmode1', 'disconnected']
         end
         u18.vm.synced_folder '.', agent_src_path, owner: 'vagrant', group: 'vagrant'
-        u18.vm.network 'private_network', ip: '192.168.100.242', virtualbox__intnet: true, nic_type: 'virtio'
+        u18.vm.network 'private_network', ip: '192.168.100.242'
         u18.vm.provision 'shell', path: 'vprov/u18.sh', args: [go_url_base, go_ver]
     end
     #
@@ -61,7 +61,7 @@ Vagrant.configure('2') do |config|
             vb.customize ['modifyvm', :id, '--uartmode1', 'disconnected']
         end
         u16.vm.synced_folder '.', agent_src_path, owner: 'vagrant', group: 'vagrant'
-        u16.vm.network 'private_network', ip: '192.168.100.243', virtualbox__intnet: true, nic_type: 'virtio'
+        u16.vm.network 'private_network', ip: '192.168.100.243'
         u16.vm.provision 'shell', path: 'vprov/u16.sh', args: [go_url_base, go_ver]
     end
     #
@@ -75,7 +75,7 @@ Vagrant.configure('2') do |config|
             vb.customize ['modifyvm', :id, '--uartmode1', 'disconnected']
         end
         u14.vm.synced_folder '.', agent_src_path, owner: 'vagrant', group: 'vagrant'
-        u14.vm.network 'private_network', ip: '192.168.100.244', virtualbox__intnet: true, nic_type: 'virtio'
+        u14.vm.network 'private_network', ip: '192.168.100.244'
         u14.vm.provision 'shell', path: 'vprov/u14.sh', args: [go_url_base, go_ver]
     end
 
@@ -89,7 +89,7 @@ Vagrant.configure('2') do |config|
             vb.cpus = 2
         end
         o15.vm.synced_folder '.', agent_src_path, owner: 'vagrant', group: 'vagrant'
-        o15.vm.network 'private_network', ip: '192.168.100.245', virtualbox__intnet: true, nic_type: 'virtio'
+        o15.vm.network 'private_network', ip: '192.168.100.245'
         o15.vm.provision 'shell', inline: <<-SHELL
             echo "Installing needed packages (e.g. git, go, etc.)"
             pkg set-publisher -g http://updates.circonus.net/omnios/r151014/ circonus
@@ -124,7 +124,7 @@ Vagrant.configure('2') do |config|
             vb.customize ['modifyvm', :id, '--nictype1', 'virtio']
             vb.customize ['modifyvm', :id, '--nictype2', 'virtio']
         end
-        fb11.vm.network 'private_network', ip: '192.168.100.246', virtualbox__intnet: true, nic_type: 'virtio'
+        fb11.vm.network 'private_network', ip: '192.168.100.246'
         fb11.vm.provision 'bootstrap', type: 'shell', inline: <<-SHELL
             echo "Installing needed packages (e.g. git, gcc, etc.)"
             pkg install -y -q git gcc gmake bash logrotate curl
