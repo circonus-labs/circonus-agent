@@ -30,7 +30,7 @@ base_repo_url="https://github.com/circonus-labs"
 
 : ${dir_build:="/tmp/agent-build"}
 : ${dir_install:="/tmp/agent-install"}
-: ${dir_publish:="/tmp/agent-publish"}
+: ${dir_publish:="$(pwd)/publish"}
 
 # NOTE: the publish directory should ALREADY exist
 [[ -d $dir_publish ]] || { echo "publish directory ($dir_publish) not found!"; exit 1; }
@@ -442,7 +442,7 @@ make_package() {
             echo "making RPM for $os_name"
             $SED -e "s#@@RPMVER@@#${stripped_ver}#" rhel/circonus-agent.spec.in > rhel/circonus-agent.spec
             $RPMBUILD -bb rhel/circonus-agent.spec
-            $CP $CP_ARGS ~/rpmbuild/RPMS/*/circonus-agent-$stripped_ver-1.*.$os_arch.rpm $dir_publish
+            $CP $CP_ARGS ~/rpmbuild/RPMS/*/circonus-agent-${stripped_ver}-1.*.${os_arch}.rpm $dir_publish
             $RM rhel/circonus-agent.spec
             ;;
         ubuntu*)

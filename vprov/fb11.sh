@@ -3,9 +3,12 @@
 go_base_url="$1"
 go_ver="$2"
 
+SUDO="sudo"
+[[ "$(id -u)" == "0" ]] && SUDO=""
+
 if [[ $(grep -c fdescfs /etc/fstab) -eq 0 ]]; then
-    sudo mount -t fdescfs fdescfs /dev/fd
-    sudo sh -c "echo 'fdescfs	/dev/fd		fdescfs		rw,late	0	0' >> /etc/fstab"
+    $SUDO mount -t fdescfs fdescfs /dev/fd
+    $SUDO sh -c "echo 'fdescfs	/dev/fd		fdescfs		rw,late	0	0' >> /etc/fstab"
 fi
 
 if [[ ! -x /usr/local/go/bin/go ]]; then
@@ -16,7 +19,8 @@ if [[ ! -x /usr/local/go/bin/go ]]; then
         curl -sSL "$go_url" -o /home/vagrant/$go_tgz
         [[ $? -eq 0 ]] || { echo "Unable to download go tgz"; exit 1; }
     }
-    sudo tar -C /usr/local -xf /home/vagrant/$go_tgz
+    echo "Installing go ${go_ver} in /usr/local"
+    $SUDO tar -C /usr/local -xf /home/vagrant/$go_tgz
     [[ $? -eq 0 ]] || { echo "Error unarchiving $go_tgz"; exit 1; }
 fi
 

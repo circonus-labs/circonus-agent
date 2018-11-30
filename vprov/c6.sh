@@ -29,6 +29,7 @@ if [[ ! -x /usr/local/go/bin/go ]]; then
         curl -sSL "$go_url" -o ~vagrant/$go_tgz
         [[ $? -eq 0 ]] || { echo "Unable to download go tgz"; exit 1; }
     }
+    echo "Installing go ${go_ver} in /usr/local"
     tar -C /usr/local -xf ~vagrant/$go_tgz
     [[ $? -eq 0 ]] || { echo "Error unarchiving $go_tgz"; exit 1; }
 fi

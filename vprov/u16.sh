@@ -20,11 +20,11 @@ if [[ ! -x /usr/local/go/bin/go ]]; then
         curl -sSL "$go_url" -o ~vagrant/$go_tgz
         [[ $? -eq 0 ]] || { echo "Unable to download go tgz"; exit 1; }
     }
+    echo "Installing go ${go_ver} in /usr/local"
     tar -C /usr/local -xf ~vagrant/$go_tgz
     [[ $? -eq 0 ]] || { echo "Error unarchiving $go_tgz"; exit 1; }
 fi
 
 [[ -f /etc/profile.d/go.sh ]] || echo 'export PATH="$PATH:/usr/local/go/bin"' > /etc/profile.d/go.sh
 [[ $(grep -c GOPATH ~vagrant/.bashrc) -eq 0 ]] && echo 'export GOPATH="${HOME}/godev"' >> ~vagrant/.bashrc
-
 chown vagrant:vagrant ~vagrant/godev ~vagrant/.bashrc
