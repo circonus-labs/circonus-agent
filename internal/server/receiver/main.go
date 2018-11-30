@@ -119,6 +119,8 @@ func Parse(id string, data io.ReadCloser) error {
 			if v := parseUint64(metricName, metric); v != nil {
 				metrics.AddGauge(metricName, *v)
 			}
+		case "h":
+			fallthrough
 		case "n":
 			v, isHist := parseFloat(metricName, metric)
 			if v != nil {
