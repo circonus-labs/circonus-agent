@@ -1,3 +1,7 @@
+# v0.18.1
+
+* upd: support type 'h' metrics in receiver
+
 # v0.18.0
 
 * upd: package builder updates
