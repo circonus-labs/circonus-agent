@@ -1,3 +1,8 @@
+# v0.18.0
+
+* upd: package builder updates
+* upd: no longer prerelease
+
 # v0.18.0-beta.1
 
 * upd: dependencies (wmi, structs, pretty, prometheus/common, x/sync, yaml)
