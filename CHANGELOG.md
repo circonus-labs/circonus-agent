@@ -1,3 +1,8 @@
+# v0.18.0-beta.1
+
+* upd: dependencies (wmi, structs, pretty, prometheus/common, x/sync, yaml)
+* doc: update to remove prerelease notes w/re to cosi
+
 # v0.18.0-beta
 
 * upd: dependencies (circonus go-apiclient, circonus-gometrics/v3, circonusllhist, zerolog, cobra, viper)
