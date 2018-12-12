@@ -17,6 +17,7 @@ import (
 	"github.com/StackExchange/wmi"
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/fatih/structs"
 	"github.com/pkg/errors"
@@ -111,6 +112,7 @@ func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 	c.metricNameChar = defaultMetricChar
 	c.metricNameRegex = defaultMetricNameRegex
 	c.metricStatus = map[string]bool{}
+	c.baseTags = tags.FromList(tags.GetBaseTags())
 
 	c.logical = true
 	c.physical = true

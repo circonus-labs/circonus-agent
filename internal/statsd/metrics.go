@@ -82,7 +82,7 @@ func (s *Server) parseMetric(metric string) error {
 	metricValue := ""
 	metricRate := ""
 	sampleRate := 0.0
-	metricTags := ""
+	metricTagSpec := ""
 
 	if !s.metricRegex.MatchString(metric) {
 		return errors.Errorf("invalid metric format '%s', ignoring", metric)
@@ -100,7 +100,7 @@ func (s *Server) parseMetric(metric string) error {
 			case "sample":
 				metricRate = matchVal
 			case "tags":
-				metricTags = matchVal
+				metricTagSpec = matchVal
 			default:
 				// ignore any other groups
 			}
@@ -129,22 +129,22 @@ func (s *Server) parseMetric(metric string) error {
 		dest = s.groupMetrics
 	} else if metricDest == destHost {
 		dest = s.hostMetrics
-		metricName = s.hostCategory+config.MetricNameSeparator+metricName
+		metricName = s.hostCategory + config.MetricNameSeparator + metricName
 	}
 
 	if dest == nil {
 		return errors.Errorf("invalid metric destination (%s)->(%s)", metric, metricDest)
 	}
 
-	if metricTags != "" {
-		t, err := tags.PrepStreamTags(metricTags)
-		if err != nil {
-			s.logger.Warn().Err(err).Str("metric", metricName).Str("tags", metricTags).Msg("ignoring tags")
-		}
-		if t != "" {
-			metricName += t
-		}
+	// add stream tags to metric name
+	metricTagList := []string{}
+	if metricTagSpec != "" {
+		metricTagList = strings.Split(metricTagSpec, tags.Separator)
 	}
+	tagList := make([]string, 0, len(s.baseTags)+len(metricTagList))
+	tagList = append(tagList, s.baseTags...)
+	tagList = append(tagList, metricTagList...)
+	metricTags := tags.FromList(metricTagList)
 
 	switch metricType {
 	case "c": // counter
@@ -158,26 +158,26 @@ func (s *Server) parseMetric(metric string) error {
 		if sampleRate > 0 {
 			v = uint64(float64(v) * (1 / sampleRate))
 		}
-		dest.IncrementByValue(metricName, v)
+		dest.IncrementByValueWithTags(metricName, metricTags, v)
 	case "g": // gauge
 		if strings.Contains(metricValue, ".") {
 			v, err := strconv.ParseFloat(metricValue, 64)
 			if err != nil {
 				return errors.Wrap(err, "invalid gauge value")
 			}
-			dest.Gauge(metricName, v)
+			dest.GaugeWithTags(metricName, metricTags, v)
 		} else if strings.Contains(metricValue, "-") {
 			v, err := strconv.ParseInt(metricValue, 10, 64)
 			if err != nil {
 				return errors.Wrap(err, "invalid gauge value")
 			}
-			dest.Gauge(metricName, v)
+			dest.GaugeWithTags(metricName, metricTags, v)
 		} else {
 			v, err := strconv.ParseUint(metricValue, 10, 64)
 			if err != nil {
 				return errors.Wrap(err, "invalid gauge value")
 			}
-			dest.Gauge(metricName, v)
+			dest.GaugeWithTags(metricName, metricTags, v)
 		}
 	case "h": // histogram (circonus)
 		fallthrough
@@ -189,13 +189,13 @@ func (s *Server) parseMetric(metric string) error {
 		if sampleRate > 0 {
 			v /= sampleRate
 		}
-		dest.RecordValue(metricName, v)
+		dest.RecordValueWithTags(metricName, metricTags, v)
 	case "s": // set
 		// in the case of sets, the value is the unique "thing" to be tracked
 		// counters are used to track individual "things"
-		dest.Increment(strings.Join([]string{metricName, metricValue}, config.MetricNameSeparator))
+		dest.IncrementWithTags(strings.Join([]string{metricName, metricValue}, config.MetricNameSeparator), metricTags)
 	case "t": // text (circonus)
-		dest.SetText(metricName, metricValue)
+		dest.SetTextWithTags(metricName, metricTags, metricValue)
 	default:
 		return errors.Errorf("invalid metric type (%s)", metricType)
 	}

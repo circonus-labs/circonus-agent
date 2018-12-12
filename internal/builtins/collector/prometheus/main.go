@@ -55,6 +55,7 @@ type Prom struct {
 	runTTL              time.Duration   // OPT ttl for collector (default is for every request)
 	include             *regexp.Regexp
 	exclude             *regexp.Regexp
+	baseTags            []string
 	sync.Mutex
 }
 
@@ -83,13 +84,15 @@ var (
 // New creates new prom collector
 func New(cfgBaseName string) (collector.Collector, error) {
 	c := Prom{
+		pkgID:               "builtins.prometheus",
 		metricStatus:        map[string]bool{},
 		metricDefaultActive: true,
 		include:             defaultIncludeRegex,
 		exclude:             defaultExcludeRegex,
 		metricNameRegex:     regexp.MustCompile("[\r\n\"']"), // used to strip unwanted characters
+		baseTags:            tags.GetBaseTags(),
 	}
-	c.pkgID = "builtins.prometheus"
+
 	c.logger = log.With().Str("pkg", c.pkgID).Logger()
 
 	// Prom is a special builtin, it requires a configuration file,
@@ -282,34 +285,31 @@ func (c *Prom) parse(id string, data io.ReadCloser, metrics *cgm.Metrics) error 
 	for mn, mf := range metricFamilies {
 		for _, m := range mf.Metric {
 			metricName := mn
-			streamTags := c.getLabels(m)
-			if streamTags != "" {
-				metricName += streamTags
-			}
+			tags := c.getLabels(m)
 			if mf.GetType() == dto.MetricType_SUMMARY {
-				c.addMetric(metrics, pfx, metricName+"_count", "n", float64(m.GetSummary().GetSampleCount()))
-				c.addMetric(metrics, pfx, metricName+"_sum", "n", float64(m.GetSummary().GetSampleSum()))
+				c.addMetric(metrics, pfx, metricName+"_count", tags, "n", float64(m.GetSummary().GetSampleCount()))
+				c.addMetric(metrics, pfx, metricName+"_sum", tags, "n", float64(m.GetSummary().GetSampleSum()))
 				for qn, qv := range c.getQuantiles(m) {
-					c.addMetric(metrics, pfx, metricName+"_"+qn, "n", qv)
+					c.addMetric(metrics, pfx, metricName+"_"+qn, tags, "n", qv)
 				}
 			} else if mf.GetType() == dto.MetricType_HISTOGRAM {
-				c.addMetric(metrics, pfx, metricName+"_count", "n", float64(m.GetHistogram().GetSampleCount()))
-				c.addMetric(metrics, pfx, metricName+"_sum", "n", float64(m.GetHistogram().GetSampleSum()))
+				c.addMetric(metrics, pfx, metricName+"_count", tags, "n", float64(m.GetHistogram().GetSampleCount()))
+				c.addMetric(metrics, pfx, metricName+"_sum", tags, "n", float64(m.GetHistogram().GetSampleSum()))
 				for bn, bv := range c.getBuckets(m) {
-					c.addMetric(metrics, pfx, metricName+"_"+bn, "n", bv)
+					c.addMetric(metrics, pfx, metricName+"_"+bn, tags, "n", bv)
 				}
 			} else {
 				if m.Gauge != nil {
 					if m.GetGauge().Value != nil {
-						c.addMetric(metrics, pfx, metricName, "n", *m.GetGauge().Value)
+						c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetGauge().Value)
 					}
 				} else if m.Counter != nil {
 					if m.GetCounter().Value != nil {
-						c.addMetric(metrics, pfx, metricName, "n", *m.GetCounter().Value)
+						c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetCounter().Value)
 					}
 				} else if m.Untyped != nil {
 					if m.GetUntyped().Value != nil {
-						c.addMetric(metrics, pfx, metricName, "n", *m.GetUntyped().Value)
+						c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetUntyped().Value)
 					}
 				}
 			}
@@ -319,7 +319,8 @@ func (c *Prom) parse(id string, data io.ReadCloser, metrics *cgm.Metrics) error 
 	return nil
 }
 
-func (c *Prom) getLabels(m *dto.Metric) string {
+func (c *Prom) getLabels(m *dto.Metric) tags.Tags {
+	// Need to use cgm.Tags format and return a converted stream tags string
 	labels := []string{}
 
 	for _, label := range m.Label {
@@ -331,17 +332,14 @@ func (c *Prom) getLabels(m *dto.Metric) string {
 	}
 
 	if len(labels) > 0 {
-		tagList := strings.Join(labels, tags.Separator)
-		t, err := tags.PrepStreamTags(tagList)
-		if err != nil {
-			c.logger.Warn().Err(err).Str("tags", tagList).Msg("ignoring labels")
-		}
-		if t != "" {
-			return t
-		}
+		tagList := make([]string, 0, len(c.baseTags)+len(labels))
+		tagList = append(tagList, c.baseTags...)
+		tagList = append(tagList, labels...)
+		tags := tags.FromList(tagList)
+		return tags
 	}
 
-	return ""
+	return tags.Tags{}
 }
 
 func (c *Prom) getQuantiles(m *dto.Metric) map[string]float64 {

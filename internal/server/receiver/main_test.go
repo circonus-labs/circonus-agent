@@ -363,7 +363,7 @@ func TestParse(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		mn := "testg`test|ST[c1:v1,c2:v2]"
+		mn := "testg`test" + `|ST[b"YzE=":b"djE=",b"YzI=":b"djI="]`
 		m := metrics.FlushMetrics()
 		_, ok := (*m)[mn]
 		if !ok {

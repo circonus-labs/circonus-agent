@@ -6,6 +6,7 @@
 package prometheus
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -277,7 +278,12 @@ func TestCollect(t *testing.T) {
 
 	{
 		// http_requests_total{method="post",code="400"}
-		mn := "foo`http_requests_total|ST[code:400,method:post]"
+		mn := fmt.Sprintf(`%s|ST[b"%s":b"%s",b"%s":b"%s"]`,
+			"foo`http_requests_total",
+			base64.StdEncoding.EncodeToString([]byte("code")),
+			base64.StdEncoding.EncodeToString([]byte("400")),
+			base64.StdEncoding.EncodeToString([]byte("method")),
+			base64.StdEncoding.EncodeToString([]byte("post")))
 		testMetric, ok := m[mn]
 		if !ok {
 			t.Fatalf("expected metric '%s', %#v", mn, m)

@@ -55,6 +55,7 @@ type plugin struct {
 	runDir          string
 	running         bool
 	runTTL          time.Duration
+	baseTags        []string
 	sync.Mutex
 }
 

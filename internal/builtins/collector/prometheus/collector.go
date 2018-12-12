@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
+	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
 )
@@ -47,7 +48,7 @@ func (c *Prom) cleanName(name string) string {
 }
 
 // addMetric to internal buffer if metric is active
-func (c *Prom) addMetric(metrics *cgm.Metrics, prefix string, mname, mtype string, mval interface{}) error {
+func (c *Prom) addMetric(metrics *cgm.Metrics, prefix string, mname string, tags tags.Tags, mtype string, mval interface{}) error {
 	if metrics == nil {
 		return errors.New("invalid metric submission")
 	}
@@ -70,6 +71,10 @@ func (c *Prom) addMetric(metrics *cgm.Metrics, prefix string, mname, mtype strin
 		if prefix != "" {
 			metricName = prefix + metricNameSeparator + mname
 		}
+
+		// Add stream tags
+		metricName = cgm.MetricNameWithStreamTags(metricName, tags)
+
 		(*metrics)[metricName] = cgm.Metric{Type: mtype, Value: mval}
 		return nil
 	}

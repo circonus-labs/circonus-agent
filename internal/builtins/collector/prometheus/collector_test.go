@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/rs/zerolog"
 )
@@ -65,7 +66,7 @@ func TestAddMetric(t *testing.T) {
 		c := &Prom{
 			metricNameRegex: regexp.MustCompile("[\r\n\"']"),
 		}
-		if err := c.addMetric(nil, "", "", "", ""); err == nil {
+		if err := c.addMetric(nil, "", "", tags.Tags{}, "", ""); err == nil {
 			t.Fatal("expected error")
 		} else {
 			expect := "invalid metric submission"
@@ -76,7 +77,7 @@ func TestAddMetric(t *testing.T) {
 
 		m := cgm.Metrics{}
 
-		if err := c.addMetric(&m, "", "", "", ""); err == nil {
+		if err := c.addMetric(&m, "", "", tags.Tags{}, "", ""); err == nil {
 			t.Fatalf("expected error")
 		} else {
 			expect := "invalid metric, no name"
@@ -85,7 +86,7 @@ func TestAddMetric(t *testing.T) {
 			}
 		}
 
-		if err := c.addMetric(&m, "", "foo", "", ""); err == nil {
+		if err := c.addMetric(&m, "", "foo", tags.Tags{}, "", ""); err == nil {
 			t.Fatalf("expected error")
 		} else {
 			expect := "invalid metric, no type"
@@ -94,7 +95,7 @@ func TestAddMetric(t *testing.T) {
 			}
 		}
 
-		if err := c.addMetric(&m, "", "foo", "t", ""); err == nil {
+		if err := c.addMetric(&m, "", "foo", tags.Tags{}, "t", ""); err == nil {
 			t.Fatalf("expected error")
 		} else {
 			expect := "metric (foo) not active"
@@ -112,10 +113,10 @@ func TestAddMetric(t *testing.T) {
 			metricNameRegex:     regexp.MustCompile("[\r\n\"']"),
 		}
 		m := cgm.Metrics{}
-		if err := c.addMetric(&m, "", "foo", "t", ""); err != nil {
+		if err := c.addMetric(&m, "", "foo", tags.Tags{}, "t", ""); err != nil {
 			t.Fatalf("expected no error, got (%v)", err)
 		}
-		if err := c.addMetric(&m, "bar", "baz", "i", 10); err != nil {
+		if err := c.addMetric(&m, "bar", "baz", tags.Tags{}, "i", 10); err != nil {
 			t.Fatalf("expected no error, got (%v)", err)
 		}
 	}

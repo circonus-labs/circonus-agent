@@ -17,6 +17,7 @@ import (
 	"github.com/StackExchange/wmi"
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -70,6 +71,7 @@ func NewProcessorCollector(cfgBaseName string) (collector.Collector, error) {
 	c.metricNameChar = defaultMetricChar
 	c.metricNameRegex = defaultMetricNameRegex
 	c.metricStatus = map[string]bool{}
+	c.baseTags = tags.FromList(tags.GetBaseTags())
 
 	c.numCPU = float64(runtime.NumCPU())
 	c.reportAllCPUs = true

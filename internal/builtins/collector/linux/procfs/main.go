@@ -19,6 +19,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
+	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -43,6 +44,7 @@ type pfscommon struct {
 	metricStatus        map[string]bool // OPT list of metrics and whether they should be collected or not
 	running             bool            // is collector currently running
 	runTTL              time.Duration   // OPT ttl for collectors (default is for every request)
+	baseTags            tags.Tags
 	sync.Mutex
 }
 
