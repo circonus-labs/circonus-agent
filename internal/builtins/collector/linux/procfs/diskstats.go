@@ -21,6 +21,7 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -81,6 +82,7 @@ func NewDiskstatsCollector(cfgBaseName, procFSPath string) (collector.Collector,
 	c.metricStatus = map[string]bool{}
 	c.metricDefaultActive = true
 	c.sectorSizeCache = make(map[string]uint64)
+	c.baseTags = tags.FromList(tags.GetBaseTags())
 
 	c.include = defaultIncludeRegex
 	c.exclude = defaultExcludeRegex

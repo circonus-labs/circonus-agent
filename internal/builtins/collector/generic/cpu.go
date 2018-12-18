@@ -14,6 +14,7 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -48,6 +49,7 @@ func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
 	c.metricStatus = map[string]bool{}
 	c.metricDefaultActive = true
 	c.reportAllCPUs = false
+	c.baseTags = tags.FromList(tags.GetBaseTags())
 
 	var opts cpuOptions
 	err := config.LoadConfigFile(cfgBaseName, &opts)

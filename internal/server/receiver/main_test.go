@@ -260,6 +260,68 @@ func TestParse(t *testing.T) {
 		}
 	}
 
+	t.Log("\ttype 'h' float")
+	{
+		data := []byte(`{"test": {"_type": "h", "_value": 1}}`)
+		r := ioutil.NopCloser(bytes.NewReader(data))
+		err := Parse("testg", r)
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
+		m := metrics.FlushMetrics()
+		testMetric, ok := (*m)["testg`test"]
+		if !ok {
+			t.Fatalf("expected metric 'testg`test', %#v", m)
+		}
+		if testMetric.Value.(float64) != float64(1) {
+			t.Fatalf("expected 1 got %v", testMetric.Value)
+		}
+	}
+
+	t.Log("\ttype 'h' float (histogram numeric samples)")
+	{
+		data := []byte(`{"test": {"_type": "h", "_value": [1]}}`)
+		r := ioutil.NopCloser(bytes.NewReader(data))
+		err := Parse("testg", r)
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
+		m := metrics.FlushMetrics()
+		testMetric, ok := (*m)["testg`test"]
+		if !ok {
+			t.Fatalf("expected metric 'testg`test', %#v", m)
+		}
+		if len(testMetric.Value.([]string)) == 0 {
+			t.Fatalf("expected at least 1 sample, got %#v", testMetric.Value)
+		}
+		expect := "[H[1.0e+00]=1]"
+		if !strings.Contains(fmt.Sprintf("%v", testMetric.Value), expect) {
+			t.Fatalf("expected (%v) got (%v)", expect, testMetric.Value)
+		}
+	}
+
+	t.Log("\ttype 'h' float (histogram encoded samples)")
+	{
+		data := []byte(`{"test": {"_type": "h", "_value": ["H[1.2]=1"]}}`)
+		r := ioutil.NopCloser(bytes.NewReader(data))
+		err := Parse("testg", r)
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
+		m := metrics.FlushMetrics()
+		testMetric, ok := (*m)["testg`test"]
+		if !ok {
+			t.Fatalf("expected metric 'testg`test', %#v", m)
+		}
+		if len(testMetric.Value.([]string)) == 0 {
+			t.Fatalf("expected at least 1 sample, got %#v", testMetric.Value)
+		}
+		expect := "[H[1.2e+00]=1]"
+		if !strings.Contains(fmt.Sprintf("%v", testMetric.Value), expect) {
+			t.Fatalf("expected (%v) got (%v)", expect, testMetric.Value)
+		}
+	}
+
 	t.Log("\ttype 's' string")
 	{
 		data := []byte(`{"test": {"_type": "s", "_value": "foo"}}`)
@@ -301,7 +363,7 @@ func TestParse(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		mn := "testg`test|ST[c1:v1,c2:v2]"
+		mn := "testg`test" + `|ST[b"YzE=":b"djE=",b"YzI=":b"djI="]`
 		m := metrics.FlushMetrics()
 		_, ok := (*m)[mn]
 		if !ok {

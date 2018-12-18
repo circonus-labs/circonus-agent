@@ -13,7 +13,6 @@ import (
 	"io"
 	"math"
 	"regexp"
-	"strings"
 	"sync"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
@@ -29,6 +28,7 @@ import (
 
 var (
 	id                  string
+	baseTags            []string
 	nameCleanerRx       *regexp.Regexp
 	metricNameSeparator = "`"
 	metricsmu           sync.Mutex
@@ -73,14 +73,14 @@ func initCGM() error {
 	id = "prom"                                      // metric name (group) prefix to be used
 	nameCleanerRx = regexp.MustCompile("[\r\n\"'`]") // used to strip unwanted characters
 
+	baseTags = tags.GetBaseTags()
+
 	return nil
 }
 
 // Flush returns current metrics
 func Flush() *cgm.Metrics {
 	initCGM()
-	// metricsmu.Lock()
-	// defer metricsmu.Unlock()
 
 	return metrics.FlushMetrics()
 }
@@ -88,8 +88,6 @@ func Flush() *cgm.Metrics {
 // Parse handles incoming PUT/POST requests
 func Parse(data io.ReadCloser) error {
 	initCGM()
-	// metricsmu.Lock()
-	// defer metricsmu.Unlock()
 
 	var parser expfmt.TextParser
 
@@ -103,34 +101,31 @@ func Parse(data io.ReadCloser) error {
 	for mn, mf := range metricFamilies {
 		for _, m := range mf.Metric {
 			metricName := id + metricNameSeparator + nameCleanerRx.ReplaceAllString(mn, "")
-			streamTags := getLabels(m)
-			if streamTags != "" {
-				metricName += streamTags
-			}
+			tags := getLabels(m)
 			if mf.GetType() == dto.MetricType_SUMMARY {
 				metrics.Gauge(metricName+"_count", float64(m.GetSummary().GetSampleCount()))
 				metrics.Gauge(metricName+"_sum", float64(m.GetSummary().GetSampleSum()))
 				for qn, qv := range getQuantiles(m) {
-					metrics.Gauge(metricName+"_"+qn, qv)
+					metrics.GaugeWithTags(metricName+"_"+qn, tags, qv)
 				}
 			} else if mf.GetType() == dto.MetricType_HISTOGRAM {
 				metrics.Gauge(metricName+"_count", float64(m.GetHistogram().GetSampleCount()))
 				metrics.Gauge(metricName+"_sum", float64(m.GetHistogram().GetSampleSum()))
 				for bn, bv := range getBuckets(m) {
-					metrics.Gauge(metricName+"_"+bn, bv)
+					metrics.GaugeWithTags(metricName+"_"+bn, tags, bv)
 				}
 			} else {
 				if m.Gauge != nil {
 					if m.GetGauge().Value != nil {
-						metrics.Gauge(metricName, *m.GetGauge().Value)
+						metrics.GaugeWithTags(metricName, tags, *m.GetGauge().Value)
 					}
 				} else if m.Counter != nil {
 					if m.GetCounter().Value != nil {
-						metrics.Gauge(metricName, *m.GetCounter().Value)
+						metrics.GaugeWithTags(metricName, tags, *m.GetCounter().Value)
 					}
 				} else if m.Untyped != nil {
 					if m.GetUntyped().Value != nil {
-						metrics.Gauge(metricName, *m.GetUntyped().Value)
+						metrics.GaugeWithTags(metricName, tags, *m.GetUntyped().Value)
 					}
 				}
 			}
@@ -140,9 +135,8 @@ func Parse(data io.ReadCloser) error {
 	return nil
 }
 
-func getLabels(m *dto.Metric) string {
-	labels := []string{}
-
+func getLabels(m *dto.Metric) tags.Tags {
+	labels := make([]string, 0, len(m.Label))
 	for _, label := range m.Label {
 		if label.Name != nil && label.Value != nil {
 			ln := nameCleanerRx.ReplaceAllString(*label.Name, "")
@@ -152,17 +146,14 @@ func getLabels(m *dto.Metric) string {
 	}
 
 	if len(labels) > 0 {
-		tagList := strings.Join(labels, tags.Separator)
-		t, err := tags.PrepStreamTags(tagList)
-		if err != nil {
-			logger.Warn().Err(err).Str("tags", tagList).Msg("ignoring labels")
-		}
-		if t != "" {
-			return t
-		}
+		tagList := make([]string, 0, len(baseTags)+len(labels))
+		tagList = append(tagList, baseTags...)
+		tagList = append(tagList, labels...)
+		tags := tags.FromList(tagList)
+		return tags
 	}
 
-	return ""
+	return tags.Tags{}
 }
 
 func getQuantiles(m *dto.Metric) map[string]float64 {

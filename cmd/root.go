@@ -321,11 +321,26 @@ func init() {
 
 	{
 		const (
+			key         = config.KeyCheckMetricStreamtags
+			shortOpt    = "S"
+			longOpt     = "check-metric-streamtags"
+			envVar      = release.ENVPREFIX + "_CHECK_METRIC_STREAMTAGS"
+			description = "Add check tags to metrics as stream tags"
+		)
+
+		RootCmd.Flags().BoolP(longOpt, shortOpt, false, desc(description, envVar))
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+		viper.SetDefault(key, false)
+	}
+
+	{
+		const (
 			key          = config.KeyCheckMetricFilters
 			longOpt      = "check-metric-filters"
 			defaultValue = ""
 			envVar       = release.ENVPREFIX + "_CHECK_METRIC_FILTERS"
-			description  = "List of filters used to manage which metrics are collected by the broker"
+			description  = "List of filters used to manage which metrics are collected"
 		)
 
 		RootCmd.Flags().String(longOpt, defaultValue, desc(description, envVar))
@@ -339,7 +354,7 @@ func init() {
 			longOpt     = "check-enable-new-metrics"
 			shortOpt    = "E"
 			envVar      = release.ENVPREFIX + "_CHECK_ENABLE_NEW_METRICS"
-			description = "Automatically enable all new metrics"
+			description = "DEPRECATED: see --check-metric-filters - Automatically enable all new metrics"
 		)
 
 		RootCmd.Flags().BoolP(longOpt, shortOpt, defaults.CheckEnableNewMetrics, desc(description, envVar))
@@ -353,7 +368,7 @@ func init() {
 			key         = config.KeyCheckMetricStateDir
 			longOpt     = "check-metric-state-dir"
 			envVar      = release.ENVPREFIX + "_CHECK_METRIC_STATE_DIR"
-			description = "Metric state directory for enable new metrics (must be writeable by user running agent)"
+			description = "DEPRECATED: see --check-metric-filters - Metric state directory for enable new metrics (must be writeable by user running agent)"
 		)
 
 		RootCmd.Flags().String(longOpt, defaults.CheckMetricStatePath, desc(description, envVar))

@@ -92,6 +92,7 @@ func (c *pfscommon) addMetric(metrics *cgm.Metrics, prefix string, mname, mtype 
 		if prefix != "" {
 			metricName = prefix + metricNameSeparator + mname
 		}
+		metricName = cgm.MetricNameWithStreamTags(metricName, c.baseTags)
 		(*metrics)[metricName] = cgm.Metric{Type: mtype, Value: mval}
 		return nil
 	}

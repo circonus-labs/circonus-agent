@@ -26,6 +26,7 @@ import (
 var (
 	metricsmu        sync.Mutex
 	metrics          *cgm.CirconusMetrics
+	baseTags         []string
 	histogramRx      *regexp.Regexp // encoded histogram regular express (e.g. coming from a cgm put to /write)
 	histogramRxNames []string
 	logger           = log.With().Str("pkg", "receiver").Logger()
@@ -67,14 +68,15 @@ func initCGM() error {
 	}
 
 	metrics = hm
+
+	baseTags = tags.GetBaseTags()
+
 	return nil
 }
 
 // Flush returns current metrics
 func Flush() *cgm.Metrics {
 	initCGM()
-	// metricsmu.Lock()
-	// defer metricsmu.Unlock()
 
 	return metrics.FlushMetrics()
 }
@@ -82,8 +84,6 @@ func Flush() *cgm.Metrics {
 // Parse handles incoming PUT/POST requests
 func Parse(id string, data io.ReadCloser) error {
 	initCGM()
-	// metricsmu.Lock()
-	// defer metricsmu.Unlock()
 
 	var tmp tags.JSONMetrics // cgm.Metrics
 	if err := json.NewDecoder(data).Decode(&tmp); err != nil {
@@ -95,50 +95,49 @@ func Parse(id string, data io.ReadCloser) error {
 
 	for name, metric := range tmp {
 		metricName := strings.Join([]string{id, name}, config.MetricNameSeparator)
-		if len(metric.Tags) > 0 {
-			st, err := tags.PrepStreamTags(strings.Join(metric.Tags, tags.Separator))
-			if err != nil {
-				log.Warn().Err(err).Str("pkg", "receiver").Str("metric", metricName).Strs("tags", metric.Tags).Msg("ignoring tags")
-			}
-			metricName += st
-		}
+
+		tagList := make([]string, 0, len(baseTags)+len(metric.Tags))
+		tagList = append(tagList, baseTags...)
+		tagList = append(tagList, metric.Tags...)
+		metricTags := tags.FromList(tagList)
+
 		switch metric.Type {
 		case "i":
 			if v := parseInt32(metricName, metric); v != nil {
-				metrics.AddGauge(metricName, *v)
+				metrics.AddGaugeWithTags(metricName, metricTags, *v)
 			}
 		case "I":
 			if v := parseUint32(metricName, metric); v != nil {
-				metrics.AddGauge(metricName, *v)
+				metrics.AddGaugeWithTags(metricName, metricTags, *v)
 			}
 		case "l":
 			if v := parseInt64(metricName, metric); v != nil {
-				metrics.AddGauge(metricName, *v)
+				metrics.AddGaugeWithTags(metricName, metricTags, *v)
 			}
 		case "L":
 			if v := parseUint64(metricName, metric); v != nil {
-				metrics.AddGauge(metricName, *v)
+				metrics.AddGaugeWithTags(metricName, metricTags, *v)
 			}
 		case "h":
 			fallthrough
 		case "n":
 			v, isHist := parseFloat(metricName, metric)
 			if v != nil {
-				metrics.AddGauge(metricName, *v)
+				metrics.AddGaugeWithTags(metricName, metricTags, *v)
 			} else if isHist {
 				samples := parseHistogram(metricName, metric)
 				if samples != nil && len(*samples) > 0 {
 					for _, sample := range *samples {
 						if sample.bucket {
-							metrics.RecordCountForValue(metricName, sample.value, sample.count)
+							metrics.RecordCountForValueWithTags(metricName, metricTags, sample.value, sample.count)
 						} else {
-							metrics.RecordValue(metricName, sample.value)
+							metrics.RecordValueWithTags(metricName, metricTags, sample.value)
 						}
 					}
 				}
 			}
 		case "s":
-			metrics.SetText(metricName, fmt.Sprintf("%v", metric.Value))
+			metrics.SetTextWithTags(metricName, metricTags, fmt.Sprintf("%v", metric.Value))
 		default:
 			log.Warn().Str("metric", metricName).Str("type", metric.Type).Str("pkg", "receiver").Msg("unsupported metric type")
 		}

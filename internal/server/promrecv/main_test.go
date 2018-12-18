@@ -7,6 +7,8 @@ package promrecv
 
 import (
 	"bytes"
+	"encoding/base64"
+	"fmt"
 	"io/ioutil"
 	"testing"
 
@@ -148,7 +150,13 @@ func TestParse(t *testing.T) {
 		// test 2
 		{
 			// http_requests_total{method="post",code="400"}
-			mn := "prom`http_requests_total|ST[code:400,method:post]"
+			mn := fmt.Sprintf(`%s|ST[b"%s":b"%s",b"%s":b"%s"]`,
+				"prom`http_requests_total",
+				base64.StdEncoding.EncodeToString([]byte("code")),
+				base64.StdEncoding.EncodeToString([]byte("400")),
+				base64.StdEncoding.EncodeToString([]byte("method")),
+				base64.StdEncoding.EncodeToString([]byte("post")))
+
 			testMetric, ok := (*m)[mn]
 			if !ok {
 				t.Fatalf("expected metric '%s', %#v", mn, m)

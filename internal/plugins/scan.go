@@ -18,6 +18,7 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins"
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/tags"
 	"github.com/maier/go-appstats"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -155,12 +156,13 @@ func (p *Plugins) verifyPluginList(l []string) error {
 		plug, ok := p.active[fileBase]
 		if !ok {
 			p.active[fileBase] = &plugin{
-				ctx:    p.ctx,
-				id:     fileBase,
-				name:   fileBase,
-				logger: p.logger.With().Str("plugin", fileBase).Logger(),
-				runDir: fileDir,
-				runTTL: runTTL,
+				ctx:      p.ctx,
+				id:       fileBase,
+				name:     fileBase,
+				logger:   p.logger.With().Str("plugin", fileBase).Logger(),
+				runDir:   fileDir,
+				runTTL:   runTTL,
+				baseTags: tags.GetBaseTags(),
 			}
 			plug = p.active[fileBase]
 		}
@@ -342,12 +344,13 @@ func (p *Plugins) scanPluginDirectory(b *builtins.Builtins) error {
 			plug, ok := p.active[fileBase]
 			if !ok {
 				p.active[fileBase] = &plugin{
-					ctx:    p.ctx,
-					id:     fileBase,
-					name:   fileBase,
-					logger: p.logger.With().Str("plugin", fileBase).Logger(),
-					runDir: p.pluginDir,
-					runTTL: runTTL,
+					ctx:      p.ctx,
+					id:       fileBase,
+					name:     fileBase,
+					logger:   p.logger.With().Str("plugin", fileBase).Logger(),
+					runDir:   p.pluginDir,
+					runTTL:   runTTL,
+					baseTags: tags.GetBaseTags(),
 				}
 				plug = p.active[fileBase]
 			}
@@ -371,6 +374,7 @@ func (p *Plugins) scanPluginDirectory(b *builtins.Builtins) error {
 						logger:       p.logger.With().Str("plugin", pluginName).Logger(),
 						runDir:       p.pluginDir,
 						runTTL:       runTTL,
+						baseTags:     tags.GetBaseTags(),
 					}
 					plug = p.active[pluginName]
 				}

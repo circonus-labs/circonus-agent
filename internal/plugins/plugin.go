@@ -73,14 +73,12 @@ func (p *plugin) parsePluginOutput(output []string) error {
 			return errors.Wrap(err, "parsing json")
 		}
 		for mn, md := range jm {
-			if len(md.Tags) > 0 {
-				st, err := tags.PrepStreamTags(strings.Join(md.Tags, tags.Separator))
-				if err != nil {
-					p.logger.Warn().Err(err).Str("metric", mn).Strs("tags", md.Tags).Msg("ignoring tags")
-				}
-				mn += st
-			}
-			metrics[mn] = cgm.Metric{Type: md.Type, Value: md.Value}
+			// add stream tags to metric name
+			tagList := make([]string, 0, len(p.baseTags)+len(md.Tags))
+			tagList = append(tagList, p.baseTags...)
+			tagList = append(tagList, md.Tags...)
+			mt := tags.FromList(tagList)
+			metrics[cgm.MetricNameWithStreamTags(mn, mt)] = cgm.Metric{Type: md.Type, Value: md.Value}
 		}
 		p.metrics = &metrics
 		return nil
@@ -131,7 +129,7 @@ func (p *plugin) parsePluginOutput(output []string) error {
 
 		// only received a name and type (intentionally null value)
 		if len(fields) == 2 {
-			metrics[metricName] = cgm.Metric{
+			metrics[cgm.MetricNameWithStreamTags(metricName, tags.FromList(p.baseTags))] = cgm.Metric{
 				Type:  metricType,
 				Value: nullMetricValue,
 			}
@@ -141,16 +139,14 @@ func (p *plugin) parsePluginOutput(output []string) error {
 		metricValue := fields[2]
 
 		// add stream tags to metric name
+		metricTags := []string{}
 		if len(fields) == 4 {
-			metricTags := fields[3]
-			t, err := tags.PrepStreamTags(metricTags)
-			if err != nil {
-				p.logger.Warn().Err(err).Str("metric", metricName).Str("tags", metricTags).Msg("ignoring tags")
-			}
-			if t != "" {
-				metricName += t
-			}
+			metricTags = strings.Split(fields[3], tags.Separator)
 		}
+		tagList := make([]string, 0, len(p.baseTags)+len(metricTags))
+		tagList = append(tagList, p.baseTags...)
+		tagList = append(tagList, metricTags...)
+		metricName = cgm.MetricNameWithStreamTags(metricName, tags.FromList(tagList))
 
 		// intentionally null value, explicit syntax
 		if strings.ToLower(metricValue) == nullMetricValue {

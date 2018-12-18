@@ -15,6 +15,7 @@ import (
 	"sync"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/maier/go-appstats"
 	"github.com/pkg/errors"
@@ -51,6 +52,7 @@ type Server struct {
 	debugCGM              bool
 	listener              *net.UDPConn
 	packetCh              chan []byte
+	baseTags              []string
 }
 
 const (
@@ -98,6 +100,7 @@ func New(ctx context.Context) (*Server, error) {
 		apiURL:         viper.GetString(config.KeyAPIURL),
 		apiCAFile:      viper.GetString(config.KeyAPICAFile),
 		packetCh:       make(chan []byte, packetQueueSize),
+		baseTags:       tags.GetBaseTags(),
 	}
 
 	port := viper.GetString(config.KeyStatsdPort)
