@@ -1,3 +1,10 @@
+# v0.19.0
+
+* upd: dependencies
+* upd: `procfs/vm` builtin, calculate memory like `htop`
+* upd: builtins, plugins, receiver, statsd, and prom to inject check tags if stream tags enabled
+* add: `--check-metric-streamtags` switch to automatically add `--check-tags` as stream tags on all metrics
+
 # v0.18.1
 
 * upd: support type 'h' metrics in receiver
