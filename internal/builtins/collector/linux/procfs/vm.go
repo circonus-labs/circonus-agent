@@ -194,7 +194,7 @@ func (c *VM) parseMemstats(metrics *cgm.Metrics) error {
 		return errors.Wrapf(err, "parsing %s", f.Name())
 	}
 
-	var memTotal, memFree, memCached, memBuffers, swapTotal, swapFree uint64
+	var memTotal, memFree, memCached, memBuffers, memSReclaimable, memShared, swapTotal, swapFree uint64
 	for metricName, mval := range stats {
 		pfx := c.id + metricNameSeparator + "meminfo"
 		mname := metricName
@@ -208,12 +208,31 @@ func (c *VM) parseMemstats(metrics *cgm.Metrics) error {
 			swapTotal = mval
 		case "SwapFree":
 			swapFree = mval
+		case "SReclaimable":
+			memSReclaimable = mval
+		case "Shmem":
+			memShared = mval
+		case "Buffers":
+			memBuffers = mval
+		case "Cached":
+			memCached = mval
 		}
 		c.addMetric(metrics, pfx, mname, mtype, mval)
 	}
 
-	memFreeTotal := memFree + memBuffers + memCached
-	memUsed := memTotal - memFreeTotal
+	// `htop` based calculations
+	htUsed := memTotal - memFree
+	htCached := memCached + (memSReclaimable - memShared)
+	htBuffers := memBuffers
+	htUsedTotal := htUsed - (htBuffers + htCached)
+	htFreeTotal := memFree + htBuffers + htCached
+
+	// old `free` based calculations carried over from vm.sh
+	// memFreeTotal := memFree + memBuffers + memCached
+	// memUsed := memTotal - memFreeTotal
+	memFreeTotal := htFreeTotal
+	memUsed := htUsedTotal
+
 	memFreePct := (float64(memFreeTotal) / float64(memTotal))
 	memUsedPct := (float64(memUsed) / float64(memTotal))
 
