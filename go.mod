@@ -2,31 +2,29 @@ module github.com/circonus-labs/circonus-agent
 
 require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
-	github.com/StackExchange/wmi v0.0.0-20180725035823-b12b22c5341f
+	github.com/StackExchange/wmi v0.0.0-20181212234831-e0a55b97c705
 	github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf
 	github.com/circonus-labs/circonus-gometrics/v3 v3.0.0-beta
 	github.com/circonus-labs/circonusllhist v0.1.3
 	github.com/circonus-labs/go-apiclient v0.5.3
 	github.com/fatih/structs v1.1.0
-	github.com/go-ole/go-ole v0.0.0-20180625085808-7a0fa49edf48 // indirect
+	github.com/go-ole/go-ole v1.2.2 // indirect
 	github.com/golang/protobuf v1.2.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/maier/go-appstats v0.2.0
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
-	github.com/mitchellh/mapstructure v1.1.2 // indirect
 	github.com/pelletier/go-toml v1.2.0
 	github.com/pkg/errors v0.8.0
 	github.com/prometheus/client_model v0.0.0-20180712105110-5c3871d89910
-	github.com/prometheus/common v0.0.0-20181126121408-4724e9255275
+	github.com/prometheus/common v0.0.0-20181218105931-67670fe90761
 	github.com/rs/zerolog v1.11.0
-	github.com/shirou/gopsutil v2.18.10+incompatible
-	github.com/spf13/cast v1.3.0 // indirect
+	github.com/shirou/gopsutil v2.18.11+incompatible
+	github.com/spf13/afero v1.2.0 // indirect
 	github.com/spf13/cobra v0.0.3
-	github.com/spf13/pflag v1.0.3 // indirect
-	github.com/spf13/viper v1.2.1
+	github.com/spf13/viper v1.3.1
 	golang.org/x/sync v0.0.0-20181108010431-42b317875d0f
-	golang.org/x/sys v0.0.0-20181128092732-4ed8d59d0b35
+	golang.org/x/sys v0.0.0-20181217223516-dcdaa6325bcb
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/yaml.v2 v2.2.2
 )
