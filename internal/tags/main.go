@@ -78,6 +78,17 @@ func GetBaseTags() []string {
 		return *baseTags
 	}
 
+    // if systemd ExecStart=circonus-agentd --check-tags="c1:v1,c2:v1" syntax is
+    // used, tagSpec will literally be `"c1:v1,c2:v1"` with the quotes included
+    // resulting in the first tag having a leading '"' and the last tag having
+    // a trailing '"'...
+    if tagSpec[0:1] == `"` {
+        tagSpec = tagSpec[1:]
+        if tagSpec[len(tagSpec)-1:1] == `"` {
+            tagSpec = tagSpec[0:len(tagSpec)-1]
+        }
+    }
+
 	checkTags := strings.Split(tagSpec, Separator)
 	if len(checkTags) == 0 {
 		return *baseTags
