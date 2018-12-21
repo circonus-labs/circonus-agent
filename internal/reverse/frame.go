@@ -58,7 +58,7 @@ func (c *Connection) readFrameFromBroker(r io.Reader) (*noitFrame, error) {
 	}
 
 	c.logger.Debug().
-		Uint16("channel", hdr.channelID).
+		Uint16("channel_id", hdr.channelID).
 		Bool("is_command", hdr.isCommand).
 		Uint32("payload_len", hdr.payloadLen).
 		Str("payload", string(payload)).

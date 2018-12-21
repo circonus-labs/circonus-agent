@@ -47,16 +47,12 @@ func (p *plugin) parsePluginOutput(output []string) error {
 	p.Lock()
 	defer p.Unlock()
 
-	p.logger.Debug().
-		// Str("output", strings.Join(output, "\n")).
-		Int("num_lines", len(output)).
-		Msg("processing plugin output")
-
 	if len(output) == 0 {
 		p.metrics = &cgm.Metrics{}
 		return errors.Errorf("zero lines of output")
 	}
 
+	parseStart := time.Now()
 	metrics := cgm.Metrics{}
 	numDuplicates := 0
 
@@ -233,11 +229,12 @@ func (p *plugin) parsePluginOutput(output []string) error {
 	}
 
 	p.logger.Debug().
-		Int("tot_plugin_lines", len(output)).
-		Int("tot_metric", len(metrics)).
-		Int("tot_duplicate", numDuplicates).
-		Int("tot_error", len(output)-(len(metrics)+numDuplicates)).
-		Msg("done processing plugin output")
+		Str("duration", time.Since(parseStart).String()).
+		Int("lines", len(output)).
+		Int("metrics", len(metrics)).
+		Int("duplicates", numDuplicates).
+		Int("errors", len(output)-(len(metrics)+numDuplicates)).
+		Msg("processed plugin output")
 
 	p.metrics = &metrics
 
@@ -251,9 +248,10 @@ func (p *plugin) exec() error {
 	//       do not block access to plugin meta data and metrics
 	p.Lock()
 
+	p.currStart = time.Now()
 	plog := p.logger
 
-	plog.Debug().Msg("running")
+	//plog.Debug().Msg("running")
 
 	if p.runTTL > time.Duration(0) {
 		if time.Since(p.lastEnd) < p.runTTL {
@@ -271,8 +269,8 @@ func (p *plugin) exec() error {
 		return errors.New(msg)
 	}
 
+	plog.Debug().Msg("start")
 	p.running = true
-	p.lastStart = time.Now()
 	// TBD: timeouts, create a new deadline context
 	//      Problem is some plugins do not exit intentionally - long running.
 	//      There is no way [currently] to know whether a plugin is
@@ -290,10 +288,12 @@ func (p *plugin) exec() error {
 
 	resetStatus := func(err error) {
 		p.Lock()
+		p.lastStart = p.currStart
 		p.lastEnd = time.Now()
 		p.lastRunDuration = time.Since(p.lastStart)
 		p.lastError = err
 		p.running = false
+		plog.Debug().Str("duration", p.lastRunDuration.String()).Msg("done")
 		p.Unlock()
 	}
 

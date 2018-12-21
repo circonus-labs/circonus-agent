@@ -28,6 +28,7 @@ import (
 // Plugins defines plugin manager
 type Plugins struct {
 	active        map[string]*plugin
+	plugList      []string
 	ctx           context.Context
 	logger        zerolog.Logger
 	pluginDir     string
@@ -46,6 +47,7 @@ type plugin struct {
 	instanceID      string
 	lastError       error
 	lastRunDuration time.Duration
+	currStart       time.Time
 	lastStart       time.Time
 	lastEnd         time.Time
 	logger          zerolog.Logger
@@ -173,6 +175,15 @@ func (p *Plugins) Run(pluginName string) error {
 		return errors.Errorf(msg)
 	}
 
+	if len(p.plugList) == 0 {
+		p.plugList = make([]string, len(p.active))
+		i := 0
+		for name := range p.active {
+			p.plugList[i] = name
+			i++
+		}
+	}
+
 	start := time.Now()
 	appstats.SetString("plugins.last_run_start", start.String())
 	// appstats.MapSet("plugins", "last_run_start", start)
@@ -189,6 +200,7 @@ func (p *Plugins) Run(pluginName string) error {
 				strings.HasPrefix(pluginID, pluginName+"`") { // specific plugin with instances
 				numFound++
 				wg.Add(1)
+				p.logger.Debug().Str("plugin", pluginID).Msg("running")
 				go func(id string, plug *plugin) {
 					plug.exec()
 					wg.Done()
@@ -201,6 +213,7 @@ func (p *Plugins) Run(pluginName string) error {
 			return errors.Errorf("invalid plugin (%s)", pluginName)
 		}
 	} else {
+		p.logger.Debug().Str("plugin(s)", strings.Join(p.plugList, ",")).Msg("running")
 		for pluginID, pluginRef := range p.active {
 			wg.Add(1)
 			go func(id string, plug *plugin) {
@@ -219,7 +232,7 @@ func (p *Plugins) Run(pluginName string) error {
 
 	p.Lock()
 	p.running = false
-	p.logger.Debug().Msg("all plugins done")
+	p.logger.Debug().Str("duration",time.Since(start).String()).Msg("all plugins done")
 	p.Unlock()
 
 	return nil

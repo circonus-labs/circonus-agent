@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -74,6 +75,7 @@ func (c *Connection) readCommand(r io.Reader) command {
 	}
 
 	if cmd.name == c.cmdConnect { // connect command requires a request
+		cmd.start = time.Now()
 		reqPkt, err := c.readFrameFromBroker(r)
 		if err != nil {
 			// ignore first c.maxCommTimeout errors; workaround for conn.Read
@@ -159,7 +161,7 @@ func (c *Connection) processCommand(cmd command) command {
 		return cmd
 	}
 
-	metrics, err := c.fetchMetricData(&cmd.request)
+	metrics, err := c.fetchMetricData(&cmd.request, cmd.channelID)
 	if err != nil {
 		cmd.err = errors.Wrap(err, "fetching metrics")
 		return cmd
