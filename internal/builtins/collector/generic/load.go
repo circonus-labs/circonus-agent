@@ -12,7 +12,7 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
-    "github.com/circonus-labs/circonus-agent/internal/tags"
+	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -21,7 +21,7 @@ import (
 
 // Load metrics
 type Load struct {
-	common
+	gencommon
 }
 
 // loadOptions defines what elements can be overridden in a config file
@@ -38,8 +38,8 @@ type loadOptions struct {
 func NewLoadCollector(cfgBaseName string) (collector.Collector, error) {
 	c := Load{}
 	c.id = LOAD_NAME
-	c.pkgID = LOG_PREFIX + c.id
-	c.logger = log.With().Str("pkg", c.pkgID).Logger()
+    c.pkgID = PKG_NAME + "." + c.id
+	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
 	c.metricStatus = map[string]bool{}
 	c.metricDefaultActive = true
 	c.baseTags = tags.FromList(tags.GetBaseTags())

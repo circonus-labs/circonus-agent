@@ -17,7 +17,7 @@ import (
 func TestCollect(t *testing.T) {
 	t.Log("Testing Collect")
 
-	c := &common{
+	c := &gencommon{
 		id: "test",
 	}
 
@@ -30,7 +30,7 @@ func TestCollect(t *testing.T) {
 func TestFlush(t *testing.T) {
 	t.Log("Testing Flush")
 
-	c := &common{
+	c := &gencommon{
 		id: "test",
 	}
 
@@ -46,7 +46,7 @@ func TestFlush(t *testing.T) {
 func TestID(t *testing.T) {
 	t.Log("Testing ID")
 
-	c := &common{
+	c := &gencommon{
 		id: "test",
 	}
 
@@ -59,7 +59,7 @@ func TestID(t *testing.T) {
 func TestInventory(t *testing.T) {
 	t.Log("Testing Inventory")
 
-	c := &common{
+	c := &gencommon{
 		id: "test",
 	}
 
@@ -75,7 +75,7 @@ func TestAddMetric(t *testing.T) {
 
 	t.Log("Testing invalid states/submissions")
 	{
-		c := &common{
+		c := &gencommon{
 			id: "foo",
 		}
 		if err := c.addMetric(nil, "", "", "", ""); err == nil {
@@ -119,7 +119,7 @@ func TestAddMetric(t *testing.T) {
 
 	t.Log("Testing valid states/submissions")
 	{
-		c := &common{
+		c := &gencommon{
 			id:                  "foo",
 			metricStatus:        make(map[string]bool),
 			metricDefaultActive: true,
@@ -137,7 +137,7 @@ func TestAddMetric(t *testing.T) {
 func TestSetStatus(t *testing.T) {
 	t.Log("Testing setStatus")
 
-	c := &common{
+	c := &gencommon{
 		id: "foo",
 	}
 	t.Log("\tno metrics, no error")

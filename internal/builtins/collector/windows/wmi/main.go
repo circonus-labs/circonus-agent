@@ -49,6 +49,7 @@ type wmicommon struct {
 
 const (
 	WMI_PREFIX          = "wmi/"
+	PKG_NAME            = "builtins.windows.wmi"
 	defaultMetricChar   = "_"                           // character used to replace invalid characters in metric name
 	metricNameSeparator = "`"                           // character used to separate parts of metric names
 	metricStatusEnabled = "enabled"                     // setting string indicating metrics should be made 'active'

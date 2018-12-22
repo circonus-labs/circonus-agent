@@ -22,7 +22,7 @@ import (
 
 // VM metrics
 type VM struct {
-	common
+	gencommon
 }
 
 // vmOptions defines what elements can be overridden in a config file
@@ -39,8 +39,8 @@ type vmOptions struct {
 func NewVMCollector(cfgBaseName string) (collector.Collector, error) {
 	c := VM{}
 	c.id = VM_NAME
-	c.pkgID = LOG_PREFIX + c.id
-	c.logger = log.With().Str("pkg", c.pkgID).Logger()
+    c.pkgID = PKG_NAME + "." + c.id
+	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
 	c.metricStatus = map[string]bool{}
 	c.metricDefaultActive = true
 	c.baseTags = tags.FromList(tags.GetBaseTags())

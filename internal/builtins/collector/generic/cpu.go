@@ -23,7 +23,7 @@ import (
 
 // CPU metrics from psutils
 type CPU struct {
-	common
+	gencommon
 	reportAllCPUs bool // OPT report all cpus (vs just total) may be overridden in config file
 }
 
@@ -44,8 +44,8 @@ type cpuOptions struct {
 func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
 	c := CPU{}
 	c.id = CPU_NAME
-	c.pkgID = LOG_PREFIX + c.id
-	c.logger = log.With().Str("pkg", c.pkgID).Logger()
+	c.pkgID = PKG_NAME + "." + c.id
+	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
 	c.metricStatus = map[string]bool{}
 	c.metricDefaultActive = true
 	c.reportAllCPUs = false

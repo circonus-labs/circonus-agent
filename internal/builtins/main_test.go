@@ -24,6 +24,7 @@ type foo struct {
 	lastMetrics     cgm.Metrics
 	lastRunDuration time.Duration
 	lastStart       time.Time
+	logger          zerolog.Logger
 	sync.Mutex
 }
 
@@ -57,6 +58,9 @@ func (f *foo) Inventory() collector.InventoryStats {
 		LastRunDuration: f.lastRunDuration.String(),
 		LastError:       f.lastError.Error(),
 	}
+}
+func (f *foo) Logger() zerolog.Logger {
+	return f.logger
 }
 
 // end fake collector stub

@@ -12,6 +12,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 )
 
 // Flush returns last metrics collected
@@ -40,6 +41,11 @@ func (c *Prom) Inventory() collector.InventoryStats {
 		LastRunDuration: c.lastRunDuration.String(),
 		LastError:       c.lastError,
 	}
+}
+
+// Logger returns collector's instance of logger
+func (c *Prom) Logger() zerolog.Logger {
+	return c.logger
 }
 
 // cleanName is used to clean the metric name
