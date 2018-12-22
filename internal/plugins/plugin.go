@@ -293,7 +293,6 @@ func (p *plugin) exec() error {
 		p.lastRunDuration = time.Since(p.lastStart)
 		p.lastError = err
 		p.running = false
-		plog.Debug().Str("duration", p.lastRunDuration.String()).Msg("done")
 		p.Unlock()
 	}
 

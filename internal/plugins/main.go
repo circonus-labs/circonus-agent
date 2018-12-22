@@ -200,15 +200,16 @@ func (p *Plugins) Run(pluginName string) error {
 				strings.HasPrefix(pluginID, pluginName+"`") { // specific plugin with instances
 				numFound++
 				wg.Add(1)
-				p.logger.Debug().Str("plugin", pluginID).Msg("running")
+				p.logger.Debug().Str("id", pluginID).Msg("running")
 				go func(id string, plug *plugin) {
 					plug.exec()
+					plug.logger.Debug().Str("id", id).Str("duration", time.Since(start).String()).Msg("done")
 					wg.Done()
 				}(pluginID, pluginRef)
 			}
 		}
 		if numFound == 0 {
-			p.logger.Error().Str("plugin", pluginName).Msg("invalid/unknown")
+			p.logger.Error().Str("id", pluginName).Msg("invalid/unknown")
 			p.running = false
 			return errors.Errorf("invalid plugin (%s)", pluginName)
 		}
@@ -218,6 +219,7 @@ func (p *Plugins) Run(pluginName string) error {
 			wg.Add(1)
 			go func(id string, plug *plugin) {
 				plug.exec()
+				plug.logger.Debug().Str("id", id).Str("duration", time.Since(start).String()).Msg("done")
 				wg.Done()
 			}(pluginID, pluginRef)
 		}
@@ -232,7 +234,7 @@ func (p *Plugins) Run(pluginName string) error {
 
 	p.Lock()
 	p.running = false
-	p.logger.Debug().Str("duration",time.Since(start).String()).Msg("all plugins done")
+	p.logger.Debug().Str("duration", time.Since(start).String()).Msg("all plugins done")
 	p.Unlock()
 
 	return nil
