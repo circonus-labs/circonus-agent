@@ -64,11 +64,13 @@ func (c *Connection) startReverse() error {
 			}
 
 			// send metrics to broker
-			if err := c.sendMetricData(conn, result.channelID, result.metrics); err != nil {
+			if err := c.sendMetricData(conn, result.channelID, result.metrics, result.start); err != nil {
 				c.logger.Warn().Err(err).Msg("sending metric data, resetting connection")
 				close(done)
 				break
 			}
+
+			c.logger.Debug().Uint16("channel_id", result.channelID).Str("duration", time.Since(result.start).String()).Msg("CONNECT command request processed")
 
 			c.resetConnectionAttempts()
 		}

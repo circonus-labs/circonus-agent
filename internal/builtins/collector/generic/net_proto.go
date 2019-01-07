@@ -13,7 +13,7 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
-    "github.com/circonus-labs/circonus-agent/internal/tags"
+	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -22,7 +22,7 @@ import (
 
 // Proto metrics
 type Proto struct {
-	common
+	gencommon
 	protocols []string
 }
 
@@ -43,11 +43,11 @@ type protoOptions struct {
 func NewNetProtoCollector(cfgBaseName string) (collector.Collector, error) {
 	c := Proto{}
 	c.id = PROTO_NAME
-	c.pkgID = LOG_PREFIX + c.id
-	c.logger = log.With().Str("pkg", c.pkgID).Logger()
+	c.pkgID = PKG_NAME + "." + c.id
+	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
 	c.metricStatus = map[string]bool{}
 	c.metricDefaultActive = true
-    c.baseTags = tags.FromList(tags.GetBaseTags())
+	c.baseTags = tags.FromList(tags.GetBaseTags())
 
 	var opts protoOptions
 	err := config.LoadConfigFile(cfgBaseName, &opts)

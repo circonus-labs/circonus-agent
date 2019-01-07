@@ -81,6 +81,7 @@ type command struct {
 	name      string
 	request   []byte
 	metrics   *[]byte
+	start     time.Time
 }
 
 func init() {

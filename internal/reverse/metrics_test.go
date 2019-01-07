@@ -39,7 +39,7 @@ func TestSendMetricData(t *testing.T) {
 		t.Fatalf("expected no error, got (%s)", err)
 	}
 
-	err = s.sendMetricData(buff, 1, &data)
+	err = s.sendMetricData(buff, 1, &data, time.Now())
 	if err != nil {
 		t.Fatalf("expected no error, got (%s)", err)
 	}
@@ -108,7 +108,7 @@ func TestFetchMetricData(t *testing.T) {
 	time.AfterFunc(1*time.Second, func() {
 		ts.CloseClientConnections()
 	})
-	data, err := s.fetchMetricData(&req)
+	data, err := s.fetchMetricData(&req, uint16(0))
 	if err != nil {
 		t.Fatalf("expected no error, got (%s) %#v", err, data)
 	}

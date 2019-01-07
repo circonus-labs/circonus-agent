@@ -20,7 +20,7 @@ import (
 
 const (
 	GENERIC_PREFIX      = "generic/"
-	LOG_PREFIX          = "builtins.generic."
+	PKG_NAME            = "builtins.generic"
 	CPU_NAME            = "cpu"
 	DISK_NAME           = "disk"
 	FS_NAME             = "fs"

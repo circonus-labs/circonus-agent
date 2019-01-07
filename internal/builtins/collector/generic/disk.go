@@ -22,7 +22,7 @@ import (
 
 // Disk metrics from the Linux ProcFS
 type Disk struct {
-	common
+	gencommon
 	ioDevices []string
 }
 
@@ -43,8 +43,8 @@ type DiskOptions struct {
 func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 	c := Disk{}
 	c.id = DISK_NAME
-	c.pkgID = LOG_PREFIX + c.id
-	c.logger = log.With().Str("pkg", c.pkgID).Logger()
+	c.pkgID = PKG_NAME + "." + c.id
+	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
 	c.metricStatus = map[string]bool{}
 	c.metricDefaultActive = true
 	c.ioDevices = []string{}

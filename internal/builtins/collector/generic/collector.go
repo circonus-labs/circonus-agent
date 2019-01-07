@@ -17,8 +17,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// common defines psutils metrics common elements
-type common struct {
+// gencommon defines psutils metrics common elements
+type gencommon struct {
 	id                  string          // OPT id of the collector (used as metric name prefix)
 	pkgID               string          // package prefix used for logging and errors
 	lastEnd             time.Time       // last collection end time
@@ -38,14 +38,14 @@ type common struct {
 }
 
 // Collect returns collector metrics
-func (c *common) Collect() error {
+func (c *gencommon) Collect() error {
 	c.Lock()
 	defer c.Unlock()
 	return collector.ErrNotImplemented
 }
 
 // Flush returns last metrics collected
-func (c *common) Flush() cgm.Metrics {
+func (c *gencommon) Flush() cgm.Metrics {
 	c.Lock()
 	defer c.Unlock()
 	if c.lastMetrics == nil {
@@ -55,14 +55,14 @@ func (c *common) Flush() cgm.Metrics {
 }
 
 // ID returns the id of the instance
-func (c *common) ID() string {
+func (c *gencommon) ID() string {
 	c.Lock()
 	defer c.Unlock()
 	return c.id
 }
 
 // Inventory returns collector stats for /inventory endpoint
-func (c *common) Inventory() collector.InventoryStats {
+func (c *gencommon) Inventory() collector.InventoryStats {
 	c.Lock()
 	defer c.Unlock()
 	return collector.InventoryStats{
@@ -74,8 +74,13 @@ func (c *common) Inventory() collector.InventoryStats {
 	}
 }
 
+// Logger returns collector's instance of logger
+func (c *gencommon) Logger() zerolog.Logger {
+	return c.logger
+}
+
 // cleanName is used to clean the metric name
-func (c *common) cleanName(name string) string {
+func (c *gencommon) cleanName(name string) string {
 	// metric names are not dynamic for linux procfs - reintroduce cleaner if
 	// procfs sources used return dirty dynamic names.
 	//
@@ -84,7 +89,7 @@ func (c *common) cleanName(name string) string {
 }
 
 // addMetric to internal buffer if metric is active
-func (c *common) addMetric(metrics *cgm.Metrics, prefix string, mname, mtype string, mval interface{}) error {
+func (c *gencommon) addMetric(metrics *cgm.Metrics, prefix string, mname, mtype string, mval interface{}) error {
 	if metrics == nil {
 		return errors.New("invalid metric submission")
 	}
@@ -118,7 +123,7 @@ func (c *common) addMetric(metrics *cgm.Metrics, prefix string, mname, mtype str
 }
 
 // setStatus is used in Collect to set the collector status
-func (c *common) setStatus(metrics cgm.Metrics, err error) {
+func (c *gencommon) setStatus(metrics cgm.Metrics, err error) {
 	c.Lock()
 	if err == nil {
 		c.lastError = ""

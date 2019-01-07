@@ -50,8 +50,8 @@ type pfscommon struct {
 
 const (
 	PROCFS_PREFIX       = "procfs/"
+	PKG_NAME            = "builtins.linux.procfs"
 	PROC_FS_PATH        = "/proc"
-	PFS_PREFIX          = "builtins.linux.procfs."
 	CPU_NAME            = "cpu"
 	DISKSTATS_NAME      = "diskstats"
 	IF_NAME             = "if"

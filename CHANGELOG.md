@@ -1,3 +1,14 @@
+# v0.19.1
+
+* fix: statsd counter incorrectly setting 0 values to 1
+* upd: normalize logging for builtins, common attributes for automated parsing
+* add: duration logging for builtins
+* wip: start updating key step debug log messages in preparation for automated processing
+* upd: add channel id and duration to reverse debug logging
+* upd: add durations to debug logging for key steps in request processing
+* fix: systemd ExecStart embedding quotes around tags (`--check-tags="c1:v1,c2:v1"` literally being '"c1:v1,c2:v1"', first tag has '"' at start, last tag has '"' at end)
+* upd: go1.11.4 for builders
+
 # v0.19.0
 
 * upd: dependencies

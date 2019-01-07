@@ -5,7 +5,12 @@
 
 package tags
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/spf13/viper"
+)
 
 func TestPrepStreamTags(t *testing.T) {
 	t.Log("Testing PrepStreamTags")
@@ -45,5 +50,37 @@ func TestPrepStreamTags(t *testing.T) {
 		if result != tst.expect {
 			t.Fatalf("expected (%s) got (%s)", tst.expect, result)
 		}
+	}
+}
+
+func TestGetBaseTags(t *testing.T) {
+	t.Log("Testing GetBaseTags")
+
+	viper.Set(config.KeyCheckMetricStreamtags, true)
+
+	// straight tags (basic operation)
+	viper.Set(config.KeyCheckTags, "c1:v1,c2:v1")
+	tags := GetBaseTags()
+	if len(tags) != 2 {
+		t.Fatalf("expected two tags, got (%d)", len(tags))
+	}
+	if tags[0] != "c1:v1" {
+		t.Fatalf("expected c1:v1, got (%s)", tags[0])
+	}
+	if tags[1] != "c2:v1" {
+		t.Fatalf("expected c2:v1, got (%s)", tags[1])
+	}
+
+	// systemd ExecStart quote oddity
+	viper.Set(config.KeyCheckTags, `"c1:v1,c2:v2"`)
+	tags = GetBaseTags()
+	if len(tags) != 2 {
+		t.Fatalf("expected two tags, got (%d)", len(tags))
+	}
+	if tags[0] != "c1:v1" {
+		t.Fatalf("expected c1:v1, got (%s)", tags[0])
+	}
+	if tags[1] != "c2:v1" {
+		t.Fatalf("expected c2:v1, got (%s)", tags[1])
 	}
 }

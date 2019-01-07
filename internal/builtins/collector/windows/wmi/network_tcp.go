@@ -73,8 +73,8 @@ type NetTCPOptions struct {
 func NewNetTCPCollector(cfgBaseName string) (collector.Collector, error) {
 	c := NetTCP{}
 	c.id = "net_tcp"
-	c.pkgID = "builtins.windows.wmi." + c.id
-	c.logger = log.With().Str("pkg", c.pkgID).Logger()
+	c.pkgID = PKG_NAME + "." + c.id
+	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
 	c.metricDefaultActive = true
 	c.metricNameChar = defaultMetricChar
 	c.metricNameRegex = defaultMetricNameRegex

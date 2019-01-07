@@ -9,6 +9,7 @@ import (
 	"errors"
 
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
+	"github.com/rs/zerolog"
 )
 
 // Collector defines the interface for builtin metric collectors
@@ -17,6 +18,7 @@ type Collector interface {
 	Flush() cgm.Metrics
 	ID() string
 	Inventory() InventoryStats
+	Logger() zerolog.Logger
 }
 
 // InventoryStats defines the stats a collector exposes for the /inventory endpoint

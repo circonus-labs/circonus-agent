@@ -69,12 +69,14 @@ func (b *Builtins) Run(id string) error {
 	if id == "" {
 		wg.Add(len(b.collectors))
 		for id, c := range b.collectors {
-			b.logger.Debug().Str("builtin", id).Msg("collecting")
+			clog := c.Logger()
+			clog.Debug().Msg("collecting")
 			go func(id string, c collector.Collector) {
 				err := c.Collect()
 				if err != nil {
-					b.logger.Error().Err(err).Msg(id)
+					clog.Error().Err(err).Msg(id)
 				}
+				clog.Debug().Str("duration", time.Since(start).String()).Msg("done")
 				wg.Done()
 			}(id, c)
 		}
@@ -82,12 +84,14 @@ func (b *Builtins) Run(id string) error {
 		c, ok := b.collectors[id]
 		if ok {
 			wg.Add(1)
-			b.logger.Debug().Str("builtin", id).Msg("collecting")
+			clog := c.Logger()
+			clog.Debug().Msg("collecting")
 			go func(id string, c collector.Collector) {
 				err := c.Collect()
 				if err != nil {
-					b.logger.Error().Err(err).Msg(id)
+					clog.Error().Err(err).Msg(id)
 				}
+				clog.Debug().Str("duration", time.Since(start).String()).Msg("done")
 				wg.Done()
 			}(id, c)
 		} else {

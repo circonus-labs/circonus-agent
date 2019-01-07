@@ -47,10 +47,10 @@ func NewLoadavgCollector(cfgBaseName, procFSPath string) (collector.Collector, e
 
 	c := Loadavg{}
 	c.id = LOADAVG_NAME
-	c.pkgID = PFS_PREFIX + c.id
+	c.pkgID = PKG_NAME + "." + c.id
+	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
 	c.procFSPath = procFSPath
 	c.file = filepath.Join(c.procFSPath, procFile)
-	c.logger = log.With().Str("pkg", c.pkgID).Logger()
 	c.metricStatus = map[string]bool{}
 	c.metricDefaultActive = true
 	c.baseTags = tags.FromList(tags.GetBaseTags())

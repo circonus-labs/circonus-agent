@@ -76,8 +76,8 @@ type memoryOptions struct {
 func NewMemoryCollector(cfgBaseName string) (collector.Collector, error) {
 	c := Memory{}
 	c.id = "memory"
-	c.pkgID = "builtins.windows.wmi." + c.id
-	c.logger = log.With().Str("pkg", c.pkgID).Logger()
+	c.pkgID = PKG_NAME + "." + c.id
+	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
 	c.metricDefaultActive = true
 	c.metricNameChar = defaultMetricChar
 	c.metricNameRegex = defaultMetricNameRegex

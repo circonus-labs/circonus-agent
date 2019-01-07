@@ -91,19 +91,23 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	runStart := time.Now()
 	var wg sync.WaitGroup
 
 	if runBuiltins {
 		wg.Add(1)
 		go func() {
-			s.logger.Debug().Msg("builtin start")
+			start := time.Now()
+			conduitID := "builtins"
+			num_metrics := 0
+			s.logger.Debug().Str("conduit_id", conduitID).Msg("start")
 			s.builtins.Run(id)
 			builtinMetrics := s.builtins.Flush(id)
 			if builtinMetrics != nil && len(*builtinMetrics) > 0 {
-				s.logger.Debug().Int("num_metrics", len(*builtinMetrics)).Msg("builtins flushed")
-				conduitCh <- conduit{id: "builtins", metrics: builtinMetrics}
+				num_metrics = len(*builtinMetrics)
+				conduitCh <- conduit{id: conduitID, metrics: builtinMetrics}
 			}
-			s.logger.Debug().Msg("builtin done")
+			s.logger.Debug().Str("conduit_id", conduitID).Str("duration", time.Since(start).String()).Int("metrics", num_metrics).Msg("done")
 			wg.Done()
 		}()
 	}
@@ -114,14 +118,17 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 			// NOTE: errors are ignored from plugins.Run
 			//       1. errors are already logged by Run
 			//       2. do not expose execution state to callers
-			s.logger.Debug().Msg("plugin start")
+			start := time.Now()
+			conduitID := "plugins"
+			num_metrics := 0
+			s.logger.Debug().Str("conduit_id", conduitID).Msg("start")
 			s.plugins.Run(id)
 			pluginMetrics := s.plugins.Flush(id)
 			if pluginMetrics != nil && len(*pluginMetrics) > 0 {
-				s.logger.Debug().Int("num_metrics", len(*pluginMetrics)).Msg("plugins flushed")
-				conduitCh <- conduit{id: "plugins", metrics: pluginMetrics}
+				num_metrics = len(*pluginMetrics)
+				conduitCh <- conduit{id: conduitID, metrics: pluginMetrics}
 			}
-			s.logger.Debug().Msg("plugin done")
+			s.logger.Debug().Str("conduit_id", conduitID).Str("duration", time.Since(start).String()).Int("metrics", num_metrics).Msg("done")
 			wg.Done()
 		}()
 	}
@@ -129,13 +136,16 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 	if flushReceiver {
 		wg.Add(1)
 		go func() {
-			s.logger.Debug().Msg("receiver start")
+			start := time.Now()
+			conduitID := "receiver"
+			num_metrics := 0
+			s.logger.Debug().Str("conduit_id", conduitID).Msg("start")
 			receiverMetrics := receiver.Flush()
 			if receiverMetrics != nil && len(*receiverMetrics) > 0 {
-				s.logger.Debug().Int("num_metrics", len(*receiverMetrics)).Msg("receiver flushed")
-				conduitCh <- conduit{id: "receiver", metrics: receiverMetrics}
+				num_metrics = len(*receiverMetrics)
+				conduitCh <- conduit{id: conduitID, metrics: receiverMetrics}
 			}
-			s.logger.Debug().Msg("receiver done")
+			s.logger.Debug().Str("conduit_id", conduitID).Str("duration", time.Since(start).String()).Int("metrics", num_metrics).Msg("done")
 			wg.Done()
 		}()
 	}
@@ -144,13 +154,16 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 		if s.statsdSvr != nil {
 			wg.Add(1)
 			go func() {
-				s.logger.Debug().Msg("statsd start")
+				start := time.Now()
+				conduitID := "statsd"
+				num_metrics := 0
+				s.logger.Debug().Str("conduit_id", conduitID).Msg("start")
 				statsdMetrics := s.statsdSvr.Flush()
 				if statsdMetrics != nil && len(*statsdMetrics) > 0 {
-					s.logger.Debug().Int("num_metrics", len(*statsdMetrics)).Msg("statsd flushed")
-					conduitCh <- conduit{id: "statsd", metrics: statsdMetrics}
+					num_metrics = len(*statsdMetrics)
+					conduitCh <- conduit{id: conduitID, metrics: statsdMetrics}
 				}
-				s.logger.Debug().Msg("statsd done")
+				s.logger.Debug().Str("conduit_id", conduitID).Str("duration", time.Since(start).String()).Int("metrics", num_metrics).Msg("done")
 				wg.Done()
 			}()
 		}
@@ -159,13 +172,16 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 	if flushProm {
 		wg.Add(1)
 		go func() {
-			s.logger.Debug().Msg("promrecv start")
+			start := time.Now()
+			conduitID := "prometheus"
+			num_metrics := 0
+			s.logger.Debug().Str("conduit_id", conduitID).Msg("start")
 			promMetrics := promrecv.Flush()
 			if promMetrics != nil && len(*promMetrics) > 0 {
-				s.logger.Debug().Int("num_metrics", len(*promMetrics)).Msg("prom flushed")
-				conduitCh <- conduit{id: "prom", metrics: promMetrics}
+				num_metrics = len(*promMetrics)
+				conduitCh <- conduit{id: conduitID, metrics: promMetrics}
 			}
-			s.logger.Debug().Msg("promrecv done")
+			s.logger.Debug().Str("conduit_id", conduitID).Str("duration", time.Since(start).String()).Int("metrics", num_metrics).Msg("done")
 			wg.Done()
 		}()
 	}
@@ -174,29 +190,28 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 	wg.Wait()
 	close(conduitCh)
 
-	s.logger.Debug().Msg("aggregating metrics")
+	s.logger.Debug().Str("duration", time.Since(runStart).String()).Msg("collection complete")
+
+	// s.logger.Debug().Msg("aggregating metrics")
 	metrics := cgm.Metrics{}
 	for cm := range conduitCh {
-		s.logger.Debug().Str("conduit_id", cm.id).Int("num_metrics", len(*cm.metrics)).Msg("adding metrics")
+		// s.logger.Debug().Str("conduit_id", cm.id).Int("num_metrics", len(*cm.metrics)).Msg("adding metrics")
 		for m, v := range *cm.metrics {
 			metrics[m] = v
 		}
 	}
-	s.logger.Debug().Int("num_metrics", len(metrics)).Msg("aggregation complete")
+	s.logger.Debug().Int("num_metrics", len(metrics)).Msg("aggregated")
 
-	s.logger.Debug().Msg("run: lock lastMetrics")
 	lastMetricsmu.Lock()
-	s.logger.Debug().Msg("run: update lastMetrics")
 	lastMetrics.metrics = &metrics
 	lastMetrics.ts = time.Now()
-	s.logger.Debug().Msg("run: unlock lastMetrics")
 	lastMetricsmu.Unlock()
 
 	if err := s.check.EnableNewMetrics(&metrics); err != nil {
 		s.logger.Warn().Err(err).Msg("unable to update check metrics")
 	}
 
-	s.encodeResponse(&metrics, w, r)
+	s.encodeResponse(&metrics, w, r, runStart)
 }
 
 // encodeResponse takes care of encoding the response to an HTTP request for metrics.
@@ -205,7 +220,7 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 // is supplied (Accept-Encoding: * or Accept-Encoding: gzip). The command line option
 // --no-gzip overrides and will result in unencoded response regardless of what the
 // Accept-Encoding header specifies.
-func (s *Server) encodeResponse(m *cgm.Metrics, w http.ResponseWriter, r *http.Request) {
+func (s *Server) encodeResponse(m *cgm.Metrics, w http.ResponseWriter, r *http.Request, runStart time.Time) {
 	//
 	// if an error occurs, it is logged and empty {} metrics are returned
 	//
@@ -224,7 +239,6 @@ func (s *Server) encodeResponse(m *cgm.Metrics, w http.ResponseWriter, r *http.R
 	} else {
 		acceptedEncodings := r.Header.Get("Accept-Encoding")
 		useGzip = strings.Contains(acceptedEncodings, "*") || strings.Contains(acceptedEncodings, "gzip")
-		s.logger.Debug().Bool("gzip", useGzip).Str("accept_encoding", acceptedEncodings).Msg("compressing response")
 	}
 
 	jsonData, err = json.Marshal(m)
@@ -263,7 +277,7 @@ func (s *Server) encodeResponse(m *cgm.Metrics, w http.ResponseWriter, r *http.R
 		return
 	}
 
-	s.logger.Info().Int("metrics", len(*m)).Msg("request response")
+	s.logger.Info().Str("duration", time.Since(runStart).String()).Int("num_metrics", len(*m)).Bool("compressed", useGzip).Int("content_bytes", len(data)).Msg("request response")
 
 	dumpDir := viper.GetString(config.KeyDebugDumpMetrics)
 	if dumpDir != "" {
