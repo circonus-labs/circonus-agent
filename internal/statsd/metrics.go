@@ -152,9 +152,6 @@ func (s *Server) parseMetric(metric string) error {
 		if err != nil {
 			return errors.Wrap(err, "invalid counter value")
 		}
-		if v == 0 {
-			v = 1
-		}
 		if sampleRate > 0 {
 			v = uint64(float64(v) * (1 / sampleRate))
 		}
