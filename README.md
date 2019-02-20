@@ -95,31 +95,34 @@ Flags:
       --api-url string                    [ENV: CA_API_URL] Circonus API URL (default "https://api.circonus.com/v2/")
       --check-broker string               [ENV: CA_CHECK_BROKER] ID of Broker to use or 'select' for random selection of valid broker, if creating a check bundle (default "select")
   -C, --check-create                      [ENV: CA_CHECK_CREATE] Create check bundle (for reverse and auto enable new metrics)
-  -E, --check-enable-new-metrics          [ENV: CA_CHECK_ENABLE_NEW_METRICS] Automatically enable all new metrics - OBSOLETE: v0.18.0+ if new check created
+  -E, --check-enable-new-metrics          [ENV: CA_CHECK_ENABLE_NEW_METRICS] DEPRECATED: see --check-metric-filters - Automatically enable all new metrics
   -I, --check-id string                   [ENV: CA_CHECK_ID] Check Bundle ID or 'cosi' for cosi system check (for reverse and auto enable new metrics)
-      --check-metric-filters string       [ENV: CA_CHECK_METRIC_FILTERS] List of filters used to manage which metrics are collected by the broker
+      --check-metric-filters string       [ENV: CA_CHECK_METRIC_FILTERS] List of filters used to manage which metrics are collected
       --check-metric-refresh-ttl string   [ENV: CA_CHECK_METRIC_REFRESH_TTL] Refresh check metrics TTL (default "5m")
-      --check-metric-state-dir string     [ENV: CA_CHECK_METRIC_STATE_DIR] Metric state directory for enable new metrics (must be writeable by user running agent) (default "/opt/circonus/agent/state") OBSOLETE: v0.18.0+ if new check created
+      --check-metric-state-dir string     [ENV: CA_CHECK_METRIC_STATE_DIR] DEPRECATED: see --check-metric-filters - Metric state directory for enable new metrics (must be writeable by user running agent) (default "/opt/circonus/agent/state")
+  -S, --check-metric-streamtags           [ENV: CA_CHECK_METRIC_STREAMTAGS] Add check tags to metrics as stream tags
       --check-tags string                 [ENV: CA_CHECK_TAGS] Tags [comma separated list] to use, if creating a check bundle
-  -T, --check-target string               [ENV: CA_CHECK_TARGET] Check target host (for creating a new check) (default <hostname>)
+  -T, --check-target string               [ENV: CA_CHECK_TARGET] Check target host (for creating a new check) (default "cosi-tool-c7")
       --check-title string                [ENV: CA_CHECK_TITLE] Title [display name] to use, if creating a check bundle (default "<check-target> /agent")
-      --collectors stringSlice            [ENV: CA_COLLECTORS] List of builtin collectors to enable
+      --collectors strings                [ENV: CA_COLLECTORS] List of builtin collectors to enable (default [procfs/cpu,procfs/diskstats,procfs/if,procfs/loadavg,procfs/vm])
   -c, --config string                     config file (default is /opt/circonus/agent/etc/circonus-agent.(json|toml|yaml)
   -d, --debug                             [ENV: CA_DEBUG] Enable debug messages
       --debug-api                         [ENV: CA_DEBUG_API] Enable Circonus API debug messages
       --debug-cgm                         [ENV: CA_DEBUG_CGM] Enable CGM debug messages
+      --debug-dump-metrics string         [ENV: CA_DEBUG_DUMP_METRICS] Directory to dump sent metrics
   -h, --help                              help for circonus-agent
   -l, --listen strings                    [ENV: CA_LISTEN] Listen spec e.g. :2609, [::1], [::1]:2609, 127.0.0.1, 127.0.0.1:2609, foo.bar.baz, foo.bar.baz:2609 (default ":2609")
-  -L, --listen-socket strings            [ENV: CA_LISTEN_SOCKET] Unix socket to create
+  -L, --listen-socket strings             [ENV: CA_LISTEN_SOCKET] Unix socket to create
       --log-level string                  [ENV: CA_LOG_LEVEL] Log level [(panic|fatal|error|warn|info|debug|disabled)] (default "info")
       --log-pretty                        [ENV: CA_LOG_PRETTY] Output formatted/colored log lines [ignored on windows]
       --no-gzip                           Disable gzip HTTP responses
       --no-statsd                         [ENV: CA_NO_STATSD] Disable StatsD listener
-  -p, --plugin-dir string                 [ENV: CA_PLUGIN_DIR] Plugin directory (default "/opt/circonus/agent/plugins")
+  -p, --plugin-dir string                 [ENV: CA_PLUGIN_DIR] Plugin directory
       --plugin-list strings               [ENV: CA_PLUGIN_LIST] List of explicit plugin commands to run
       --plugin-ttl-units string           [ENV: CA_PLUGIN_TTL_UNITS] Default plugin TTL units (default "s")
   -r, --reverse                           [ENV: CA_REVERSE] Enable reverse connection
       --reverse-broker-ca-file string     [ENV: CA_REVERSE_BROKER_CA_FILE] Broker CA certificate file
+      --reverse-max-conn-retry int        [ENV: CA_REVERSE_MAX_CONN_RETRY] Max attempts to retry persistently failing reverse connection to broker [-1=indefinitely] (default -1)
       --show-config string                Show config (json|toml|yaml) and exit
       --ssl-cert-file string              [ENV: CA_SSL_CERT_FILE] SSL Certificate file (PEM cert and CAs concatenated together) (default "/opt/circonus/agent/etc/circonus-agent.pem")
       --ssl-key-file string               [ENV: CA_SSL_KEY_FILE] SSL Key file (default "/opt/circonus/agent/etc/circonus-agent.key")
@@ -131,10 +134,10 @@ Flags:
       --statsd-group-prefix string        [ENV: CA_STATSD_GROUP_PREFIX] StatsD group metric prefix (default "group.")
       --statsd-group-sets string          [ENV: CA_STATSD_GROPUP_SETS] StatsD group set operator (default "sum")
       --statsd-host-cateogry string       [ENV: CA_STATSD_HOST_CATEGORY] StatsD host metric category (default "statsd")
-      --statsd-host-prefix string         [ENV: CA_STATSD_HOST_PREFIX] StatsD host metric prefix (default "host.")
+      --statsd-host-prefix string         [ENV: CA_STATSD_HOST_PREFIX] StatsD host metric prefix
       --statsd-port string                [ENV: CA_STATSD_PORT] StatsD port (default "8125")
   -V, --version                           Show version and exit
- ```
+```
 
 
 # Configuration
