@@ -556,7 +556,7 @@ func init() {
 	{
 		const (
 			key         = config.KeyStatsdHostCategory
-			longOpt     = "statsd-host-cateogry"
+			longOpt     = "statsd-host-category"
 			envVar      = release.ENVPREFIX + "_STATSD_HOST_CATEGORY"
 			description = "StatsD host metric category"
 		)
