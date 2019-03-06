@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
+	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
@@ -94,7 +95,7 @@ func (c *wmicommon) addMetric(metrics *cgm.Metrics, prefix string, mname, mtype 
 		if prefix != "" {
 			metricName = prefix + metricNameSeparator + mname
 		}
-		metricName = cgm.MetricNameWithStreamTags(metricName, c.baseTags)
+		metricName = tags.MetricNameWithStreamTags(metricName, c.baseTags)
 		(*metrics)[metricName] = cgm.Metric{Type: mtype, Value: mval}
 		return nil
 	}
