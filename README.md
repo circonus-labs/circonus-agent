@@ -131,7 +131,7 @@ Flags:
       --statsd-group-gauges string        [ENV: CA_STATSD_GROUP_GAUGES] StatsD group gauge operator (default "average")
       --statsd-group-prefix string        [ENV: CA_STATSD_GROUP_PREFIX] StatsD group metric prefix (default "group.")
       --statsd-group-sets string          [ENV: CA_STATSD_GROPUP_SETS] StatsD group set operator (default "sum")
-      --statsd-host-cateogry string       [ENV: CA_STATSD_HOST_CATEGORY] StatsD host metric category (default "statsd")
+      --statsd-host-category string       [ENV: CA_STATSD_HOST_CATEGORY] StatsD host metric category (default "statsd")
       --statsd-host-prefix string         [ENV: CA_STATSD_HOST_PREFIX] StatsD host metric prefix
       --statsd-port string                [ENV: CA_STATSD_PORT] StatsD port (default "8125")
   -V, --version                           Show version and exit
