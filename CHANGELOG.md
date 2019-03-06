@@ -1,5 +1,6 @@
 # v0.19.2
 
+* fix: tag handling in procfs and wmi builtins
 * fix: env var name flag for long tests in reverse
 * add: local tag handling to tags package (cgm internalized pkg methods per cust req)
 * upd: mod depends
