@@ -6,13 +6,17 @@
 package tags
 
 import (
+	"encoding/base64"
+	"fmt"
 	"regexp"
 	"sort"
 	"strings"
+	"unicode"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
 
@@ -48,6 +52,9 @@ const (
 	// Separator defines character separating tags in a list e.g. os:centos,location:sfo
 	Separator       = ","
 	replacementChar = "_"
+
+	MAX_TAGS            = 256
+	MAX_METRIC_NAME_LEN = 4096
 )
 
 var (
@@ -78,16 +85,16 @@ func GetBaseTags() []string {
 		return *baseTags
 	}
 
-    // if systemd ExecStart=circonus-agentd --check-tags="c1:v1,c2:v1" syntax is
-    // used, tagSpec will literally be `"c1:v1,c2:v1"` with the quotes included
-    // resulting in the first tag having a leading '"' and the last tag having
-    // a trailing '"'...
-    if tagSpec[0:1] == `"` {
-        tagSpec = tagSpec[1:]
-        if tagSpec[len(tagSpec)-1:1] == `"` {
-            tagSpec = tagSpec[0:len(tagSpec)-1]
-        }
-    }
+	// if systemd ExecStart=circonus-agentd --check-tags="c1:v1,c2:v1" syntax is
+	// used, tagSpec will literally be `"c1:v1,c2:v1"` with the quotes included
+	// resulting in the first tag having a leading '"' and the last tag having
+	// a trailing '"'...
+	if tagSpec[0:1] == `"` {
+		tagSpec = tagSpec[1:]
+		if tagSpec[len(tagSpec)-1:1] == `"` {
+			tagSpec = tagSpec[0 : len(tagSpec)-1]
+		}
+	}
 
 	checkTags := strings.Split(tagSpec, Separator)
 	if len(checkTags) == 0 {
@@ -118,11 +125,12 @@ func FromList(tagList []string) Tags {
 
 	tags := make(Tags, 0, len(tagList))
 	for _, tag := range tagList {
-		t := strings.Split(tag, Delimiter)
+		t := strings.SplitN(tag, Delimiter, 2)
 		if len(t) != 2 {
-			continue // must be *only* two, if there are multiple occurances of Delimiter, tag is invalid
+			log.Warn().Int("num", len(t)).Str("tag", tag).Msg("invalid tag format, ignoring")
+			continue // must be *only* two
 		}
-		tags = append(tags, Tag{t[0], t[1]})
+		tags = append(tags, Tag{Category: t[0], Value: t[1]})
 	}
 
 	return tags
@@ -147,4 +155,105 @@ func PrepStreamTags(tagList string) (string, error) {
 	sort.Strings(t)
 
 	return "|ST[" + strings.Join(t, Separator) + "]", nil
+}
+
+// MetricNameWithStreamTags will encode tags as stream tags into supplied metric name.
+// Note: if metric name already has stream tags it is assumed the metric name and
+// embedded stream tags are being managed manually and calling this method will nave no effect.
+func MetricNameWithStreamTags(metric string, tags Tags) string {
+	if len(tags) == 0 {
+		return metric
+	}
+
+	if strings.Contains(metric, "|ST[") {
+		return metric
+	}
+
+	taglist := EncodeMetricStreamTags(tags)
+	if taglist != "" {
+		return metric + "|ST[" + taglist + "]"
+	}
+
+	return metric
+}
+
+// EncodeMetricStreamTags encodes Tags into a string suitable for use with
+// stream tags. Tags directly embedded into metric names using the
+// `metric_name|ST[<tags>]` syntax.
+func EncodeMetricStreamTags(tags Tags) string {
+	if len(tags) == 0 {
+		return ""
+	}
+
+	tmpTags := EncodeMetricTags(tags)
+	if len(tmpTags) == 0 {
+		return ""
+	}
+
+	tagList := make([]string, len(tmpTags))
+	for i, tag := range tmpTags {
+		if i >= MAX_TAGS {
+			log.Warn().Int("num", len(tags)).Int("max", MAX_TAGS).Interface("tags", tags).Msg("ignoring tags over max")
+			break
+		}
+		tagParts := strings.SplitN(tag, ":", 2)
+		if len(tagParts) != 2 {
+			log.Warn().Int("num", len(tagParts)).Str("tag", tag).Msg("invalid tag format, ignoring")
+			continue // invalid tag, skip it
+		}
+		encodeFmt := `b"%s"`
+		encodedSig := `b"` // has cat or val been previously (or manually) base64 encoded and formatted
+		tc := tagParts[0]
+		tv := tagParts[1]
+		if !strings.HasPrefix(tc, encodedSig) {
+			tc = fmt.Sprintf(encodeFmt, base64.StdEncoding.EncodeToString([]byte(tc)))
+		}
+		if !strings.HasPrefix(tv, encodedSig) {
+			tv = fmt.Sprintf(encodeFmt, base64.StdEncoding.EncodeToString([]byte(tv)))
+		}
+		tagList[i] = tc + ":" + tv
+	}
+
+	return strings.Join(tagList, ",")
+}
+
+// EncodeMetricTags encodes Tags into an array of strings. The format
+// check_bundle.metircs.metric.tags needs. This helper is intended to work
+// with legacy check bundle metrics. Tags directly on named metrics are being
+// deprecated in favor of stream tags.
+func EncodeMetricTags(tags Tags) []string {
+	if len(tags) == 0 {
+		return []string{}
+	}
+
+	uniqueTags := make(map[string]bool)
+	for i, t := range tags {
+		if i >= MAX_TAGS {
+			log.Warn().Int("num", len(tags)).Int("max", MAX_TAGS).Interface("tags", tags).Msg("too many tags, ignoring remainder")
+			break
+		}
+		tc := strings.Map(removeSpaces, strings.ToLower(t.Category))
+		tv := strings.Map(removeSpaces, strings.ToLower(t.Value))
+		if tc == "" || tv == "" {
+			log.Warn().Interface("tag", t).Msg("invalid tag format, ignoring")
+			continue // invalid tag, skip it
+		}
+		tag := tc + ":" + tv
+		uniqueTags[tag] = true
+	}
+	tagList := make([]string, len(uniqueTags))
+	idx := 0
+	for t := range uniqueTags {
+		tagList[idx] = t
+		idx++
+	}
+	sort.Strings(tagList)
+	return tagList
+}
+
+func removeSpaces(r rune) rune {
+	if unicode.IsSpace(r) {
+		return -1
+	}
+	return r
 }

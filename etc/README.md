@@ -44,9 +44,6 @@ All ProcFS collectors have a basic set of configuration options:
 | Option                   | Type             | Default            | Description |
 | ------------------------ | ---------------- | ------------------ | ----------- |
 | `id`                     | string           | name of collector  | ID/Name of the collector (used as prefix for metrics). |
-| `metrics_enabled`        | array of strings | empty              | list of metrics which are enabled (to be collected) |
-| `metrics_disabled`       | array of strings | empty              | list of metrics which are disabled (should NOT be collected) |
-| `metrics_default_status` | string           | `enabled`          | how a metric NOT in the enabled/disabled lists should be handled ("enabled" or "disabled") |
 | `run_ttl`                | string           | empty              | indicating collector will run no more frequently than TTL (e.g. "10s", "5m", etc. - for expensive collectors) |
 
 Additionally, each collector may have more configuration options specific to _what_ is being collected. (e.g. include/exclude regular expression for items such as network interfaces, disks, etc.)
@@ -88,9 +85,6 @@ All WMI collectors have a basic set of configuration options:
 | Option                   | Type             | Default            | Description |
 | ------------------------ | ---------------- | ------------------ | ----------- |
 | `id`                     | string           | name of collector  | ID/Name of the collector (used as prefix for metrics). |
-| `metrics_enabled`        | array of strings | empty              | list of metrics which are enabled (to be collected) |
-| `metrics_disabled`       | array of strings | empty              | list of metrics which are disabled (should NOT be collected) |
-| `metrics_default_status` | string           | `enabled`          | how a metric NOT in the enabled/disabled lists should be handled ("enabled" or "disabled") |
 | `metric_name_regex`      | string           | `[^a-zA-Z0-9.-_:]` | regular expression of valid characters for the metric names |
 | `metric_name_char`       | string           | `_`                | used for replacing invalid characters in a metric name (those not matching `metric_name_regex`) |
 | `run_ttl`                | string           | empty              | indicating collector will run no more frequently than TTL (e.g. "10s", "5m", etc. - for expensive collectors) |
@@ -169,9 +163,6 @@ All Generic collectors have a basic set of configuration options:
 | Option                   | Type             | Default            | Description |
 | ------------------------ | ---------------- | ------------------ | ----------- |
 | `id`                     | string           | name of collector  | ID/Name of the collector (used as prefix for metrics). |
-| `metrics_enabled`        | array of strings | empty              | list of metrics which are enabled (to be collected) |
-| `metrics_disabled`       | array of strings | empty              | list of metrics which are disabled (should NOT be collected) |
-| `metrics_default_status` | string           | `enabled`          | how a metric NOT in the enabled/disabled lists should be handled ("enabled" or "disabled") |
 | `run_ttl`                | string           | empty              | indicating collector will run no more frequently than TTL (e.g. "10s", "5m", etc. - for expensive collectors) |
 
 Additionally, each collector may have more configuration options specific to _what_ is being collected. (e.g. include/exclude regular expression for items such as network interfaces, disks, filesystems, devices, etc.)
@@ -228,9 +219,6 @@ Options:
 
 | Option                   | Type             | Default            | Description |
 | ------------------------ | ---------------- | ------------------ | ----------- |
-| `metrics_enabled`        | array of strings | empty              | list of metrics which are enabled (to be collected) |
-| `metrics_disabled`       | array of strings | empty              | list of metrics which are disabled (should NOT be collected) |
-| `metrics_default_status` | string           | `enabled`          | how a metric NOT in the enabled/disabled lists should be handled ("enabled" or "disabled") |
 | `run_ttl`                | string           | empty              | indicating collector will run no more frequently than TTL (e.g. "10s", "5m", etc. - for expensive collectors) |
 | `urls`                   | array of urldefs | empty              | required, without any URLs the collector is disabled |
 | URL definition (urldefs) |||

@@ -54,7 +54,7 @@ func (c *Prom) cleanName(name string) string {
 }
 
 // addMetric to internal buffer if metric is active
-func (c *Prom) addMetric(metrics *cgm.Metrics, prefix string, mname string, tags tags.Tags, mtype string, mval interface{}) error {
+func (c *Prom) addMetric(metrics *cgm.Metrics, prefix string, mname string, mtags tags.Tags, mtype string, mval interface{}) error {
 	if metrics == nil {
 		return errors.New("invalid metric submission")
 	}
@@ -79,7 +79,7 @@ func (c *Prom) addMetric(metrics *cgm.Metrics, prefix string, mname string, tags
 		}
 
 		// Add stream tags
-		metricName = cgm.MetricNameWithStreamTags(metricName, tags)
+		metricName = tags.MetricNameWithStreamTags(metricName, mtags)
 
 		(*metrics)[metricName] = cgm.Metric{Type: mtype, Value: mval}
 		return nil

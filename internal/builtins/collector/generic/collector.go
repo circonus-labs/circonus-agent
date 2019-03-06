@@ -113,7 +113,7 @@ func (c *gencommon) addMetric(metrics *cgm.Metrics, prefix string, mname, mtype 
 			metricName = prefix + metricNameSeparator + mname
 		}
 
-		metricName = cgm.MetricNameWithStreamTags(metricName, c.baseTags)
+		metricName = tags.MetricNameWithStreamTags(metricName, c.baseTags)
 
 		(*metrics)[metricName] = cgm.Metric{Type: mtype, Value: mval}
 		return nil

@@ -14,7 +14,6 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	toml "github.com/pelletier/go-toml"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -344,28 +343,23 @@ func ShowConfig(w io.Writer) error {
 
 	format := viper.GetString(KeyShowConfig)
 
-	log.Debug().Str("format", format).Msg("show-config")
+	// log.Debug().Str("format", format).Msg("show-config")
 
 	switch format {
 	case "json":
 		data, err = json.MarshalIndent(cfg, " ", "  ")
-		if err != nil {
-			return errors.Wrap(err, "formatting config (json)")
-		}
 	case "yaml":
 		data, err = yaml.Marshal(cfg)
-		if err != nil {
-			return errors.Wrap(err, "formatting config (yaml)")
-		}
 	case "toml":
 		data, err = toml.Marshal(*cfg)
-		if err != nil {
-			return errors.Wrap(err, "formatting config (toml)")
-		}
 	default:
 		return errors.Errorf("unknown config format '%s'", format)
 	}
 
-	fmt.Fprintf(w, "\n%s\n", data)
+	if err != nil {
+		return errors.Wrapf(err, "formatting config (%s)", format)
+	}
+
+	fmt.Fprintln(w, string(data))
 	return nil
 }

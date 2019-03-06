@@ -334,7 +334,7 @@ func TestStart(t *testing.T) {
 }
 
 func TestStartLong(t *testing.T) {
-	ltFlag := "circonus-agent_LONG_TEST"
+	ltFlag := "CIRCONUS_AGENT_LONG_TEST"
 	if longTest, _ := strconv.ParseBool(os.Getenv(ltFlag)); !longTest {
 		t.Logf("Skipping long tests, set %s=1 to enable", ltFlag)
 		return

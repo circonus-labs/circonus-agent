@@ -1,3 +1,16 @@
+# v0.19.2
+
+* fix: env var name flag for long tests in reverse
+* add: local tag handling to tags package (cgm internalized pkg methods per cust req)
+* upd: mod depends
+* upd: go1.12
+* upd: refactor error handling in show config handler
+* upd: upd: support colon in tag values
+* fix: Small typo - cateogry => category
+* doc: remove deprecated command line options from options documentation `--check-enable-new-metrics` and `--check-metric-state-dir`
+* doc: update command line options
+* doc: remove obsolete options from builtin configurations
+
 # v0.19.1
 
 * fix: statsd counter incorrectly setting 0 values to 1
