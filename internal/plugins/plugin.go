@@ -73,8 +73,7 @@ func (p *plugin) parsePluginOutput(output []string) error {
 			tagList := make([]string, 0, len(p.baseTags)+len(md.Tags))
 			tagList = append(tagList, p.baseTags...)
 			tagList = append(tagList, md.Tags...)
-			mt := tags.FromList(tagList)
-			metrics[cgm.MetricNameWithStreamTags(mn, mt)] = cgm.Metric{Type: md.Type, Value: md.Value}
+			metrics[tags.MetricNameWithStreamTags(mn, tags.FromList(tagList))] = cgm.Metric{Type: md.Type, Value: md.Value}
 		}
 		p.metrics = &metrics
 		return nil
@@ -125,7 +124,7 @@ func (p *plugin) parsePluginOutput(output []string) error {
 
 		// only received a name and type (intentionally null value)
 		if len(fields) == 2 {
-			metrics[cgm.MetricNameWithStreamTags(metricName, tags.FromList(p.baseTags))] = cgm.Metric{
+			metrics[tags.MetricNameWithStreamTags(metricName, tags.FromList(p.baseTags))] = cgm.Metric{
 				Type:  metricType,
 				Value: nullMetricValue,
 			}
@@ -142,7 +141,7 @@ func (p *plugin) parsePluginOutput(output []string) error {
 		tagList := make([]string, 0, len(p.baseTags)+len(metricTags))
 		tagList = append(tagList, p.baseTags...)
 		tagList = append(tagList, metricTags...)
-		metricName = cgm.MetricNameWithStreamTags(metricName, tags.FromList(tagList))
+		metricName = tags.MetricNameWithStreamTags(metricName, tags.FromList(tagList))
 
 		// intentionally null value, explicit syntax
 		if strings.ToLower(metricValue) == nullMetricValue {
