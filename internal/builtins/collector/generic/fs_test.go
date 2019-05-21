@@ -35,7 +35,7 @@ func TestNewFSCollector(t *testing.T) {
 		tst := test
 		t.Run(tst.id, func(t *testing.T) {
 			t.Parallel()
-			_, err := NewFSCollector(tst.cfgFile)
+			_, err := NewFSCollector(tst.cfgFile, zerolog.Logger{})
 			if tst.shouldFail {
 				if err == nil {
 					t.Fatalf("expected error")
@@ -52,7 +52,7 @@ func TestNewFSCollector(t *testing.T) {
 
 	t.Log("config (id setting)")
 	{
-		c, err := NewFSCollector(filepath.Join("testdata", "config_id_setting"))
+		c, err := NewFSCollector(filepath.Join("testdata", "config_id_setting"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -63,7 +63,7 @@ func TestNewFSCollector(t *testing.T) {
 
 	t.Log("config (include all devices setting true)")
 	{
-		c, err := NewFSCollector(filepath.Join("testdata", "config_include_all_devices_true_setting"))
+		c, err := NewFSCollector(filepath.Join("testdata", "config_include_all_devices_true_setting"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -74,7 +74,7 @@ func TestNewFSCollector(t *testing.T) {
 
 	t.Log("config (include all devices setting false)")
 	{
-		c, err := NewFSCollector(filepath.Join("testdata", "config_include_all_devices_false_setting"))
+		c, err := NewFSCollector(filepath.Join("testdata", "config_include_all_devices_false_setting"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -85,7 +85,7 @@ func TestNewFSCollector(t *testing.T) {
 
 	t.Log("config (include all devices setting invalid)")
 	{
-		_, err := NewFSCollector(filepath.Join("testdata", "config_include_all_devices_invalid_setting"))
+		_, err := NewFSCollector(filepath.Join("testdata", "config_include_all_devices_invalid_setting"), zerolog.Logger{})
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -93,7 +93,7 @@ func TestNewFSCollector(t *testing.T) {
 
 	t.Log("config (exclude fs types setting)")
 	{
-		c, err := NewFSCollector(filepath.Join("testdata", "config_exclude_fs_type_setting"))
+		c, err := NewFSCollector(filepath.Join("testdata", "config_exclude_fs_type_setting"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -104,7 +104,7 @@ func TestNewFSCollector(t *testing.T) {
 
 	t.Log("config (include fs regex setting - valid)")
 	{
-		c, err := NewFSCollector(filepath.Join("testdata", "config_include_fs_regex_valid_setting"))
+		c, err := NewFSCollector(filepath.Join("testdata", "config_include_fs_regex_valid_setting"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -115,7 +115,7 @@ func TestNewFSCollector(t *testing.T) {
 
 	t.Log("config (include fs regex setting - invalid)")
 	{
-		_, err := NewFSCollector(filepath.Join("testdata", "config_include_fs_regex_invalid_setting"))
+		_, err := NewFSCollector(filepath.Join("testdata", "config_include_fs_regex_invalid_setting"), zerolog.Logger{})
 		if err.Error() != "builtins.generic.fs compiling include FS regex: error parsing regexp: missing closing ]: `[foo)$`" {
 			t.Fatalf("unexpected error, got (%s)", err)
 		}
@@ -123,7 +123,7 @@ func TestNewFSCollector(t *testing.T) {
 
 	t.Log("config (exclude fs regex setting - valid)")
 	{
-		c, err := NewFSCollector(filepath.Join("testdata", "config_exclude_fs_regex_valid_setting"))
+		c, err := NewFSCollector(filepath.Join("testdata", "config_exclude_fs_regex_valid_setting"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -134,81 +134,15 @@ func TestNewFSCollector(t *testing.T) {
 
 	t.Log("config (exclude fs regex setting - invalid)")
 	{
-		_, err := NewFSCollector(filepath.Join("testdata", "config_exclude_fs_regex_invalid_setting"))
+		_, err := NewFSCollector(filepath.Join("testdata", "config_exclude_fs_regex_invalid_setting"), zerolog.Logger{})
 		if err.Error() != "builtins.generic.fs compiling exclude FS regex: error parsing regexp: missing closing ]: `[foo)$`" {
 			t.Fatalf("unexpected error, got (%s)", err)
 		}
 	}
 
-	t.Log("config (metrics enabled setting)")
-	{
-		c, err := NewFSCollector(filepath.Join("testdata", "config_metrics_enabled_setting"))
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if len(c.(*FS).metricStatus) == 0 {
-			t.Fatalf("expected >0 metric status settings, got (%#v)", c.(*FS).metricStatus)
-		}
-		enabled, ok := c.(*FS).metricStatus["foo"]
-		if !ok {
-			t.Fatalf("expected 'foo' key in metric status settings, got (%#v)", c.(*FS).metricStatus)
-		}
-		if !enabled {
-			t.Fatalf("expected 'foo' to be enabled in metric status settings, got (%#v)", c.(*FS).metricStatus)
-		}
-	}
-
-	t.Log("config (metrics disabled setting)")
-	{
-		c, err := NewFSCollector(filepath.Join("testdata", "config_metrics_disabled_setting"))
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if len(c.(*FS).metricStatus) == 0 {
-			t.Fatalf("expected >0 metric status settings, got (%#v)", c.(*FS).metricStatus)
-		}
-		enabled, ok := c.(*FS).metricStatus["foo"]
-		if !ok {
-			t.Fatalf("expected 'foo' key in metric status settings, got (%#v)", c.(*FS).metricStatus)
-		}
-		if enabled {
-			t.Fatalf("expected 'foo' to be disabled in metric status settings, got (%#v)", c.(*FS).metricStatus)
-		}
-	}
-
-	t.Log("config (metrics default status enabled)")
-	{
-		c, err := NewFSCollector(filepath.Join("testdata", "config_metrics_default_status_enabled_setting"))
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if !c.(*FS).metricDefaultActive {
-			t.Fatal("expected true")
-		}
-	}
-
-	t.Log("config (metrics default status disabled)")
-	{
-		c, err := NewFSCollector(filepath.Join("testdata", "config_metrics_default_status_disabled_setting"))
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if c.(*FS).metricDefaultActive {
-			t.Fatal("expected false")
-		}
-	}
-
-	t.Log("config (metrics default status invalid)")
-	{
-		_, err := NewFSCollector(filepath.Join("testdata", "config_metrics_default_status_invalid_setting"))
-		if err == nil {
-			t.Fatal("expected error")
-		}
-	}
-
 	t.Log("config (run ttl 5m)")
 	{
-		c, err := NewFSCollector(filepath.Join("testdata", "config_run_ttl_valid_setting"))
+		c, err := NewFSCollector(filepath.Join("testdata", "config_run_ttl_valid_setting"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -219,7 +153,7 @@ func TestNewFSCollector(t *testing.T) {
 
 	t.Log("config (run ttl invalid)")
 	{
-		_, err := NewFSCollector(filepath.Join("testdata", "config_run_ttl_invalid_setting"))
+		_, err := NewFSCollector(filepath.Join("testdata", "config_run_ttl_invalid_setting"), zerolog.Logger{})
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -231,7 +165,7 @@ func TestFSFlush(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	c, err := NewFSCollector(filepath.Join("testdata", "missing"))
+	c, err := NewFSCollector(filepath.Join("testdata", "missing"), zerolog.Logger{})
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
@@ -252,7 +186,7 @@ func TestFSCollect(t *testing.T) {
 
 	t.Log("already running")
 	{
-		c, err := NewFSCollector(filepath.Join("testdata", "missing"))
+		c, err := NewFSCollector(filepath.Join("testdata", "missing"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -270,7 +204,7 @@ func TestFSCollect(t *testing.T) {
 
 	t.Log("ttl not expired")
 	{
-		c, err := NewFSCollector(filepath.Join("testdata", "missing"))
+		c, err := NewFSCollector(filepath.Join("testdata", "missing"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -289,7 +223,7 @@ func TestFSCollect(t *testing.T) {
 
 	t.Log("good")
 	{
-		c, err := NewFSCollector(filepath.Join("testdata", "missing"))
+		c, err := NewFSCollector(filepath.Join("testdata", "missing"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}

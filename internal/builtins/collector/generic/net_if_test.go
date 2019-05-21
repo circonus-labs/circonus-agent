@@ -35,7 +35,7 @@ func TestNewNetIFCollector(t *testing.T) {
 		tst := test
 		t.Run(tst.id, func(t *testing.T) {
 			t.Parallel()
-			_, err := NewNetIFCollector(tst.cfgFile)
+			_, err := NewNetIFCollector(tst.cfgFile, zerolog.Logger{})
 			if tst.shouldFail {
 				if err == nil {
 					t.Fatalf("expected error")
@@ -52,7 +52,7 @@ func TestNewNetIFCollector(t *testing.T) {
 
 	t.Log("config (id setting)")
 	{
-		c, err := NewNetIFCollector(filepath.Join("testdata", "config_id_setting"))
+		c, err := NewNetIFCollector(filepath.Join("testdata", "config_id_setting"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -63,7 +63,7 @@ func TestNewNetIFCollector(t *testing.T) {
 
 	t.Log("config (include regex setting - valid)")
 	{
-		c, err := NewNetIFCollector(filepath.Join("testdata", "config_include_regex_valid_setting"))
+		c, err := NewNetIFCollector(filepath.Join("testdata", "config_include_regex_valid_setting"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -74,7 +74,7 @@ func TestNewNetIFCollector(t *testing.T) {
 
 	t.Log("config (include regex setting - invalid)")
 	{
-		_, err := NewNetIFCollector(filepath.Join("testdata", "config_include_regex_invalid_setting"))
+		_, err := NewNetIFCollector(filepath.Join("testdata", "config_include_regex_invalid_setting"), zerolog.Logger{})
 		if err.Error() != "builtins.generic.if compiling include regex: error parsing regexp: missing closing ]: `[foo)$`" {
 			t.Fatalf("unexpected error, got (%s)", err)
 		}
@@ -82,7 +82,7 @@ func TestNewNetIFCollector(t *testing.T) {
 
 	t.Log("config (exclude regex setting - valid)")
 	{
-		c, err := NewNetIFCollector(filepath.Join("testdata", "config_exclude_regex_valid_setting"))
+		c, err := NewNetIFCollector(filepath.Join("testdata", "config_exclude_regex_valid_setting"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -93,81 +93,15 @@ func TestNewNetIFCollector(t *testing.T) {
 
 	t.Log("config (exclude regex setting - invalid)")
 	{
-		_, err := NewNetIFCollector(filepath.Join("testdata", "config_exclude_regex_invalid_setting"))
+		_, err := NewNetIFCollector(filepath.Join("testdata", "config_exclude_regex_invalid_setting"), zerolog.Logger{})
 		if err.Error() != "builtins.generic.if compiling exclude regex: error parsing regexp: missing closing ]: `[foo)$`" {
 			t.Fatalf("unexpected error, got (%s)", err)
 		}
 	}
 
-	t.Log("config (metrics enabled setting)")
-	{
-		c, err := NewNetIFCollector(filepath.Join("testdata", "config_metrics_enabled_setting"))
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if len(c.(*IF).metricStatus) == 0 {
-			t.Fatalf("expected >0 metric status settings, got (%#v)", c.(*IF).metricStatus)
-		}
-		enabled, ok := c.(*IF).metricStatus["foo"]
-		if !ok {
-			t.Fatalf("expected 'foo' key in metric status settings, got (%#v)", c.(*IF).metricStatus)
-		}
-		if !enabled {
-			t.Fatalf("expected 'foo' to be enabled in metric status settings, got (%#v)", c.(*IF).metricStatus)
-		}
-	}
-
-	t.Log("config (metrics disabled setting)")
-	{
-		c, err := NewNetIFCollector(filepath.Join("testdata", "config_metrics_disabled_setting"))
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if len(c.(*IF).metricStatus) == 0 {
-			t.Fatalf("expected >0 metric status settings, got (%#v)", c.(*IF).metricStatus)
-		}
-		enabled, ok := c.(*IF).metricStatus["foo"]
-		if !ok {
-			t.Fatalf("expected 'foo' key in metric status settings, got (%#v)", c.(*IF).metricStatus)
-		}
-		if enabled {
-			t.Fatalf("expected 'foo' to be disabled in metric status settings, got (%#v)", c.(*IF).metricStatus)
-		}
-	}
-
-	t.Log("config (metrics default status enabled)")
-	{
-		c, err := NewNetIFCollector(filepath.Join("testdata", "config_metrics_default_status_enabled_setting"))
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if !c.(*IF).metricDefaultActive {
-			t.Fatal("expected true")
-		}
-	}
-
-	t.Log("config (metrics default status disabled)")
-	{
-		c, err := NewNetIFCollector(filepath.Join("testdata", "config_metrics_default_status_disabled_setting"))
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if c.(*IF).metricDefaultActive {
-			t.Fatal("expected false")
-		}
-	}
-
-	t.Log("config (metrics default status invalid)")
-	{
-		_, err := NewNetIFCollector(filepath.Join("testdata", "config_metrics_default_status_invalid_setting"))
-		if err == nil {
-			t.Fatal("expected error")
-		}
-	}
-
 	t.Log("config (run ttl 5m)")
 	{
-		c, err := NewNetIFCollector(filepath.Join("testdata", "config_run_ttl_valid_setting"))
+		c, err := NewNetIFCollector(filepath.Join("testdata", "config_run_ttl_valid_setting"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -178,7 +112,7 @@ func TestNewNetIFCollector(t *testing.T) {
 
 	t.Log("config (run ttl invalid)")
 	{
-		_, err := NewNetIFCollector(filepath.Join("testdata", "config_run_ttl_invalid_setting"))
+		_, err := NewNetIFCollector(filepath.Join("testdata", "config_run_ttl_invalid_setting"), zerolog.Logger{})
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -190,7 +124,7 @@ func TestIFFlush(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	c, err := NewNetIFCollector(filepath.Join("testdata", "missing"))
+	c, err := NewNetIFCollector(filepath.Join("testdata", "missing"), zerolog.Logger{})
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
@@ -211,7 +145,7 @@ func TestIFCollect(t *testing.T) {
 
 	t.Log("already running")
 	{
-		c, err := NewNetIFCollector(filepath.Join("testdata", "missing"))
+		c, err := NewNetIFCollector(filepath.Join("testdata", "missing"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -229,7 +163,7 @@ func TestIFCollect(t *testing.T) {
 
 	t.Log("ttl not expired")
 	{
-		c, err := NewNetIFCollector(filepath.Join("testdata", "missing"))
+		c, err := NewNetIFCollector(filepath.Join("testdata", "missing"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -248,7 +182,7 @@ func TestIFCollect(t *testing.T) {
 
 	t.Log("good")
 	{
-		c, err := NewNetIFCollector(filepath.Join("testdata", "missing"))
+		c, err := NewNetIFCollector(filepath.Join("testdata", "missing"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}

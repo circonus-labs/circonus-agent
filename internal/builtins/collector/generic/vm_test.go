@@ -35,7 +35,7 @@ func TestNewVMCollector(t *testing.T) {
 		tst := test
 		t.Run(tst.id, func(t *testing.T) {
 			t.Parallel()
-			_, err := NewVMCollector(tst.cfgFile)
+			_, err := NewVMCollector(tst.cfgFile, zerolog.Logger{})
 			if tst.shouldFail {
 				if err == nil {
 					t.Fatalf("expected error")
@@ -52,7 +52,7 @@ func TestNewVMCollector(t *testing.T) {
 
 	t.Log("config (id setting)")
 	{
-		c, err := NewVMCollector(filepath.Join("testdata", "config_id_setting"))
+		c, err := NewVMCollector(filepath.Join("testdata", "config_id_setting"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -61,75 +61,9 @@ func TestNewVMCollector(t *testing.T) {
 		}
 	}
 
-	t.Log("config (metrics enabled setting)")
-	{
-		c, err := NewVMCollector(filepath.Join("testdata", "config_metrics_enabled_setting"))
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if len(c.(*VM).metricStatus) == 0 {
-			t.Fatalf("expected >0 metric status settings, got (%#v)", c.(*VM).metricStatus)
-		}
-		enabled, ok := c.(*VM).metricStatus["foo"]
-		if !ok {
-			t.Fatalf("expected 'foo' key in metric status settings, got (%#v)", c.(*VM).metricStatus)
-		}
-		if !enabled {
-			t.Fatalf("expected 'foo' to be enabled in metric status settings, got (%#v)", c.(*VM).metricStatus)
-		}
-	}
-
-	t.Log("config (metrics disabled setting)")
-	{
-		c, err := NewVMCollector(filepath.Join("testdata", "config_metrics_disabled_setting"))
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if len(c.(*VM).metricStatus) == 0 {
-			t.Fatalf("expected >0 metric status settings, got (%#v)", c.(*VM).metricStatus)
-		}
-		enabled, ok := c.(*VM).metricStatus["foo"]
-		if !ok {
-			t.Fatalf("expected 'foo' key in metric status settings, got (%#v)", c.(*VM).metricStatus)
-		}
-		if enabled {
-			t.Fatalf("expected 'foo' to be disabled in metric status settings, got (%#v)", c.(*VM).metricStatus)
-		}
-	}
-
-	t.Log("config (metrics default status enabled)")
-	{
-		c, err := NewVMCollector(filepath.Join("testdata", "config_metrics_default_status_enabled_setting"))
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if !c.(*VM).metricDefaultActive {
-			t.Fatal("expected true")
-		}
-	}
-
-	t.Log("config (metrics default status disabled)")
-	{
-		c, err := NewVMCollector(filepath.Join("testdata", "config_metrics_default_status_disabled_setting"))
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if c.(*VM).metricDefaultActive {
-			t.Fatal("expected false")
-		}
-	}
-
-	t.Log("config (metrics default status invalid)")
-	{
-		_, err := NewVMCollector(filepath.Join("testdata", "config_metrics_default_status_invalid_setting"))
-		if err == nil {
-			t.Fatal("expected error")
-		}
-	}
-
 	t.Log("config (run ttl 5m)")
 	{
-		c, err := NewVMCollector(filepath.Join("testdata", "config_run_ttl_valid_setting"))
+		c, err := NewVMCollector(filepath.Join("testdata", "config_run_ttl_valid_setting"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -140,7 +74,7 @@ func TestNewVMCollector(t *testing.T) {
 
 	t.Log("config (run ttl invalid)")
 	{
-		_, err := NewVMCollector(filepath.Join("testdata", "config_run_ttl_invalid_setting"))
+		_, err := NewVMCollector(filepath.Join("testdata", "config_run_ttl_invalid_setting"), zerolog.Logger{})
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -152,7 +86,7 @@ func TestVMFlush(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	c, err := NewVMCollector(filepath.Join("testdata", "missing"))
+	c, err := NewVMCollector(filepath.Join("testdata", "missing"), zerolog.Logger{})
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
@@ -173,7 +107,7 @@ func TestVMCollect(t *testing.T) {
 
 	t.Log("already running")
 	{
-		c, err := NewVMCollector(filepath.Join("testdata", "missing"))
+		c, err := NewVMCollector(filepath.Join("testdata", "missing"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -191,7 +125,7 @@ func TestVMCollect(t *testing.T) {
 
 	t.Log("ttl not expired")
 	{
-		c, err := NewVMCollector(filepath.Join("testdata", "missing"))
+		c, err := NewVMCollector(filepath.Join("testdata", "missing"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -210,7 +144,7 @@ func TestVMCollect(t *testing.T) {
 
 	t.Log("good")
 	{
-		c, err := NewVMCollector(filepath.Join("testdata", "missing"))
+		c, err := NewVMCollector(filepath.Join("testdata", "missing"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}

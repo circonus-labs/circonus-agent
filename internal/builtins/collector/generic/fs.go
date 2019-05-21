@@ -17,7 +17,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 	"github.com/shirou/gopsutil/disk"
 )
 
@@ -33,11 +33,8 @@ type FS struct {
 // fsOptions defines what elements can be overridden in a config file
 type fsOptions struct {
 	// common
-	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
-	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
-	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
+	ID     string `json:"id" toml:"id" yaml:"id"`
+	RunTTL string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 
 	// collector specific
 	IncludeRegexFS    string   `json:"include_fs_regex" toml:"include_fs_regex" yaml:"include_fs_regex"`
@@ -47,13 +44,11 @@ type fsOptions struct {
 }
 
 // NewFSCollector creates new psutils disk collector
-func NewFSCollector(cfgBaseName string) (collector.Collector, error) {
+func NewFSCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector.Collector, error) {
 	c := FS{}
-	c.id = FS_NAME
-    c.pkgID = PKG_NAME + "." + c.id
-	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
-	c.metricStatus = map[string]bool{}
-	c.metricDefaultActive = true
+	c.id = NameFS
+	c.pkgID = PackageName + "." + c.id
+	c.logger = parentLogger.With().Str("id", c.id).Logger()
 	c.baseTags = tags.FromList(tags.GetBaseTags())
 
 	c.includeFS = defaultIncludeRegex
@@ -107,25 +102,6 @@ func NewFSCollector(cfgBaseName string) (collector.Collector, error) {
 		c.id = opts.ID
 	}
 
-	if len(opts.MetricsEnabled) > 0 {
-		for _, name := range opts.MetricsEnabled {
-			c.metricStatus[name] = true
-		}
-	}
-	if len(opts.MetricsDisabled) > 0 {
-		for _, name := range opts.MetricsDisabled {
-			c.metricStatus[name] = false
-		}
-	}
-
-	if opts.MetricsDefaultStatus != "" {
-		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(opts.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(opts.MetricsDefaultStatus) == metricStatusEnabled
-		} else {
-			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, opts.MetricsDefaultStatus)
-		}
-	}
-
 	if opts.RunTTL != "" {
 		dur, err := time.ParseDuration(opts.RunTTL)
 		if err != nil {
@@ -157,6 +133,10 @@ func (c *FS) Collect() error {
 	c.lastStart = time.Now()
 	c.Unlock()
 
+	moduleTags := tags.Tags{
+		tags.Tag{Category: "module", Value: c.id},
+	}
+
 	metrics := cgm.Metrics{}
 	partitions, err := disk.Partitions(c.allFSDevices)
 	if err != nil {
@@ -186,14 +166,22 @@ func (c *FS) Collect() error {
 				continue
 			}
 
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", partition.Mountpoint, metricNameSeparator, "total"), "L", usage.Total)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", partition.Mountpoint, metricNameSeparator, "free"), "L", usage.Free)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", partition.Mountpoint, metricNameSeparator, "used"), "L", usage.Used)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", partition.Mountpoint, metricNameSeparator, "used_pct"), "n", usage.UsedPercent)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", partition.Mountpoint, metricNameSeparator, "inodes_total"), "L", usage.InodesTotal)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", partition.Mountpoint, metricNameSeparator, "inodes_used"), "L", usage.InodesUsed)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", partition.Mountpoint, metricNameSeparator, "inodes_free"), "L", usage.InodesFree)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", partition.Mountpoint, metricNameSeparator, "inodes_used_pct"), "n", usage.InodesUsedPercent)
+			var tagList tags.Tags
+			tagList = append(tagList, moduleTags...)
+			tagList = append(tagList, tags.Tags{
+				tags.Tag{Category: "device", Value: partition.Device},
+				tags.Tag{Category: "type", Value: partition.Fstype},
+				tags.Tag{Category: "mountpoint", Value: partition.Mountpoint},
+			}...)
+
+			_ = c.addMetric(&metrics, "total", "L", usage.Total, tagList)
+			_ = c.addMetric(&metrics, "free", "L", usage.Free, tagList)
+			_ = c.addMetric(&metrics, "used", "L", usage.Used, tagList)
+			_ = c.addMetric(&metrics, "used_pct", "n", usage.UsedPercent, tagList)
+			_ = c.addMetric(&metrics, "inodes_total", "L", usage.InodesTotal, tagList)
+			_ = c.addMetric(&metrics, "inodes_used", "L", usage.InodesUsed, tagList)
+			_ = c.addMetric(&metrics, "inodes_free", "L", usage.InodesFree, tagList)
+			_ = c.addMetric(&metrics, "inodes_used_pct", "n", usage.InodesUsedPercent, tagList)
 		}
 	}
 

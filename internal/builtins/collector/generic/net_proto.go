@@ -6,8 +6,6 @@
 package generic
 
 import (
-	"fmt"
-	"regexp"
 	"strings"
 	"time"
 
@@ -16,7 +14,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 	"github.com/shirou/gopsutil/net"
 )
 
@@ -29,24 +27,19 @@ type Proto struct {
 // protoOptions defines what elements can be overridden in a config file
 type protoOptions struct {
 	// common
-	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
-	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
-	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
+	ID     string `json:"id" toml:"id" yaml:"id"`
+	RunTTL string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 
 	// collector specific
 	Protocols []string `json:"protocols" toml:"protocols" yaml:"protocols"` // default: empty (equates to all: ip,icmp,icmpmsg,tcp,udp,udplite)
 }
 
 // NewNetProtoCollector creates new psutils collector
-func NewNetProtoCollector(cfgBaseName string) (collector.Collector, error) {
+func NewNetProtoCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector.Collector, error) {
 	c := Proto{}
-	c.id = PROTO_NAME
-	c.pkgID = PKG_NAME + "." + c.id
-	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
-	c.metricStatus = map[string]bool{}
-	c.metricDefaultActive = true
+	c.id = NameProto
+	c.pkgID = PackageName + "." + c.id
+	c.logger = parentLogger.With().Str("id", c.id).Logger()
 	c.baseTags = tags.FromList(tags.GetBaseTags())
 
 	var opts protoOptions
@@ -67,25 +60,6 @@ func NewNetProtoCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if opts.ID != "" {
 		c.id = opts.ID
-	}
-
-	if len(opts.MetricsEnabled) > 0 {
-		for _, name := range opts.MetricsEnabled {
-			c.metricStatus[name] = true
-		}
-	}
-	if len(opts.MetricsDisabled) > 0 {
-		for _, name := range opts.MetricsDisabled {
-			c.metricStatus[name] = false
-		}
-	}
-
-	if opts.MetricsDefaultStatus != "" {
-		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(opts.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(opts.MetricsDefaultStatus) == metricStatusEnabled
-		} else {
-			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, opts.MetricsDefaultStatus)
-		}
 	}
 
 	if opts.RunTTL != "" {
@@ -119,6 +93,10 @@ func (c *Proto) Collect() error {
 	c.lastStart = time.Now()
 	c.Unlock()
 
+	moduleTags := tags.Tags{
+		tags.Tag{Category: "module", Value: c.id},
+	}
+
 	metrics := cgm.Metrics{}
 	counters, err := net.ProtoCounters(c.protocols)
 	if err != nil {
@@ -128,8 +106,11 @@ func (c *Proto) Collect() error {
 			return errors.New("no network protocol metrics available")
 		}
 		for _, counter := range counters {
+			var tagList tags.Tags
+			tagList = append(tagList, moduleTags...)
+			tagList = append(tagList, tags.Tag{Category: "protocol", Value: counter.Protocol})
 			for name, val := range counter.Stats {
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", counter.Protocol, metricNameSeparator, name), "L", val)
+				_ = c.addMetric(&metrics, name, "L", val, tagList)
 			}
 		}
 	}

@@ -6,7 +6,6 @@
 package generic
 
 import (
-	"regexp"
 	"strings"
 	"time"
 
@@ -15,6 +14,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/shirou/gopsutil/load"
 )
@@ -27,21 +27,16 @@ type Load struct {
 // loadOptions defines what elements can be overridden in a config file
 type loadOptions struct {
 	// common
-	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
-	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
-	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
+	ID     string `json:"id" toml:"id" yaml:"id"`
+	RunTTL string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
 // NewLoadCollector creates new psutils collector
-func NewLoadCollector(cfgBaseName string) (collector.Collector, error) {
+func NewLoadCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector.Collector, error) {
 	c := Load{}
-	c.id = LOAD_NAME
-    c.pkgID = PKG_NAME + "." + c.id
-	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
-	c.metricStatus = map[string]bool{}
-	c.metricDefaultActive = true
+	c.id = NameLoad
+	c.pkgID = PackageName + "." + c.id
+	c.logger = log.With().Str("pkg", PackageName).Str("id", c.id).Logger()
 	c.baseTags = tags.FromList(tags.GetBaseTags())
 
 	var opts loadOptions
@@ -58,25 +53,6 @@ func NewLoadCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if opts.ID != "" {
 		c.id = opts.ID
-	}
-
-	if len(opts.MetricsEnabled) > 0 {
-		for _, name := range opts.MetricsEnabled {
-			c.metricStatus[name] = true
-		}
-	}
-	if len(opts.MetricsDisabled) > 0 {
-		for _, name := range opts.MetricsDisabled {
-			c.metricStatus[name] = false
-		}
-	}
-
-	if opts.MetricsDefaultStatus != "" {
-		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(opts.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(opts.MetricsDefaultStatus) == metricStatusEnabled
-		} else {
-			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, opts.MetricsDefaultStatus)
-		}
 	}
 
 	if opts.RunTTL != "" {
@@ -110,23 +86,27 @@ func (c *Load) Collect() error {
 	c.lastStart = time.Now()
 	c.Unlock()
 
+	moduleTags := tags.Tags{
+		tags.Tag{Category: "module", Value: c.id},
+	}
+
 	metrics := cgm.Metrics{}
 	loadavg, err := load.Avg()
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting load metrics")
 	} else {
-		c.addMetric(&metrics, c.id, "1min", "n", loadavg.Load1)
-		c.addMetric(&metrics, c.id, "5min", "n", loadavg.Load5)
-		c.addMetric(&metrics, c.id, "15min", "n", loadavg.Load15)
+		_ = c.addMetric(&metrics, "1min", "n", loadavg.Load1, moduleTags)
+		_ = c.addMetric(&metrics, "5min", "n", loadavg.Load5, moduleTags)
+		_ = c.addMetric(&metrics, "15min", "n", loadavg.Load15, moduleTags)
 	}
 
 	misc, err := load.Misc()
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting misc load metrics")
 	} else {
-		c.addMetric(&metrics, c.id, "procs_running", "i", misc.ProcsRunning)
-		c.addMetric(&metrics, c.id, "procs_blocked", "i", misc.ProcsBlocked)
-		c.addMetric(&metrics, c.id, "ctxt", "i", misc.Ctxt)
+		_ = c.addMetric(&metrics, "procs_running", "i", misc.ProcsRunning, moduleTags)
+		_ = c.addMetric(&metrics, "procs_blocked", "i", misc.ProcsBlocked, moduleTags)
+		_ = c.addMetric(&metrics, "ctxt", "i", misc.Ctxt, moduleTags)
 	}
 
 	c.setStatus(metrics, nil)

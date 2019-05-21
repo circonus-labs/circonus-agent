@@ -19,18 +19,18 @@ import (
 )
 
 const (
-	GENERIC_PREFIX      = "generic/"
-	PKG_NAME            = "builtins.generic"
-	CPU_NAME            = "cpu"
-	DISK_NAME           = "disk"
-	FS_NAME             = "fs"
-	LOAD_NAME           = "load"
-	VM_NAME             = "vm"
-	IF_NAME             = "if"
-	PROTO_NAME          = "proto"
-	metricNameSeparator = "`"        // character used to separate parts of metric names
-	metricStatusEnabled = "enabled"  // setting string indicating metrics should be made 'active'
-	regexPat            = `^(?:%s)$` // fmt pattern used compile include/exclude regular expressions
+	NamePrefix  = "generic/"
+	PackageName = "builtins.generic"
+	NameCPU     = "cpu"
+	NameDisk    = "disk"
+	NameFS      = "fs"
+	NameLoad    = "load"
+	NameVM      = "vm"
+	NameIF      = "if"
+	NameProto   = "proto"
+	// metricNameSeparator = "`" // character used to separate parts of metric names
+	// metricStatusEnabled = "enabled"  // setting string indicating metrics should be made 'active'
+	regexPat = `^(?:%s)$` // fmt pattern used compile include/exclude regular expressions
 )
 
 var (
@@ -42,7 +42,7 @@ var (
 func New() ([]collector.Collector, error) {
 	none := []collector.Collector{}
 
-	l := log.With().Str("pkg", "builtins.generic").Logger()
+	l := log.With().Str("pkg", PackageName).Logger()
 
 	enbledCollectors := viper.GetStringSlice(config.KeyCollectors)
 	if len(enbledCollectors) == 0 {
@@ -53,62 +53,62 @@ func New() ([]collector.Collector, error) {
 	collectors := make([]collector.Collector, 0, len(enbledCollectors))
 	initErrMsg := "initializing builtin collector"
 	for _, name := range enbledCollectors {
-		if !strings.HasPrefix(name, GENERIC_PREFIX) {
+		if !strings.HasPrefix(name, NamePrefix) {
 			continue
 		}
-		name = strings.Replace(name, GENERIC_PREFIX, "", -1)
+		name = strings.Replace(name, NamePrefix, "", -1)
 		cfgBase := "generic_" + name + "_collector"
 		switch name {
-		case CPU_NAME:
-			c, err := NewCPUCollector(path.Join(defaults.EtcPath, cfgBase))
+		case NameCPU:
+			c, err := NewCPUCollector(path.Join(defaults.EtcPath, cfgBase), l)
 			if err != nil {
 				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
 				continue
 			}
 			collectors = append(collectors, c)
 
-		case DISK_NAME:
-			c, err := NewDiskCollector(path.Join(defaults.EtcPath, cfgBase))
+		case NameDisk:
+			c, err := NewDiskCollector(path.Join(defaults.EtcPath, cfgBase), l)
 			if err != nil {
 				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
 				continue
 			}
 			collectors = append(collectors, c)
 
-		case FS_NAME:
-			c, err := NewFSCollector(path.Join(defaults.EtcPath, cfgBase))
+		case NameFS:
+			c, err := NewFSCollector(path.Join(defaults.EtcPath, cfgBase), l)
 			if err != nil {
 				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
 				continue
 			}
 			collectors = append(collectors, c)
 
-		case LOAD_NAME:
-			c, err := NewLoadCollector(path.Join(defaults.EtcPath, cfgBase))
+		case NameLoad:
+			c, err := NewLoadCollector(path.Join(defaults.EtcPath, cfgBase), l)
 			if err != nil {
 				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
 				continue
 			}
 			collectors = append(collectors, c)
 
-		case VM_NAME:
-			c, err := NewVMCollector(path.Join(defaults.EtcPath, cfgBase))
+		case NameIF:
+			c, err := NewNetIFCollector(path.Join(defaults.EtcPath, cfgBase), l)
 			if err != nil {
 				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
 				continue
 			}
 			collectors = append(collectors, c)
 
-		case IF_NAME:
-			c, err := NewNetIFCollector(path.Join(defaults.EtcPath, cfgBase))
+		case NameProto:
+			c, err := NewNetProtoCollector(path.Join(defaults.EtcPath, cfgBase), l)
 			if err != nil {
 				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
 				continue
 			}
 			collectors = append(collectors, c)
 
-		case PROTO_NAME:
-			c, err := NewNetProtoCollector(path.Join(defaults.EtcPath, cfgBase))
+		case NameVM:
+			c, err := NewVMCollector(path.Join(defaults.EtcPath, cfgBase), l)
 			if err != nil {
 				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
 				continue
