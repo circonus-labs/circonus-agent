@@ -14,6 +14,7 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
@@ -134,7 +135,7 @@ func (c *FS) Collect() error {
 	c.Unlock()
 
 	moduleTags := tags.Tags{
-		tags.Tag{Category: "module", Value: c.id},
+		tags.Tag{Category: release.NAME + "-module", Value: c.id},
 	}
 
 	metrics := cgm.Metrics{}
@@ -144,9 +145,9 @@ func (c *FS) Collect() error {
 	} else {
 		for _, partition := range partitions {
 			l := c.logger.With().
-				Str("fs_device", partition.Device).
-				Str("fs_type", partition.Fstype).
-				Str("fs_mount", partition.Mountpoint).Logger()
+				Str("fs-device", partition.Device).
+				Str("fs-type", partition.Fstype).
+				Str("fs-mount", partition.Mountpoint).Logger()
 
 			if c.excludeFS.MatchString(partition.Mountpoint) || !c.includeFS.MatchString(partition.Mountpoint) {
 				l.Debug().Msg("excluded FS, ignoring")
@@ -166,22 +167,48 @@ func (c *FS) Collect() error {
 				continue
 			}
 
-			var tagList tags.Tags
-			tagList = append(tagList, moduleTags...)
-			tagList = append(tagList, tags.Tags{
-				tags.Tag{Category: "device", Value: partition.Device},
-				tags.Tag{Category: "type", Value: partition.Fstype},
-				tags.Tag{Category: "mountpoint", Value: partition.Mountpoint},
+			var fsTags tags.Tags
+			fsTags = append(fsTags, moduleTags...)
+			fsTags = append(fsTags, tags.Tags{
+				tags.Tag{Category: "fs-device", Value: partition.Device},
+				tags.Tag{Category: "fs-type", Value: partition.Fstype},
+				tags.Tag{Category: "fs-mountpoint", Value: partition.Mountpoint},
 			}...)
 
-			_ = c.addMetric(&metrics, "total", "L", usage.Total, tagList)
-			_ = c.addMetric(&metrics, "free", "L", usage.Free, tagList)
-			_ = c.addMetric(&metrics, "used", "L", usage.Used, tagList)
-			_ = c.addMetric(&metrics, "used_pct", "n", usage.UsedPercent, tagList)
-			_ = c.addMetric(&metrics, "inodes_total", "L", usage.InodesTotal, tagList)
-			_ = c.addMetric(&metrics, "inodes_used", "L", usage.InodesUsed, tagList)
-			_ = c.addMetric(&metrics, "inodes_free", "L", usage.InodesFree, tagList)
-			_ = c.addMetric(&metrics, "inodes_used_pct", "n", usage.InodesUsedPercent, tagList)
+			{
+				// units:bytes
+				var tagList tags.Tags
+				tagList = append(tagList, fsTags...)
+				tagList = append(tagList, tags.Tags{
+					tags.Tag{Category: "units", Value: "bytes"},
+				}...)
+				_ = c.addMetric(&metrics, "total", "L", usage.Total, tagList)
+				_ = c.addMetric(&metrics, "free", "L", usage.Free, tagList)
+				_ = c.addMetric(&metrics, "used", "L", usage.Used, tagList)
+			}
+
+			{
+				// units:percent
+				var tagList tags.Tags
+				tagList = append(tagList, fsTags...)
+				tagList = append(tagList, tags.Tags{
+					tags.Tag{Category: "units", Value: "percent"},
+				}...)
+				_ = c.addMetric(&metrics, "used", "n", usage.UsedPercent, tagList)
+				_ = c.addMetric(&metrics, "inodes_used", "n", usage.InodesUsedPercent, tagList)
+			}
+
+			{
+				// units:inodes
+				var tagList tags.Tags
+				tagList = append(tagList, fsTags...)
+				tagList = append(tagList, tags.Tags{
+					tags.Tag{Category: "units", Value: "inodes"},
+				}...)
+				_ = c.addMetric(&metrics, "inodes_total", "L", usage.InodesTotal, tagList)
+				_ = c.addMetric(&metrics, "inodes_used", "L", usage.InodesUsed, tagList)
+				_ = c.addMetric(&metrics, "inodes_free", "L", usage.InodesFree, tagList)
+			}
 		}
 	}
 
