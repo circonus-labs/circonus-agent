@@ -11,6 +11,7 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
@@ -95,7 +96,7 @@ func (c *Disk) Collect() error {
 	c.Unlock()
 
 	moduleTags := tags.Tags{
-		tags.Tag{Category: "module", Value: c.id},
+		tags.Tag{Category: release.NAME + "-module", Value: c.id},
 	}
 
 	metrics := cgm.Metrics{}
@@ -104,21 +105,64 @@ func (c *Disk) Collect() error {
 		c.logger.Warn().Err(err).Msg("collecting disk io counter metrics")
 	} else {
 		for device, counters := range ios {
-			var tagList tags.Tags
-			tagList = append(tagList, moduleTags...)
-			tagList = append(tagList, tags.Tag{Category: "device", Value: device})
+			var diskTags tags.Tags
+			diskTags = append(diskTags, moduleTags...)
+			diskTags = append(diskTags, tags.Tag{Category: "device", Value: device})
 
-			_ = c.addMetric(&metrics, "read_count", "L", counters.ReadCount, tagList)
-			_ = c.addMetric(&metrics, "merged_read_count", "L", counters.MergedReadCount, tagList)
-			_ = c.addMetric(&metrics, "write_count", "L", counters.WriteCount, tagList)
-			_ = c.addMetric(&metrics, "merged_write_count", "L", counters.MergedWriteCount, tagList)
-			_ = c.addMetric(&metrics, "read_bytes", "L", counters.ReadBytes, tagList)
-			_ = c.addMetric(&metrics, "write_bytes", "L", counters.WriteBytes, tagList)
-			_ = c.addMetric(&metrics, "read_time", "L", counters.ReadTime, tagList)
-			_ = c.addMetric(&metrics, "write_time", "L", counters.WriteTime, tagList)
-			_ = c.addMetric(&metrics, "iops_in_progress", "L", counters.IopsInProgress, tagList)
-			_ = c.addMetric(&metrics, "io_time", "L", counters.IoTime, tagList)
-			_ = c.addMetric(&metrics, "weighted_io", "L", counters.WeightedIO, tagList)
+			{
+				// units:reads
+				var tagList tags.Tags
+				tagList = append(tagList, diskTags...)
+				tagList = append(tagList, tags.Tag{Category: "units", Value: "reads"})
+				_ = c.addMetric(&metrics, "reads", "L", counters.ReadCount, tagList)
+			}
+			{
+				// units:writes
+				var tagList tags.Tags
+				tagList = append(tagList, diskTags...)
+				tagList = append(tagList, tags.Tag{Category: "units", Value: "writes"})
+				_ = c.addMetric(&metrics, "writes", "L", counters.WriteCount, tagList)
+			}
+			{
+				// units:merged_reads
+				var tagList tags.Tags
+				tagList = append(tagList, diskTags...)
+				tagList = append(tagList, tags.Tag{Category: "units", Value: "merged_reads"})
+				_ = c.addMetric(&metrics, "merged_reads", "L", counters.MergedReadCount, tagList)
+			}
+			{
+				// units:merged_writes
+				var tagList tags.Tags
+				tagList = append(tagList, diskTags...)
+				tagList = append(tagList, tags.Tag{Category: "units", Value: "merged_writes"})
+				_ = c.addMetric(&metrics, "merged_writes", "L", counters.MergedWriteCount, tagList)
+			}
+			{
+				// units:bytes
+				var tagList tags.Tags
+				tagList = append(tagList, diskTags...)
+				tagList = append(tagList, tags.Tag{Category: "units", Value: "bytes"})
+				_ = c.addMetric(&metrics, "reads", "L", counters.ReadBytes, tagList)
+				_ = c.addMetric(&metrics, "writes", "L", counters.WriteBytes, tagList)
+			}
+			{
+				// units:milliseconds
+				var tagList tags.Tags
+				tagList = append(tagList, diskTags...)
+				tagList = append(tagList, tags.Tag{Category: "units", Value: "milliseconds"})
+				_ = c.addMetric(&metrics, "read_time", "L", counters.ReadTime, tagList)
+				_ = c.addMetric(&metrics, "write_time", "L", counters.WriteTime, tagList)
+				_ = c.addMetric(&metrics, "io_time", "L", counters.IoTime, tagList)
+				_ = c.addMetric(&metrics, "weighted_io_time", "L", counters.WeightedIO, tagList)
+			}
+			{
+				// units:iops_in_progress
+				var tagList tags.Tags
+				tagList = append(tagList, diskTags...)
+				tagList = append(tagList, tags.Tag{Category: "units", Value: "iops_in_progress"})
+				_ = c.addMetric(&metrics, "iops_in_progress", "L", counters.IopsInProgress, tagList)
+			}
+
 		}
 	}
 

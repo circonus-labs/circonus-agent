@@ -13,6 +13,7 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
@@ -113,7 +114,7 @@ func (c *IF) Collect() error {
 	c.Unlock()
 
 	moduleTags := tags.Tags{
-		tags.Tag{Category: "module", Value: c.id},
+		tags.Tag{Category: release.NAME + "-module", Value: c.id},
 	}
 
 	metrics := cgm.Metrics{}
@@ -126,20 +127,50 @@ func (c *IF) Collect() error {
 				c.logger.Debug().Str("iface", iface.Name).Msg("excluded iface name, skipping")
 				continue
 			}
-			var tagList tags.Tags
-			tagList = append(tagList, moduleTags...)
-			tagList = append(tagList, tags.Tag{Category: "interface", Value: iface.Name})
+			var ifTags tags.Tags
+			ifTags = append(ifTags, moduleTags...)
+			ifTags = append(ifTags, tags.Tag{Category: "interface", Value: iface.Name})
 
-			_ = c.addMetric(&metrics, "sent_bytes", "L", iface.BytesSent, tagList)
-			_ = c.addMetric(&metrics, "recv_bytes", "L", iface.BytesRecv, tagList)
-			_ = c.addMetric(&metrics, "sent_pkts", "L", iface.PacketsSent, tagList)
-			_ = c.addMetric(&metrics, "recv_pkts", "L", iface.PacketsRecv, tagList)
-			_ = c.addMetric(&metrics, "in_errors", "L", iface.Errin, tagList)
-			_ = c.addMetric(&metrics, "out_errors", "L", iface.Errout, tagList)
-			_ = c.addMetric(&metrics, "in_drops", "L", iface.Dropin, tagList)
-			_ = c.addMetric(&metrics, "out_drops", "L", iface.Dropout, tagList)
-			_ = c.addMetric(&metrics, "in_fifo", "L", iface.Fifoin, tagList)
-			_ = c.addMetric(&metrics, "out_fifo", "L", iface.Fifoout, tagList)
+			{
+				// units:bytes
+				var tagList tags.Tags
+				tagList = append(tagList, ifTags...)
+				tagList = append(tagList, tags.Tag{Category: "units", Value: "bytes"})
+				_ = c.addMetric(&metrics, "sents", "L", iface.BytesSent, tagList)
+				_ = c.addMetric(&metrics, "recvs", "L", iface.BytesRecv, tagList)
+			}
+			{
+				// units:packets
+				var tagList tags.Tags
+				tagList = append(tagList, ifTags...)
+				tagList = append(tagList, tags.Tag{Category: "units", Value: "packets"})
+				_ = c.addMetric(&metrics, "sent", "L", iface.PacketsSent, tagList)
+				_ = c.addMetric(&metrics, "recv", "L", iface.PacketsRecv, tagList)
+			}
+			{
+				// units:errors
+				var tagList tags.Tags
+				tagList = append(tagList, ifTags...)
+				tagList = append(tagList, tags.Tag{Category: "units", Value: "errors"})
+				_ = c.addMetric(&metrics, "in", "L", iface.Errin, tagList)
+				_ = c.addMetric(&metrics, "out", "L", iface.Errout, tagList)
+			}
+			{
+				// units:drops
+				var tagList tags.Tags
+				tagList = append(tagList, ifTags...)
+				tagList = append(tagList, tags.Tag{Category: "units", Value: "drops"})
+				_ = c.addMetric(&metrics, "in", "L", iface.Dropin, tagList)
+				_ = c.addMetric(&metrics, "out", "L", iface.Dropout, tagList)
+			}
+			{
+				// units:fifo
+				var tagList tags.Tags
+				tagList = append(tagList, ifTags...)
+				tagList = append(tagList, tags.Tag{Category: "units", Value: "fifo"})
+				_ = c.addMetric(&metrics, "in", "L", iface.Fifoin, tagList)
+				_ = c.addMetric(&metrics, "out", "L", iface.Fifoout, tagList)
+			}
 		}
 	}
 

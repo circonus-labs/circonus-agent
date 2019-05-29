@@ -11,6 +11,7 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
@@ -87,7 +88,7 @@ func (c *Load) Collect() error {
 	c.Unlock()
 
 	moduleTags := tags.Tags{
-		tags.Tag{Category: "module", Value: c.id},
+		tags.Tag{Category: release.NAME + "-module", Value: c.id},
 	}
 
 	metrics := cgm.Metrics{}
@@ -95,18 +96,46 @@ func (c *Load) Collect() error {
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting load metrics")
 	} else {
-		_ = c.addMetric(&metrics, "1min", "n", loadavg.Load1, moduleTags)
-		_ = c.addMetric(&metrics, "5min", "n", loadavg.Load5, moduleTags)
-		_ = c.addMetric(&metrics, "15min", "n", loadavg.Load15, moduleTags)
+		var tagList tags.Tags
+		tagList = append(tagList, moduleTags...)
+		tagList = append(tagList, tags.Tag{Category: "units", Value: "average"})
+		_ = c.addMetric(&metrics, "1min", "n", loadavg.Load1, tagList)
+		_ = c.addMetric(&metrics, "5min", "n", loadavg.Load5, tagList)
+		_ = c.addMetric(&metrics, "15min", "n", loadavg.Load15, tagList)
 	}
 
 	misc, err := load.Misc()
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting misc load metrics")
 	} else {
-		_ = c.addMetric(&metrics, "procs_running", "i", misc.ProcsRunning, moduleTags)
-		_ = c.addMetric(&metrics, "procs_blocked", "i", misc.ProcsBlocked, moduleTags)
-		_ = c.addMetric(&metrics, "ctxt", "i", misc.Ctxt, moduleTags)
+		{
+			// units:procs_total
+			var tagList tags.Tags
+			tagList = append(tagList, moduleTags...)
+			tagList = append(tagList, tags.Tag{Category: "units", Value: "procs_total"})
+			_ = c.addMetric(&metrics, "procs_total", "i", misc.ProcsRunning, tagList)
+		}
+		{
+			// units:procs_running
+			var tagList tags.Tags
+			tagList = append(tagList, moduleTags...)
+			tagList = append(tagList, tags.Tag{Category: "units", Value: "procs_running"})
+			_ = c.addMetric(&metrics, "procs_running", "i", misc.ProcsRunning, tagList)
+		}
+		{
+			// units:procs_blocked
+			var tagList tags.Tags
+			tagList = append(tagList, moduleTags...)
+			tagList = append(tagList, tags.Tag{Category: "units", Value: "procs_blocked"})
+			_ = c.addMetric(&metrics, "procs_blocked", "i", misc.ProcsBlocked, tagList)
+		}
+		{
+			// units:switches
+			var tagList tags.Tags
+			tagList = append(tagList, moduleTags...)
+			tagList = append(tagList, tags.Tag{Category: "units", Value: "switches"})
+			_ = c.addMetric(&metrics, "ctxt", "i", misc.Ctxt, tagList)
+		}
 	}
 
 	c.setStatus(metrics, nil)
