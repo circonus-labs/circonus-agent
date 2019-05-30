@@ -98,7 +98,7 @@ func (c *Load) Collect() error {
 	} else {
 		var tagList tags.Tags
 		tagList = append(tagList, moduleTags...)
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "average"})
+		tagList = append(tagList, tags.Tag{Category: "units", Value: "load"})
 		_ = c.addMetric(&metrics, "1min", "n", loadavg.Load1, tagList)
 		_ = c.addMetric(&metrics, "5min", "n", loadavg.Load5, tagList)
 		_ = c.addMetric(&metrics, "15min", "n", loadavg.Load15, tagList)
@@ -109,25 +109,14 @@ func (c *Load) Collect() error {
 		c.logger.Warn().Err(err).Msg("collecting misc load metrics")
 	} else {
 		{
-			// units:procs_total
+			// units:processes
 			var tagList tags.Tags
 			tagList = append(tagList, moduleTags...)
-			tagList = append(tagList, tags.Tag{Category: "units", Value: "procs_total"})
-			_ = c.addMetric(&metrics, "procs_total", "i", misc.ProcsRunning, tagList)
-		}
-		{
-			// units:procs_running
-			var tagList tags.Tags
-			tagList = append(tagList, moduleTags...)
-			tagList = append(tagList, tags.Tag{Category: "units", Value: "procs_running"})
-			_ = c.addMetric(&metrics, "procs_running", "i", misc.ProcsRunning, tagList)
-		}
-		{
-			// units:procs_blocked
-			var tagList tags.Tags
-			tagList = append(tagList, moduleTags...)
-			tagList = append(tagList, tags.Tag{Category: "units", Value: "procs_blocked"})
-			_ = c.addMetric(&metrics, "procs_blocked", "i", misc.ProcsBlocked, tagList)
+			tagList = append(tagList, tags.Tag{Category: "units", Value: "processes"})
+			// TODO: there is misc.ProcsTotal in a future release (probably 2.19.05 based on commits/PRs)
+			_ = c.addMetric(&metrics, "total", "i", misc.ProcsRunning+misc.ProcsBlocked, tagList)
+			_ = c.addMetric(&metrics, "running", "i", misc.ProcsRunning, tagList)
+			_ = c.addMetric(&metrics, "blocked", "i", misc.ProcsBlocked, tagList)
 		}
 		{
 			// units:switches
@@ -136,6 +125,28 @@ func (c *Load) Collect() error {
 			tagList = append(tagList, tags.Tag{Category: "units", Value: "switches"})
 			_ = c.addMetric(&metrics, "ctxt", "i", misc.Ctxt, tagList)
 		}
+
+		// {
+		// 	// units:procs_total
+		// 	var tagList tags.Tags
+		// 	tagList = append(tagList, moduleTags...)
+		// 	tagList = append(tagList, tags.Tag{Category: "units", Value: "procs_total"})
+		// 	_ = c.addMetric(&metrics, "procs_total", "i", misc.ProcsRunning+misc.ProcsBlocked, tagList)
+		// }
+		// {
+		// 	// units:procs_running
+		// 	var tagList tags.Tags
+		// 	tagList = append(tagList, moduleTags...)
+		// 	tagList = append(tagList, tags.Tag{Category: "units", Value: "procs_running"})
+		// 	_ = c.addMetric(&metrics, "procs_running", "i", misc.ProcsRunning, tagList)
+		// }
+		// {
+		// 	// units:procs_blocked
+		// 	var tagList tags.Tags
+		// 	tagList = append(tagList, moduleTags...)
+		// 	tagList = append(tagList, tags.Tag{Category: "units", Value: "procs_blocked"})
+		// 	_ = c.addMetric(&metrics, "procs_blocked", "i", misc.ProcsBlocked, tagList)
+		// }
 	}
 
 	c.setStatus(metrics, nil)

@@ -173,9 +173,12 @@ const (
 
 func (c *Proto) emitIPMetric(metrics *cgm.Metrics, proto, name string, val int64, protoTags tags.Tags) {
 	// https://sourceforge.net/p/net-tools/code/ci/master/tree/statistics.c#l56
+	// https://tools.ietf.org/html/rfc1213
 	var tagList tags.Tags
 	tagList = append(tagList, protoTags...)
 	switch name {
+	case "ReasmTimeout":
+		fallthrough
 	case "DefaultTTL":
 		tagList = append(tagList, tags.Tag{Category: "units", Value: "seconds"})
 	case "ForwDatagrams":
@@ -189,11 +192,7 @@ func (c *Proto) emitIPMetric(metrics *cgm.Metrics, proto, name string, val int64
 	case "FragFails":
 		fallthrough
 	case "FragOKs":
-		fallthrough
-	case "RasmTimeout":
 		tagList = append(tagList, tags.Tag{Category: "units", Value: "fragments"})
-	case "ReasmTimeout":
-		fallthrough
 	case "InAddrErrors":
 		tagList = append(tagList, tags.Tag{Category: "units", Value: "errors"})
 	case "InDelivers":
@@ -226,6 +225,7 @@ func (c *Proto) emitIPMetric(metrics *cgm.Metrics, proto, name string, val int64
 
 func (c *Proto) emitICMPMetric(metrics *cgm.Metrics, proto, name string, val int64, protoTags tags.Tags) {
 	// https://sourceforge.net/p/net-tools/code/ci/master/tree/statistics.c#l105
+	// https://tools.ietf.org/html/rfc1213
 	var tagList tags.Tags
 	tagList = append(tagList, protoTags...)
 	switch name {
@@ -300,6 +300,7 @@ func (c *Proto) emitICMPMsgMetric(metrics *cgm.Metrics, proto, name string, val 
 
 func (c *Proto) emitTCPMetric(metrics *cgm.Metrics, proto, name string, val int64, protoTags tags.Tags) {
 	// https://sourceforge.net/p/net-tools/code/ci/master/tree/statistics.c#l170
+	// https://tools.ietf.org/html/rfc1213
 	var tagList tags.Tags
 	tagList = append(tagList, protoTags...)
 	switch name {
@@ -345,13 +346,14 @@ func (c *Proto) emitTCPMetric(metrics *cgm.Metrics, proto, name string, val int6
 
 func (c *Proto) emitUDPMetric(metrics *cgm.Metrics, proto, name string, val int64, protoTags tags.Tags) {
 	// https://sourceforge.net/p/net-tools/code/ci/master/tree/statistics.c#l188
+	// https://tools.ietf.org/html/rfc1213
 	var tagList tags.Tags
 	tagList = append(tagList, protoTags...)
 	switch name {
 	case metricOutDatagrams:
 		fallthrough
 	case metricInDatagrams:
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "packets"})
+		tagList = append(tagList, tags.Tag{Category: "units", Value: "datagrams"})
 	case metricInCsumErrors:
 		fallthrough
 	case metricSndbufErrors:
@@ -369,13 +371,14 @@ func (c *Proto) emitUDPMetric(metrics *cgm.Metrics, proto, name string, val int6
 }
 
 func (c *Proto) emitUDPLiteMetric(metrics *cgm.Metrics, proto, name string, val int64, protoTags tags.Tags) {
+	// same names as UDP...
 	var tagList tags.Tags
 	tagList = append(tagList, protoTags...)
 	switch name {
 	case metricOutDatagrams:
 		fallthrough
 	case metricInDatagrams:
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "packets"})
+		tagList = append(tagList, tags.Tag{Category: "units", Value: "datagrams"})
 	case metricInCsumErrors:
 		fallthrough
 	case metricSndbufErrors:
