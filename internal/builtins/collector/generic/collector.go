@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
+	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
@@ -103,6 +104,10 @@ func (c *gencommon) addMetric(metrics *cgm.Metrics, mname, mtype string, mval in
 
 	var tagList tags.Tags
 	tagList = append(tagList, c.baseTags...)
+	tagList = append(tagList, tags.Tags{
+		tags.Tag{Category: "source", Value: release.NAME},
+		tags.Tag{Category: "collector", Value: c.id},
+	}...)
 	tagList = append(tagList, mtags...)
 
 	metricName := tags.MetricNameWithStreamTags(mname, tagList)
