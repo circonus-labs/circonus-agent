@@ -12,7 +12,6 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
@@ -95,10 +94,6 @@ func (c *Proto) Collect() error {
 	c.lastStart = time.Now()
 	c.Unlock()
 
-	moduleTags := tags.Tags{
-		tags.Tag{Category: release.NAME + "-module", Value: c.id},
-	}
-
 	//
 	// NOTE: gopsutil does not currently offer IPv6 metrics
 	//       it only pulls from /proc/net/snmp not /proc/net/snmp6
@@ -108,51 +103,55 @@ func (c *Proto) Collect() error {
 	counters, err := net.ProtoCounters(c.protocols)
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting network protocol metrics")
-	} else {
-		if len(counters) == 0 {
-			return errors.New("no network protocol metrics available")
-		}
-		if runtime.GOOS == "linux" {
-			for _, counter := range counters {
-				var protoTags tags.Tags
-				protoTags = append(protoTags, moduleTags...)
-				protoTags = append(protoTags, tags.Tag{Category: "protocol", Value: counter.Protocol})
-				for name, val := range counter.Stats {
-					switch counter.Protocol {
-					case "ip":
-						c.emitIPMetric(&metrics, counter.Protocol, name, val, protoTags)
-					case "icmp":
-						c.emitICMPMetric(&metrics, counter.Protocol, name, val, protoTags)
-					case "icmpmsg":
-						c.emitICMPMsgMetric(&metrics, counter.Protocol, name, val, protoTags)
-					case "tcp":
-						c.emitTCPMetric(&metrics, counter.Protocol, name, val, protoTags)
-					case "udp":
-						c.emitUDPMetric(&metrics, counter.Protocol, name, val, protoTags)
-					case "udplite":
-						c.emitUDPLiteMetric(&metrics, counter.Protocol, name, val, protoTags)
-					default:
-						c.logger.Warn().Str("protocol", counter.Protocol).Str("metric", name).Msg("unknown protocol, missing units info")
-						_ = c.addMetric(&metrics, name, "L", val, protoTags)
-					}
-				}
-			}
-		} else {
-			for _, counter := range counters {
-				var protoTags tags.Tags
-				protoTags = append(protoTags, moduleTags...)
-				protoTags = append(protoTags, tags.Tag{Category: "protocol", Value: counter.Protocol})
-				for name, val := range counter.Stats {
-					// NOTE: output msg for EACH proto/metric so a log can be supplied.
-					//       support can then be added from the log vs having to run the OS itself.
-					c.logger.Warn().
-						Str("os_type", runtime.GOOS).
-						Str("protocol", counter.Protocol).
-						Str("metric", name).
-						Msg("unknown os type supported, missing units info")
+		c.setStatus(metrics, nil)
+		return nil
+	}
+
+	if len(counters) == 0 {
+		return errors.New("no network protocol metrics available")
+	}
+
+	if runtime.GOOS == "linux" {
+		for _, counter := range counters {
+			protoTags := tags.Tags{tags.Tag{Category: "protocol", Value: counter.Protocol}}
+			for name, val := range counter.Stats {
+				switch counter.Protocol {
+				case "ip":
+					c.emitIPMetric(&metrics, counter.Protocol, name, val, protoTags)
+				case "icmp":
+					c.emitICMPMetric(&metrics, counter.Protocol, name, val, protoTags)
+				case "icmpmsg":
+					c.emitICMPMsgMetric(&metrics, counter.Protocol, name, val, protoTags)
+				case "tcp":
+					c.emitTCPMetric(&metrics, counter.Protocol, name, val, protoTags)
+				case "udp":
+					c.emitUDPMetric(&metrics, counter.Protocol, name, val, protoTags)
+				case "udplite":
+					c.emitUDPLiteMetric(&metrics, counter.Protocol, name, val, protoTags)
+				default:
+					// NOTE: output msg for each metric, so support can be added without having to
+					//       set up an environment that can produce the metric(s)
+					c.logger.Warn().Str("protocol", counter.Protocol).Str("metric", name).Msg("unknown protocol, missing units info")
 					_ = c.addMetric(&metrics, name, "L", val, protoTags)
 				}
 			}
+		}
+
+		c.setStatus(metrics, nil)
+		return nil
+	}
+
+	for _, counter := range counters {
+		protoTags := tags.Tags{tags.Tag{Category: "protocol", Value: counter.Protocol}}
+		for name, val := range counter.Stats {
+			// NOTE: output msg for EACH proto/metric so a log can be supplied.
+			//       support can then be added from the log vs having to run the OS itself.
+			c.logger.Warn().
+				Str("os_type", runtime.GOOS).
+				Str("protocol", counter.Protocol).
+				Str("metric", name).
+				Msg("unknown os type supported, missing units info")
+			_ = c.addMetric(&metrics, name, "L", val, protoTags)
 		}
 	}
 
@@ -174,115 +173,130 @@ const (
 func (c *Proto) emitIPMetric(metrics *cgm.Metrics, proto, name string, val int64, protoTags tags.Tags) {
 	// https://sourceforge.net/p/net-tools/code/ci/master/tree/statistics.c#l56
 	// https://tools.ietf.org/html/rfc1213
+
+	tagUnitsSeconds := tags.Tag{Category: "units", Value: "seconds"}
+	tagUnitsDatagrams := tags.Tag{Category: "units", Value: "datagrams"}
+	tagUnitsFragments := tags.Tag{Category: "units", Value: "fragments"}
+	tagUnitsPackets := tags.Tag{Category: "units", Value: "packets"}
+	tagUnitsRequests := tags.Tag{Category: "units", Value: "requests"}
+
 	var tagList tags.Tags
 	tagList = append(tagList, protoTags...)
+
 	switch name {
 	case "ReasmTimeout":
-		fallthrough
+		tagList = append(tagList, tagUnitsSeconds)
 	case "DefaultTTL":
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "seconds"})
+		tagList = append(tagList, tagUnitsSeconds)
 	case "ForwDatagrams":
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "datagrams"})
+		tagList = append(tagList, tagUnitsDatagrams)
 	case "Forwarding":
+		// it's a setting, not really a metric, no units.
 		// 1 - acting as gateway
 		// 2 - NOT acting as gateway
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "forwarding"})
 	case "FragCreates":
-		fallthrough
+		tagList = append(tagList, tagUnitsFragments)
 	case "FragFails":
-		fallthrough
+		tagList = append(tagList, tagUnitsFragments)
 	case "FragOKs":
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "fragments"})
+		tagList = append(tagList, tagUnitsFragments)
 	case "InAddrErrors":
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "errors"})
+		// no units
 	case "InDelivers":
-		fallthrough
+		tagList = append(tagList, tagUnitsPackets)
 	case "InDiscards":
-		fallthrough
+		tagList = append(tagList, tagUnitsPackets)
 	case "InHdrErrors":
-		fallthrough
+		tagList = append(tagList, tagUnitsPackets)
 	case "InReceives":
-		fallthrough
+		tagList = append(tagList, tagUnitsPackets)
 	case "InUnknownProtos":
-		fallthrough
+		tagList = append(tagList, tagUnitsPackets)
 	case "OutDiscards":
-		fallthrough
+		tagList = append(tagList, tagUnitsPackets)
 	case "OutNoRoutes":
-		fallthrough
+		tagList = append(tagList, tagUnitsPackets)
 	case "ReasmFails":
-		fallthrough
+		tagList = append(tagList, tagUnitsPackets)
 	case "ReasmOKs":
-		fallthrough
+		tagList = append(tagList, tagUnitsPackets)
 	case "ReasmReqds":
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "packets"})
+		tagList = append(tagList, tagUnitsPackets)
 	case "OutRequests":
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "requests"})
+		tagList = append(tagList, tagUnitsRequests)
 	default:
 		c.logger.Warn().Str("protocol", proto).Str("metric", name).Msg("unrecognized metric, no units")
 	}
+
 	_ = c.addMetric(metrics, name, "L", val, tagList)
 }
 
 func (c *Proto) emitICMPMetric(metrics *cgm.Metrics, proto, name string, val int64, protoTags tags.Tags) {
 	// https://sourceforge.net/p/net-tools/code/ci/master/tree/statistics.c#l105
 	// https://tools.ietf.org/html/rfc1213
+
+	tagUnitsResponses := tags.Tag{Category: "units", Value: "responses"}
+	tagUnitsRequests := tags.Tag{Category: "units", Value: "requests"}
+	tagUnitsMessages := tags.Tag{Category: "units", Value: "messages"}
+	tagUnitsRedirects := tags.Tag{Category: "units", Value: "redirects"}
+
 	var tagList tags.Tags
 	tagList = append(tagList, protoTags...)
 	switch name {
 	case "OutTimestampReps":
-		fallthrough
+		tagList = append(tagList, tagUnitsResponses)
 	case "OutEchoReps":
-		fallthrough
+		tagList = append(tagList, tagUnitsResponses)
 	case "OutAddrMaskReps":
-		fallthrough
+		tagList = append(tagList, tagUnitsResponses)
 	case "InTimestampReps":
-		fallthrough
+		tagList = append(tagList, tagUnitsResponses)
 	case "InEchoReps":
-		fallthrough
+		tagList = append(tagList, tagUnitsResponses)
 	case "InAddrMaskReps":
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "replies"})
+		tagList = append(tagList, tagUnitsResponses)
 	case "OutTimestamps":
-		fallthrough
+		tagList = append(tagList, tagUnitsRequests)
 	case "OutEchos":
-		fallthrough
+		tagList = append(tagList, tagUnitsRequests)
 	case "OutAddrMasks":
-		fallthrough
+		tagList = append(tagList, tagUnitsRequests)
 	case "InTimestamps":
-		fallthrough
+		tagList = append(tagList, tagUnitsRequests)
 	case "InEchos":
-		fallthrough
+		tagList = append(tagList, tagUnitsRequests)
 	case "InAddrMasks":
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "requests"})
+		tagList = append(tagList, tagUnitsRequests)
 	case "OutDestUnreachs":
-		fallthrough
+		// no units
 	case "InDestUnreachs":
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "unreachable"})
+		// no units
 	case "OutParmProbs":
-		fallthrough
+		// no units
 	case "InParmProbs":
-		fallthrough
+		// no units
 	case "OutErrors":
-		fallthrough
+		// no units
 	case metricInCsumErrors:
-		fallthrough
+		// no units
 	case metricInErrors:
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "errors"})
+		// no units
 	case "OutMsgs":
-		fallthrough
+		tagList = append(tagList, tagUnitsMessages)
 	case "InMsgs":
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "messages"})
+		tagList = append(tagList, tagUnitsMessages)
 	case "OutRedirects":
-		fallthrough
+		tagList = append(tagList, tagUnitsRedirects)
 	case "InRedirects":
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "redirects"})
+		tagList = append(tagList, tagUnitsRedirects)
 	case "OutSrcQuenchs":
-		fallthrough
+		// no units
 	case "InSrcQuenchs":
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "quenches"})
+		// no units
 	case "OutTimeExcds":
-		fallthrough
+		// no units
 	case "InTimeExcds":
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "timeout"})
+		// no units
 	default:
 		c.logger.Warn().Str("protocol", proto).Str("metric", name).Msg("unrecognized metric, no units")
 	}
@@ -292,52 +306,59 @@ func (c *Proto) emitICMPMetric(metrics *cgm.Metrics, proto, name string, val int
 func (c *Proto) emitICMPMsgMetric(metrics *cgm.Metrics, proto, name string, val int64, protoTags tags.Tags) {
 	// possible message types:
 	// https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml
-	var tagList tags.Tags
+
+	tagList := tags.Tags{tags.Tag{Category: "units", Value: "messages"}}
 	tagList = append(tagList, protoTags...)
-	tagList = append(tagList, tags.Tag{Category: "units", Value: "messages"})
+
 	_ = c.addMetric(metrics, name, "L", val, tagList)
 }
 
 func (c *Proto) emitTCPMetric(metrics *cgm.Metrics, proto, name string, val int64, protoTags tags.Tags) {
 	// https://sourceforge.net/p/net-tools/code/ci/master/tree/statistics.c#l170
 	// https://tools.ietf.org/html/rfc1213
+
+	tagUnitsConnections := tags.Tag{Category: "units", Value: "connections"}
+	tagUnitsSegments := tags.Tag{Category: "units", Value: "segments"}
+	tagUnitsResets := tags.Tag{Category: "units", Value: "resets"}
+	tagUnitsMilliseconds := tags.Tag{Category: "units", Value: "milliseconds"}
+
 	var tagList tags.Tags
 	tagList = append(tagList, protoTags...)
 	switch name {
-	case "MaxConn":
-		fallthrough
-	case "PassiveOpens":
-		fallthrough
-	case "CurrEstab":
-		fallthrough
-	case "ActiveOpens":
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "connections"})
-	case "OutSegs":
-		fallthrough
-	case "InSegs":
-		fallthrough
-	case "RetransSegs":
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "segments"})
 	case "AttemptFails":
-		fallthrough
+		tagList = append(tagList, tagUnitsConnections)
+	case "MaxConn":
+		tagList = append(tagList, tagUnitsConnections)
+	case "PassiveOpens":
+		tagList = append(tagList, tagUnitsConnections)
+	case "CurrEstab":
+		tagList = append(tagList, tagUnitsConnections)
+	case "ActiveOpens":
+		tagList = append(tagList, tagUnitsConnections)
+	case "OutSegs":
+		tagList = append(tagList, tagUnitsSegments)
+	case "InSegs":
+		tagList = append(tagList, tagUnitsSegments)
+	case "RetransSegs":
+		tagList = append(tagList, tagUnitsSegments)
 	case metricInCsumErrors:
-		fallthrough
+		// no units
 	case "InErrs":
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "errors"})
+		// no units
 	case "EstabResets":
-		fallthrough
+		tagList = append(tagList, tagUnitsResets)
 	case "OutRsts":
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "resets"})
+		tagList = append(tagList, tagUnitsResets)
 	case "RtoAlgorithm":
+		// it's a setting, not a metric, no units
 		// 1 none of the following
 		// 2 constant rto
 		// 3 mil-std-1778
 		// 4 van jacobson's algorithm
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "algorithm"})
 	case "RtoMax":
-		fallthrough
+		tagList = append(tagList, tagUnitsMilliseconds)
 	case "RtoMin":
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "milliseconds"})
+		tagList = append(tagList, tagUnitsMilliseconds)
 	default:
 		c.logger.Warn().Str("protocol", proto).Str("metric", name).Msg("unrecognized metric, no units")
 	}
@@ -347,23 +368,26 @@ func (c *Proto) emitTCPMetric(metrics *cgm.Metrics, proto, name string, val int6
 func (c *Proto) emitUDPMetric(metrics *cgm.Metrics, proto, name string, val int64, protoTags tags.Tags) {
 	// https://sourceforge.net/p/net-tools/code/ci/master/tree/statistics.c#l188
 	// https://tools.ietf.org/html/rfc1213
+
+	tagUnitsDatagrams := tags.Tag{Category: "units", Value: "datagrams"}
+
 	var tagList tags.Tags
 	tagList = append(tagList, protoTags...)
 	switch name {
 	case metricOutDatagrams:
-		fallthrough
+		tagList = append(tagList, tagUnitsDatagrams)
 	case metricInDatagrams:
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "datagrams"})
+		tagList = append(tagList, tagUnitsDatagrams)
 	case metricInCsumErrors:
-		fallthrough
+		// no units
 	case metricSndbufErrors:
-		fallthrough
+		// no units
 	case metricRcvbufErrors:
-		fallthrough
+		// no units
 	case metricNoPorts:
-		fallthrough
+		// no units
 	case metricInErrors:
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "errors"})
+		// no units
 	default:
 		c.logger.Warn().Str("protocol", proto).Str("metric", name).Msg("unrecognized metric, no units")
 	}
@@ -372,23 +396,26 @@ func (c *Proto) emitUDPMetric(metrics *cgm.Metrics, proto, name string, val int6
 
 func (c *Proto) emitUDPLiteMetric(metrics *cgm.Metrics, proto, name string, val int64, protoTags tags.Tags) {
 	// same names as UDP...
+
+	tagUnitsDatagrams := tags.Tag{Category: "units", Value: "datagrams"}
+
 	var tagList tags.Tags
 	tagList = append(tagList, protoTags...)
 	switch name {
 	case metricOutDatagrams:
-		fallthrough
+		tagList = append(tagList, tagUnitsDatagrams)
 	case metricInDatagrams:
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "datagrams"})
+		tagList = append(tagList, tagUnitsDatagrams)
 	case metricInCsumErrors:
-		fallthrough
+		// no units
 	case metricSndbufErrors:
-		fallthrough
+		// no units
 	case metricRcvbufErrors:
-		fallthrough
+		// no units
 	case metricNoPorts:
-		fallthrough
+		// no units
 	case metricInErrors:
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "errors"})
+		// no units
 	default:
 		c.logger.Warn().Str("protocol", proto).Str("metric", name).Msg("unrecognized metric, no units")
 	}

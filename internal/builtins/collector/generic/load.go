@@ -11,7 +11,6 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
@@ -87,66 +86,36 @@ func (c *Load) Collect() error {
 	c.lastStart = time.Now()
 	c.Unlock()
 
-	moduleTags := tags.Tags{
-		tags.Tag{Category: release.NAME + "-module", Value: c.id},
-	}
+	tagUnitsProcesses := tags.Tag{Category: "units", Value: "processes"}
 
 	metrics := cgm.Metrics{}
 	loadavg, err := load.Avg()
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting load metrics")
 	} else {
-		var tagList tags.Tags
-		tagList = append(tagList, moduleTags...)
-		tagList = append(tagList, tags.Tag{Category: "units", Value: "load"})
-		_ = c.addMetric(&metrics, "1min", "n", loadavg.Load1, tagList)
-		_ = c.addMetric(&metrics, "5min", "n", loadavg.Load5, tagList)
-		_ = c.addMetric(&metrics, "15min", "n", loadavg.Load15, tagList)
+		tagList := tags.Tags{tagUnitsProcesses}
+		_ = c.addMetric(&metrics, "load_1min", "n", loadavg.Load1, tagList)
+		_ = c.addMetric(&metrics, "load_5min", "n", loadavg.Load5, tagList)
+		_ = c.addMetric(&metrics, "load_15min", "n", loadavg.Load15, tagList)
 	}
 
 	misc, err := load.Misc()
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting misc load metrics")
-	} else {
-		{
-			// units:processes
-			var tagList tags.Tags
-			tagList = append(tagList, moduleTags...)
-			tagList = append(tagList, tags.Tag{Category: "units", Value: "processes"})
-			// TODO: there is misc.ProcsTotal in a future release (probably 2.19.05 based on commits/PRs)
-			_ = c.addMetric(&metrics, "total", "i", misc.ProcsRunning+misc.ProcsBlocked, tagList)
-			_ = c.addMetric(&metrics, "running", "i", misc.ProcsRunning, tagList)
-			_ = c.addMetric(&metrics, "blocked", "i", misc.ProcsBlocked, tagList)
-		}
-		{
-			// units:switches
-			var tagList tags.Tags
-			tagList = append(tagList, moduleTags...)
-			tagList = append(tagList, tags.Tag{Category: "units", Value: "switches"})
-			_ = c.addMetric(&metrics, "ctxt", "i", misc.Ctxt, tagList)
-		}
+		c.setStatus(metrics, nil)
+		return nil
+	}
 
-		// {
-		// 	// units:procs_total
-		// 	var tagList tags.Tags
-		// 	tagList = append(tagList, moduleTags...)
-		// 	tagList = append(tagList, tags.Tag{Category: "units", Value: "procs_total"})
-		// 	_ = c.addMetric(&metrics, "procs_total", "i", misc.ProcsRunning+misc.ProcsBlocked, tagList)
-		// }
-		// {
-		// 	// units:procs_running
-		// 	var tagList tags.Tags
-		// 	tagList = append(tagList, moduleTags...)
-		// 	tagList = append(tagList, tags.Tag{Category: "units", Value: "procs_running"})
-		// 	_ = c.addMetric(&metrics, "procs_running", "i", misc.ProcsRunning, tagList)
-		// }
-		// {
-		// 	// units:procs_blocked
-		// 	var tagList tags.Tags
-		// 	tagList = append(tagList, moduleTags...)
-		// 	tagList = append(tagList, tags.Tag{Category: "units", Value: "procs_blocked"})
-		// 	_ = c.addMetric(&metrics, "procs_blocked", "i", misc.ProcsBlocked, tagList)
-		// }
+	{ // units:processes
+		tagList := tags.Tags{tagUnitsProcesses}
+		// TODO: there is misc.ProcsTotal in a future release (probably 2.19.05 based on commits/PRs)
+		_ = c.addMetric(&metrics, "total", "i", misc.ProcsRunning+misc.ProcsBlocked, tagList)
+		_ = c.addMetric(&metrics, "running", "i", misc.ProcsRunning, tagList)
+		_ = c.addMetric(&metrics, "blocked", "i", misc.ProcsBlocked, tagList)
+	}
+	{ // units:switches
+		tagList := tags.Tags{tags.Tag{Category: "units", Value: "switches"}}
+		_ = c.addMetric(&metrics, "ctxt", "i", misc.Ctxt, tagList)
 	}
 
 	c.setStatus(metrics, nil)

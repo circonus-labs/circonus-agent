@@ -13,7 +13,6 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
@@ -113,63 +112,72 @@ func (c *IF) Collect() error {
 	c.lastStart = time.Now()
 	c.Unlock()
 
-	moduleTags := tags.Tags{
-		tags.Tag{Category: release.NAME + "-module", Value: c.id},
-	}
-
 	metrics := cgm.Metrics{}
 	ifaces, err := net.IOCounters(true)
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting network interface metrics")
-	} else {
-		for _, iface := range ifaces {
-			if c.exclude.MatchString(iface.Name) || !c.include.MatchString(iface.Name) {
-				c.logger.Debug().Str("iface", iface.Name).Msg("excluded iface name, skipping")
-				continue
-			}
-			var ifTags tags.Tags
-			ifTags = append(ifTags, moduleTags...)
-			ifTags = append(ifTags, tags.Tag{Category: "interface", Value: iface.Name})
+		c.setStatus(metrics, nil)
+		return nil
+	}
 
+	for _, iface := range ifaces {
+		if c.exclude.MatchString(iface.Name) || !c.include.MatchString(iface.Name) {
+			c.logger.Debug().Str("iface", iface.Name).Msg("excluded iface name, skipping")
+			continue
+		}
+
+		// interface tag(s)
+		ifTags := tags.Tags{tags.Tag{Category: "network-interface", Value: iface.Name}}
+		// units:packets
+		tagUnitsPackets := tags.Tag{Category: "units", Value: "packets"}
+		// units:bytes
+		tagUnitsBytes := tags.Tag{Category: "units", Value: "bytes"}
+
+		{
+			var tagList tags.Tags
+			tagList = append(tagList, tagUnitsBytes)
+			tagList = append(tagList, ifTags...)
+			_ = c.addMetric(&metrics, "sent", "L", iface.BytesSent, tagList)
+			_ = c.addMetric(&metrics, "recv", "L", iface.BytesRecv, tagList)
+		}
+
+		{
+			var tagList tags.Tags
+			tagList = append(tagList, tagUnitsPackets)
+			tagList = append(tagList, ifTags...)
+			_ = c.addMetric(&metrics, "sent", "L", iface.PacketsSent, tagList)
+			_ = c.addMetric(&metrics, "recv", "L", iface.PacketsRecv, tagList)
+		}
+
+		{
+			// directional in|out
+
+			inTags := tags.Tags{tags.Tag{Category: "direction", Value: "in"}}
+			inTags = append(inTags, ifTags...)
+
+			outTags := tags.Tags{tags.Tag{Category: "direction", Value: "out"}}
+			outTags = append(outTags, ifTags...)
+
+			// fifo - no units
+			_ = c.addMetric(&metrics, "fifo", "L", iface.Fifoin, inTags)
+			_ = c.addMetric(&metrics, "fifo", "L", iface.Fifoout, outTags)
+
+			// errors - no units
+			_ = c.addMetric(&metrics, "errors", "L", iface.Errin, inTags)
+			_ = c.addMetric(&metrics, "errors", "L", iface.Errout, outTags)
+
+			// drops
 			{
-				// units:bytes
 				var tagList tags.Tags
-				tagList = append(tagList, ifTags...)
-				tagList = append(tagList, tags.Tag{Category: "units", Value: "bytes"})
-				_ = c.addMetric(&metrics, "sents", "L", iface.BytesSent, tagList)
-				_ = c.addMetric(&metrics, "recvs", "L", iface.BytesRecv, tagList)
+				tagList = append(tagList, inTags...)
+				tagList = append(tagList, tagUnitsPackets)
+				_ = c.addMetric(&metrics, "drops", "L", iface.Dropin, tagList)
 			}
 			{
-				// units:packets
 				var tagList tags.Tags
-				tagList = append(tagList, ifTags...)
-				tagList = append(tagList, tags.Tag{Category: "units", Value: "packets"})
-				_ = c.addMetric(&metrics, "sent", "L", iface.PacketsSent, tagList)
-				_ = c.addMetric(&metrics, "recv", "L", iface.PacketsRecv, tagList)
-			}
-			{
-				// units:errors
-				var tagList tags.Tags
-				tagList = append(tagList, ifTags...)
-				tagList = append(tagList, tags.Tag{Category: "units", Value: "errors"})
-				_ = c.addMetric(&metrics, "in", "L", iface.Errin, tagList)
-				_ = c.addMetric(&metrics, "out", "L", iface.Errout, tagList)
-			}
-			{
-				// units:drops
-				var tagList tags.Tags
-				tagList = append(tagList, ifTags...)
-				tagList = append(tagList, tags.Tag{Category: "units", Value: "drops"})
-				_ = c.addMetric(&metrics, "in", "L", iface.Dropin, tagList)
-				_ = c.addMetric(&metrics, "out", "L", iface.Dropout, tagList)
-			}
-			{
-				// units:fifo
-				var tagList tags.Tags
-				tagList = append(tagList, ifTags...)
-				tagList = append(tagList, tags.Tag{Category: "units", Value: "fifo"})
-				_ = c.addMetric(&metrics, "in", "L", iface.Fifoin, tagList)
-				_ = c.addMetric(&metrics, "out", "L", iface.Fifoout, tagList)
+				tagList = append(tagList, outTags...)
+				tagList = append(tagList, tagUnitsPackets)
+				_ = c.addMetric(&metrics, "drops", "L", iface.Dropout, tagList)
 			}
 		}
 	}

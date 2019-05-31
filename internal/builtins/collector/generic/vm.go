@@ -13,7 +13,6 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
@@ -88,116 +87,103 @@ func (c *VM) Collect() error {
 	c.lastStart = time.Now()
 	c.Unlock()
 
-	moduleTags := tags.Tags{
-		tags.Tag{Category: release.NAME + "-module", Value: c.id},
-	}
-
-	var bytesTags tags.Tags
-	bytesTags = append(bytesTags, moduleTags...)
-	bytesTags = append(bytesTags, tags.Tag{Category: "units", Value: "bytes"})
-
-	var faultsTags tags.Tags
-	faultsTags = append(faultsTags, moduleTags...)
-	faultsTags = append(faultsTags, tags.Tag{Category: "units", Value: "faults"})
-
-	var hugePagesTags tags.Tags
-	hugePagesTags = append(hugePagesTags, moduleTags...)
-	hugePagesTags = append(hugePagesTags, tags.Tag{Category: "units", Value: "hugepages"})
-
-	var pagesTags tags.Tags
-	pagesTags = append(pagesTags, moduleTags...)
-	pagesTags = append(pagesTags, tags.Tag{Category: "units", Value: "pages"})
-
-	var percentTags tags.Tags
-	percentTags = append(percentTags, moduleTags...)
-	percentTags = append(percentTags, tags.Tag{Category: "units", Value: "percent"})
+	tagUnitsBytes := tags.Tag{Category: "units", Value: "bytes"}
+	tagUnitsFaults := tags.Tag{Category: "units", Value: "faults"}
+	tagUnitsHugePages := tags.Tag{Category: "units", Value: "hugepages"}
+	tagUnitsPages := tags.Tag{Category: "units", Value: "pages"}
+	tagUnitsPercent := tags.Tag{Category: "units", Value: "percent"}
 
 	metrics := cgm.Metrics{}
 	swap, err := mem.SwapMemoryWithContext(context.Background())
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting swap memory metrics")
 	} else {
-		{
-			// units:bytes
-			_ = c.addMetric(&metrics, "swap_total", "L", swap.Total, bytesTags)
-			_ = c.addMetric(&metrics, "swap_used", "L", swap.Used, bytesTags)
-			_ = c.addMetric(&metrics, "swap_free", "L", swap.Free, bytesTags)
-			_ = c.addMetric(&metrics, "swap_in", "L", swap.Sin, bytesTags)
-			_ = c.addMetric(&metrics, "swap_out", "L", swap.Sout, bytesTags)
+		{ // units:bytes
+			tagList := tags.Tags{tagUnitsBytes}
+			_ = c.addMetric(&metrics, "swap_total", "L", swap.Total, tagList)
+			_ = c.addMetric(&metrics, "swap_used", "L", swap.Used, tagList)
+			_ = c.addMetric(&metrics, "swap_free", "L", swap.Free, tagList)
+			_ = c.addMetric(&metrics, "swap_in", "L", swap.Sin, tagList)
+			_ = c.addMetric(&metrics, "swap_out", "L", swap.Sout, tagList)
 		}
-		{
-			// units:pages
-			_ = c.addMetric(&metrics, "swap_in", "L", swap.PgIn, pagesTags)
-			_ = c.addMetric(&metrics, "swap_out", "L", swap.PgOut, pagesTags)
+		{ // units:pages
+			tagList := tags.Tags{tagUnitsPages}
+			_ = c.addMetric(&metrics, "swap_in", "L", swap.PgIn, tagList)
+			_ = c.addMetric(&metrics, "swap_out", "L", swap.PgOut, tagList)
 		}
-		{
-			// units:faults
-			_ = c.addMetric(&metrics, "pg_fault", "L", swap.PgFault, faultsTags)
+		{ // units:faults
+			tagList := tags.Tags{tagUnitsFaults}
+			_ = c.addMetric(&metrics, "pg_fault", "L", swap.PgFault, tagList)
 		}
-		{
-			// units:percent
-			_ = c.addMetric(&metrics, "swap_used", "n", swap.UsedPercent, percentTags)
+		{ // units:percent
+			tagList := tags.Tags{tagUnitsPercent}
+			_ = c.addMetric(&metrics, "swap_used", "n", swap.UsedPercent, tagList)
 		}
 	}
 
 	vm, err := mem.VirtualMemory()
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting virtual memory metrics")
-	} else {
-		{
-			// units:bytes
-			_ = c.addMetric(&metrics, "total", "L", vm.Total, bytesTags)
-			_ = c.addMetric(&metrics, "available", "L", vm.Available, bytesTags)
-			_ = c.addMetric(&metrics, "used", "L", vm.Used, bytesTags)
-			_ = c.addMetric(&metrics, "free", "L", vm.Free, bytesTags)
+		c.setStatus(metrics, nil)
+		return nil
+	}
+
+	{ // units:bytes
+		tagList := tags.Tags{tagUnitsBytes}
+		_ = c.addMetric(&metrics, "memory_total", "L", vm.Total, tagList)
+		_ = c.addMetric(&metrics, "memory_available", "L", vm.Available, tagList)
+		_ = c.addMetric(&metrics, "memory_used", "L", vm.Used, tagList)
+		_ = c.addMetric(&metrics, "memory_free", "L", vm.Free, tagList)
+	}
+	{ // units:percent
+		tagList := tags.Tags{tagUnitsPercent}
+		_ = c.addMetric(&metrics, "memory_used", "n", vm.UsedPercent, tagList)
+	}
+
+	if strings.Contains(runtime.GOOS, "bsd") || runtime.GOOS == "darwin" {
+		tagList := tags.Tags{tagUnitsBytes}
+		_ = c.addMetric(&metrics, "active", "L", vm.Active, tagList)
+		_ = c.addMetric(&metrics, "inactive", "L", vm.Inactive, tagList)
+		_ = c.addMetric(&metrics, "wired", "L", vm.Wired, tagList)
+	}
+
+	if runtime.GOOS == "freebsd" {
+		tagList := tags.Tags{tagUnitsBytes}
+		_ = c.addMetric(&metrics, "laundry", "L", vm.Laundry, tagList)
+	}
+
+	if runtime.GOOS == "linux" {
+		{ // units:bytes -- gopsutil translates the kB in meminfo to bytes
+			tagList := tags.Tags{tagUnitsBytes}
+			_ = c.addMetric(&metrics, "buffers", "L", vm.Buffers, tagList)
+			_ = c.addMetric(&metrics, "cached", "L", vm.Cached, tagList)
+			_ = c.addMetric(&metrics, "writeback", "L", vm.Writeback, tagList)
+			_ = c.addMetric(&metrics, "dirty", "L", vm.Dirty, tagList)
+			_ = c.addMetric(&metrics, "commit_limit", "L", vm.CommitLimit, tagList)
+			_ = c.addMetric(&metrics, "committed_as", "L", vm.CommittedAS, tagList)
+			_ = c.addMetric(&metrics, "vm_alloc_total", "L", vm.VMallocTotal, tagList)
+			_ = c.addMetric(&metrics, "vm_alloc_used", "L", vm.VMallocUsed, tagList)
+			_ = c.addMetric(&metrics, "vm_alloc_chunk", "L", vm.VMallocChunk, tagList)
+			_ = c.addMetric(&metrics, "huge_page_size", "L", vm.HugePageSize, tagList)
+			_ = c.addMetric(&metrics, "writeback_tmp", "L", vm.WritebackTmp, tagList)
+			_ = c.addMetric(&metrics, "shared", "L", vm.Shared, tagList)
+			_ = c.addMetric(&metrics, "slab", "L", vm.Slab, tagList)
+			_ = c.addMetric(&metrics, "slab_reclaimable", "L", vm.SReclaimable, tagList)
+			_ = c.addMetric(&metrics, "page_tables", "L", vm.PageTables, tagList)
+			_ = c.addMetric(&metrics, "high_total", "L", vm.HighTotal, tagList)
+			_ = c.addMetric(&metrics, "high_free", "L", vm.HighFree, tagList)
+			_ = c.addMetric(&metrics, "low_total", "L", vm.LowTotal, tagList)
+			_ = c.addMetric(&metrics, "low_free", "L", vm.LowFree, tagList)
+			_ = c.addMetric(&metrics, "swapfree", "L", vm.SwapFree, tagList)
+			_ = c.addMetric(&metrics, "swapcached", "L", vm.SwapCached, tagList)
+			_ = c.addMetric(&metrics, "swaptotal", "L", vm.SwapTotal, tagList)
+			_ = c.addMetric(&metrics, "mapped", "L", vm.Mapped, tagList)
 		}
-		{
-			// units:percent
-			_ = c.addMetric(&metrics, "used", "n", vm.UsedPercent, percentTags)
-		}
-		if strings.Contains(runtime.GOOS, "bsd") || runtime.GOOS == "darwin" {
-			// OSX / BSD
-			_ = c.addMetric(&metrics, "active", "L", vm.Active, bytesTags)
-			_ = c.addMetric(&metrics, "inactive", "L", vm.Inactive, bytesTags)
-			_ = c.addMetric(&metrics, "wired", "L", vm.Wired, bytesTags)
-		}
-		if runtime.GOOS == "freebsd" {
-			// FreeBSD
-			_ = c.addMetric(&metrics, "laundry", "L", vm.Laundry, bytesTags)
-		}
-		if runtime.GOOS == "linux" {
-			// Linux
-			{
-				// units:bytes -- gopsutil translates the kB in meminfo to bytes
-				_ = c.addMetric(&metrics, "buffers", "L", vm.Buffers, bytesTags)
-				_ = c.addMetric(&metrics, "cached", "L", vm.Cached, bytesTags)
-				_ = c.addMetric(&metrics, "writeback", "L", vm.Writeback, bytesTags)
-				_ = c.addMetric(&metrics, "dirty", "L", vm.Dirty, bytesTags)
-				_ = c.addMetric(&metrics, "commit_limit", "L", vm.CommitLimit, bytesTags)
-				_ = c.addMetric(&metrics, "committed_as", "L", vm.CommittedAS, bytesTags)
-				_ = c.addMetric(&metrics, "vm_alloc_total", "L", vm.VMallocTotal, bytesTags)
-				_ = c.addMetric(&metrics, "vm_alloc_used", "L", vm.VMallocUsed, bytesTags)
-				_ = c.addMetric(&metrics, "vm_alloc_chunk", "L", vm.VMallocChunk, bytesTags)
-				_ = c.addMetric(&metrics, "huge_page_size", "L", vm.HugePageSize, bytesTags)
-				_ = c.addMetric(&metrics, "writeback_tmp", "L", vm.WritebackTmp, bytesTags)
-				_ = c.addMetric(&metrics, "shared", "L", vm.Shared, bytesTags)
-				_ = c.addMetric(&metrics, "slab", "L", vm.Slab, bytesTags)
-				_ = c.addMetric(&metrics, "slab_reclaimable", "L", vm.SReclaimable, bytesTags)
-				_ = c.addMetric(&metrics, "page_tables", "L", vm.PageTables, bytesTags)
-				_ = c.addMetric(&metrics, "high_total", "L", vm.HighTotal, bytesTags)
-				_ = c.addMetric(&metrics, "high_free", "L", vm.HighFree, bytesTags)
-				_ = c.addMetric(&metrics, "low_total", "L", vm.LowTotal, bytesTags)
-				_ = c.addMetric(&metrics, "low_free", "L", vm.LowFree, bytesTags)
-				_ = c.addMetric(&metrics, "swapfree", "L", vm.SwapFree, bytesTags)
-				_ = c.addMetric(&metrics, "swapcached", "L", vm.SwapCached, bytesTags)
-				_ = c.addMetric(&metrics, "swaptotal", "L", vm.SwapTotal, bytesTags)
-				_ = c.addMetric(&metrics, "mapped", "L", vm.Mapped, bytesTags)
-			}
-			{
-				// units:hugepages
-				_ = c.addMetric(&metrics, "huge_pages_total", "L", vm.HugePagesTotal, hugePagesTags)
-				_ = c.addMetric(&metrics, "huge_pages_free", "L", vm.HugePagesFree, hugePagesTags)
-			}
+
+		{ // units:hugepages
+			tagList := tags.Tags{tagUnitsHugePages}
+			_ = c.addMetric(&metrics, "huge_pages_total", "L", vm.HugePagesTotal, tagList)
+			_ = c.addMetric(&metrics, "huge_pages_free", "L", vm.HugePagesFree, tagList)
 		}
 	}
 
