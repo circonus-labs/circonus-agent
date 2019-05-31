@@ -13,7 +13,6 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
@@ -101,72 +100,66 @@ func (c *CPU) Collect() error {
 	c.lastStart = time.Now()
 	c.Unlock()
 
-	moduleTags := tags.Tags{
-		tags.Tag{Category: release.NAME + "-module", Value: c.id},
-	}
-
 	metrics := cgm.Metrics{}
 	pcts, err := cpu.Percent(time.Duration(0), c.reportAllCPUs)
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting metrics, cpu%")
 	} else {
+		metricName := "cpu_used"
+		metricType := "n"
+		tagUnitsPercent := tags.Tag{Category: "units", Value: "percent"}
 		if !c.reportAllCPUs && len(pcts) == 1 {
-			var tagList tags.Tags
-			tagList = append(tagList, moduleTags...)
-			tagList = append(tagList, tags.Tag{Category: "units", Value: "percent"})
-			_ = c.addMetric(&metrics, "used", "n", pcts[0], tagList)
+			tagList := tags.Tags{tagUnitsPercent}
+			_ = c.addMetric(&metrics, metricName, metricType, pcts[0], tagList)
 		} else {
 			for idx, pct := range pcts {
-				var tagList tags.Tags
-				tagList = append(tagList, moduleTags...)
-				tagList = append(tagList, tags.Tags{
+				tagList := tags.Tags{
 					tags.Tag{Category: "cpu", Value: fmt.Sprintf("%d", idx)},
-					tags.Tag{Category: "units", Value: "percent"},
-				}...)
-				_ = c.addMetric(&metrics, "used", "n", pct, tagList)
+				}
+				tagList = append(tagList, tagUnitsPercent)
+				_ = c.addMetric(&metrics, metricName, metricType, pct, tagList)
 			}
 		}
 	}
 
-	var cpuTags tags.Tags
-	cpuTags = append(cpuTags, moduleTags...)
-	cpuTags = append(cpuTags, tags.Tags{
-		tags.Tag{Category: "units", Value: "jiffies"},
-	}...)
-
 	ts, err := cpu.Times(c.reportAllCPUs)
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting metrics, cpu times")
+		c.setStatus(metrics, nil)
+		return nil
+	}
+
+	tagUnitsCentiseconds := tags.Tag{Category: "units", Value: "centiseconds"} // aka jiffies
+	if !c.reportAllCPUs && len(ts) == 1 {
+		tagList := tags.Tags{tagUnitsCentiseconds}
+		_ = c.addMetric(&metrics, "cpu_user", "n", ts[0].User, tagList)
+		_ = c.addMetric(&metrics, "cpu_system", "n", ts[0].System, tagList)
+		_ = c.addMetric(&metrics, "cpu_idle", "n", ts[0].Idle, tagList)
+		_ = c.addMetric(&metrics, "cpu_nice", "n", ts[0].Nice, tagList)
+		_ = c.addMetric(&metrics, "cpu_iowait", "n", ts[0].Iowait, tagList)
+		_ = c.addMetric(&metrics, "cpu_irq", "n", ts[0].Irq, tagList)
+		_ = c.addMetric(&metrics, "cpu_soft_irq", "n", ts[0].Softirq, tagList)
+		_ = c.addMetric(&metrics, "cpu_steal", "n", ts[0].Steal, tagList)
+		_ = c.addMetric(&metrics, "cpu_guest", "n", ts[0].Guest, tagList)
+		_ = c.addMetric(&metrics, "cpu_guest_nice", "n", ts[0].GuestNice, tagList)
+		_ = c.addMetric(&metrics, "cpu_stolen", "n", ts[0].Stolen, tagList)
 	} else {
-		if !c.reportAllCPUs && len(ts) == 1 {
-			_ = c.addMetric(&metrics, "user", "n", ts[0].User, cpuTags)
-			_ = c.addMetric(&metrics, "system", "n", ts[0].System, cpuTags)
-			_ = c.addMetric(&metrics, "idle", "n", ts[0].Idle, cpuTags)
-			_ = c.addMetric(&metrics, "nice", "n", ts[0].Nice, cpuTags)
-			_ = c.addMetric(&metrics, "iowait", "n", ts[0].Iowait, cpuTags)
-			_ = c.addMetric(&metrics, "irq", "n", ts[0].Irq, cpuTags)
-			_ = c.addMetric(&metrics, "soft_irq", "n", ts[0].Softirq, cpuTags)
-			_ = c.addMetric(&metrics, "steal", "n", ts[0].Steal, cpuTags)
-			_ = c.addMetric(&metrics, "guest", "n", ts[0].Guest, cpuTags)
-			_ = c.addMetric(&metrics, "guest_nice", "n", ts[0].GuestNice, cpuTags)
-			_ = c.addMetric(&metrics, "stolen", "n", ts[0].Stolen, cpuTags)
-		} else {
-			for idx, v := range ts {
-				var tagList tags.Tags
-				tagList = append(tagList, cpuTags...)
-				tagList = append(tagList, tags.Tag{Category: "cpu", Value: fmt.Sprintf("%d", idx)})
-				_ = c.addMetric(&metrics, "user", "n", v.User, tagList)
-				_ = c.addMetric(&metrics, "system", "n", v.System, tagList)
-				_ = c.addMetric(&metrics, "idle", "n", v.Idle, tagList)
-				_ = c.addMetric(&metrics, "nice", "n", v.Nice, tagList)
-				_ = c.addMetric(&metrics, "iowait", "n", v.Iowait, tagList)
-				_ = c.addMetric(&metrics, "irq", "n", v.Irq, tagList)
-				_ = c.addMetric(&metrics, "soft_irq", "n", v.Softirq, tagList)
-				_ = c.addMetric(&metrics, "steal", "n", v.Steal, tagList)
-				_ = c.addMetric(&metrics, "guest", "n", v.Guest, tagList)
-				_ = c.addMetric(&metrics, "guest_nice", "n", v.GuestNice, tagList)
-				_ = c.addMetric(&metrics, "stolen", "n", v.Stolen, tagList)
+		for idx, v := range ts {
+			tagList := tags.Tags{
+				tags.Tag{Category: "cpu", Value: fmt.Sprintf("%d", idx)},
 			}
+			tagList = append(tagList, tagUnitsCentiseconds)
+			_ = c.addMetric(&metrics, "cpu_user", "n", v.User, tagList)
+			_ = c.addMetric(&metrics, "cpu_system", "n", v.System, tagList)
+			_ = c.addMetric(&metrics, "cpu_idle", "n", v.Idle, tagList)
+			_ = c.addMetric(&metrics, "cpu_nice", "n", v.Nice, tagList)
+			_ = c.addMetric(&metrics, "cpu_iowait", "n", v.Iowait, tagList)
+			_ = c.addMetric(&metrics, "cpu_irq", "n", v.Irq, tagList)
+			_ = c.addMetric(&metrics, "cpu_soft_irq", "n", v.Softirq, tagList)
+			_ = c.addMetric(&metrics, "cpu_steal", "n", v.Steal, tagList)
+			_ = c.addMetric(&metrics, "cpu_guest", "n", v.Guest, tagList)
+			_ = c.addMetric(&metrics, "cpu_guest_nice", "n", v.GuestNice, tagList)
+			_ = c.addMetric(&metrics, "cpu_stolen", "n", v.Stolen, tagList)
 		}
 	}
 
