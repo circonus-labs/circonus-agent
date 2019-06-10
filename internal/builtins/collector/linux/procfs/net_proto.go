@@ -1,12 +1,18 @@
-// Copyright © 2018 Circonus, Inc. <support@circonus.com>
+// Copyright © 2017 Circonus, Inc. <support@circonus.com>
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 //
 
-package generic
+// +build linux
+
+package procfs
 
 import (
-	"runtime"
+	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,35 +21,51 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog"
-	"github.com/shirou/gopsutil/net"
+	"github.com/rs/zerolog/log"
 )
 
-// Proto metrics
-type Proto struct {
-	gencommon
-	protocols []string
+// NetProto metrics from the Linux ProcFS
+type NetProto struct {
+	common
+	include *regexp.Regexp
+	exclude *regexp.Regexp
 }
 
-// protoOptions defines what elements can be overridden in a config file
-type protoOptions struct {
+// netProtoOptions defines what elements can be overridden in a config file
+type netProtoOptions struct {
 	// common
-	ID     string `json:"id" toml:"id" yaml:"id"`
-	RunTTL string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
+	ID         string `json:"id" toml:"id" yaml:"id"`
+	ProcFSPath string `json:"procfs_path" toml:"procfs_path" yaml:"procfs_path"`
+	RunTTL     string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 
 	// collector specific
-	Protocols []string `json:"protocols" toml:"protocols" yaml:"protocols"` // default: empty (equates to all: ip,icmp,icmpmsg,tcp,udp,udplite)
+	IncludeRegex string `json:"include_regex" toml:"include_regex" yaml:"include_regex"`
+	ExcludeRegex string `json:"exclude_regex" toml:"exclude_regex" yaml:"exclude_regex"`
 }
 
-// NewNetProtoCollector creates new psutils collector
-func NewNetProtoCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector.Collector, error) {
-	c := Proto{}
-	c.id = NameProto
-	c.pkgID = PackageName + "." + c.id
-	c.logger = parentLogger.With().Str("id", c.id).Logger()
+// NewNetProtoCollector creates new procfs network protocol collector
+func NewNetProtoCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
+	procFile := filepath.Join("net", "snmp")
+
+	c := NetProto{}
+	c.id = NameNetProto
+	c.pkgID = PKG_NAME + "." + c.id
+	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
+	c.procFSPath = procFSPath
+	c.file = filepath.Join(c.procFSPath, procFile)
 	c.baseTags = tags.FromList(tags.GetBaseTags())
 
-	var opts protoOptions
+	c.include = defaultIncludeRegex
+	c.exclude = defaultExcludeRegex
+
+	if cfgBaseName == "" {
+		if _, err := os.Stat(c.file); os.IsNotExist(err) {
+			return nil, errors.Wrap(err, c.pkgID)
+		}
+		return &c, nil
+	}
+
+	var opts netProtoOptions
 	err := config.LoadConfigFile(cfgBaseName, &opts)
 	if err != nil {
 		if strings.Contains(err.Error(), "no config found matching") {
@@ -55,12 +77,29 @@ func NewNetProtoCollector(cfgBaseName string, parentLogger zerolog.Logger) (coll
 
 	c.logger.Debug().Str("base", cfgBaseName).Interface("config", opts).Msg("loaded config")
 
-	if len(opts.Protocols) > 0 {
-		c.protocols = opts.Protocols
+	if opts.IncludeRegex != "" {
+		rx, err := regexp.Compile(fmt.Sprintf(regexPat, opts.IncludeRegex))
+		if err != nil {
+			return nil, errors.Wrapf(err, "%s compiling include regex", c.pkgID)
+		}
+		c.include = rx
+	}
+
+	if opts.ExcludeRegex != "" {
+		rx, err := regexp.Compile(fmt.Sprintf(regexPat, opts.ExcludeRegex))
+		if err != nil {
+			return nil, errors.Wrapf(err, "%s compiling exclude regex", c.pkgID)
+		}
+		c.exclude = rx
 	}
 
 	if opts.ID != "" {
 		c.id = opts.ID
+	}
+
+	if opts.ProcFSPath != "" {
+		c.procFSPath = opts.ProcFSPath
+		c.file = filepath.Join(c.procFSPath, procFile)
 	}
 
 	if opts.RunTTL != "" {
@@ -71,12 +110,19 @@ func NewNetProtoCollector(cfgBaseName string, parentLogger zerolog.Logger) (coll
 		c.runTTL = dur
 	}
 
+	if _, err := os.Stat(c.file); os.IsNotExist(err) {
+		return nil, errors.Wrap(err, c.pkgID)
+	}
+
 	return &c, nil
 }
 
-// Collect metrics
-func (c *Proto) Collect() error {
+// Collect metrics from the procfs resource
+func (c *NetProto) Collect() error {
+	metrics := cgm.Metrics{}
+
 	c.Lock()
+
 	if c.runTTL > time.Duration(0) {
 		if time.Since(c.lastEnd) < c.runTTL {
 			c.logger.Warn().Msg(collector.ErrTTLNotExpired.Error())
@@ -94,68 +140,98 @@ func (c *Proto) Collect() error {
 	c.lastStart = time.Now()
 	c.Unlock()
 
-	//
-	// NOTE: gopsutil does not currently offer IPv6 metrics
-	//       it only pulls from /proc/net/snmp not /proc/net/snmp6
-	//
-
-	metrics := cgm.Metrics{}
-	counters, err := net.ProtoCounters(c.protocols)
-	if err != nil {
-		c.logger.Warn().Err(err).Msg("collecting network protocol metrics")
-		c.setStatus(metrics, nil)
-		return nil
-	}
-
-	if len(counters) == 0 {
-		return errors.New("no network protocol metrics available")
-	}
-
-	if runtime.GOOS == "linux" {
-		for _, counter := range counters {
-			protoTags := tags.Tags{tags.Tag{Category: "protocol", Value: counter.Protocol}}
-			for name, val := range counter.Stats {
-				switch counter.Protocol {
-				case "ip":
-					c.emitIPMetric(&metrics, counter.Protocol, name, val, protoTags)
-				case "icmp":
-					c.emitICMPMetric(&metrics, counter.Protocol, name, val, protoTags)
-				case "icmpmsg":
-					c.emitICMPMsgMetric(&metrics, counter.Protocol, name, val, protoTags)
-				case "tcp":
-					c.emitTCPMetric(&metrics, counter.Protocol, name, val, protoTags)
-				case "udp":
-					c.emitUDPMetric(&metrics, counter.Protocol, name, val, protoTags)
-				case "udplite":
-					c.emitUDPLiteMetric(&metrics, counter.Protocol, name, val, protoTags)
-				default:
-					// NOTE: output msg for each metric, so support can be added without having to
-					//       set up an environment that can produce the metric(s)
-					c.logger.Warn().Str("protocol", counter.Protocol).Str("metric", name).Msg("unknown protocol, missing units info")
-					_ = c.addMetric(&metrics, name, "L", val, protoTags)
-				}
-			}
-		}
-
-		c.setStatus(metrics, nil)
-		return nil
-	}
-
-	for _, counter := range counters {
-		protoTags := tags.Tags{tags.Tag{Category: "protocol", Value: counter.Protocol}}
-		for name, val := range counter.Stats {
-			// NOTE: output msg for EACH proto/metric so a log can be supplied.
-			//       support can then be added from the log vs having to run the OS itself.
-			c.logger.Warn().
-				Str("os_type", runtime.GOOS).
-				Str("protocol", counter.Protocol).
-				Str("metric", name).
-				Msg("unknown os type supported, missing units info")
-			_ = c.addMetric(&metrics, name, "L", val, protoTags)
-		}
+	if err := c.snmpCollect(&metrics); err != nil {
+		c.setStatus(metrics, err)
+		return errors.Wrap(err, c.pkgID)
 	}
 
 	c.setStatus(metrics, nil)
+	return nil
+}
+
+type rawSNMPStat struct {
+	name string
+	val  string
+}
+
+// snmpCollect gets metrics from /proc/net/snmp
+func (c *NetProto) snmpCollect(metrics *cgm.Metrics) error {
+
+	lines, err := c.readFile(c.file)
+	if err != nil {
+		return errors.Wrapf(err, "parsing %s", c.file)
+	}
+
+	/*
+		Ip: Forwarding DefaultTTL InReceives InHdrErrors InAddrErrors ForwDatagrams InUnknownProtos InDiscards InDelivers OutRequests OutDiscards OutNoRoutes ReasmTimeout ReasmReqds ReasmOKs ReasmFails FragOKs FragFails FragCreates
+		Ip: 2 64 24480 0 0 0 0 0 24476 20850 15 0 0 0 0 0 0 0 0
+		Icmp: InMsgs InErrors InCsumErrors InDestUnreachs InTimeExcds InParmProbs InSrcQuenchs InRedirects InEchos InEchoReps InTimestamps InTimestampReps InAddrMasks InAddrMaskReps OutMsgs OutErrors OutDestUnreachs OutTimeExcds OutParmProbs OutSrcQuenchs OutRedirects OutEchos OutEchoReps OutTimestamps OutTimestampReps OutAddrMasks OutAddrMaskReps
+		Icmp: 32 0 0 32 0 0 0 0 0 0 0 0 0 0 33 0 33 0 0 0 0 0 0 0 0 0 0
+		IcmpMsg: InType3 OutType3
+		IcmpMsg: 32 33
+		Tcp: RtoAlgorithm RtoMin RtoMax MaxConn ActiveOpens PassiveOpens AttemptFails EstabResets CurrEstab InSegs OutSegs RetransSegs InErrs OutRsts InCsumErrors
+		Tcp: 1 200 120000 -1 94 3 0 0 1 24052 20416 0 0 21 0
+		Udp: InDatagrams NoPorts InErrors OutDatagrams RcvbufErrors SndbufErrors InCsumErrors
+		Udp: 359 33 0 404 0 0 0
+		UdpLite: InDatagrams NoPorts InErrors OutDatagrams RcvbufErrors SndbufErrors InCsumErrors
+		UdpLite: 0 0 0 0 0 0 0
+	*/
+
+	stats := make(map[string][]rawSNMPStat)
+
+	for _, l := range lines {
+		line := strings.TrimSpace(string(l))
+		fields := strings.Fields(line)
+
+		proto := strings.ToLower(strings.Replace(fields[0], ":", "", -1))
+
+		if c.exclude.MatchString(proto) || !c.include.MatchString(proto) {
+			c.logger.Debug().Str("proto", proto).Msg("excluded proto name, skipping")
+			continue
+		}
+
+		if strings.ContainsAny(fields[1], "abcdefghijklmnopqrstuvwxyz") {
+			// header row
+			stats[proto] = make([]rawSNMPStat, len(fields))
+			for i := 1; i < len(fields); i++ {
+				stats[proto][i].name = fields[i]
+			}
+			continue
+		}
+
+		// stats row
+		for i := 1; i < len(fields); i++ {
+			stats[proto][i].val = fields[i]
+		}
+	}
+
+	for proto, protoStats := range stats {
+		for _, stat := range protoStats {
+			v, err := strconv.ParseInt(stat.val, 10, 64)
+			if err != nil {
+				c.logger.Warn().Err(err).Str("proto", proto).Str("name", stat.name).Msg("parsing field")
+				continue
+			}
+
+			switch proto {
+			case "icmp":
+				c.emitICMPMetric(metrics, stat.name, v)
+			case "icmpmsg":
+				c.emitICMPMsgMetric(metrics, stat.name, v)
+			case "ip":
+				c.emitIPMetric(metrics, stat.name, v)
+			case "tcp":
+				c.emitTCPMetric(metrics, stat.name, v)
+			case "udp":
+				c.emitUDPMetric(metrics, stat.name, v)
+			case "udplite":
+				c.emitUDPLiteMetric(metrics, stat.name, v)
+			default:
+				c.logger.Warn().Str("proto", proto).Msg("unsupported protocol")
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -171,7 +247,9 @@ const (
 	defaultMetricType  = "l"
 )
 
-func (c *Proto) emitIPMetric(metrics *cgm.Metrics, proto, name string, val int64, protoTags tags.Tags) {
+func (c *NetProto) emitIPMetric(metrics *cgm.Metrics, name string, val int64) {
+	proto := "ip"
+
 	// https://sourceforge.net/p/net-tools/code/ci/master/tree/statistics.c#l56
 	// https://tools.ietf.org/html/rfc1213
 
@@ -181,8 +259,7 @@ func (c *Proto) emitIPMetric(metrics *cgm.Metrics, proto, name string, val int64
 	tagUnitsPackets := tags.Tag{Category: "units", Value: "packets"}
 	tagUnitsRequests := tags.Tag{Category: "units", Value: "requests"}
 
-	var tagList tags.Tags
-	tagList = append(tagList, protoTags...)
+	tagList := tags.Tags{tags.Tag{Category: "proto", Value: proto}}
 
 	switch name {
 	case "ReasmTimeout":
@@ -229,10 +306,12 @@ func (c *Proto) emitIPMetric(metrics *cgm.Metrics, proto, name string, val int64
 		c.logger.Warn().Str("protocol", proto).Str("metric", name).Msg("unrecognized metric, no units")
 	}
 
-	_ = c.addMetric(metrics, name, defaultMetricType, val, tagList)
+	_ = c.addMetric(metrics, "", name, defaultMetricType, val, tagList)
 }
 
-func (c *Proto) emitICMPMetric(metrics *cgm.Metrics, proto, name string, val int64, protoTags tags.Tags) {
+func (c *NetProto) emitICMPMetric(metrics *cgm.Metrics, name string, val int64) {
+	proto := "icmp"
+
 	// https://sourceforge.net/p/net-tools/code/ci/master/tree/statistics.c#l105
 	// https://tools.ietf.org/html/rfc1213
 
@@ -241,8 +320,7 @@ func (c *Proto) emitICMPMetric(metrics *cgm.Metrics, proto, name string, val int
 	tagUnitsMessages := tags.Tag{Category: "units", Value: "messages"}
 	tagUnitsRedirects := tags.Tag{Category: "units", Value: "redirects"}
 
-	var tagList tags.Tags
-	tagList = append(tagList, protoTags...)
+	tagList := tags.Tags{tags.Tag{Category: "proto", Value: proto}}
 	switch name {
 	case "OutTimestampReps":
 		tagList = append(tagList, tagUnitsResponses)
@@ -301,20 +379,26 @@ func (c *Proto) emitICMPMetric(metrics *cgm.Metrics, proto, name string, val int
 	default:
 		c.logger.Warn().Str("protocol", proto).Str("metric", name).Msg("unrecognized metric, no units")
 	}
-	_ = c.addMetric(metrics, name, defaultMetricType, val, tagList)
+	_ = c.addMetric(metrics, "", name, defaultMetricType, val, tagList)
 }
 
-func (c *Proto) emitICMPMsgMetric(metrics *cgm.Metrics, proto, name string, val int64, protoTags tags.Tags) {
+func (c *NetProto) emitICMPMsgMetric(metrics *cgm.Metrics, name string, val int64) {
+	proto := "icmpmsg"
+
 	// possible message types:
 	// https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml
 
-	tagList := tags.Tags{tags.Tag{Category: "units", Value: "messages"}}
-	tagList = append(tagList, protoTags...)
+	tagList := tags.Tags{
+		tags.Tag{Category: "proto", Value: proto},
+		tags.Tag{Category: "units", Value: "messages"},
+	}
 
-	_ = c.addMetric(metrics, name, defaultMetricType, val, tagList)
+	_ = c.addMetric(metrics, "", name, defaultMetricType, val, tagList)
 }
 
-func (c *Proto) emitTCPMetric(metrics *cgm.Metrics, proto, name string, val int64, protoTags tags.Tags) {
+func (c *NetProto) emitTCPMetric(metrics *cgm.Metrics, name string, val int64) {
+	proto := "tcp"
+
 	// https://sourceforge.net/p/net-tools/code/ci/master/tree/statistics.c#l170
 	// https://tools.ietf.org/html/rfc1213
 
@@ -323,8 +407,8 @@ func (c *Proto) emitTCPMetric(metrics *cgm.Metrics, proto, name string, val int6
 	tagUnitsResets := tags.Tag{Category: "units", Value: "resets"}
 	tagUnitsMilliseconds := tags.Tag{Category: "units", Value: "milliseconds"}
 
-	var tagList tags.Tags
-	tagList = append(tagList, protoTags...)
+	tagList := tags.Tags{tags.Tag{Category: "proto", Value: proto}}
+
 	switch name {
 	case "AttemptFails":
 		tagList = append(tagList, tagUnitsConnections)
@@ -363,17 +447,19 @@ func (c *Proto) emitTCPMetric(metrics *cgm.Metrics, proto, name string, val int6
 	default:
 		c.logger.Warn().Str("protocol", proto).Str("metric", name).Msg("unrecognized metric, no units")
 	}
-	_ = c.addMetric(metrics, name, defaultMetricType, val, tagList)
+	_ = c.addMetric(metrics, "", name, defaultMetricType, val, tagList)
 }
 
-func (c *Proto) emitUDPMetric(metrics *cgm.Metrics, proto, name string, val int64, protoTags tags.Tags) {
+func (c *NetProto) emitUDPMetric(metrics *cgm.Metrics, name string, val int64) {
+	proto := "udp"
+
 	// https://sourceforge.net/p/net-tools/code/ci/master/tree/statistics.c#l188
 	// https://tools.ietf.org/html/rfc1213
 
 	tagUnitsDatagrams := tags.Tag{Category: "units", Value: "datagrams"}
 
-	var tagList tags.Tags
-	tagList = append(tagList, protoTags...)
+	tagList := tags.Tags{tags.Tag{Category: "proto", Value: proto}}
+
 	switch name {
 	case metricOutDatagrams:
 		tagList = append(tagList, tagUnitsDatagrams)
@@ -392,16 +478,17 @@ func (c *Proto) emitUDPMetric(metrics *cgm.Metrics, proto, name string, val int6
 	default:
 		c.logger.Warn().Str("protocol", proto).Str("metric", name).Msg("unrecognized metric, no units")
 	}
-	_ = c.addMetric(metrics, name, defaultMetricType, val, tagList)
+	_ = c.addMetric(metrics, "", name, defaultMetricType, val, tagList)
 }
 
-func (c *Proto) emitUDPLiteMetric(metrics *cgm.Metrics, proto, name string, val int64, protoTags tags.Tags) {
+func (c *NetProto) emitUDPLiteMetric(metrics *cgm.Metrics, name string, val int64) {
+	proto := "udplite"
+
 	// same names as UDP...
 
 	tagUnitsDatagrams := tags.Tag{Category: "units", Value: "datagrams"}
+	tagList := tags.Tags{tags.Tag{Category: "proto", Value: proto}}
 
-	var tagList tags.Tags
-	tagList = append(tagList, protoTags...)
 	switch name {
 	case metricOutDatagrams:
 		tagList = append(tagList, tagUnitsDatagrams)
@@ -420,5 +507,5 @@ func (c *Proto) emitUDPLiteMetric(metrics *cgm.Metrics, proto, name string, val 
 	default:
 		c.logger.Warn().Str("protocol", proto).Str("metric", name).Msg("unrecognized metric, no units")
 	}
-	_ = c.addMetric(metrics, name, defaultMetricType, val, tagList)
+	_ = c.addMetric(metrics, "", name, defaultMetricType, val, tagList)
 }

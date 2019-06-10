@@ -8,10 +8,8 @@
 package procfs
 
 import (
-	"bufio"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -27,7 +25,7 @@ import (
 
 // CPU metrics from the Linux ProcFS
 type CPU struct {
-	pfscommon
+	common
 	numCPU        float64 // number of cpus
 	clockNorm     float64 // cpu clock normalized to 100Hz tick rate
 	reportAllCPUs bool    // OPT report all cpus (vs just total) may be overridden in config file
@@ -37,12 +35,9 @@ type CPU struct {
 // cpuOptions defines what elements can be overridden in a config file
 type cpuOptions struct {
 	// common
-	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	ProcFSPath           string   `json:"procfs_path" toml:"procfs_path" yaml:"procfs_path"`
-	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
-	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
-	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
+	ID         string `json:"id" toml:"id" yaml:"id"`
+	ProcFSPath string `json:"procfs_path" toml:"procfs_path" yaml:"procfs_path"`
+	RunTTL     string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 
 	// collector specific
 	ClockHZ string `json:"clock_hz" toml:"clock_hz" yaml:"clock_hz"`
@@ -54,13 +49,11 @@ func NewCPUCollector(cfgBaseName, procFSPath string) (collector.Collector, error
 	procFile := "stat"
 
 	c := CPU{}
-	c.id = CPU_NAME
+	c.id = NameCPU
 	c.pkgID = PKG_NAME + "." + c.id
 	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
 	c.procFSPath = procFSPath
 	c.file = filepath.Join(c.procFSPath, procFile)
-	c.metricStatus = map[string]bool{}
-	c.metricDefaultActive = true
 	c.baseTags = tags.FromList(tags.GetBaseTags())
 
 	c.numCPU = float64(runtime.NumCPU())
@@ -113,25 +106,6 @@ func NewCPUCollector(cfgBaseName, procFSPath string) (collector.Collector, error
 		c.file = filepath.Join(c.procFSPath, procFile)
 	}
 
-	if len(opts.MetricsEnabled) > 0 {
-		for _, name := range opts.MetricsEnabled {
-			c.metricStatus[name] = true
-		}
-	}
-	if len(opts.MetricsDisabled) > 0 {
-		for _, name := range opts.MetricsDisabled {
-			c.metricStatus[name] = false
-		}
-	}
-
-	if opts.MetricsDefaultStatus != "" {
-		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(opts.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(opts.MetricsDefaultStatus) == metricStatusEnabled
-		} else {
-			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, opts.MetricsDefaultStatus)
-		}
-	}
-
 	if opts.RunTTL != "" {
 		dur, err := time.ParseDuration(opts.RunTTL)
 		if err != nil {
@@ -170,169 +144,154 @@ func (c *CPU) Collect() error {
 	c.lastStart = time.Now()
 	c.Unlock()
 
-	f, err := os.Open(c.file)
+	tagUnitsCentiseconds := tags.Tag{Category: "units", Value: "centiseconds"} // aka jiffies
+
+	lines, err := c.readFile(c.file)
 	if err != nil {
 		c.setStatus(metrics, err)
 		return errors.Wrap(err, c.pkgID)
 	}
-	defer f.Close()
 
-	scanner := bufio.NewScanner(f)
+	for _, l := range lines {
 
-	for scanner.Scan() {
-
-		line := scanner.Text()
+		line := string(l)
 		fields := strings.Fields(line)
 
-		switch {
-		case fields[0] == "processes":
-			v, err := strconv.ParseUint(fields[1], 10, 64)
-			if err != nil {
-				c.setStatus(metrics, err)
-				return errors.Wrapf(err, "%s parsing %s", c.pkgID, fields[0])
-			}
-			c.addMetric(&metrics, c.id, fields[0], "L", v)
-
-		case fields[0] == "procs_running":
-			v, err := strconv.ParseUint(fields[1], 10, 64)
-			if err != nil {
-				c.setStatus(metrics, err)
-				return errors.Wrapf(err, "%s parsing %s", c.pkgID, fields[0])
-			}
-			c.addMetric(&metrics, c.id, "procs_runnable", "L", v)
-
-		case fields[0] == "procs_blocked":
-			v, err := strconv.ParseUint(fields[1], 10, 64)
-			if err != nil {
-				c.setStatus(metrics, err)
-				return errors.Wrapf(err, "%s parsing %s", c.pkgID, fields[0])
-			}
-			c.addMetric(&metrics, c.id, fields[0], "L", v)
-
-		case fields[0] == "ctxt":
-			v, err := strconv.ParseUint(fields[1], 10, 64)
-			if err != nil {
-				c.setStatus(metrics, err)
-				return errors.Wrapf(err, "%s parsing %s", c.pkgID, fields[0])
-			}
-			c.addMetric(&metrics, c.id, "context_switch", "L", v)
-
-		case strings.HasPrefix(fields[0], CPU_NAME):
-			if fields[0] != CPU_NAME && !c.reportAllCPUs {
-				continue
-			}
-			cpuMetrics, err := c.parseCPU(fields)
-			if err != nil {
-				c.setStatus(metrics, err)
-				return errors.Wrapf(err, "%s parsing %s", c.pkgID, fields[0])
-			}
-			for mn, mv := range *cpuMetrics {
-				c.addMetric(&metrics, c.id, mn, mv.Type, mv.Value)
-			}
+		if !strings.HasPrefix(fields[0], c.id) {
+			continue
 		}
-	}
 
-	if err := scanner.Err(); err != nil {
-		c.setStatus(metrics, err)
-		return errors.Wrapf(err, "%s parsing %s", c.pkgID, f.Name())
+		if fields[0] != c.id && !c.reportAllCPUs {
+			continue
+		}
+
+		id, cpuMetrics, err := c.parseCPU(fields)
+		if err != nil {
+			c.setStatus(metrics, err)
+			return errors.Wrapf(err, "%s parsing %s", c.pkgID, fields[0])
+		}
+
+		tagList := tags.Tags{tagUnitsCentiseconds}
+		if id != "" {
+			tagList = append(tagList, tags.Tag{Category: "cpu", Value: id})
+		}
+		for mn, mv := range *cpuMetrics {
+			_ = c.addMetric(&metrics, "", mn, mv.Type, mv.Value, tagList)
+		}
+
 	}
 
 	c.setStatus(metrics, nil)
 	return nil
 }
 
-func (c *CPU) parseCPU(fields []string) (*cgm.Metrics, error) {
+func (c *CPU) parseCPU(fields []string) (string, *cgm.Metrics, error) {
 	var numCPU float64
-	var metricBase string
+	var cpuID string
 
 	if fields[0] == "cpu" {
-		metricBase = ""
 		numCPU = c.numCPU // aggregate cpu metrics
 	} else {
-		metricBase = fields[0] + metricNameSeparator
 		numCPU = 1 // individual cpu metrics
+		cpuID = strings.Replace(fields[0], "cpu", "", 1)
 	}
 
 	metricType := "n" // resmon double
 
+	all := float64(0)
+	busy := float64(0)
+
 	userNormal, err := strconv.ParseFloat(fields[1], 64)
 	if err != nil {
-		return nil, err
+		return cpuID, nil, err
 	}
+	busy += userNormal
 
 	userNice, err := strconv.ParseFloat(fields[2], 64)
 	if err != nil {
-		return nil, err
+		return cpuID, nil, err
 	}
+	busy += userNice
 
 	sys, err := strconv.ParseFloat(fields[3], 64)
 	if err != nil {
-		return nil, err
+		return cpuID, nil, err
 	}
+	busy += sys
 
 	idleNormal, err := strconv.ParseFloat(fields[4], 64)
 	if err != nil {
-		return nil, err
+		return cpuID, nil, err
 	}
 
 	waitIO, err := strconv.ParseFloat(fields[5], 64)
 	if err != nil {
-		return nil, err
+		return cpuID, nil, err
 	}
+	busy += waitIO
 
 	irq, err := strconv.ParseFloat(fields[6], 64)
 	if err != nil {
-		return nil, err
+		return cpuID, nil, err
 	}
+	busy += irq
 
 	softIRQ, err := strconv.ParseFloat(fields[7], 64)
 	if err != nil {
-		return nil, err
+		return cpuID, nil, err
 	}
+	busy += softIRQ
 
 	steal := float64(0)
 	if len(fields) > 8 {
 		v, err := strconv.ParseFloat(fields[8], 64)
 		if err != nil {
-			return nil, err
+			return cpuID, nil, err
 		}
 		steal = v
+		busy += steal
 	}
 
 	guest := float64(0)
 	if len(fields) > 9 {
 		v, err := strconv.ParseFloat(fields[9], 64)
 		if err != nil {
-			return nil, err
+			return cpuID, nil, err
 		}
 		guest = v
+		busy += guest
 	}
 
 	guestNice := float64(0)
 	if len(fields) > 10 {
 		v, err := strconv.ParseFloat(fields[10], 64)
 		if err != nil {
-			return nil, err
+			return cpuID, nil, err
 		}
 		guestNice = v
+		busy += guestNice
 	}
+
+	all = busy + idleNormal
+	used := (busy / all) * 100
 
 	metrics := cgm.Metrics{
-		metricBase + "user": cgm.Metric{Type: metricType, Value: ((userNormal + userNice) / numCPU) / c.clockNorm},
-		metricBase + "user" + metricNameSeparator + "normal":       cgm.Metric{Type: metricType, Value: (userNormal / numCPU) / c.clockNorm},
-		metricBase + "user" + metricNameSeparator + "nice":         cgm.Metric{Type: metricType, Value: (userNice / numCPU) / c.clockNorm},
-		metricBase + "kernel":                                      cgm.Metric{Type: metricType, Value: ((sys + guest + guestNice) / numCPU) / c.clockNorm},
-		metricBase + "kernel" + metricNameSeparator + "sys":        cgm.Metric{Type: metricType, Value: (sys / numCPU) / c.clockNorm},
-		metricBase + "kernel" + metricNameSeparator + "guest":      cgm.Metric{Type: metricType, Value: (guest / numCPU) / c.clockNorm},
-		metricBase + "kernel" + metricNameSeparator + "guest_nice": cgm.Metric{Type: metricType, Value: (guestNice / numCPU) / c.clockNorm},
-		metricBase + "idle":                                        cgm.Metric{Type: metricType, Value: ((idleNormal + steal) / numCPU) / c.clockNorm},
-		metricBase + "idle" + metricNameSeparator + "normal":       cgm.Metric{Type: metricType, Value: (idleNormal / numCPU) / c.clockNorm},
-		metricBase + "idle" + metricNameSeparator + "steal":        cgm.Metric{Type: metricType, Value: (steal / numCPU) / c.clockNorm},
-		metricBase + "wait_io":                                     cgm.Metric{Type: metricType, Value: (waitIO / numCPU) / c.clockNorm},
-		metricBase + "intr":                                        cgm.Metric{Type: metricType, Value: ((irq + softIRQ) / numCPU) / c.clockNorm},
-		metricBase + "intr" + metricNameSeparator + "soft":         cgm.Metric{Type: metricType, Value: (irq / numCPU) / c.clockNorm},
-		metricBase + "intr" + metricNameSeparator + "hard":         cgm.Metric{Type: metricType, Value: (softIRQ / numCPU) / c.clockNorm},
+		"cpu_used":              cgm.Metric{Type: metricType, Value: used},
+		"cpu_user":              cgm.Metric{Type: metricType, Value: ((userNormal + userNice) / numCPU) / c.clockNorm},
+		"cpu_user_normal":       cgm.Metric{Type: metricType, Value: (userNormal / numCPU) / c.clockNorm},
+		"cpu_user_nice":         cgm.Metric{Type: metricType, Value: (userNice / numCPU) / c.clockNorm},
+		"cpu_kernel":            cgm.Metric{Type: metricType, Value: ((sys + guest + guestNice) / numCPU) / c.clockNorm},
+		"cpu_kernel_sys":        cgm.Metric{Type: metricType, Value: (sys / numCPU) / c.clockNorm},
+		"cpu_kernel_guest":      cgm.Metric{Type: metricType, Value: (guest / numCPU) / c.clockNorm},
+		"cpu_kernel_guest_nice": cgm.Metric{Type: metricType, Value: (guestNice / numCPU) / c.clockNorm},
+		"cpu_idle":              cgm.Metric{Type: metricType, Value: ((idleNormal + steal) / numCPU) / c.clockNorm},
+		"cpu_idle_normal":       cgm.Metric{Type: metricType, Value: (idleNormal / numCPU) / c.clockNorm},
+		"cpu_idle_steal":        cgm.Metric{Type: metricType, Value: (steal / numCPU) / c.clockNorm},
+		"cpu_wait_io":           cgm.Metric{Type: metricType, Value: (waitIO / numCPU) / c.clockNorm},
+		"cpu_intr":              cgm.Metric{Type: metricType, Value: ((irq + softIRQ) / numCPU) / c.clockNorm},
+		"cpu_intr_soft":         cgm.Metric{Type: metricType, Value: (softIRQ / numCPU) / c.clockNorm},
+		"cpu_intr_hard":         cgm.Metric{Type: metricType, Value: (irq / numCPU) / c.clockNorm},
 	}
 
-	return &metrics, nil
+	return cpuID, &metrics, nil
 }

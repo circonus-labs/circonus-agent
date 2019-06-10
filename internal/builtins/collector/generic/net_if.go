@@ -120,6 +120,11 @@ func (c *IF) Collect() error {
 		return nil
 	}
 
+	// units:packets
+	tagUnitsPackets := tags.Tag{Category: "units", Value: "packets"}
+	// units:bytes
+	tagUnitsBytes := tags.Tag{Category: "units", Value: "bytes"}
+
 	for _, iface := range ifaces {
 		if c.exclude.MatchString(iface.Name) || !c.include.MatchString(iface.Name) {
 			c.logger.Debug().Str("iface", iface.Name).Msg("excluded iface name, skipping")
@@ -128,10 +133,6 @@ func (c *IF) Collect() error {
 
 		// interface tag(s)
 		ifTags := tags.Tags{tags.Tag{Category: "network-interface", Value: iface.Name}}
-		// units:packets
-		tagUnitsPackets := tags.Tag{Category: "units", Value: "packets"}
-		// units:bytes
-		tagUnitsBytes := tags.Tag{Category: "units", Value: "bytes"}
 
 		{
 			var tagList tags.Tags

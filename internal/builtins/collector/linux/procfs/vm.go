@@ -8,10 +8,8 @@
 package procfs
 
 import (
-	"bufio"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -26,18 +24,15 @@ import (
 
 // VM metrics from the Linux ProcFS
 type VM struct {
-	pfscommon
+	common
 }
 
 // vmOptions defines what elements can be overridden in a config file
 type vmOptions struct {
 	// common
-	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	ProcFSPath           string   `json:"procfs_path" toml:"procfs_path" yaml:"procfs_path"`
-	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
-	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
-	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
+	ID         string `json:"id" toml:"id" yaml:"id"`
+	ProcFSPath string `json:"procfs_path" toml:"procfs_path" yaml:"procfs_path"`
+	RunTTL     string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
 // NewVMCollector creates new procfs vm collector
@@ -45,13 +40,11 @@ func NewVMCollector(cfgBaseName, procFSPath string) (collector.Collector, error)
 	procFile := "meminfo"
 
 	c := VM{}
-	c.id = VM_NAME
+	c.id = NameVM
 	c.pkgID = PKG_NAME + "." + c.id
 	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
 	c.procFSPath = procFSPath
 	c.file = filepath.Join(c.procFSPath, procFile)
-	c.metricStatus = map[string]bool{}
-	c.metricDefaultActive = true
 	c.baseTags = tags.FromList(tags.GetBaseTags())
 
 	if cfgBaseName == "" {
@@ -80,25 +73,6 @@ func NewVMCollector(cfgBaseName, procFSPath string) (collector.Collector, error)
 	if opts.ProcFSPath != "" {
 		c.procFSPath = opts.ProcFSPath
 		c.file = filepath.Join(c.procFSPath, procFile)
-	}
-
-	if len(opts.MetricsEnabled) > 0 {
-		for _, name := range opts.MetricsEnabled {
-			c.metricStatus[name] = true
-		}
-	}
-	if len(opts.MetricsDisabled) > 0 {
-		for _, name := range opts.MetricsDisabled {
-			c.metricStatus[name] = false
-		}
-	}
-
-	if opts.MetricsDefaultStatus != "" {
-		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(opts.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(opts.MetricsDefaultStatus) == metricStatusEnabled
-		} else {
-			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, opts.MetricsDefaultStatus)
-		}
 	}
 
 	if opts.RunTTL != "" {
@@ -154,16 +128,15 @@ func (c *VM) Collect() error {
 }
 
 func (c *VM) parseMemstats(metrics *cgm.Metrics) error {
-	f, err := os.Open(c.file)
+	lines, err := c.readFile(c.file)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "parsing %s", c.file)
 	}
-	defer f.Close()
 
-	scanner := bufio.NewScanner(f)
 	stats := make(map[string]uint64)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
+
+	for _, l := range lines {
+		line := strings.TrimSpace(string(l))
 		fields := strings.Fields(line)
 
 		if len(fields) < 2 {
@@ -190,15 +163,11 @@ func (c *VM) parseMemstats(metrics *cgm.Metrics) error {
 		stats[name] = v
 	}
 
-	if err := scanner.Err(); err != nil {
-		return errors.Wrapf(err, "parsing %s", f.Name())
-	}
-
 	var memTotal, memFree, memCached, memBuffers, memSReclaimable, memShared, swapTotal, swapFree uint64
 	for metricName, mval := range stats {
-		pfx := c.id + metricNameSeparator + "meminfo"
-		mname := metricName
-		mtype := "L"
+		// pfx := c.id + metricNameSeparator + "meminfo"
+		// mname := metricName
+		// mtype := "L"
 		switch metricName {
 		case "MemTotal":
 			memTotal = mval
@@ -217,7 +186,7 @@ func (c *VM) parseMemstats(metrics *cgm.Metrics) error {
 		case "Cached":
 			memCached = mval
 		}
-		c.addMetric(metrics, pfx, mname, mtype, mval)
+		// c.addMetric(metrics, pfx, mname, mtype, mval)
 	}
 
 	// `htop` based calculations
@@ -233,52 +202,53 @@ func (c *VM) parseMemstats(metrics *cgm.Metrics) error {
 	memFreeTotal := htFreeTotal
 	memUsed := htUsedTotal
 
-	memFreePct := (float64(memFreeTotal) / float64(memTotal))
-	memUsedPct := (float64(memUsed) / float64(memTotal))
+	memFreePct := (float64(memFreeTotal) / float64(memTotal)) * 100
+	memUsedPct := (float64(memUsed) / float64(memTotal)) * 100
 
 	swapUsed := swapTotal - swapFree
 	swapFreePct := 0.0
 	swapUsedPct := 0.0
 	if swapTotal > 0 {
-		swapFreePct = (float64(swapFree) / float64(swapTotal))
-		swapUsedPct = (float64(swapUsed) / float64(swapTotal))
+		swapFreePct = (float64(swapFree) / float64(swapTotal)) * 100
+		swapUsedPct = (float64(swapUsed) / float64(swapTotal)) * 100
 	}
 
-	pfx := c.id + metricNameSeparator + "memory"
-	c.addMetric(metrics, pfx, "free", "L", memFreeTotal)
-	c.addMetric(metrics, pfx, "free_percent", "n", memFreePct*100)
-	c.addMetric(metrics, pfx, "percent_free", "n", memFreePct)
-	c.addMetric(metrics, pfx, "percent_used", "n", memUsedPct)
-	c.addMetric(metrics, pfx, "total", "L", memTotal)
-	c.addMetric(metrics, pfx, "used", "L", memUsed)
-	c.addMetric(metrics, pfx, "used_percent", "n", memUsedPct*100)
+	tagUnitsBytes := tags.Tag{Category: "units", Value: "bytes"}
+	tagUnitsPercent := tags.Tag{Category: "units", Value: "percent"}
 
-	pfx = c.id + metricNameSeparator + "swap"
-	c.addMetric(metrics, pfx, "free", "L", swapTotal-swapUsed)
-	c.addMetric(metrics, pfx, "free_percent", "n", swapFreePct*100)
-	c.addMetric(metrics, pfx, "percent_free", "n", swapFreePct)
-	c.addMetric(metrics, pfx, "percent_used", "n", swapUsedPct)
-	c.addMetric(metrics, pfx, "total", "L", swapTotal)
-	c.addMetric(metrics, pfx, "used", "L", swapUsed)
-	c.addMetric(metrics, pfx, "used_percent", "n", swapUsedPct*100)
+	// pfx := c.id + metricNameSeparator + "memory"
+	_ = c.addMetric(metrics, "", "memory_total", "L", memTotal, tags.Tags{tagUnitsBytes})
+	_ = c.addMetric(metrics, "", "memory_free", "L", memFreeTotal, tags.Tags{tagUnitsBytes})
+	_ = c.addMetric(metrics, "", "memory_free", "n", memFreePct, tags.Tags{tagUnitsPercent})
+	_ = c.addMetric(metrics, "", "memory_used", "n", memUsedPct, tags.Tags{tagUnitsPercent})
+	_ = c.addMetric(metrics, "", "memory_used", "L", memUsed, tags.Tags{tagUnitsBytes})
+	_ = c.addMetric(metrics, "", "buffers", "L", memBuffers, tags.Tags{tagUnitsBytes})
+	_ = c.addMetric(metrics, "", "cached", "L", memCached, tags.Tags{tagUnitsBytes})
+	_ = c.addMetric(metrics, "", "shared", "L", memShared, tags.Tags{tagUnitsBytes})
+	_ = c.addMetric(metrics, "", "cached", "L", memCached, tags.Tags{tagUnitsBytes})
+	_ = c.addMetric(metrics, "", "slab_reclaimable", "L", memSReclaimable, tags.Tags{tagUnitsBytes})
+
+	// pfx = c.id + metricNameSeparator + "swap"
+	_ = c.addMetric(metrics, "", "swap_total", "L", swapTotal, tags.Tags{tagUnitsBytes})
+	_ = c.addMetric(metrics, "", "swap_free", "L", swapTotal-swapUsed, tags.Tags{tagUnitsBytes})
+	_ = c.addMetric(metrics, "", "swap_free", "n", swapFreePct, tags.Tags{tagUnitsPercent})
+	_ = c.addMetric(metrics, "", "swap_used", "L", swapUsed, tags.Tags{tagUnitsBytes})
+	_ = c.addMetric(metrics, "", "swap_used", "n", swapUsedPct*100, tags.Tags{tagUnitsPercent})
 
 	return nil
 }
 
 func (c *VM) parseVMstats(metrics *cgm.Metrics) error {
 	file := strings.Replace(c.file, "meminfo", "vmstat", -1)
-	f, err := os.Open(file)
+	lines, err := c.readFile(file)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "parsing %s", file)
 	}
-	defer f.Close()
 
-	scanner := bufio.NewScanner(f)
+	var pgFaults, pgMajorFaults, pgScan, pgSwap uint64
 
-	var pgFaults, pgMajorFaults, pgScan uint64
-	for scanner.Scan() {
-
-		line := strings.TrimSpace(scanner.Text())
+	for _, l := range lines {
+		line := strings.TrimSpace(string(l))
 		fields := strings.Fields(line)
 
 		if len(fields) != 2 {
@@ -308,7 +278,7 @@ func (c *VM) parseVMstats(metrics *cgm.Metrics) error {
 				c.logger.Warn().Err(err).Msg("parsing field " + fields[0])
 				continue
 			}
-			c.addMetric(metrics, c.id+metricNameSeparator+"vmstat", fields[0], "L", v)
+			pgSwap = v
 
 		case strings.HasPrefix(fields[0], "pgscan"):
 			v, err := strconv.ParseUint(fields[1], 10, 64)
@@ -323,15 +293,15 @@ func (c *VM) parseVMstats(metrics *cgm.Metrics) error {
 		}
 	}
 
-	if err := scanner.Err(); err != nil {
-		return errors.Wrapf(err, "parsing %s", f.Name())
-	}
-
-	pfx := c.id + metricNameSeparator + "info"
-	c.addMetric(metrics, pfx, "page_fault", "L", pgFaults)
-	c.addMetric(metrics, pfx, "page_fault"+metricNameSeparator+"major", "L", pgMajorFaults)
-	c.addMetric(metrics, pfx, "page_fault"+metricNameSeparator+"minor", "L", pgFaults-pgMajorFaults)
-	c.addMetric(metrics, pfx, "page_scan", "L", pgScan)
+	metricType := "L"
+	tagUnitsFaults := tags.Tag{Category: "units", Value: "faults"}
+	tagUnitsScans := tags.Tag{Category: "units", Value: "scans"}
+	tagUnitsSwaps := tags.Tag{Category: "units", Value: "swaps"}
+	_ = c.addMetric(metrics, "", "pg_fault", metricType, pgFaults, tags.Tags{tagUnitsFaults})
+	_ = c.addMetric(metrics, "", "pg_fault_major", metricType, pgMajorFaults, tags.Tags{tagUnitsFaults})
+	_ = c.addMetric(metrics, "", "pg_fault__minor", metricType, pgFaults-pgMajorFaults, tags.Tags{tagUnitsFaults})
+	_ = c.addMetric(metrics, "", "pg_swap", "L", pgSwap, tags.Tags{tagUnitsSwaps})
+	_ = c.addMetric(metrics, "", "pg_scan", metricType, pgScan, tags.Tags{tagUnitsScans})
 
 	return nil
 }
