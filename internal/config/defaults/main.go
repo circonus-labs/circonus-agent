@@ -191,9 +191,10 @@ func init() {
 	case "linux":
 		Collectors = []string{
 			"procfs/cpu",
-			"procfs/diskstats",
+			"procfs/disk",
 			"procfs/if",
-			"procfs/loadavg",
+			"procfs/load",
+			"procfs/proto",
 			"procfs/vm",
 		}
 	case "windows":
@@ -215,8 +216,8 @@ func init() {
 			"generic/cpu",
 			"generic/disk",
 			"generic/fs",
-			"generic/load",
 			"generic/if",
+			"generic/load",
 			"generic/proto",
 			"generic/vm",
 		}
