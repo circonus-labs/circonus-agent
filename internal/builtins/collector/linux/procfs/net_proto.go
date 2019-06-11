@@ -49,8 +49,8 @@ func NewNetProtoCollector(cfgBaseName, procFSPath string) (collector.Collector, 
 
 	c := NetProto{}
 	c.id = NameNetProto
-	c.pkgID = PKG_NAME + "." + c.id
-	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
+	c.pkgID = PackageName + "." + c.id
+	c.logger = log.With().Str("pkg", PackageName).Str("id", c.id).Logger()
 	c.procFSPath = procFSPath
 	c.file = filepath.Join(c.procFSPath, procFile)
 	c.baseTags = tags.FromList(tags.GetBaseTags())
