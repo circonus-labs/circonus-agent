@@ -153,9 +153,7 @@ func (c *CPU) Collect() error {
 		return errors.Wrap(err, c.pkgID)
 	}
 
-	for _, l := range lines {
-
-		line := string(l)
+	for _, line := range lines {
 		fields := strings.Fields(line)
 
 		if !strings.HasPrefix(fields[0], c.id) {
@@ -172,17 +170,19 @@ func (c *CPU) Collect() error {
 			return errors.Wrapf(err, "%s parsing %s", c.pkgID, fields[0])
 		}
 
-		tagList := tags.Tags{tagUnitsCentiseconds}
-		if id != "" {
-			tagList = append(tagList, tags.Tag{Category: "cpu", Value: id})
-		}
 		for mn, mv := range *cpuMetrics {
-			if mn == "cpu_used" {
-				tagList = tags.Tags{tagUnitsPercent}
-				if id != "" {
-					tagList = append(tagList, tags.Tag{Category: "cpu", Value: id})
-				}
+			var tagList tags.Tags
+
+			if id != "" {
+				tagList = append(tagList, tags.Tag{Category: "cpu", Value: id})
 			}
+
+			if mn == "cpu_used" {
+				tagList = append(tagList, tagUnitsPercent)
+			} else {
+				tagList = append(tagList, tagUnitsCentiseconds)
+			}
+
 			_ = c.addMetric(&metrics, "", mn, mv.Type, mv.Value, tagList)
 		}
 
