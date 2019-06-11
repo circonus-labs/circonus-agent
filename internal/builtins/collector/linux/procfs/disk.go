@@ -26,8 +26,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Diskstats metrics from the Linux ProcFS
-type Diskstats struct {
+// Disk metrics from the Linux ProcFS
+type Disk struct {
 	common
 	include           *regexp.Regexp
 	exclude           *regexp.Regexp
@@ -35,8 +35,8 @@ type Diskstats struct {
 	sectorSizeCache   map[string]uint64
 }
 
-// diskstatsOptions defines what elements can be overridden in a config file
-type diskstatsOptions struct {
+// diskOptions defines what elements can be overridden in a config file
+type diskOptions struct {
 	// common
 	ID         string `json:"id" toml:"id" yaml:"id"`
 	ProcFSPath string `json:"procfs_path" toml:"procfs_path" yaml:"procfs_path"`
@@ -65,14 +65,14 @@ type dstats struct {
 	iomsWeighted    uint64
 }
 
-// NewDiskstatsCollector creates new procfs diskstats collector
-func NewDiskstatsCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
-	procFile := NameDiskstats
+// NewDiskCollector creates new procfs disk collector
+func NewDiskCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
+	procFile := "diskstats"
 
-	c := Diskstats{}
-	c.id = NameDiskstats
-	c.pkgID = PKG_NAME + "." + c.id
-	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
+	c := Disk{}
+	c.id = NameDisk
+	c.pkgID = PackageName + "." + c.id
+	c.logger = log.With().Str("pkg", PackageName).Str("id", c.id).Logger()
 	c.procFSPath = procFSPath
 	c.file = filepath.Join(c.procFSPath, procFile)
 	c.sectorSizeCache = make(map[string]uint64)
@@ -89,7 +89,7 @@ func NewDiskstatsCollector(cfgBaseName, procFSPath string) (collector.Collector,
 		return &c, nil
 	}
 
-	var opts diskstatsOptions
+	var opts diskOptions
 	err := config.LoadConfigFile(cfgBaseName, &opts)
 	if err != nil {
 		if strings.Contains(err.Error(), "no config found matching") {
@@ -150,7 +150,7 @@ func NewDiskstatsCollector(cfgBaseName, procFSPath string) (collector.Collector,
 }
 
 // Collect metrics from the procfs resource
-func (c *Diskstats) Collect() error {
+func (c *Disk) Collect() error {
 	metrics := cgm.Metrics{}
 
 	c.Lock()
@@ -296,7 +296,7 @@ func (c *Diskstats) Collect() error {
 	return nil
 }
 
-func (c *Diskstats) getSectorSize(dev string) uint64 {
+func (c *Disk) getSectorSize(dev string) uint64 {
 	if sz, have := c.sectorSizeCache[dev]; have {
 		return sz
 	}
@@ -322,7 +322,7 @@ func (c *Diskstats) getSectorSize(dev string) uint64 {
 	return v
 }
 
-func (c *Diskstats) parse(fields []string) (*dstats, error) {
+func (c *Disk) parse(fields []string) (*dstats, error) {
 	devName := fields[2]
 	if devName == "" {
 		c.logger.Debug().Msg("invalid device name (empty), ignoring")
@@ -418,7 +418,7 @@ func (c *Diskstats) parse(fields []string) (*dstats, error) {
 	return &d, nil
 }
 
-func (c *Diskstats) parsemdstat() map[string][]string {
+func (c *Disk) parsemdstat() map[string][]string {
 	mdstatFile := strings.Replace(c.file, c.id, "mdstat", -1)
 	mdList := make(map[string][]string)
 
