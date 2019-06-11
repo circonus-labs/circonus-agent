@@ -8,7 +8,8 @@
 package procfs
 
 import (
-	"io/ioutil"
+	"bufio"
+	"os"
 	"regexp"
 	"sync"
 	"time"
@@ -154,9 +155,24 @@ func (c *common) setStatus(metrics cgm.Metrics, err error) {
 	c.Unlock()
 }
 
-func (c *common) readFile(file string) ([]byte, error) {
+func (c *common) readFile(file string) ([]string, error) {
 	if file == "" {
 		return nil, errors.New("invalid file (empty)")
 	}
-	return ioutil.ReadFile(file)
+
+	f, err := os.Open(file)
+	if err != nil {
+		return nil, errors.Wrapf(err, "opening file (%s)", file)
+	}
+
+	var lines []string
+	s := bufio.NewScanner(f)
+	for s.Scan() {
+		lines = append(lines, s.Text())
+	}
+	if err := s.Err(); err != nil {
+		return lines, errors.Wrapf(err, "scanning file (%s) [close:%v]", file, f.Close())
+	}
+
+	return lines, f.Close()
 }
