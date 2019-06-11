@@ -45,8 +45,8 @@ func NewLoadCollector(cfgBaseName, procFSPath string) (collector.Collector, erro
 
 	c := Load{}
 	c.id = NameLoad
-	c.pkgID = PKG_NAME + "." + c.id
-	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
+	c.pkgID = PackageName + "." + c.id
+	c.logger = log.With().Str("pkg", PackageName).Str("id", c.id).Logger()
 	c.procFSPath = procFSPath
 	c.file = filepath.Join(c.procFSPath, procFile)
 	c.processStatsFile = filepath.Join(c.procFSPath, "stat")
@@ -170,7 +170,7 @@ func (c *Load) Collect() error {
 			return errors.Wrap(err, c.pkgID)
 		}
 
-		var processes, running, blocked, ctxswitch uint64
+		var processes, running, blocked, ctxswitch int64
 
 		for _, l := range lines {
 			var lineErr error
@@ -179,16 +179,16 @@ func (c *Load) Collect() error {
 
 			switch fields[0] {
 			case "processes":
-				processes, lineErr = strconv.ParseUint(fields[1], 10, 64)
+				processes, lineErr = strconv.ParseInt(fields[1], 10, 64)
 
 			case "procs_running":
-				running, lineErr = strconv.ParseUint(fields[1], 10, 64)
+				running, lineErr = strconv.ParseInt(fields[1], 10, 64)
 
 			case "procs_blocked":
-				blocked, lineErr = strconv.ParseUint(fields[1], 10, 64)
+				blocked, lineErr = strconv.ParseInt(fields[1], 10, 64)
 
 			case "ctxt":
-				ctxswitch, lineErr = strconv.ParseUint(fields[1], 10, 64)
+				ctxswitch, lineErr = strconv.ParseInt(fields[1], 10, 64)
 			default:
 				continue
 			}
@@ -199,7 +199,7 @@ func (c *Load) Collect() error {
 			}
 		}
 
-		metricType := "L"
+		metricType := "l"
 
 		{
 			tagList := tags.Tags{tagUnitsProcesses}
