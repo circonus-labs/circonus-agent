@@ -22,11 +22,11 @@ import (
 )
 
 const (
-	PROCFS_PREFIX       = "procfs/"
-	PKG_NAME            = "builtins.linux.procfs"
-	PROC_FS_PATH        = "/proc"
+	CollectorPrefix     = "procfs/"
+	PackageName         = "builtins.linux.procfs"
+	ProcFSPath          = "/proc"
 	NameCPU             = "cpu"
-	NameDiskstats       = "diskstats"
+	NameDisk            = "disk"
 	NameNetInterface    = "if"
 	NameNetProto        = "proto"
 	NameNetSocket       = "socket"
@@ -60,22 +60,22 @@ func New() ([]collector.Collector, error) {
 	collectors := make([]collector.Collector, 0, len(enbledCollectors))
 	initErrMsg := "initializing builtin collector"
 	for _, name := range enbledCollectors {
-		if !strings.HasPrefix(name, PROCFS_PREFIX) {
+		if !strings.HasPrefix(name, CollectorPrefix) {
 			continue
 		}
-		name = strings.Replace(name, PROCFS_PREFIX, "", -1)
+		name = strings.Replace(name, CollectorPrefix, "", -1)
 		cfgBase := "procfs_" + name + "_collector"
 		switch name {
 		case NameCPU:
-			c, err := NewCPUCollector(path.Join(defaults.EtcPath, cfgBase), PROC_FS_PATH)
+			c, err := NewCPUCollector(path.Join(defaults.EtcPath, cfgBase), ProcFSPath)
 			if err != nil {
 				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
 				continue
 			}
 			collectors = append(collectors, c)
 
-		case NameDiskstats:
-			c, err := NewDiskstatsCollector(path.Join(defaults.EtcPath, cfgBase), PROC_FS_PATH)
+		case NameDisk:
+			c, err := NewDiskCollector(path.Join(defaults.EtcPath, cfgBase), ProcFSPath)
 			if err != nil {
 				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
 				continue
@@ -83,7 +83,7 @@ func New() ([]collector.Collector, error) {
 			collectors = append(collectors, c)
 
 		case NameNetInterface:
-			c, err := NewNetIFCollector(path.Join(defaults.EtcPath, cfgBase), PROC_FS_PATH)
+			c, err := NewNetIFCollector(path.Join(defaults.EtcPath, cfgBase), ProcFSPath)
 			if err != nil {
 				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
 				continue
@@ -91,7 +91,7 @@ func New() ([]collector.Collector, error) {
 			collectors = append(collectors, c)
 
 		case NameNetProto:
-			c, err := NewNetProtoCollector(path.Join(defaults.EtcPath, cfgBase), PROC_FS_PATH)
+			c, err := NewNetProtoCollector(path.Join(defaults.EtcPath, cfgBase), ProcFSPath)
 			if err != nil {
 				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
 				continue
@@ -99,7 +99,7 @@ func New() ([]collector.Collector, error) {
 			collectors = append(collectors, c)
 
 		case NameNetSocket:
-			c, err := NewNetSocketCollector(path.Join(defaults.EtcPath, cfgBase), PROC_FS_PATH)
+			c, err := NewNetSocketCollector(path.Join(defaults.EtcPath, cfgBase), ProcFSPath)
 			if err != nil {
 				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
 				continue
@@ -107,7 +107,7 @@ func New() ([]collector.Collector, error) {
 			collectors = append(collectors, c)
 
 		case NameLoad:
-			c, err := NewLoadCollector(path.Join(defaults.EtcPath, cfgBase), PROC_FS_PATH)
+			c, err := NewLoadCollector(path.Join(defaults.EtcPath, cfgBase), ProcFSPath)
 			if err != nil {
 				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
 				continue
@@ -115,7 +115,7 @@ func New() ([]collector.Collector, error) {
 			collectors = append(collectors, c)
 
 		case NameVM:
-			c, err := NewVMCollector(path.Join(defaults.EtcPath, cfgBase), PROC_FS_PATH)
+			c, err := NewVMCollector(path.Join(defaults.EtcPath, cfgBase), ProcFSPath)
 			if err != nil {
 				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
 				continue

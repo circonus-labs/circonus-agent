@@ -41,8 +41,8 @@ func NewVMCollector(cfgBaseName, procFSPath string) (collector.Collector, error)
 
 	c := VM{}
 	c.id = NameVM
-	c.pkgID = PKG_NAME + "." + c.id
-	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
+	c.pkgID = PackageName + "." + c.id
+	c.logger = log.With().Str("pkg", PackageName).Str("id", c.id).Logger()
 	c.procFSPath = procFSPath
 	c.file = filepath.Join(c.procFSPath, procFile)
 	c.baseTags = tags.FromList(tags.GetBaseTags())
@@ -133,7 +133,10 @@ func (c *VM) parseMemstats(metrics *cgm.Metrics) error {
 		return errors.Wrapf(err, "parsing %s", c.file)
 	}
 
-	stats := make(map[string]uint64)
+	var memTotal, memFree, memCached, memBuffers, memSReclaimable, memShared, swapTotal, swapFree uint64
+	tagUnitsBytes := tags.Tag{Category: "units", Value: "bytes"}
+	tagUnitsPercent := tags.Tag{Category: "units", Value: "percent"}
+	tagUnitsHugePages := tags.Tag{Category: "units", Value: "hugepages"}
 
 	for _, l := range lines {
 		line := strings.TrimSpace(string(l))
@@ -160,33 +163,72 @@ func (c *VM) parseMemstats(metrics *cgm.Metrics) error {
 			v *= uint64(1024)
 		}
 
-		stats[name] = v
-	}
-
-	var memTotal, memFree, memCached, memBuffers, memSReclaimable, memShared, swapTotal, swapFree uint64
-	for metricName, mval := range stats {
-		// pfx := c.id + metricNameSeparator + "meminfo"
-		// mname := metricName
-		// mtype := "L"
-		switch metricName {
+		switch name {
 		case "MemTotal":
-			memTotal = mval
+			memTotal = v
 		case "MemFree":
-			memFree = mval
-		case "SwapTotal":
-			swapTotal = mval
-		case "SwapFree":
-			swapFree = mval
-		case "SReclaimable":
-			memSReclaimable = mval
-		case "Shmem":
-			memShared = mval
+			memFree = v
+		case "MemAvailable":
+			_ = c.addMetric(metrics, "", "memory_available", "L", v, tags.Tags{tagUnitsBytes})
 		case "Buffers":
-			memBuffers = mval
+			memBuffers = v
 		case "Cached":
-			memCached = mval
+			memCached = v
+		case "Active":
+			_ = c.addMetric(metrics, "", "active", "L", v, tags.Tags{tagUnitsBytes})
+		case "Inactive":
+			_ = c.addMetric(metrics, "", "inactive", "L", v, tags.Tags{tagUnitsBytes})
+		case "Active(file)":
+			_ = c.addMetric(metrics, "", "active_file", "L", v, tags.Tags{tagUnitsBytes})
+		case "Inactive(file)":
+			_ = c.addMetric(metrics, "", "inactive_file", "L", v, tags.Tags{tagUnitsBytes})
+		case "Writeback":
+			_ = c.addMetric(metrics, "", "writeback", "L", v, tags.Tags{tagUnitsBytes})
+		case "WritebackTmp":
+			_ = c.addMetric(metrics, "", "writeback_tmp", "L", v, tags.Tags{tagUnitsBytes})
+		case "Dirty":
+			_ = c.addMetric(metrics, "", "dirty", "L", v, tags.Tags{tagUnitsBytes})
+		case "Shmem":
+			memShared = v
+		case "Slab":
+			_ = c.addMetric(metrics, "", "slab", "L", v, tags.Tags{tagUnitsBytes})
+		case "SReclaimable":
+			memSReclaimable = v
+		case "PageTables":
+			_ = c.addMetric(metrics, "", "page_tables", "L", v, tags.Tags{tagUnitsBytes})
+		case "SwapCached":
+			_ = c.addMetric(metrics, "", "swap_cached", "L", v, tags.Tags{tagUnitsBytes})
+		case "CommitLimit":
+			_ = c.addMetric(metrics, "", "commit_limit", "L", v, tags.Tags{tagUnitsBytes})
+		case "Committed_AS":
+			_ = c.addMetric(metrics, "", "committed_as", "L", v, tags.Tags{tagUnitsBytes})
+		case "HighTotal":
+			_ = c.addMetric(metrics, "", "high_total", "L", v, tags.Tags{tagUnitsBytes})
+		case "HighFree":
+			_ = c.addMetric(metrics, "", "high_free", "L", v, tags.Tags{tagUnitsBytes})
+		case "LowTotal":
+			_ = c.addMetric(metrics, "", "low_total", "L", v, tags.Tags{tagUnitsBytes})
+		case "LowFree":
+			_ = c.addMetric(metrics, "", "low_free", "L", v, tags.Tags{tagUnitsBytes})
+		case "SwapTotal":
+			swapTotal = v
+		case "SwapFree":
+			swapFree = v
+		case "Mapped":
+			_ = c.addMetric(metrics, "", "mapped", "L", v, tags.Tags{tagUnitsBytes})
+		case "VmallocTotal":
+			_ = c.addMetric(metrics, "", "vm_alloc_total", "L", v, tags.Tags{tagUnitsBytes})
+		case "VmallocUsed":
+			_ = c.addMetric(metrics, "", "vm_alloc_used", "L", v, tags.Tags{tagUnitsBytes})
+		case "VmallocChunk":
+			_ = c.addMetric(metrics, "", "vm_alloc_chunk", "L", v, tags.Tags{tagUnitsBytes})
+		case "HugePages_Total":
+			_ = c.addMetric(metrics, "", "huge_pages_total", "L", v, tags.Tags{tagUnitsHugePages})
+		case "HugePages_Free":
+			_ = c.addMetric(metrics, "", "huge_pages_free", "L", v, tags.Tags{tagUnitsHugePages})
+		case "Hugepagesize":
+			_ = c.addMetric(metrics, "", "huge_page_size", "L", v, tags.Tags{tagUnitsBytes})
 		}
-		// c.addMetric(metrics, pfx, mname, mtype, mval)
 	}
 
 	// `htop` based calculations
@@ -213,10 +255,6 @@ func (c *VM) parseMemstats(metrics *cgm.Metrics) error {
 		swapUsedPct = (float64(swapUsed) / float64(swapTotal)) * 100
 	}
 
-	tagUnitsBytes := tags.Tag{Category: "units", Value: "bytes"}
-	tagUnitsPercent := tags.Tag{Category: "units", Value: "percent"}
-
-	// pfx := c.id + metricNameSeparator + "memory"
 	_ = c.addMetric(metrics, "", "memory_total", "L", memTotal, tags.Tags{tagUnitsBytes})
 	_ = c.addMetric(metrics, "", "memory_free", "L", memFreeTotal, tags.Tags{tagUnitsBytes})
 	_ = c.addMetric(metrics, "", "memory_free", "n", memFreePct, tags.Tags{tagUnitsPercent})
@@ -225,10 +263,8 @@ func (c *VM) parseMemstats(metrics *cgm.Metrics) error {
 	_ = c.addMetric(metrics, "", "buffers", "L", memBuffers, tags.Tags{tagUnitsBytes})
 	_ = c.addMetric(metrics, "", "cached", "L", memCached, tags.Tags{tagUnitsBytes})
 	_ = c.addMetric(metrics, "", "shared", "L", memShared, tags.Tags{tagUnitsBytes})
-	_ = c.addMetric(metrics, "", "cached", "L", memCached, tags.Tags{tagUnitsBytes})
 	_ = c.addMetric(metrics, "", "slab_reclaimable", "L", memSReclaimable, tags.Tags{tagUnitsBytes})
 
-	// pfx = c.id + metricNameSeparator + "swap"
 	_ = c.addMetric(metrics, "", "swap_total", "L", swapTotal, tags.Tags{tagUnitsBytes})
 	_ = c.addMetric(metrics, "", "swap_free", "L", swapTotal-swapUsed, tags.Tags{tagUnitsBytes})
 	_ = c.addMetric(metrics, "", "swap_free", "n", swapFreePct, tags.Tags{tagUnitsPercent})
