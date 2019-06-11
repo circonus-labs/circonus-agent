@@ -217,7 +217,6 @@ func (c *Disk) Collect() error {
 	// get list of devices for each entry in mdstats (if it exists)
 	mdList := c.parsemdstat()
 	mdrx := regexp.MustCompile(`^md[0-9]+`)
-	pfx := c.id + metricNameSeparator
 	metricType := "L" // uint64
 	for devID, devStats := range stats {
 
@@ -247,34 +246,34 @@ func (c *Disk) Collect() error {
 		{
 			tagList := tags.Tags{unitOperationsTag}
 			tagList = append(tagList, diskTags...)
-			c.addMetric(&metrics, pfx+devID, "reads", metricType, devStats.readsCompleted, tagList)
-			c.addMetric(&metrics, pfx+devID, "merged_reads", metricType, devStats.readsMerged, tagList)
-			c.addMetric(&metrics, pfx+devID, "writes", metricType, devStats.writesCompleted, tagList)
-			c.addMetric(&metrics, pfx+devID, "merged_writes", metricType, devStats.writesMerged, tagList)
-			c.addMetric(&metrics, pfx+devID, "iops_in_progress", metricType, devStats.currIO, tagList)
+			c.addMetric(&metrics, "", "reads", metricType, devStats.readsCompleted, tagList)
+			c.addMetric(&metrics, "", "merged_reads", metricType, devStats.readsMerged, tagList)
+			c.addMetric(&metrics, "", "writes", metricType, devStats.writesCompleted, tagList)
+			c.addMetric(&metrics, "", "merged_writes", metricType, devStats.writesMerged, tagList)
+			c.addMetric(&metrics, "", "iops_in_progress", metricType, devStats.currIO, tagList)
 		}
 
 		{
 			tagList := tags.Tags{unitSectorsTag}
 			tagList = append(tagList, diskTags...)
-			c.addMetric(&metrics, pfx+devID, "reads", metricType, devStats.sectorsRead, tagList)
-			c.addMetric(&metrics, pfx+devID, "writes", metricType, devStats.sectorsWritten, tagList)
+			c.addMetric(&metrics, "", "reads", metricType, devStats.sectorsRead, tagList)
+			c.addMetric(&metrics, "", "writes", metricType, devStats.sectorsWritten, tagList)
 		}
 
 		{
 			tagList := tags.Tags{unitBytesTag}
 			tagList = append(tagList, diskTags...)
-			c.addMetric(&metrics, pfx+devID, "reads", metricType, devStats.bytesRead, tagList)
-			c.addMetric(&metrics, pfx+devID, "writes", metricType, devStats.bytesWritten, tagList)
+			c.addMetric(&metrics, "", "reads", metricType, devStats.bytesRead, tagList)
+			c.addMetric(&metrics, "", "writes", metricType, devStats.bytesWritten, tagList)
 		}
 
 		{
 			tagList := tags.Tags{unitMillisecondsTag}
 			tagList = append(tagList, diskTags...)
-			c.addMetric(&metrics, pfx+devID, "read_time", metricType, devStats.readms, tagList)
-			c.addMetric(&metrics, pfx+devID, "write_time", metricType, devStats.writems, tagList)
-			c.addMetric(&metrics, pfx+devID, "io_time", metricType, devStats.ioms, tagList)
-			c.addMetric(&metrics, pfx+devID, "weighted_io_time", metricType, devStats.iomsWeighted, tagList)
+			c.addMetric(&metrics, "", "read_time", metricType, devStats.readms, tagList)
+			c.addMetric(&metrics, "", "write_time", metricType, devStats.writems, tagList)
+			c.addMetric(&metrics, "", "io_time", metricType, devStats.ioms, tagList)
+			c.addMetric(&metrics, "", "weighted_io_time", metricType, devStats.iomsWeighted, tagList)
 		}
 
 		// c.addMetric(&metrics, pfx+devID, "rd_completed", metricType, devStats.readsCompleted)  // reads, operations
