@@ -142,7 +142,7 @@ func (c *CPU) Collect() error {
 		_ = c.addMetric(&metrics, "cpu_steal", "n", ts[0].Steal, tagList)
 		_ = c.addMetric(&metrics, "cpu_guest", "n", ts[0].Guest, tagList)
 		_ = c.addMetric(&metrics, "cpu_guest_nice", "n", ts[0].GuestNice, tagList)
-		_ = c.addMetric(&metrics, "cpu_stolen", "n", ts[0].Stolen, tagList)
+		// _ = c.addMetric(&metrics, "cpu_stolen", "n", ts[0].Stolen, tagList)
 	} else {
 		for idx, v := range ts {
 			tagList := tags.Tags{
@@ -159,7 +159,7 @@ func (c *CPU) Collect() error {
 			_ = c.addMetric(&metrics, "cpu_steal", "n", v.Steal, tagList)
 			_ = c.addMetric(&metrics, "cpu_guest", "n", v.Guest, tagList)
 			_ = c.addMetric(&metrics, "cpu_guest_nice", "n", v.GuestNice, tagList)
-			_ = c.addMetric(&metrics, "cpu_stolen", "n", v.Stolen, tagList)
+			// _ = c.addMetric(&metrics, "cpu_stolen", "n", v.Stolen, tagList)
 		}
 	}
 
