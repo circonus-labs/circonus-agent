@@ -41,15 +41,16 @@ type loadOptions struct {
 
 // NewLoadCollector creates new procfs load collector
 func NewLoadCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
-	procFile := NameLoad
+	loadFile := "loadavg"
+	statFile := "stat"
 
 	c := Load{}
 	c.id = NameLoad
 	c.pkgID = PackageName + "." + c.id
 	c.logger = log.With().Str("pkg", PackageName).Str("id", c.id).Logger()
 	c.procFSPath = procFSPath
-	c.file = filepath.Join(c.procFSPath, procFile)
-	c.processStatsFile = filepath.Join(c.procFSPath, "stat")
+	c.file = filepath.Join(c.procFSPath, loadFile)
+	c.processStatsFile = filepath.Join(c.procFSPath, statFile)
 	c.baseTags = tags.FromList(tags.GetBaseTags())
 
 	if cfgBaseName == "" {
@@ -77,7 +78,8 @@ func NewLoadCollector(cfgBaseName, procFSPath string) (collector.Collector, erro
 
 	if opts.ProcFSPath != "" {
 		c.procFSPath = opts.ProcFSPath
-		c.file = filepath.Join(c.procFSPath, procFile)
+		c.file = filepath.Join(c.procFSPath, loadFile)
+		c.processStatsFile = filepath.Join(c.procFSPath, statFile)
 	}
 
 	if opts.RunTTL != "" {
