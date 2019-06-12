@@ -80,6 +80,10 @@ func (c *Check) fetchCheck(cid string) (*apiclient.CheckBundle, error) {
 		return nil, errors.Wrapf(err, "unable to retrieve check bundle (%s)", cid)
 	}
 
+	if bundle.Status != "active" {
+		return nil, errors.Errorf("check bundle (%s) is not active", bundle.CID)
+	}
+
 	return bundle, nil
 }
 
