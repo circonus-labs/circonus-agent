@@ -57,10 +57,6 @@ func (c *Check) initCheck(cid string, create bool) error {
 		return errors.New("invalid Check object state, bundle is nil")
 	}
 
-	if bundle.Status != "active" {
-		return errors.Errorf("check bundle (%s) is not active", bundle.CID)
-	}
-
 	c.bundle = bundle
 
 	return nil
@@ -82,6 +78,10 @@ func (c *Check) fetchCheck(cid string) (*apiclient.CheckBundle, error) {
 	bundle, err := c.client.FetchCheckBundle(apiclient.CIDType(&cid))
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to retrieve check bundle (%s)", cid)
+	}
+
+	if bundle.Status != "active" {
+		return nil, errors.Errorf("check bundle (%s) is not active", bundle.CID)
 	}
 
 	return bundle, nil
