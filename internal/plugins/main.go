@@ -175,6 +175,12 @@ func (p *Plugins) Run(pluginName string) error {
 		return errors.Errorf(msg)
 	}
 
+	if len(p.active) == 0 {
+		p.logger.Debug().Msg("no active plugins, skipping run")
+		p.Unlock()
+		return nil
+	}
+
 	if len(p.plugList) == 0 {
 		p.plugList = make([]string, len(p.active))
 		i := 0
