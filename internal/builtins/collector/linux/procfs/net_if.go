@@ -199,15 +199,13 @@ func (c *NetIF) ifCollect(metrics *cgm.Metrics) error {
 		{idx: 16, name: "compressed", desc: "transmit compressed", stags: tags.Tags{dirOutTag}},
 	}
 
+	metricType := "L" // uint64
+
 	lines, err := c.readFile(c.file)
 	if err != nil {
 		return errors.Wrapf(err, "parsing %s", c.file)
 	}
-
-	metricType := "L" // uint64
-	for _, l := range lines {
-
-		line := strings.TrimSpace(string(l))
+	for _, line := range lines {
 		if strings.Contains(line, "|") {
 			continue // skip header lines
 		}

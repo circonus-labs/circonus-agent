@@ -154,54 +154,84 @@ type rawSNMPStat struct {
 	val  string
 }
 
-// snmpCollect gets metrics from /proc/net/snmp
+// snmpCollect gets metrics from /proc/net/snmp and /proc/net/snmp6
 func (c *NetProto) snmpCollect(metrics *cgm.Metrics) error {
-
-	lines, err := c.readFile(c.file)
-	if err != nil {
-		return errors.Wrapf(err, "parsing %s", c.file)
-	}
-
-	/*
-		Ip: Forwarding DefaultTTL InReceives InHdrErrors InAddrErrors ForwDatagrams InUnknownProtos InDiscards InDelivers OutRequests OutDiscards OutNoRoutes ReasmTimeout ReasmReqds ReasmOKs ReasmFails FragOKs FragFails FragCreates
-		Ip: 2 64 24480 0 0 0 0 0 24476 20850 15 0 0 0 0 0 0 0 0
-		Icmp: InMsgs InErrors InCsumErrors InDestUnreachs InTimeExcds InParmProbs InSrcQuenchs InRedirects InEchos InEchoReps InTimestamps InTimestampReps InAddrMasks InAddrMaskReps OutMsgs OutErrors OutDestUnreachs OutTimeExcds OutParmProbs OutSrcQuenchs OutRedirects OutEchos OutEchoReps OutTimestamps OutTimestampReps OutAddrMasks OutAddrMaskReps
-		Icmp: 32 0 0 32 0 0 0 0 0 0 0 0 0 0 33 0 33 0 0 0 0 0 0 0 0 0 0
-		IcmpMsg: InType3 OutType3
-		IcmpMsg: 32 33
-		Tcp: RtoAlgorithm RtoMin RtoMax MaxConn ActiveOpens PassiveOpens AttemptFails EstabResets CurrEstab InSegs OutSegs RetransSegs InErrs OutRsts InCsumErrors
-		Tcp: 1 200 120000 -1 94 3 0 0 1 24052 20416 0 0 21 0
-		Udp: InDatagrams NoPorts InErrors OutDatagrams RcvbufErrors SndbufErrors InCsumErrors
-		Udp: 359 33 0 404 0 0 0
-		UdpLite: InDatagrams NoPorts InErrors OutDatagrams RcvbufErrors SndbufErrors InCsumErrors
-		UdpLite: 0 0 0 0 0 0 0
-	*/
 
 	stats := make(map[string][]rawSNMPStat)
 
-	for _, l := range lines {
-		line := strings.TrimSpace(string(l))
-		fields := strings.Fields(line)
-
-		proto := strings.ToLower(strings.Replace(fields[0], ":", "", -1))
-
-		if c.exclude.MatchString(proto) || !c.include.MatchString(proto) {
-			c.logger.Debug().Str("proto", proto).Msg("excluded proto name, skipping")
-			continue
+	{
+		// snmp
+		/*
+			Ip: Forwarding DefaultTTL InReceives InHdrErrors InAddrErrors ForwDatagrams InUnknownProtos InDiscards InDelivers OutRequests OutDiscards OutNoRoutes ReasmTimeout ReasmReqds ReasmOKs ReasmFails FragOKs FragFails FragCreates
+			Ip: 2 64 24480 0 0 0 0 0 24476 20850 15 0 0 0 0 0 0 0 0
+			Icmp: InMsgs InErrors InCsumErrors InDestUnreachs InTimeExcds InParmProbs InSrcQuenchs InRedirects InEchos InEchoReps InTimestamps InTimestampReps InAddrMasks InAddrMaskReps OutMsgs OutErrors OutDestUnreachs OutTimeExcds OutParmProbs OutSrcQuenchs OutRedirects OutEchos OutEchoReps OutTimestamps OutTimestampReps OutAddrMasks OutAddrMaskReps
+			Icmp: 32 0 0 32 0 0 0 0 0 0 0 0 0 0 33 0 33 0 0 0 0 0 0 0 0 0 0
+			IcmpMsg: InType3 OutType3
+			IcmpMsg: 32 33
+			Tcp: RtoAlgorithm RtoMin RtoMax MaxConn ActiveOpens PassiveOpens AttemptFails EstabResets CurrEstab InSegs OutSegs RetransSegs InErrs OutRsts InCsumErrors
+			Tcp: 1 200 120000 -1 94 3 0 0 1 24052 20416 0 0 21 0
+			Udp: InDatagrams NoPorts InErrors OutDatagrams RcvbufErrors SndbufErrors InCsumErrors
+			Udp: 359 33 0 404 0 0 0
+			UdpLite: InDatagrams NoPorts InErrors OutDatagrams RcvbufErrors SndbufErrors InCsumErrors
+			UdpLite: 0 0 0 0 0 0 0
+		*/
+		lines, err := c.readFile(c.file)
+		if err != nil {
+			return errors.Wrapf(err, "parsing %s", c.file)
 		}
+		for _, line := range lines {
+			fields := strings.Fields(line)
 
-		if strings.ContainsAny(fields[1], "abcdefghijklmnopqrstuvwxyz") {
-			// header row
-			stats[proto] = make([]rawSNMPStat, len(fields))
-			for i := 1; i < len(fields); i++ {
-				stats[proto][i].name = fields[i]
+			proto := strings.ToLower(strings.Replace(fields[0], ":", "", -1))
+
+			if c.exclude.MatchString(proto) || !c.include.MatchString(proto) {
+				c.logger.Debug().Str("proto", proto).Msg("excluded, skipping")
+				continue
 			}
-			continue
-		}
 
-		// stats row
-		for i := 1; i < len(fields); i++ {
-			stats[proto][i].val = fields[i]
+			if strings.ContainsAny(fields[1], "abcdefghijklmnopqrstuvwxyz") {
+				// header row
+				stats[proto] = make([]rawSNMPStat, len(fields))
+				for i := 1; i < len(fields); i++ {
+					stats[proto][i].name = fields[i]
+				}
+				continue
+			}
+
+			// stats row
+			for i := 1; i < len(fields); i++ {
+				stats[proto][i].val = fields[i]
+			}
+		}
+	}
+	{
+		// snmp6
+		snmp6File := c.file + "6"
+		lines, err := c.readFile(snmp6File)
+		if err != nil {
+			return errors.Wrapf(err, "parsing %s", snmp6File)
+		}
+		for _, line := range lines {
+			fields := strings.Fields(line)
+			if len(fields) != 2 {
+				continue
+			}
+			protoFields := strings.Split(fields[0], "6")
+			if len(protoFields) != 2 {
+				continue
+			}
+			proto := strings.ToLower(protoFields[0]) + "6"
+			statName := protoFields[1]
+
+			if c.exclude.MatchString(proto) || !c.include.MatchString(proto) {
+				c.logger.Debug().Str("proto", proto).Msg("excluded, skipping")
+				continue
+			}
+
+			if _, ok := stats[proto]; !ok {
+				stats[proto] = []rawSNMPStat{}
+			}
+			stats[proto] = append(stats[proto], rawSNMPStat{name: statName, val: fields[1]})
 		}
 	}
 
@@ -214,18 +244,18 @@ func (c *NetProto) snmpCollect(metrics *cgm.Metrics) error {
 			}
 
 			switch proto {
-			case "icmp":
-				c.emitICMPMetric(metrics, stat.name, v)
-			case "icmpmsg":
-				c.emitICMPMsgMetric(metrics, stat.name, v)
-			case "ip":
-				c.emitIPMetric(metrics, stat.name, v)
-			case "tcp":
-				c.emitTCPMetric(metrics, stat.name, v)
-			case "udp":
-				c.emitUDPMetric(metrics, stat.name, v)
-			case "udplite":
-				c.emitUDPLiteMetric(metrics, stat.name, v)
+			case "icmp", "icmp6":
+				c.emitICMPMetric(proto, metrics, stat.name, v)
+			case "icmpmsg", "icmpmsg6":
+				c.emitICMPMsgMetric(proto, metrics, stat.name, v)
+			case "ip", "ip6":
+				c.emitIPMetric(proto, metrics, stat.name, v)
+			case "tcp", "tcp6":
+				c.emitTCPMetric(proto, metrics, stat.name, v)
+			case "udp", "udp6":
+				c.emitUDPMetric(proto, metrics, stat.name, v)
+			case "udplite", "udplite6":
+				c.emitUDPLiteMetric(proto, metrics, stat.name, v)
 			default:
 				c.logger.Warn().Str("proto", proto).Msg("unsupported protocol")
 			}
@@ -247,8 +277,7 @@ const (
 	defaultMetricType  = "l"
 )
 
-func (c *NetProto) emitIPMetric(metrics *cgm.Metrics, name string, val int64) {
-	proto := "ip"
+func (c *NetProto) emitIPMetric(proto string, metrics *cgm.Metrics, name string, val int64) {
 
 	// https://sourceforge.net/p/net-tools/code/ci/master/tree/statistics.c#l56
 	// https://tools.ietf.org/html/rfc1213
@@ -309,8 +338,7 @@ func (c *NetProto) emitIPMetric(metrics *cgm.Metrics, name string, val int64) {
 	_ = c.addMetric(metrics, "", name, defaultMetricType, val, tagList)
 }
 
-func (c *NetProto) emitICMPMetric(metrics *cgm.Metrics, name string, val int64) {
-	proto := "icmp"
+func (c *NetProto) emitICMPMetric(proto string, metrics *cgm.Metrics, name string, val int64) {
 
 	// https://sourceforge.net/p/net-tools/code/ci/master/tree/statistics.c#l105
 	// https://tools.ietf.org/html/rfc1213
@@ -376,14 +404,55 @@ func (c *NetProto) emitICMPMetric(metrics *cgm.Metrics, name string, val int64) 
 		// no units
 	case "InTimeExcds":
 		// no units
+
+	//
+	// SNMPv6 specific
+	//
+	case "InGroupMemberQueries":
+		// no units
+	case "InGroupMemberResponses":
+		// no units
+	case "InGroupMemberReductions":
+		// no units
+	case "InRouterSolicits":
+		// no units
+	case "InRouterAdvertisements":
+		// no units
+	case "InNeighborSolicits":
+		// no units
+	case "InNeighborAdvertisements":
+		// no units
+	case "InMLDv2Reports":
+		// no units
+	case "OutGroupMemberQueries":
+		// no units
+	case "OutGroupMemberResponses":
+		// no units
+	case "OutGroupMemberReductions":
+		// no units
+	case "OutRouterSolicits":
+		// no units
+	case "OutRouterAdvertisements":
+		// no units
+	case "OutNeighborSolicits":
+		// no units
+	case "OutNeighborAdvertisements":
+		// no units
+	case "OutMLDv2Reports":
+		// no units
+	case "OutType133":
+		// no units
+	case "OutType135":
+		// no units
+	case "OutType145":
+		// no units
 	default:
 		c.logger.Warn().Str("protocol", proto).Str("metric", name).Msg("unrecognized metric, no units")
 	}
 	_ = c.addMetric(metrics, "", name, defaultMetricType, val, tagList)
 }
 
-func (c *NetProto) emitICMPMsgMetric(metrics *cgm.Metrics, name string, val int64) {
-	proto := "icmpmsg"
+func (c *NetProto) emitICMPMsgMetric(proto string, metrics *cgm.Metrics, name string, val int64) {
 
 	// possible message types:
 	// https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml
@@ -396,8 +465,7 @@ func (c *NetProto) emitICMPMsgMetric(metrics *cgm.Metrics, name string, val int6
 	_ = c.addMetric(metrics, "", name, defaultMetricType, val, tagList)
 }
 
-func (c *NetProto) emitTCPMetric(metrics *cgm.Metrics, name string, val int64) {
-	proto := "tcp"
+func (c *NetProto) emitTCPMetric(proto string, metrics *cgm.Metrics, name string, val int64) {
 
 	// https://sourceforge.net/p/net-tools/code/ci/master/tree/statistics.c#l170
 	// https://tools.ietf.org/html/rfc1213
@@ -450,8 +518,7 @@ func (c *NetProto) emitTCPMetric(metrics *cgm.Metrics, name string, val int64) {
 	_ = c.addMetric(metrics, "", name, defaultMetricType, val, tagList)
 }
 
-func (c *NetProto) emitUDPMetric(metrics *cgm.Metrics, name string, val int64) {
-	proto := "udp"
+func (c *NetProto) emitUDPMetric(proto string, metrics *cgm.Metrics, name string, val int64) {
 
 	// https://sourceforge.net/p/net-tools/code/ci/master/tree/statistics.c#l188
 	// https://tools.ietf.org/html/rfc1213
@@ -481,8 +548,7 @@ func (c *NetProto) emitUDPMetric(metrics *cgm.Metrics, name string, val int64) {
 	_ = c.addMetric(metrics, "", name, defaultMetricType, val, tagList)
 }
 
-func (c *NetProto) emitUDPLiteMetric(metrics *cgm.Metrics, name string, val int64) {
-	proto := "udplite"
+func (c *NetProto) emitUDPLiteMetric(proto string, metrics *cgm.Metrics, name string, val int64) {
 
 	// same names as UDP...
 

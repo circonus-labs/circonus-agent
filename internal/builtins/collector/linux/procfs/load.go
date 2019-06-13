@@ -124,16 +124,16 @@ func (c *Load) Collect() error {
 
 	{
 		// load metrics
+		metricType := "n"
+		tagList := tags.Tags{tagUnitsProcesses}
+
 		lines, err := c.readFile(c.file)
 		if err != nil {
 			c.setStatus(metrics, err)
 			return errors.Wrap(err, c.pkgID)
 		}
 
-		metricType := "n"
-		tagList := tags.Tags{tagUnitsProcesses}
-		for _, l := range lines {
-			line := string(l)
+		for _, line := range lines {
 			fields := strings.Fields(line)
 
 			if len(fields) < 3 {
@@ -166,17 +166,17 @@ func (c *Load) Collect() error {
 
 	{
 		// process metrics
+		var processes, running, blocked, ctxswitch int64
+		metricType := "l"
+
 		lines, err := c.readFile(c.processStatsFile)
 		if err != nil {
 			c.setStatus(metrics, err)
 			return errors.Wrap(err, c.pkgID)
 		}
 
-		var processes, running, blocked, ctxswitch int64
-
-		for _, l := range lines {
+		for _, line := range lines {
 			var lineErr error
-			line := string(l)
 			fields := strings.Fields(line)
 
 			switch fields[0] {
@@ -200,8 +200,6 @@ func (c *Load) Collect() error {
 				return errors.Wrapf(err, "%s parsing %s", c.pkgID, fields[0])
 			}
 		}
-
-		metricType := "l"
 
 		{
 			tagList := tags.Tags{tagUnitsProcesses}

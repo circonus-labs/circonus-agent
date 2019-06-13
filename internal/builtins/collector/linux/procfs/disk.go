@@ -179,9 +179,7 @@ func (c *Disk) Collect() error {
 		c.setStatus(metrics, err)
 		return errors.Wrap(err, c.pkgID)
 	}
-
-	for _, l := range lines {
-		line := string(l)
+	for _, line := range lines {
 		fields := strings.Fields(line)
 
 		//  1 major                ignore
