@@ -237,6 +237,9 @@ func (c *NetProto) snmpCollect(metrics *cgm.Metrics) error {
 
 	for proto, protoStats := range stats {
 		for _, stat := range protoStats {
+			if stat.name == "" || stat.val == "" {
+				continue
+			}
 			v, err := strconv.ParseInt(stat.val, 10, 64)
 			if err != nil {
 				c.logger.Warn().Err(err).Str("proto", proto).Str("name", stat.name).Msg("parsing field")
@@ -286,6 +289,7 @@ func (c *NetProto) emitIPMetric(proto string, metrics *cgm.Metrics, name string,
 	tagUnitsDatagrams := tags.Tag{Category: "units", Value: "datagrams"}
 	tagUnitsFragments := tags.Tag{Category: "units", Value: "fragments"}
 	tagUnitsPackets := tags.Tag{Category: "units", Value: "packets"}
+	tagUnitsOctets := tags.Tag{Category: "units", Value: "octets"}
 	tagUnitsRequests := tags.Tag{Category: "units", Value: "requests"}
 
 	tagList := tags.Tags{tags.Tag{Category: "proto", Value: proto}}
@@ -331,6 +335,41 @@ func (c *NetProto) emitIPMetric(proto string, metrics *cgm.Metrics, name string,
 		tagList = append(tagList, tagUnitsPackets)
 	case "OutRequests":
 		tagList = append(tagList, tagUnitsRequests)
+
+	// IPv6
+
+	case "InTooBigErrors":
+		// no units
+	case "InNoRoutes":
+		// no units
+	case "InTruncatedPkts":
+		tagList = append(tagList, tagUnitsPackets)
+	case "InMcastPkts":
+		tagList = append(tagList, tagUnitsPackets)
+	case "InOctets":
+		tagList = append(tagList, tagUnitsOctets)
+	case "InMcastOctets":
+		tagList = append(tagList, tagUnitsOctets)
+	case "InBcastOctets":
+		tagList = append(tagList, tagUnitsOctets)
+	case "InNoECTPkts":
+		tagList = append(tagList, tagUnitsPackets)
+	case "InECT1Pkts":
+		tagList = append(tagList, tagUnitsPackets)
+	case "InECT0Pkts":
+		tagList = append(tagList, tagUnitsPackets)
+	case "InCEPkts":
+		tagList = append(tagList, tagUnitsPackets)
+	case "OutForwDatagrams":
+		tagList = append(tagList, tagUnitsDatagrams)
+	case "OutMcastPkts":
+		tagList = append(tagList, tagUnitsPackets)
+	case "OutOctets":
+		tagList = append(tagList, tagUnitsOctets)
+	case "OutMcastOctets":
+		tagList = append(tagList, tagUnitsOctets)
+	case "OutBcastOctets":
+		tagList = append(tagList, tagUnitsOctets)
 	default:
 		c.logger.Warn().Str("protocol", proto).Str("metric", name).Msg("unrecognized metric, no units")
 	}
@@ -347,6 +386,7 @@ func (c *NetProto) emitICMPMetric(proto string, metrics *cgm.Metrics, name strin
 	tagUnitsRequests := tags.Tag{Category: "units", Value: "requests"}
 	tagUnitsMessages := tags.Tag{Category: "units", Value: "messages"}
 	tagUnitsRedirects := tags.Tag{Category: "units", Value: "redirects"}
+	tagUnitsPackets := tags.Tag{Category: "units", Value: "packets"}
 
 	tagList := tags.Tags{tags.Tag{Category: "proto", Value: proto}}
 	switch name {
@@ -403,16 +443,18 @@ func (c *NetProto) emitICMPMetric(proto string, metrics *cgm.Metrics, name strin
 	case "OutTimeExcds":
 		// no units
 	case "InTimeExcds":
-		// no units
+	// no units
 
 	//
-	// SNMPv6 specific
+	// ICMPv6 specific
 	//
-	case "InGroupMemberQueries":
+	case "InEchoReplies":
+		tagList = append(tagList, tagUnitsResponses)
+	case "InGroupMembQueries":
 		// no units
-	case "InGroupMemberResponses":
-		// no units
-	case "InGroupMemberReductions":
+	case "InGroupMembResponses":
+		tagList = append(tagList, tagUnitsResponses)
+	case "InGroupMembReductions":
 		// no units
 	case "InRouterSolicits":
 		// no units
@@ -422,13 +464,19 @@ func (c *NetProto) emitICMPMetric(proto string, metrics *cgm.Metrics, name strin
 		// no units
 	case "InNeighborAdvertisements":
 		// no units
+	case "InPktTooBigs":
+		tagList = append(tagList, tagUnitsPackets)
+	case "InParmProblems":
+		// no units
 	case "InMLDv2Reports":
 		// no units
-	case "OutGroupMemberQueries":
+	case "OutEchoReplies":
+		tagList = append(tagList, tagUnitsResponses)
+	case "OutGroupMembQueries":
 		// no units
-	case "OutGroupMemberResponses":
-		// no units
-	case "OutGroupMemberReductions":
+	case "OutGroupMembResponses":
+		tagList = append(tagList, tagUnitsResponses)
+	case "OutGroupMembReductions":
 		// no units
 	case "OutRouterSolicits":
 		// no units
@@ -438,11 +486,17 @@ func (c *NetProto) emitICMPMetric(proto string, metrics *cgm.Metrics, name strin
 		// no units
 	case "OutNeighborAdvertisements":
 		// no units
+	case "OutPktTooBigs":
+		tagList = append(tagList, tagUnitsPackets)
+	case "OutParmProblems":
+		// no units
 	case "OutMLDv2Reports":
 		// no units
 	case "OutType133":
 		// no units
 	case "OutType135":
+		// no units
+	case "OutType143":
 		// no units
 	case "OutType145":
 		// no units
