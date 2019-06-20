@@ -16,8 +16,8 @@ import (
 	"sync"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	"github.com/circonus-labs/circonus-agent/internal/tags"
 	"github.com/circonus-labs/circonus-agent/internal/release"
+	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
 	dto "github.com/prometheus/client_model/go"
@@ -105,7 +105,7 @@ func Parse(data io.ReadCloser) error {
 
 	for mn, mf := range metricFamilies {
 		for _, m := range mf.Metric {
-			metricName := id + metricNameSeparator + nameCleanerRx.ReplaceAllString(mn, "")
+			metricName := nameCleanerRx.ReplaceAllString(mn, "")
 			tags := getLabels(m)
 			if mf.GetType() == dto.MetricType_SUMMARY {
 				metrics.Gauge(metricName+"_count", float64(m.GetSummary().GetSampleCount()))
@@ -130,6 +130,10 @@ func Parse(data io.ReadCloser) error {
 					}
 				} else if m.Untyped != nil {
 					if m.GetUntyped().Value != nil {
+						if *m.GetUntyped().Value == math.Inf(+1) {
+							logger.Warn().Str("metric", metricName).Str("type", mf.GetType().String()).Str("value", (*m).GetUntyped().String()).Msg("cannot coerce +Inf to uint64")
+							continue
+						}
 						metrics.GaugeWithTags(metricName, tags, *m.GetUntyped().Value)
 					}
 				}
@@ -158,7 +162,7 @@ func getLabels(m *dto.Metric) tags.Tags {
 		return tags
 	}
 
-	return tags.Tags{}
+	return tags.FromList(baseTags)
 }
 
 func getQuantiles(m *dto.Metric) map[string]float64 {

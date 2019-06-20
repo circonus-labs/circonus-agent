@@ -15,6 +15,11 @@ import (
 	"github.com/rs/zerolog"
 )
 
+//
+// NOTE: test a running instance, save the following example to a file and run:
+//       `curl -X POST --data-binary "@./prom.txt" "http://127.0.0.1:2609/prom"`
+//
+
 // prometheus exposition formats example from: https://prometheus.io/docs/instrumenting/exposition_formats/
 var promData = `
 # HELP http_requests_total The total number of HTTP requests.
@@ -129,14 +134,21 @@ func TestParse(t *testing.T) {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 		m := metrics.FlushMetrics()
-		numExpected := 22
+		numExpected := 21
 		if len(*m) != numExpected {
 			t.Fatalf("expected %d metrics, got %d", numExpected, len(*m))
 		}
 
 		// test 1
 		{
-			mn := "prom`test"
+			mn := fmt.Sprintf(`%s|ST[b"%s":b"%s",b"%s":b"%s"]`,
+				"test",
+				base64.StdEncoding.EncodeToString([]byte("collector")),
+				base64.StdEncoding.EncodeToString([]byte("promrecv")),
+				base64.StdEncoding.EncodeToString([]byte("source")),
+				base64.StdEncoding.EncodeToString([]byte("circonus-agent")),
+			)
+
 			testMetric, ok := (*m)[mn]
 			if !ok {
 				t.Fatalf("expected metric '%s', %#v", mn, m)
@@ -150,12 +162,17 @@ func TestParse(t *testing.T) {
 		// test 2
 		{
 			// http_requests_total{method="post",code="400"}
-			mn := fmt.Sprintf(`%s|ST[b"%s":b"%s",b"%s":b"%s"]`,
-				"prom`http_requests_total",
+			mn := fmt.Sprintf(`%s|ST[b"%s":b"%s",b"%s":b"%s",b"%s":b"%s",b"%s":b"%s"]`,
+				"http_requests_total",
 				base64.StdEncoding.EncodeToString([]byte("code")),
 				base64.StdEncoding.EncodeToString([]byte("400")),
+				base64.StdEncoding.EncodeToString([]byte("collector")),
+				base64.StdEncoding.EncodeToString([]byte("promrecv")),
 				base64.StdEncoding.EncodeToString([]byte("method")),
-				base64.StdEncoding.EncodeToString([]byte("post")))
+				base64.StdEncoding.EncodeToString([]byte("post")),
+				base64.StdEncoding.EncodeToString([]byte("source")),
+				base64.StdEncoding.EncodeToString([]byte("circonus-agent")),
+			)
 
 			testMetric, ok := (*m)[mn]
 			if !ok {
