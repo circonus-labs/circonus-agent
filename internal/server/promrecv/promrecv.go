@@ -17,6 +17,7 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
+	"github.com/circonus-labs/circonus-agent/internal/release"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
 	dto "github.com/prometheus/client_model/go"
@@ -74,6 +75,10 @@ func initCGM() error {
 	nameCleanerRx = regexp.MustCompile("[\r\n\"'`]") // used to strip unwanted characters
 
 	baseTags = tags.GetBaseTags()
+	baseTags = append(baseTags, []string{
+		"source:" + release.NAME,
+		"collector:promrecv",
+	}...)
 
 	return nil
 }
