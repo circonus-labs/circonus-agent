@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/maier/go-appstats"
@@ -129,7 +128,7 @@ func (s *Server) parseMetric(metric string) error {
 		dest = s.groupMetrics
 	} else if metricDest == destHost {
 		dest = s.hostMetrics
-		metricName = s.hostCategory + config.MetricNameSeparator + metricName
+		// metricName = s.hostCategory + config.MetricNameSeparator + metricName
 	}
 
 	if dest == nil {
@@ -190,7 +189,8 @@ func (s *Server) parseMetric(metric string) error {
 	case "s": // set
 		// in the case of sets, the value is the unique "thing" to be tracked
 		// counters are used to track individual "things"
-		dest.IncrementWithTags(strings.Join([]string{metricName, metricValue}, config.MetricNameSeparator), metricTags)
+		metricTags = append(metricTags, cgm.Tag{Category: "set_id", Value: metricValue})
+		dest.IncrementWithTags(metricName, metricTags)
 	case "t": // text (circonus)
 		dest.SetTextWithTags(metricName, metricTags, metricValue)
 	default:

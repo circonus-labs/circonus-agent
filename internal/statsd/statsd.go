@@ -15,6 +15,7 @@ import (
 	"sync"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/maier/go-appstats"
@@ -27,9 +28,10 @@ import (
 
 // Server defines a statsd server
 type Server struct {
+	disabled              bool
+	debugCGM              bool
 	group                 *errgroup.Group
 	groupCtx              context.Context
-	disabled              bool
 	address               *net.UDPAddr
 	hostMetrics           *cgm.CirconusMetrics
 	hostMetricsmu         sync.Mutex
@@ -49,7 +51,6 @@ type Server struct {
 	apiApp                string
 	apiURL                string
 	apiCAFile             string
-	debugCGM              bool
 	listener              *net.UDPConn
 	packetCh              chan []byte
 	baseTags              []string
@@ -102,6 +103,11 @@ func New(ctx context.Context) (*Server, error) {
 		packetCh:       make(chan []byte, packetQueueSize),
 		baseTags:       tags.GetBaseTags(),
 	}
+
+	s.baseTags = append(s.baseTags, []string{
+		"source:" + release.NAME,
+		"collector:statsd",
+	}...)
 
 	port := viper.GetString(config.KeyStatsdPort)
 	address := net.JoinHostPort("localhost", port)
