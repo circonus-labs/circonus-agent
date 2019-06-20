@@ -143,7 +143,7 @@ func (s *Server) parseMetric(metric string) error {
 	tagList := make([]string, 0, len(s.baseTags)+len(metricTagList))
 	tagList = append(tagList, s.baseTags...)
 	tagList = append(tagList, metricTagList...)
-	metricTags := tags.FromList(metricTagList)
+	metricTags := tags.FromList(tagList)
 
 	switch metricType {
 	case "c": // counter
