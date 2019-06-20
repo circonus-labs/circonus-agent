@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
+	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
@@ -78,8 +79,15 @@ func (c *Prom) addMetric(metrics *cgm.Metrics, prefix string, mname string, mtag
 			metricName = prefix + metricNameSeparator + mname
 		}
 
+		var tagList tags.Tags
+		tagList = append(tagList, tags.Tags{
+			tags.Tag{Category: "source", Value: release.NAME},
+			tags.Tag{Category: "collector", Value: "promfetch"},
+		}...)
+		tagList = append(tagList, mtags...)
+
 		// Add stream tags
-		metricName = tags.MetricNameWithStreamTags(metricName, mtags)
+		metricName = tags.MetricNameWithStreamTags(metricName, tagList)
 
 		(*metrics)[metricName] = cgm.Metric{Type: mtype, Value: mval}
 		return nil
