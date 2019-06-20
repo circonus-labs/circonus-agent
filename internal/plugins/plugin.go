@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
@@ -40,6 +41,20 @@ func (p *plugin) drain() *cgm.Metrics {
 	}
 
 	return metrics
+}
+
+// baseTagList returns the base tags for the plugin
+func (p *plugin) baseTagList() []string {
+	tagList := []string{
+		"source:" + release.NAME,
+		"collector:" + p.id,
+	}
+	if p.instanceID != "" {
+		tagList = append(tagList, "instance:"+p.instanceID)
+	}
+	tagList = append(tagList, p.baseTags...)
+
+	return tagList
 }
 
 // parsePluginOutput handles json and tab delimited output from plugins.
@@ -70,8 +85,7 @@ func (p *plugin) parsePluginOutput(output []string) error {
 		}
 		for mn, md := range jm {
 			// add stream tags to metric name
-			tagList := make([]string, 0, len(p.baseTags)+len(md.Tags))
-			tagList = append(tagList, p.baseTags...)
+			tagList := p.baseTagList()
 			tagList = append(tagList, md.Tags...)
 			metrics[tags.MetricNameWithStreamTags(mn, tags.FromList(tagList))] = cgm.Metric{Type: md.Type, Value: md.Value}
 		}
@@ -138,8 +152,7 @@ func (p *plugin) parsePluginOutput(output []string) error {
 		if len(fields) == 4 {
 			metricTags = strings.Split(fields[3], tags.Separator)
 		}
-		tagList := make([]string, 0, len(p.baseTags)+len(metricTags))
-		tagList = append(tagList, p.baseTags...)
+		tagList := p.baseTagList()
 		tagList = append(tagList, metricTags...)
 		metricName = tags.MetricNameWithStreamTags(metricName, tags.FromList(tagList))
 
