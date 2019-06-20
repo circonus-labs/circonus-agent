@@ -108,9 +108,7 @@ func TestAddMetric(t *testing.T) {
 	t.Log("Testing valid states/submissions")
 	{
 		c := &Prom{
-			metricStatus:        make(map[string]bool),
-			metricDefaultActive: true,
-			metricNameRegex:     regexp.MustCompile("[\r\n\"']"),
+			metricNameRegex: regexp.MustCompile("[\r\n\"']"),
 		}
 		m := cgm.Metrics{}
 		if err := c.addMetric(&m, "", "foo", tags.Tags{}, "t", ""); err != nil {

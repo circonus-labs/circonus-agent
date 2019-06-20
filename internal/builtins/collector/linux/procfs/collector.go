@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
+	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
@@ -118,7 +119,7 @@ func (c *common) addMetric(metrics *cgm.Metrics, prefix string, mname, mtype str
 	mname = c.cleanName(mname)
 	metricName := mname
 	if prefix != "" {
-		metricName = prefix + metricNameSeparator + mname
+		metricName = prefix + defaults.MetricNameSeparator + mname
 	}
 
 	var tagList tags.Tags

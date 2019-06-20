@@ -69,31 +69,20 @@ func (c *Prom) addMetric(metrics *cgm.Metrics, prefix string, mname string, mtag
 	}
 
 	// cleanup the raw metric name, if needed
-	mname = c.cleanName(mname)
-	// check status of cleaned metric name
-	active, found := c.metricStatus[mname]
+	metricName := c.cleanName(mname)
 
-	if (found && active) || (!found && c.metricDefaultActive) {
-		metricName := mname
-		if prefix != "" {
-			metricName = prefix + metricNameSeparator + mname
-		}
+	var tagList tags.Tags
+	tagList = append(tagList, tags.Tags{
+		tags.Tag{Category: "source", Value: release.NAME},
+		tags.Tag{Category: "collector", Value: "promfetch"},
+	}...)
+	tagList = append(tagList, mtags...)
 
-		var tagList tags.Tags
-		tagList = append(tagList, tags.Tags{
-			tags.Tag{Category: "source", Value: release.NAME},
-			tags.Tag{Category: "collector", Value: "promfetch"},
-		}...)
-		tagList = append(tagList, mtags...)
+	// Add stream tags
+	metricName = tags.MetricNameWithStreamTags(metricName, tagList)
 
-		// Add stream tags
-		metricName = tags.MetricNameWithStreamTags(metricName, tagList)
-
-		(*metrics)[metricName] = cgm.Metric{Type: mtype, Value: mval}
-		return nil
-	}
-
-	return errors.Errorf("metric (%s) not active", mname)
+	(*metrics)[metricName] = cgm.Metric{Type: mtype, Value: mval}
+	return nil
 }
 
 // setStatus is used in Collect to set the collector status

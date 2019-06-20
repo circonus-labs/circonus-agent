@@ -28,8 +28,6 @@ const (
 	NameVM      = "vm"
 	NameIF      = "if"
 	NameProto   = "proto"
-	// metricNameSeparator = "`" // character used to separate parts of metric names
-	// metricStatusEnabled = "enabled"  // setting string indicating metrics should be made 'active'
 	regexPat = `^(?:%s)$` // fmt pattern used compile include/exclude regular expressions
 )
 

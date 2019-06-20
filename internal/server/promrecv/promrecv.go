@@ -31,7 +31,6 @@ var (
 	id                  string
 	baseTags            []string
 	nameCleanerRx       *regexp.Regexp
-	metricNameSeparator = "`"
 	metricsmu           sync.Mutex
 	metrics             *cgm.CirconusMetrics
 	parseRx             *regexp.Regexp

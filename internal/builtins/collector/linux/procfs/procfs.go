@@ -22,18 +22,17 @@ import (
 )
 
 const (
-	CollectorPrefix     = "procfs/"
-	PackageName         = "builtins.linux.procfs"
-	ProcFSPath          = "/proc"
-	NameCPU             = "cpu"
-	NameDisk            = "disk"
-	NameNetInterface    = "if"
-	NameNetProto        = "proto"
-	NameNetSocket       = "socket"
-	NameLoad            = "load"
-	NameVM              = "vm"
-	metricNameSeparator = "`"        // character used to separate parts of metric names
-	regexPat            = `^(?:%s)$` // fmt pattern used compile include/exclude regular expressions
+	CollectorPrefix  = "procfs/"
+	PackageName      = "builtins.linux.procfs"
+	ProcFSPath       = "/proc"
+	NameCPU          = "cpu"
+	NameDisk         = "disk"
+	NameNetInterface = "if"
+	NameNetProto     = "proto"
+	NameNetSocket    = "socket"
+	NameLoad         = "load"
+	NameVM           = "vm"
+	regexPat         = `^(?:%s)$` // fmt pattern used compile include/exclude regular expressions
 )
 
 var (

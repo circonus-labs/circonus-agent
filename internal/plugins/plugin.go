@@ -119,7 +119,7 @@ func (p *plugin) parsePluginOutput(output []string) error {
 			continue
 		}
 
-		metricName := strings.Replace(fields[0], " ", metricDelimiter, -1)
+		metricName := strings.Replace(fields[0], " ", "_", -1)
 		metricType := fields[1]
 
 		if _, ok := metrics[metricName]; ok {
