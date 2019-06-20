@@ -15,6 +15,7 @@ import (
 	"sync"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
@@ -70,6 +71,10 @@ func initCGM() error {
 	metrics = hm
 
 	baseTags = tags.GetBaseTags()
+	baseTags = append(baseTags, []string{
+		"source:" + release.NAME,
+		"collector:write",
+	}...)
 
 	return nil
 }
@@ -94,11 +99,12 @@ func Parse(id string, data io.ReadCloser) error {
 	}
 
 	for name, metric := range tmp {
-		metricName := strings.Join([]string{id, name}, config.MetricNameSeparator)
+		metricName := name
 
-		tagList := make([]string, 0, len(baseTags)+len(metric.Tags))
+		tagList := make([]string, 0, len(baseTags)+len(metric.Tags)+1)
 		tagList = append(tagList, baseTags...)
 		tagList = append(tagList, metric.Tags...)
+		tagList = append(tagList, "collector_id:"+id)
 		metricTags := tags.FromList(tagList)
 
 		switch metric.Type {
