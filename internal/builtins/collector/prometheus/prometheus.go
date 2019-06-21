@@ -236,25 +236,25 @@ func (c *Prom) parse(id string, data io.ReadCloser, metrics *cgm.Metrics) error 
 			metricName := mn
 			tags := c.getLabels(m)
 			if mf.GetType() == dto.MetricType_SUMMARY {
-				c.addMetric(metrics, pfx, metricName+"_count", tags, "n", float64(m.GetSummary().GetSampleCount()))
-				c.addMetric(metrics, pfx, metricName+"_sum", tags, "n", float64(m.GetSummary().GetSampleSum()))
+				_ = c.addMetric(metrics, pfx, metricName+"_count", tags, "n", float64(m.GetSummary().GetSampleCount()))
+				_ = c.addMetric(metrics, pfx, metricName+"_sum", tags, "n", float64(m.GetSummary().GetSampleSum()))
 				for qn, qv := range c.getQuantiles(m) {
-					c.addMetric(metrics, pfx, metricName+"_"+qn, tags, "n", qv)
+					_ = c.addMetric(metrics, pfx, metricName+"_"+qn, tags, "n", qv)
 				}
 			} else if mf.GetType() == dto.MetricType_HISTOGRAM {
-				c.addMetric(metrics, pfx, metricName+"_count", tags, "n", float64(m.GetHistogram().GetSampleCount()))
-				c.addMetric(metrics, pfx, metricName+"_sum", tags, "n", float64(m.GetHistogram().GetSampleSum()))
+				_ = c.addMetric(metrics, pfx, metricName+"_count", tags, "n", float64(m.GetHistogram().GetSampleCount()))
+				_ = c.addMetric(metrics, pfx, metricName+"_sum", tags, "n", float64(m.GetHistogram().GetSampleSum()))
 				for bn, bv := range c.getBuckets(m) {
-					c.addMetric(metrics, pfx, metricName+"_"+bn, tags, "n", bv)
+					_ = c.addMetric(metrics, pfx, metricName+"_"+bn, tags, "n", bv)
 				}
 			} else {
 				if m.Gauge != nil {
 					if m.GetGauge().Value != nil {
-						c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetGauge().Value)
+						_ = c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetGauge().Value)
 					}
 				} else if m.Counter != nil {
 					if m.GetCounter().Value != nil {
-						c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetCounter().Value)
+						_ = c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetCounter().Value)
 					}
 				} else if m.Untyped != nil {
 					if m.GetUntyped().Value != nil {
@@ -262,7 +262,7 @@ func (c *Prom) parse(id string, data io.ReadCloser, metrics *cgm.Metrics) error 
 							c.logger.Warn().Str("metric", metricName).Str("type", mf.GetType().String()).Str("value", (*m).GetUntyped().String()).Msg("cannot coerce +Inf to uint64")
 							continue
 						}
-						c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetUntyped().Value)
+						_ = c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetUntyped().Value)
 					}
 				}
 			}
