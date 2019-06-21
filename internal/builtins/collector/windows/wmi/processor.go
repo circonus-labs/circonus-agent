@@ -65,8 +65,8 @@ type processorOptions struct {
 func NewProcessorCollector(cfgBaseName string) (collector.Collector, error) {
 	c := Processor{}
 	c.id = "processor"
-	c.pkgID = PKG_NAME + "." + c.id
-	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
+	c.pkgID = pkgName + "." + c.id
+	c.logger = log.With().Str("pkg", pkgName).Str("id", c.id).Logger()
 	c.metricDefaultActive = true
 	c.metricNameChar = defaultMetricChar
 	c.metricNameRegex = defaultMetricNameRegex
@@ -188,20 +188,20 @@ func (c *Processor) Collect() error {
 			pfx += metricNameSeparator + c.cleanName(item.Name)
 		}
 
-		c.addMetric(&metrics, pfx, "PercentC1Time", "L", item.PercentC1Time)
-		c.addMetric(&metrics, pfx, "PercentC2Time", "L", item.PercentC2Time)
-		c.addMetric(&metrics, pfx, "PercentC3Time", "L", item.PercentC3Time)
-		c.addMetric(&metrics, pfx, "PercentIdleTime", "L", item.PercentIdleTime)
-		c.addMetric(&metrics, pfx, "PercentInterruptTime", "L", item.PercentInterruptTime)
-		c.addMetric(&metrics, pfx, "PercentDPCTime", "L", item.PercentDPCTime)
-		c.addMetric(&metrics, pfx, "PercentPrivilegedTime", "L", item.PercentPrivilegedTime)
-		c.addMetric(&metrics, pfx, "PercentUserTime", "L", item.PercentUserTime)
-		c.addMetric(&metrics, pfx, "PercentProcessorTime", "L", item.PercentProcessorTime)
-		c.addMetric(&metrics, pfx, "C1TransitionsPersec", "L", item.C1TransitionsPersec)
-		c.addMetric(&metrics, pfx, "C2TransitionsPersec", "L", item.C2TransitionsPersec)
-		c.addMetric(&metrics, pfx, "C3TransitionsPersec", "L", item.C3TransitionsPersec)
-		c.addMetric(&metrics, pfx, "InterruptsPersec", "L", item.InterruptsPersec)
-		c.addMetric(&metrics, pfx, "DPCsQueuedPersec", "L", item.DPCsQueuedPersec)
+		_ = c.addMetric(&metrics, pfx, "PercentC1Time", "L", item.PercentC1Time, cgm.Tags{})
+		_ = c.addMetric(&metrics, pfx, "PercentC2Time", "L", item.PercentC2Time, cgm.Tags{})
+		_ = c.addMetric(&metrics, pfx, "PercentC3Time", "L", item.PercentC3Time, cgm.Tags{})
+		_ = c.addMetric(&metrics, pfx, "PercentIdleTime", "L", item.PercentIdleTime, cgm.Tags{})
+		_ = c.addMetric(&metrics, pfx, "PercentInterruptTime", "L", item.PercentInterruptTime, cgm.Tags{})
+		_ = c.addMetric(&metrics, pfx, "PercentDPCTime", "L", item.PercentDPCTime, cgm.Tags{})
+		_ = c.addMetric(&metrics, pfx, "PercentPrivilegedTime", "L", item.PercentPrivilegedTime, cgm.Tags{})
+		_ = c.addMetric(&metrics, pfx, "PercentUserTime", "L", item.PercentUserTime, cgm.Tags{})
+		_ = c.addMetric(&metrics, pfx, "PercentProcessorTime", "L", item.PercentProcessorTime, cgm.Tags{})
+		_ = c.addMetric(&metrics, pfx, "C1TransitionsPersec", "L", item.C1TransitionsPersec, cgm.Tags{})
+		_ = c.addMetric(&metrics, pfx, "C2TransitionsPersec", "L", item.C2TransitionsPersec, cgm.Tags{})
+		_ = c.addMetric(&metrics, pfx, "C3TransitionsPersec", "L", item.C3TransitionsPersec, cgm.Tags{})
+		_ = c.addMetric(&metrics, pfx, "InterruptsPersec", "L", item.InterruptsPersec, cgm.Tags{})
+		_ = c.addMetric(&metrics, pfx, "DPCsQueuedPersec", "L", item.DPCsQueuedPersec, cgm.Tags{})
 	}
 
 	c.setStatus(metrics, nil)

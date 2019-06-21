@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
+	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
+	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
@@ -72,7 +74,7 @@ func (c *wmicommon) cleanName(name string) string {
 }
 
 // addMetric to internal buffer if metric is active
-func (c *wmicommon) addMetric(metrics *cgm.Metrics, prefix string, mname, mtype string, mval interface{}) error {
+func (c *wmicommon) addMetric(metrics *cgm.Metrics, pfx, mname, mtype string, mval interface{}, mtags cgm.Tags) error {
 	if metrics == nil {
 		return errors.New("invalid metric submission")
 	}
@@ -85,22 +87,22 @@ func (c *wmicommon) addMetric(metrics *cgm.Metrics, prefix string, mname, mtype 
 		return errors.New("invalid metric, no type")
 	}
 
-	// cleanup the raw metric name, if needed
-	mname = c.cleanName(mname)
-	// check status of cleaned metric name
-	active, found := c.metricStatus[mname]
+	var tagList cgm.Tags
+	tagList = append(tagList, cgm.Tags{
+		cgm.Tag{Category: "source", Value: release.NAME},
+		cgm.Tag{Category: "collector", Value: c.id},
+	}...)
+	tagList = append(tagList, c.baseTags...)
+	tagList = append(tagList, mtags...)
 
-	if (found && active) || (!found && c.metricDefaultActive) {
-		metricName := mname
-		if prefix != "" {
-			metricName = prefix + metricNameSeparator + mname
-		}
-		metricName = tags.MetricNameWithStreamTags(metricName, c.baseTags)
-		(*metrics)[metricName] = cgm.Metric{Type: mtype, Value: mval}
-		return nil
+	if pfx != "" {
+		mname = pfx + defaults.MetricNameSeparator + mname
 	}
 
-	return errors.Errorf("metric (%s) not active", mname)
+	metricName := tags.MetricNameWithStreamTags(c.cleanName(mname), tagList)
+	(*metrics)[metricName] = cgm.Metric{Type: mtype, Value: mval}
+
+	return nil
 }
 
 // setStatus is used in Collect to set the collector status

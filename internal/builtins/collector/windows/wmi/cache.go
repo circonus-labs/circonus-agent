@@ -62,25 +62,21 @@ type Cache struct {
 
 // cacheOptions defines what elements can be overridden in a config file
 type cacheOptions struct {
-	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
-	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
-	MetricNameRegex      string   `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
-	MetricNameChar       string   `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
-	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
+	ID              string `json:"id" toml:"id" yaml:"id"`
+	MetricNameRegex string `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
+	MetricNameChar  string `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
+	RunTTL          string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
 // NewCacheCollector creates new wmi collector
 func NewCacheCollector(cfgBaseName string) (collector.Collector, error) {
 	c := Cache{}
 	c.id = "cache"
-	c.pkgID = PKG_NAME + "." + c.id
-	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
+	c.pkgID = pkgName + "." + c.id
+	c.logger = log.With().Str("pkg", pkgName).Str("id", c.id).Logger()
 	c.metricDefaultActive = true
 	c.metricNameChar = defaultMetricChar
 	c.metricNameRegex = defaultMetricNameRegex
-	c.metricStatus = map[string]bool{}
 	c.baseTags = tags.FromList(tags.GetBaseTags())
 
 	if cfgBaseName == "" {
@@ -101,25 +97,6 @@ func NewCacheCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if cfg.ID != "" {
 		c.id = cfg.ID
-	}
-
-	if len(cfg.MetricsEnabled) > 0 {
-		for _, name := range cfg.MetricsEnabled {
-			c.metricStatus[name] = true
-		}
-	}
-	if len(cfg.MetricsDisabled) > 0 {
-		for _, name := range cfg.MetricsDisabled {
-			c.metricStatus[name] = false
-		}
-	}
-
-	if cfg.MetricsDefaultStatus != "" {
-		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == metricStatusEnabled
-		} else {
-			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, cfg.MetricsDefaultStatus)
-		}
 	}
 
 	if cfg.MetricNameRegex != "" {
@@ -177,13 +154,12 @@ func (c *Cache) Collect() error {
 	}
 
 	for _, item := range dst {
-		pfx := c.id
 		d := structs.Map(item) // there is only one memory output
 		for name, val := range d {
 			if name == nameFieldName {
 				continue
 			}
-			c.addMetric(&metrics, pfx, name, "L", val)
+			_ = c.addMetric(&metrics, "", name, "L", val, cgm.Tags{})
 		}
 	}
 

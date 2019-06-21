@@ -73,8 +73,8 @@ type NetTCPOptions struct {
 func NewNetTCPCollector(cfgBaseName string) (collector.Collector, error) {
 	c := NetTCP{}
 	c.id = "net_tcp"
-	c.pkgID = PKG_NAME + "." + c.id
-	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
+	c.pkgID = pkgName + "." + c.id
+	c.logger = log.With().Str("pkg", pkgName).Str("id", c.id).Logger()
 	c.metricDefaultActive = true
 	c.metricNameChar = defaultMetricChar
 	c.metricNameRegex = defaultMetricNameRegex
@@ -202,7 +202,7 @@ func (c *NetTCP) Collect() error {
 				if name == nameFieldName {
 					continue
 				}
-				c.addMetric(&metrics, pfx, name, "L", val)
+				_ = c.addMetric(&metrics, pfx, name, "L", val, cgm.Tags{})
 			}
 		}
 	}
@@ -224,7 +224,7 @@ func (c *NetTCP) Collect() error {
 				if name == nameFieldName {
 					continue
 				}
-				c.addMetric(&metrics, pfx, name, "L", val)
+				_ = c.addMetric(&metrics, pfx, name, "L", val, cgm.Tags{})
 			}
 		}
 	}

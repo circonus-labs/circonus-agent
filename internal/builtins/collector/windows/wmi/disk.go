@@ -89,29 +89,24 @@ type Disk struct {
 
 // diskOptions defines what elements can be overridden in a config file
 type diskOptions struct {
-	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	IncludeLogical       string   `json:"logical_disks" toml:"logical_disks" yaml:"logical_disks"`
-	IncludePhysical      string   `json:"physical_disks" toml:"physical_disks" yaml:"physical_disks"`
-	IncludeRegex         string   `json:"include_regex" toml:"include_regex" yaml:"include_regex"`
-	ExcludeRegex         string   `json:"exclude_regex" toml:"exclude_regex" yaml:"exclude_regex"`
-	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
-	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
-	MetricNameRegex      string   `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
-	MetricNameChar       string   `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
-	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
+	ID              string `json:"id" toml:"id" yaml:"id"`
+	IncludeLogical  string `json:"logical_disks" toml:"logical_disks" yaml:"logical_disks"`
+	IncludePhysical string `json:"physical_disks" toml:"physical_disks" yaml:"physical_disks"`
+	IncludeRegex    string `json:"include_regex" toml:"include_regex" yaml:"include_regex"`
+	ExcludeRegex    string `json:"exclude_regex" toml:"exclude_regex" yaml:"exclude_regex"`
+	MetricNameRegex string `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
+	MetricNameChar  string `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
+	RunTTL          string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
 // NewDiskCollector creates new wmi collector
 func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 	c := Disk{}
 	c.id = "disk"
-	c.pkgID = PKG_NAME + "." + c.id
-	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
-	c.metricDefaultActive = true
+	c.wmicommon.pkgID = pkgName + "." + c.id
+	c.logger = log.With().Str("pkg", pkgName).Str("id", c.id).Logger()
 	c.metricNameChar = defaultMetricChar
 	c.metricNameRegex = defaultMetricNameRegex
-	c.metricStatus = map[string]bool{}
 	c.baseTags = tags.FromList(tags.GetBaseTags())
 
 	c.logical = true
@@ -173,25 +168,6 @@ func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 		c.id = cfg.ID
 	}
 
-	if len(cfg.MetricsEnabled) > 0 {
-		for _, name := range cfg.MetricsEnabled {
-			c.metricStatus[name] = true
-		}
-	}
-	if len(cfg.MetricsDisabled) > 0 {
-		for _, name := range cfg.MetricsDisabled {
-			c.metricStatus[name] = false
-		}
-	}
-
-	if cfg.MetricsDefaultStatus != "" {
-		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == metricStatusEnabled
-		} else {
-			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, cfg.MetricsDefaultStatus)
-		}
-	}
-
 	if cfg.MetricNameRegex != "" {
 		rx, err := regexp.Compile(cfg.MetricNameRegex)
 		if err != nil {
@@ -209,7 +185,7 @@ func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
 		}
-		c.runTTL = dur
+		c.wmicommon.runTTL = dur
 	}
 
 	return &c, nil
@@ -254,12 +230,22 @@ func (c *Disk) Collect() error {
 				continue
 			}
 
-			// adjust prefix, add item name
-			pfx := c.id + metricNameSeparator + "logical"
-			if strings.Contains(item.Name, totalName) { // use the unclean name
-				pfx += totalPrefix
-			} else {
-				pfx += metricNameSeparator + itemName
+			metricSuffix := ""
+			if strings.Contains(item.Name, totalName) {
+				itemName = "all"
+				metricSuffix = totalName
+			}
+			// // adjust prefix, add item name
+			// pfx := c.id + metricNameSeparator + "logical"
+			// if strings.Contains(item.Name, totalName) { // use the unclean name
+			// 	pfx += totalPrefix
+			// } else {
+			// 	pfx += metricNameSeparator + itemName
+			// }
+
+			tagList := cgm.Tags{
+				cgm.Tag{Category: "disk_type", Value: "logical"},
+				cgm.Tag{Category: "disk_name", Value: itemName},
 			}
 
 			d := structs.Map(item)
@@ -267,7 +253,7 @@ func (c *Disk) Collect() error {
 				if name == nameFieldName {
 					continue
 				}
-				c.addMetric(&metrics, pfx, name, "L", val)
+				_ = c.addMetric(&metrics, "", name+metricSuffix, "L", val, tagList)
 			}
 		}
 	}
@@ -301,7 +287,7 @@ func (c *Disk) Collect() error {
 				if name == nameFieldName {
 					continue
 				}
-				c.addMetric(&metrics, pfx, name, "L", val)
+				_ = c.addMetric(&metrics, pfx, name, "L", val, cgm.Tags{})
 			}
 		}
 	}
