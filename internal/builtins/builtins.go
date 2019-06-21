@@ -62,7 +62,9 @@ func (b *Builtins) Run(id string) error {
 	b.Unlock()
 
 	start := time.Now()
-	appstats.SetString("builtins.last_start", start.String())
+	if err := appstats.SetString("builtins.last_start", start.String()); err != nil {
+		b.logger.Warn().Err(err).Msg("setting app stat")
+	}
 
 	var wg sync.WaitGroup
 
@@ -103,8 +105,12 @@ func (b *Builtins) Run(id string) error {
 
 	b.logger.Debug().Msg("all builtins done")
 
-	appstats.SetString("builtins.last_end", time.Now().String())
-	appstats.SetString("builtins.last_duration", time.Since(start).String())
+	if err := appstats.SetString("builtins.last_end", time.Now().String()); err != nil {
+		b.logger.Warn().Err(err).Msg("setting app stat")
+	}
+	if err := appstats.SetString("builtins.last_duration", time.Since(start).String()); err != nil {
+		b.logger.Warn().Err(err).Msg("setting app stat")
+	}
 
 	b.Lock()
 	b.running = false
@@ -136,7 +142,9 @@ func (b *Builtins) Flush(id string) *cgm.Metrics {
 	b.Lock()
 	defer b.Unlock()
 
-	appstats.SetString("builtins.last_flush", time.Now().String())
+	if err := appstats.SetString("builtins.last_flush", time.Now().String()); err != nil {
+		b.logger.Warn().Err(err).Msg("setting app stat")
+	}
 
 	metrics := cgm.Metrics{}
 

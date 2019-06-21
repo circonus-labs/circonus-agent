@@ -292,7 +292,7 @@ func TestFlush(t *testing.T) {
 		}
 
 		b.collectors["foo"] = newFoo()
-		b.collectors["foo"].Collect()
+		_ = b.collectors["foo"].Collect()
 
 		metrics := b.Flush("foo")
 		if metrics == nil {
