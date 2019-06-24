@@ -1,3 +1,7 @@
+# v0.19.3
+
+* fix: ensure check bundle is active when fetching
+
 # v0.19.2
 
 * fix: tag handling in procfs and wmi builtins
