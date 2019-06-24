@@ -74,7 +74,6 @@ func NewCacheCollector(cfgBaseName string) (collector.Collector, error) {
 	c.id = "cache"
 	c.pkgID = pkgName + "." + c.id
 	c.logger = log.With().Str("pkg", pkgName).Str("id", c.id).Logger()
-	c.metricDefaultActive = true
 	c.metricNameChar = defaultMetricChar
 	c.metricNameRegex = defaultMetricNameRegex
 	c.baseTags = tags.FromList(tags.GetBaseTags())
