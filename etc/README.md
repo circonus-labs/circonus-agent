@@ -35,6 +35,13 @@ Edit the resulting file to customize configuration settings. When done, rename f
 
 Three formats are supported (json, toml, yaml) for collector configurations. Collector configurations should be stored in the `etc` directory where the agent was installed (for example: `/opt/circonus/agent/etc` or `C:\circonus-agent\etc`).
 
+## Default collectors:
+
+* Linux: `['procfs/cpu', 'procfs/diskstats', 'procfs/if', 'procfs/loadavg', 'procfs/vm']`
+* Windows: `['wmi/cache', 'wmi/disk', 'wmi/ip', 'wmi/interface', 'wmi/memory', 'wmi/object', 'wmi/paging_file' 'wmi/processor', 'wmi/tcp', 'wmi/udp']`
+* Generic: `['generic/cpu', 'generic/disk', 'generic/fs', 'generic/if', 'generic/load', 'generic/proto', 'generic/vm']`
+* Common `prometheus` (disabled if no configuration file exists)
+
 # Linux
 
 ## ProcFS collectors
