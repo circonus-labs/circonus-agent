@@ -22,6 +22,7 @@ import (
 )
 
 // Win32_PerfFormattedData_PerfOS_Cache defines the metrics to collect
+// https://wutils.com/wmi/root/cimv2/win32_perfformatteddata_perfos_cache/
 type Win32_PerfFormattedData_PerfOS_Cache struct {
 	AsyncCopyReadsPersec         uint32
 	AsyncDataMapsPersec          uint32
@@ -157,13 +158,6 @@ func (c *Cache) Collect() error {
 	}
 
 	for _, item := range dst {
-		// d := structs.Map(item) // there is only one memory output
-		// for name, val := range d {
-		// 	if name == nameFieldName {
-		// 		continue
-		// 	}
-		// 	_ = c.addMetric(&metrics, "", name, "L", val, cgm.Tags{})
-		// }
 		_ = c.addMetric(&metrics, "", "AsyncCopyReadsPersec", metricType, item.AsyncCopyReadsPersec, cgm.Tags{tagUnitsOperations})
 		_ = c.addMetric(&metrics, "", "AsyncDataMapsPersec", metricType, item.AsyncDataMapsPersec, cgm.Tags{tagUnitsOperations})
 		_ = c.addMetric(&metrics, "", "AsyncFastReadsPersec", metricType, item.AsyncFastReadsPersec, cgm.Tags{tagUnitsOperations})
@@ -176,8 +170,8 @@ func (c *Cache) Collect() error {
 		_ = c.addMetric(&metrics, "", "DataMapHitsPercent", metricType, item.DataMapHitsPercent, cgm.Tags{tagUnitsPercent})
 		_ = c.addMetric(&metrics, "", "DataMapPinsPersec", metricType, item.DataMapPinsPersec, cgm.Tags{tagUnitsOperations})
 		_ = c.addMetric(&metrics, "", "DataMapsPersec", metricType, item.DataMapsPersec, cgm.Tags{tagUnitsOperations})
-		_ = c.addMetric(&metrics, "", "DirtyPages", "I", item.DirtyPages, cgm.Tags{tagUnitsOperations})                 //                   uint64
-		_ = c.addMetric(&metrics, "", "DirtyPageThreshold", "I", item.DirtyPageThreshold, cgm.Tags{tagUnitsOperations}) //           uint64
+		_ = c.addMetric(&metrics, "", "DirtyPages", "I", item.DirtyPages, cgm.Tags{tagUnitsOperations})                 // uint64
+		_ = c.addMetric(&metrics, "", "DirtyPageThreshold", "I", item.DirtyPageThreshold, cgm.Tags{tagUnitsOperations}) // uint64
 		_ = c.addMetric(&metrics, "", "FastReadNotPossiblesPersec", metricType, item.FastReadNotPossiblesPersec, cgm.Tags{tagUnitsOperations})
 		_ = c.addMetric(&metrics, "", "FastReadResourceMissesPersec", metricType, item.FastReadResourceMissesPersec, cgm.Tags{tagUnitsOperations})
 		_ = c.addMetric(&metrics, "", "FastReadsPersec", metricType, item.FastReadsPersec, cgm.Tags{tagUnitsOperations})
