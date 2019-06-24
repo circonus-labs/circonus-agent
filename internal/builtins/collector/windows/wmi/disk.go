@@ -19,7 +19,6 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/fatih/structs"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
@@ -216,7 +215,7 @@ func (c *Disk) Collect() error {
 	c.Unlock()
 
 	tagUnitsBytes := cgm.Tag{Category: "units", Value: "bytes"}
-	tagUnitsMegabytes := cgm.Tag{Category: "units", Value: "megabytes"}
+	// tagUnitsMegabytes := cgm.Tag{Category: "units", Value: "megabytes"}
 	tagUnitsOperations := cgm.Tag{Category: "units", Value: "operations"}
 	tagUnitsPercent := cgm.Tag{Category: "units", Value: "percent"}
 
@@ -233,10 +232,10 @@ func (c *Disk) Collect() error {
 		}
 
 		for _, diskMetrics := range dst {
-			_ = c.emitDiskMetrics("logical", diskMetrics)
+			_ = c.emitDiskMetrics(&metrics, "logical", diskMetrics)
 			// // apply include/exclude to CLEAN item name
-			// itemName := c.cleanName(item.Name)
 			// if c.exclude.MatchString(itemName) || !c.include.MatchString(itemName) {
+			// itemName := c.cleanName(item.Name)
 			// 	continue
 			// }
 
@@ -252,7 +251,7 @@ func (c *Disk) Collect() error {
 			// // } else {
 			// // 	pfx += metricNameSeparator + itemName
 			// // }
-			
+
 			// tagList := cgm.Tags{
 			// 	cgm.Tag{Category: "disk_type", Value: "logical"},
 			// 	cgm.Tag{Category: "disk_name", Value: itemName},
@@ -355,42 +354,41 @@ func (c *Disk) Collect() error {
 			tagsPercent = append(tagsPercent, tagList...)
 			tagsPercent = append(tagsPercent, tagUnitsPercent)
 
-			var tagsMegabytes cgm.Tags
-			tagsMegabytes = append(tagsMegabytes, tagList...)
-			tagsMegabytes = append(tagsMegabytes, tagUnitsMegabytes)
+			// var tagsMegabytes cgm.Tags
+			// tagsMegabytes = append(tagsMegabytes, tagList...)
+			// tagsMegabytes = append(tagsMegabytes, tagUnitsMegabytes)
 
-			_ = c.addMetric(&metrics, "", "AvgDiskBytesPerRead"+metricSuffic,"I",dst.AvgDiskBytesPerRead,tagsBytes)     // uint64
-			_ = c.addMetric(&metrics, "", "AvgDiskBytesPerTransfer"+metricSuffic,"I",dst.AvgDiskBytesPerTransfer,tagsBytes) // uint64
-			_ = c.addMetric(&metrics, "", "AvgDiskBytesPerWrite"+metricSuffic,"I",dst.AvgDiskBytesPerWrite,tagsBytes) // uint64
-			_ = c.addMetric(&metrics, "", "AvgDiskQueueLength"+metricSuffic,"I",dst.AvgDiskQueueLength,tagList)      // uint64
-			_ = c.addMetric(&metrics, "", "AvgDiskReadQueueLength"+metricSuffic,"I",dst.AvgDiskReadQueueLength,tagList)  // uint64
-			_ = c.addMetric(&metrics, "", "AvgDisksecPerRead"+metricSuffic,"L",dst.AvgDisksecPerRead,tagsOperations) // uint32
-			_ = c.addMetric(&metrics, "", "AvgDisksecPerTransfer"+metricSuffic,"L",dst.AvgDisksecPerTransfer,tagsOperations)   // uint32
-			_ = c.addMetric(&metrics, "", "AvgDisksecPerWrite"+metricSuffic,"L",dst.AvgDisksecPerWrite,tagsOperations)      // uint32
-			_ = c.addMetric(&metrics, "", "AvgDiskWriteQueueLength"+metricSuffic,"I",dst.AvgDiskWriteQueueLength,tagList) // uint64
-			_ = c.addMetric(&metrics, "", "CurrentDiskQueueLength"+metricSuffic,"L",dst.CurrentDiskQueueLength,tagList)  // uint32
-			_ = c.addMetric(&metrics, "", "DiskBytesPersec"+metricSuffic,"I",dst.DiskBytesPersec,tagsBytes)         // uint64
-			_ = c.addMetric(&metrics, "", "DiskReadBytesPersec"+metricSuffic,"I",dst.DiskReadBytesPersec,tagsBytes)     // uint64
-			_ = c.addMetric(&metrics, "", "DiskReadsPersec"+metricSuffic,"L",dst.DiskReadsPersec,tagList)         // uint32
-			_ = c.addMetric(&metrics, "", "DiskTransfersPersec"+metricSuffic,"L",dst.DiskTransfersPersec,tagList)    // uint32
-			_ = c.addMetric(&metrics, "", "DiskWriteBytesPersec"+metricSuffic,"I",dst.DiskWriteBytesPersec,tagList)    // uint64
-			_ = c.addMetric(&metrics, "", "DiskWritesPersec"+metricSuffic,"I",dst.DiskWritesPersec,tagList)        // uint64
-			_ = c.addMetric(&metrics, "", "FreeMegabytes"+metricSuffic,"L",dst.FreeMegabytes,tagsMegabytes)           // uint32
-			_ = c.addMetric(&metrics, "", "PercentDiskReadTime"+metricSuffic,"I",dst.PercentDiskReadTime,tagsPercent)     // uint64
-			_ = c.addMetric(&metrics, "", "PercentDiskTime"+metricSuffic,"I",dst.PercentDiskTime,tagsPercent)         // uint64
-			_ = c.addMetric(&metrics, "", "PercentDiskWriteTime"+metricSuffic,"I",dst.PercentDiskWriteTime, tagsPercent)    // uint64
-			_ = c.addMetric(&metrics, "", "PercentFreeSpace"+metricSuffic,"L",dst.PercentFreeSpace,tagsPercent)        // uint32
-			_ = c.addMetric(&metrics, "", "PercentIdleTime"+metricSuffic,"I",dst.PercentIdleTime,tagsPercent)         // uint64
-			_ = c.addMetric(&metrics, "", "SplitIOPerSec"+metricSuffic,"L",dst.SplitIOPerSec,tagsOperations)           // uint32
+			_ = c.addMetric(&metrics, "", "AvgDiskBytesPerRead"+metricSuffix, metricTypeUint64, item.AvgDiskBytesPerRead, tagsBytes)  // uint64
+			_ = c.addMetric(&metrics, "", "AvgDiskBytesPerTransfer"+metricSuffix, "I", item.AvgDiskBytesPerTransfer, tagsBytes)       // uint64
+			_ = c.addMetric(&metrics, "", "AvgDiskBytesPerWrite"+metricSuffix, "I", item.AvgDiskBytesPerWrite, tagsBytes)             // uint64
+			_ = c.addMetric(&metrics, "", "AvgDiskQueueLength"+metricSuffix, "I", item.AvgDiskQueueLength, tagList)                   // uint64
+			_ = c.addMetric(&metrics, "", "AvgDiskReadQueueLength"+metricSuffix, "I", item.AvgDiskReadQueueLength, tagList)           // uint64
+			_ = c.addMetric(&metrics, "", "AvgDisksecPerRead"+metricSuffix, metricTypeUint32, item.AvgDisksecPerRead, tagsOperations) // uint32
+			_ = c.addMetric(&metrics, "", "AvgDisksecPerTransfer"+metricSuffix, "L", item.AvgDisksecPerTransfer, tagsOperations)      // uint32
+			_ = c.addMetric(&metrics, "", "AvgDisksecPerWrite"+metricSuffix, "L", item.AvgDisksecPerWrite, tagsOperations)            // uint32
+			_ = c.addMetric(&metrics, "", "AvgDiskWriteQueueLength"+metricSuffix, "I", item.AvgDiskWriteQueueLength, tagList)         // uint64
+			_ = c.addMetric(&metrics, "", "CurrentDiskQueueLength"+metricSuffix, "L", item.CurrentDiskQueueLength, tagList)           // uint32
+			_ = c.addMetric(&metrics, "", "DiskBytesPersec"+metricSuffix, "I", item.DiskBytesPersec, tagsBytes)                       // uint64
+			_ = c.addMetric(&metrics, "", "DiskReadBytesPersec"+metricSuffix, "I", item.DiskReadBytesPersec, tagsBytes)               // uint64
+			_ = c.addMetric(&metrics, "", "DiskReadsPersec"+metricSuffix, "L", item.DiskReadsPersec, tagList)                         // uint32
+			_ = c.addMetric(&metrics, "", "DiskTransfersPersec"+metricSuffix, "L", item.DiskTransfersPersec, tagList)                 // uint32
+			_ = c.addMetric(&metrics, "", "DiskWriteBytesPersec"+metricSuffix, "I", item.DiskWriteBytesPersec, tagList)               // uint64
+			_ = c.addMetric(&metrics, "", "DiskWritesPersec"+metricSuffix, "I", item.DiskWritesPersec, tagList)                       // uint64
+			// _ = c.addMetric(&metrics, "", "FreeMegabytes"+metricSuffix, "L", item.FreeMegabytes, tagsMegabytes)                  // uint32
+			_ = c.addMetric(&metrics, "", "PercentDiskReadTime"+metricSuffix, "I", item.PercentDiskReadTime, tagsPercent)   // uint64
+			_ = c.addMetric(&metrics, "", "PercentDiskTime"+metricSuffix, "I", item.PercentDiskTime, tagsPercent)           // uint64
+			_ = c.addMetric(&metrics, "", "PercentDiskWriteTime"+metricSuffix, "I", item.PercentDiskWriteTime, tagsPercent) // uint64
+			// _ = c.addMetric(&metrics, "", "PercentFreeSpace"+metricSuffix, "L", item.PercentFreeSpace, tagsPercent)              // uint32
+			_ = c.addMetric(&metrics, "", "PercentIdleTime"+metricSuffix, "I", item.PercentIdleTime, tagsPercent) // uint64
+			_ = c.addMetric(&metrics, "", "SplitIOPerSec"+metricSuffix, "L", item.SplitIOPerSec, tagsOperations)  // uint32
 
-
-			d := structs.Map(item)
-			for name, val := range d {
-				if name == nameFieldName {
-					continue
-				}
-				_ = c.addMetric(&metrics, pfx, name, "L", val, cgm.Tags{})
-			}
+			// d := structs.Map(item)
+			// for name, val := range d {
+			// 	if name == nameFieldName {
+			// 		continue
+			// 	}
+			// 	_ = c.addMetric(&metrics, pfx, name, "L", val, cgm.Tags{})
+			// }
 		}
 	}
 
@@ -398,7 +396,7 @@ func (c *Disk) Collect() error {
 	return nil
 }
 
-func (c *Disk) emitDiskMetrics(diskType string, diskMetrics) error {
+func (c *Disk) emitDiskMetrics(metrics *cgm.Metrics, diskType string, diskMetrics Win32_PerfFormattedData_PerfDisk_LogicalDisk) error {
 	tagUnitsBytes := cgm.Tag{Category: "units", Value: "bytes"}
 	tagUnitsMegabytes := cgm.Tag{Category: "units", Value: "megabytes"}
 	tagUnitsOperations := cgm.Tag{Category: "units", Value: "operations"}
@@ -410,7 +408,7 @@ func (c *Disk) emitDiskMetrics(diskType string, diskMetrics) error {
 	// apply include/exclude to CLEAN item name
 	diskName := c.cleanName(diskMetrics.Name)
 	if c.exclude.MatchString(diskName) || !c.include.MatchString(diskName) {
-		continue
+		return nil
 	}
 
 	metricSuffix := ""
@@ -418,7 +416,7 @@ func (c *Disk) emitDiskMetrics(diskType string, diskMetrics) error {
 		diskName = "all"
 		metricSuffix = totalName
 	}
-	
+
 	tagList := cgm.Tags{
 		cgm.Tag{Category: "disk_type", Value: diskType},
 		cgm.Tag{Category: "disk_name", Value: diskName},
@@ -440,29 +438,29 @@ func (c *Disk) emitDiskMetrics(diskType string, diskMetrics) error {
 	tagsMegabytes = append(tagsMegabytes, tagList...)
 	tagsMegabytes = append(tagsMegabytes, tagUnitsMegabytes)
 
-	_ = c.addMetric(&metrics, "", "AvgDiskBytesPerRead"+metricSuffic,metricTypeUint64,diskMetrics.AvgDiskBytesPerRead,tagsBytes)     // uint64
-	_ = c.addMetric(&metrics, "", "AvgDiskBytesPerTransfer"+metricSuffic,metricTypeUint64,diskMetrics.AvgDiskBytesPerTransfer,tagsBytes) // uint64
-	_ = c.addMetric(&metrics, "", "AvgDiskBytesPerWrite"+metricSuffic,metricTypeUint64,diskMetrics.AvgDiskBytesPerWrite,tagsBytes) // uint64
-	_ = c.addMetric(&metrics, "", "AvgDiskQueueLength"+metricSuffic,metricTypeUint64,diskMetrics.AvgDiskQueueLength,tagList)      // uint64
-	_ = c.addMetric(&metrics, "", "AvgDiskReadQueueLength"+metricSuffic,metricTypeUint64,diskMetrics.AvgDiskReadQueueLength,tagList)  // uint64
-	_ = c.addMetric(&metrics, "", "AvgDisksecPerRead"+metricSuffic,metricTypeUint32,diskMetrics.AvgDisksecPerRead,tagsOperations) // uint32
-	_ = c.addMetric(&metrics, "", "AvgDisksecPerTransfer"+metricSuffic,metricTypeUint32,diskMetrics.AvgDisksecPerTransfer,tagsOperations)   // uint32
-	_ = c.addMetric(&metrics, "", "AvgDisksecPerWrite"+metricSuffic,metricTypeUint32,diskMetrics.AvgDisksecPerWrite,tagsOperations)      // uint32
-	_ = c.addMetric(&metrics, "", "AvgDiskWriteQueueLength"+metricSuffic,metricTypeUint64,diskMetrics.AvgDiskWriteQueueLength,tagList) // uint64
-	_ = c.addMetric(&metrics, "", "CurrentDiskQueueLength"+metricSuffic,metricTypeUint32,diskMetrics.CurrentDiskQueueLength,tagList)  // uint32
-	_ = c.addMetric(&metrics, "", "DiskBytesPersec"+metricSuffic,metricTypeUint64,diskMetrics.DiskBytesPersec,tagsBytes)         // uint64
-	_ = c.addMetric(&metrics, "", "DiskReadBytesPersec"+metricSuffic,metricTypeUint64,diskMetrics.DiskReadBytesPersec,tagsBytes)     // uint64
-	_ = c.addMetric(&metrics, "", "DiskReadsPersec"+metricSuffic,metricTypeUint32,diskMetrics.DiskReadsPersec,tagList)         // uint32
-	_ = c.addMetric(&metrics, "", "DiskTransfersPersec"+metricSuffic,metricTypeUint32,diskMetrics.DiskTransfersPersec,tagList)    // uint32
-	_ = c.addMetric(&metrics, "", "DiskWriteBytesPersec"+metricSuffic,metricTypeUint64,diskMetrics.DiskWriteBytesPersec,tagList)    // uint64
-	_ = c.addMetric(&metrics, "", "DiskWritesPersec"+metricSuffic,metricTypeUint64,diskMetrics.DiskWritesPersec,tagList)        // uint64
-	_ = c.addMetric(&metrics, "", "FreeMegabytes"+metricSuffic,metricTypeUint32,diskMetrics.FreeMegabytes,tagsMegabytes)           // uint32
-	_ = c.addMetric(&metrics, "", "PercentDiskReadTime"+metricSuffic,metricTypeUint64,diskMetrics.PercentDiskReadTime,tagsPercent)     // uint64
-	_ = c.addMetric(&metrics, "", "PercentDiskTime"+metricSuffic,metricTypeUint64,diskMetrics.PercentDiskTime,tagsPercent)         // uint64
-	_ = c.addMetric(&metrics, "", "PercentDiskWriteTime"+metricSuffic,metricTypeUint64,diskMetrics.PercentDiskWriteTime, tagsPercent)    // uint64
-	_ = c.addMetric(&metrics, "", "PercentFreeSpace"+metricSuffic,metricTypeUint32,diskMetrics.PercentFreeSpace,tagsPercent)        // uint32
-	_ = c.addMetric(&metrics, "", "PercentIdleTime"+metricSuffic,metricTypeUint64,diskMetrics.PercentIdleTime,tagsPercent)         // uint64
-	_ = c.addMetric(&metrics, "", "SplitIOPerSec"+metricSuffic,metricTypeUint32,diskMetrics.SplitIOPerSec,tagsOperations)           // uint32
+	_ = c.addMetric(metrics, "", "AvgDiskBytesPerRead"+metricSuffix, metricTypeUint64, diskMetrics.AvgDiskBytesPerRead, tagsBytes)          // uint64
+	_ = c.addMetric(metrics, "", "AvgDiskBytesPerTransfer"+metricSuffix, metricTypeUint64, diskMetrics.AvgDiskBytesPerTransfer, tagsBytes)  // uint64
+	_ = c.addMetric(metrics, "", "AvgDiskBytesPerWrite"+metricSuffix, metricTypeUint64, diskMetrics.AvgDiskBytesPerWrite, tagsBytes)        // uint64
+	_ = c.addMetric(metrics, "", "AvgDiskQueueLength"+metricSuffix, metricTypeUint64, diskMetrics.AvgDiskQueueLength, tagList)              // uint64
+	_ = c.addMetric(metrics, "", "AvgDiskReadQueueLength"+metricSuffix, metricTypeUint64, diskMetrics.AvgDiskReadQueueLength, tagList)      // uint64
+	_ = c.addMetric(metrics, "", "AvgDisksecPerRead"+metricSuffix, metricTypeUint32, diskMetrics.AvgDisksecPerRead, tagsOperations)         // uint32
+	_ = c.addMetric(metrics, "", "AvgDisksecPerTransfer"+metricSuffix, metricTypeUint32, diskMetrics.AvgDisksecPerTransfer, tagsOperations) // uint32
+	_ = c.addMetric(metrics, "", "AvgDisksecPerWrite"+metricSuffix, metricTypeUint32, diskMetrics.AvgDisksecPerWrite, tagsOperations)       // uint32
+	_ = c.addMetric(metrics, "", "AvgDiskWriteQueueLength"+metricSuffix, metricTypeUint64, diskMetrics.AvgDiskWriteQueueLength, tagList)    // uint64
+	_ = c.addMetric(metrics, "", "CurrentDiskQueueLength"+metricSuffix, metricTypeUint32, diskMetrics.CurrentDiskQueueLength, tagList)      // uint32
+	_ = c.addMetric(metrics, "", "DiskBytesPersec"+metricSuffix, metricTypeUint64, diskMetrics.DiskBytesPersec, tagsBytes)                  // uint64
+	_ = c.addMetric(metrics, "", "DiskReadBytesPersec"+metricSuffix, metricTypeUint64, diskMetrics.DiskReadBytesPersec, tagsBytes)          // uint64
+	_ = c.addMetric(metrics, "", "DiskReadsPersec"+metricSuffix, metricTypeUint32, diskMetrics.DiskReadsPersec, tagList)                    // uint32
+	_ = c.addMetric(metrics, "", "DiskTransfersPersec"+metricSuffix, metricTypeUint32, diskMetrics.DiskTransfersPersec, tagList)            // uint32
+	_ = c.addMetric(metrics, "", "DiskWriteBytesPersec"+metricSuffix, metricTypeUint64, diskMetrics.DiskWriteBytesPersec, tagList)          // uint64
+	_ = c.addMetric(metrics, "", "DiskWritesPersec"+metricSuffix, metricTypeUint64, diskMetrics.DiskWritesPersec, tagList)                  // uint64
+	_ = c.addMetric(metrics, "", "FreeMegabytes"+metricSuffix, metricTypeUint32, diskMetrics.FreeMegabytes, tagsMegabytes)                  // uint32
+	_ = c.addMetric(metrics, "", "PercentDiskReadTime"+metricSuffix, metricTypeUint64, diskMetrics.PercentDiskReadTime, tagsPercent)        // uint64
+	_ = c.addMetric(metrics, "", "PercentDiskTime"+metricSuffix, metricTypeUint64, diskMetrics.PercentDiskTime, tagsPercent)                // uint64
+	_ = c.addMetric(metrics, "", "PercentDiskWriteTime"+metricSuffix, metricTypeUint64, diskMetrics.PercentDiskWriteTime, tagsPercent)      // uint64
+	_ = c.addMetric(metrics, "", "PercentFreeSpace"+metricSuffix, metricTypeUint32, diskMetrics.PercentFreeSpace, tagsPercent)              // uint32
+	_ = c.addMetric(metrics, "", "PercentIdleTime"+metricSuffix, metricTypeUint64, diskMetrics.PercentIdleTime, tagsPercent)                // uint64
+	_ = c.addMetric(metrics, "", "SplitIOPerSec"+metricSuffix, metricTypeUint32, diskMetrics.SplitIOPerSec, tagsOperations)                 // uint32
 
 	return nil
 }
