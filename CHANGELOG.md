@@ -1,3 +1,9 @@
+# v1.0.0-alpha.1
+
+* testing release, not guaranteed to be feature complete
+* note that the wmi builtin collector(s) are still a WIP
+* upd: **BREAKING CHANGE** agent v1+ will only support stream tags. Continue to use v0 releases to maintain continuity with existing metric names used in checks, visuals and alert rules.
+
 # v0.19.3
 
 * fix: ensure check bundle is active when fetching
