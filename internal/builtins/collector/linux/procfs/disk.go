@@ -8,7 +8,6 @@
 package procfs
 
 import (
-	"bufio"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -27,24 +26,21 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Diskstats metrics from the Linux ProcFS
-type Diskstats struct {
-	pfscommon
+// Disk metrics from the Linux ProcFS
+type Disk struct {
+	common
 	include           *regexp.Regexp
 	exclude           *regexp.Regexp
 	sectorSizeDefault uint64
 	sectorSizeCache   map[string]uint64
 }
 
-// diskstatsOptions defines what elements can be overridden in a config file
-type diskstatsOptions struct {
+// diskOptions defines what elements can be overridden in a config file
+type diskOptions struct {
 	// common
-	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	ProcFSPath           string   `json:"procfs_path" toml:"procfs_path" yaml:"procfs_path"`
-	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
-	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
-	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
+	ID         string `json:"id" toml:"id" yaml:"id"`
+	ProcFSPath string `json:"procfs_path" toml:"procfs_path" yaml:"procfs_path"`
+	RunTTL     string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 
 	// collector specific
 	IncludeRegex      string `json:"include_regex" toml:"include_regex" yaml:"include_regex"`
@@ -69,18 +65,16 @@ type dstats struct {
 	iomsWeighted    uint64
 }
 
-// NewDiskstatsCollector creates new procfs diskstats collector
-func NewDiskstatsCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
-	procFile := DISKSTATS_NAME
+// NewDiskCollector creates new procfs disk collector
+func NewDiskCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
+	procFile := "diskstats"
 
-	c := Diskstats{}
-	c.id = DISKSTATS_NAME
-	c.pkgID = PKG_NAME + "." + c.id
-	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
+	c := Disk{}
+	c.id = NameDisk
+	c.pkgID = PackageName + "." + c.id
+	c.logger = log.With().Str("pkg", PackageName).Str("id", c.id).Logger()
 	c.procFSPath = procFSPath
 	c.file = filepath.Join(c.procFSPath, procFile)
-	c.metricStatus = map[string]bool{}
-	c.metricDefaultActive = true
 	c.sectorSizeCache = make(map[string]uint64)
 	c.baseTags = tags.FromList(tags.GetBaseTags())
 
@@ -95,7 +89,7 @@ func NewDiskstatsCollector(cfgBaseName, procFSPath string) (collector.Collector,
 		return &c, nil
 	}
 
-	var opts diskstatsOptions
+	var opts diskOptions
 	err := config.LoadConfigFile(cfgBaseName, &opts)
 	if err != nil {
 		if strings.Contains(err.Error(), "no config found matching") {
@@ -140,25 +134,6 @@ func NewDiskstatsCollector(cfgBaseName, procFSPath string) (collector.Collector,
 		c.file = filepath.Join(c.procFSPath, procFile)
 	}
 
-	if len(opts.MetricsEnabled) > 0 {
-		for _, name := range opts.MetricsEnabled {
-			c.metricStatus[name] = true
-		}
-	}
-	if len(opts.MetricsDisabled) > 0 {
-		for _, name := range opts.MetricsDisabled {
-			c.metricStatus[name] = false
-		}
-	}
-
-	if opts.MetricsDefaultStatus != "" {
-		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(opts.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(opts.MetricsDefaultStatus) == metricStatusEnabled
-		} else {
-			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, opts.MetricsDefaultStatus)
-		}
-	}
-
 	if opts.RunTTL != "" {
 		dur, err := time.ParseDuration(opts.RunTTL)
 		if err != nil {
@@ -175,7 +150,7 @@ func NewDiskstatsCollector(cfgBaseName, procFSPath string) (collector.Collector,
 }
 
 // Collect metrics from the procfs resource
-func (c *Diskstats) Collect() error {
+func (c *Disk) Collect() error {
 	metrics := cgm.Metrics{}
 
 	c.Lock()
@@ -197,18 +172,14 @@ func (c *Diskstats) Collect() error {
 	c.lastStart = time.Now()
 	c.Unlock()
 
-	f, err := os.Open(c.file)
+	stats := make(map[string]*dstats)
+
+	lines, err := c.readFile(c.file)
 	if err != nil {
 		c.setStatus(metrics, err)
 		return errors.Wrap(err, c.pkgID)
 	}
-	defer f.Close()
-
-	stats := make(map[string]*dstats)
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-
-		line := strings.TrimSpace(scanner.Text())
+	for _, line := range lines {
 		fields := strings.Fields(line)
 
 		//  1 major                ignore
@@ -236,15 +207,14 @@ func (c *Diskstats) Collect() error {
 		stats[ds.id] = ds
 	}
 
-	if err := scanner.Err(); err != nil {
-		c.setStatus(cgm.Metrics{}, err)
-		return errors.Wrapf(err, "%s parsing %s", c.pkgID, f.Name())
-	}
+	unitOperationsTag := tags.Tag{Category: "units", Value: "operations"}
+	unitBytesTag := tags.Tag{Category: "units", Value: "bytes"}
+	unitMillisecondsTag := tags.Tag{Category: "units", Value: "milliseconds"}
+	unitSectorsTag := tags.Tag{Category: "units", Value: "sectors"}
 
 	// get list of devices for each entry in mdstats (if it exists)
 	mdList := c.parsemdstat()
 	mdrx := regexp.MustCompile(`^md[0-9]+`)
-	pfx := c.id + metricNameSeparator
 	metricType := "L" // uint64
 	for devID, devStats := range stats {
 
@@ -267,26 +237,63 @@ func (c *Diskstats) Collect() error {
 			}
 		}
 
-		c.addMetric(&metrics, pfx+devID, "rd_completed", metricType, devStats.readsCompleted)
-		c.addMetric(&metrics, pfx+devID, "rd_merged", metricType, devStats.readsMerged)
-		c.addMetric(&metrics, pfx+devID, "rd_sectors", metricType, devStats.sectorsRead)
-		c.addMetric(&metrics, pfx+devID, "rd_bytes", metricType, devStats.bytesRead)
-		c.addMetric(&metrics, pfx+devID, "rd_ms", metricType, devStats.readms)
-		c.addMetric(&metrics, pfx+devID, "wr_completed", metricType, devStats.writesCompleted)
-		c.addMetric(&metrics, pfx+devID, "wr_merged", metricType, devStats.writesMerged)
-		c.addMetric(&metrics, pfx+devID, "wr_sectors", metricType, devStats.sectorsWritten)
-		c.addMetric(&metrics, pfx+devID, "wr_bytes", metricType, devStats.bytesWritten)
-		c.addMetric(&metrics, pfx+devID, "wr_ms", metricType, devStats.writems)
-		c.addMetric(&metrics, pfx+devID, "io_in_progress", metricType, devStats.currIO)
-		c.addMetric(&metrics, pfx+devID, "io_ms", metricType, devStats.ioms)
-		c.addMetric(&metrics, pfx+devID, "io_ms_weighted", metricType, devStats.iomsWeighted)
+		diskTags := tags.Tags{
+			tags.Tag{Category: "device", Value: devID},
+		}
+
+		{
+			tagList := tags.Tags{unitOperationsTag}
+			tagList = append(tagList, diskTags...)
+			c.addMetric(&metrics, "", "reads", metricType, devStats.readsCompleted, tagList)
+			c.addMetric(&metrics, "", "merged_reads", metricType, devStats.readsMerged, tagList)
+			c.addMetric(&metrics, "", "writes", metricType, devStats.writesCompleted, tagList)
+			c.addMetric(&metrics, "", "merged_writes", metricType, devStats.writesMerged, tagList)
+			c.addMetric(&metrics, "", "iops_in_progress", metricType, devStats.currIO, tagList)
+		}
+
+		{
+			tagList := tags.Tags{unitSectorsTag}
+			tagList = append(tagList, diskTags...)
+			c.addMetric(&metrics, "", "reads", metricType, devStats.sectorsRead, tagList)
+			c.addMetric(&metrics, "", "writes", metricType, devStats.sectorsWritten, tagList)
+		}
+
+		{
+			tagList := tags.Tags{unitBytesTag}
+			tagList = append(tagList, diskTags...)
+			c.addMetric(&metrics, "", "reads", metricType, devStats.bytesRead, tagList)
+			c.addMetric(&metrics, "", "writes", metricType, devStats.bytesWritten, tagList)
+		}
+
+		{
+			tagList := tags.Tags{unitMillisecondsTag}
+			tagList = append(tagList, diskTags...)
+			c.addMetric(&metrics, "", "read_time", metricType, devStats.readms, tagList)
+			c.addMetric(&metrics, "", "write_time", metricType, devStats.writems, tagList)
+			c.addMetric(&metrics, "", "io_time", metricType, devStats.ioms, tagList)
+			c.addMetric(&metrics, "", "weighted_io_time", metricType, devStats.iomsWeighted, tagList)
+		}
+
+		// c.addMetric(&metrics, pfx+devID, "rd_completed", metricType, devStats.readsCompleted)  // reads, operations
+		// c.addMetric(&metrics, pfx+devID, "rd_merged", metricType, devStats.readsMerged)        // merged_reads, operations
+		// c.addMetric(&metrics, pfx+devID, "rd_sectors", metricType, devStats.sectorsRead)       // reads, sectors
+		// c.addMetric(&metrics, pfx+devID, "rd_bytes", metricType, devStats.bytesRead)           // reads, bytes
+		// c.addMetric(&metrics, pfx+devID, "rd_ms", metricType, devStats.readms)                 // read_time, milliseconds
+		// c.addMetric(&metrics, pfx+devID, "wr_completed", metricType, devStats.writesCompleted) // writes, operations
+		// c.addMetric(&metrics, pfx+devID, "wr_merged", metricType, devStats.writesMerged)       // merged_writes, operations
+		// c.addMetric(&metrics, pfx+devID, "wr_sectors", metricType, devStats.sectorsWritten)    // writes, sectors
+		// c.addMetric(&metrics, pfx+devID, "wr_bytes", metricType, devStats.bytesWritten)        // writes, bytes
+		// c.addMetric(&metrics, pfx+devID, "wr_ms", metricType, devStats.writems)                // write_time, milliseconds
+		// c.addMetric(&metrics, pfx+devID, "io_in_progress", metricType, devStats.currIO)        // iops_in_progress, operations
+		// c.addMetric(&metrics, pfx+devID, "io_ms", metricType, devStats.ioms)                   // io_time, milliseconds
+		// c.addMetric(&metrics, pfx+devID, "io_ms_weighted", metricType, devStats.iomsWeighted)  // weighted_io_time, milliseconds
 	}
 
 	c.setStatus(metrics, nil)
 	return nil
 }
 
-func (c *Diskstats) getSectorSize(dev string) uint64 {
+func (c *Disk) getSectorSize(dev string) uint64 {
 	if sz, have := c.sectorSizeCache[dev]; have {
 		return sz
 	}
@@ -312,7 +319,7 @@ func (c *Diskstats) getSectorSize(dev string) uint64 {
 	return v
 }
 
-func (c *Diskstats) parse(fields []string) (*dstats, error) {
+func (c *Disk) parse(fields []string) (*dstats, error) {
 	devName := fields[2]
 	if devName == "" {
 		c.logger.Debug().Msg("invalid device name (empty), ignoring")
@@ -408,25 +415,25 @@ func (c *Diskstats) parse(fields []string) (*dstats, error) {
 	return &d, nil
 }
 
-func (c *Diskstats) parsemdstat() map[string][]string {
-	mdstatPath := strings.Replace(c.file, DISKSTATS_NAME, "mdstat", -1)
+func (c *Disk) parsemdstat() map[string][]string {
+	mdstatFile := strings.Replace(c.file, c.id, "mdstat", -1)
 	mdList := make(map[string][]string)
-	f, err := os.Open(mdstatPath)
-	if err != nil {
-		c.logger.Debug().Err(err).Str("mdstats", mdstatPath).Msg("loading mdstats, ignoring")
-		return mdList
-	}
-	defer f.Close()
 
-	scanner := bufio.NewScanner(f)
 	mdrx := regexp.MustCompile(`^md[0-9]+`)
 	devrx := regexp.MustCompile(`^([^\[]+)\[.+$`)
-	for scanner.Scan() {
 
-		line := strings.TrimSpace(scanner.Text())
+	lines, err := c.readFile(mdstatFile)
+	if err != nil {
+		return mdList
+	}
+
+	for _, l := range lines {
+
+		line := strings.TrimSpace(string(l))
 		if line == "" {
 			continue
 		}
+
 		fields := strings.Fields(line)
 		if len(fields) < 1 {
 			continue
@@ -456,9 +463,5 @@ func (c *Diskstats) parsemdstat() map[string][]string {
 		mdList[mdID] = devList
 	}
 
-	if err := scanner.Err(); err != nil {
-		c.logger.Debug().Err(err).Str("mdstats", mdstatPath).Msg("loading mdstats, ignoring")
-		return map[string][]string{}
-	}
 	return mdList
 }

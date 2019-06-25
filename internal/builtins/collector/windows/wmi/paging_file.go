@@ -53,8 +53,8 @@ type pagingFileOptions struct {
 func NewPagingFileCollector(cfgBaseName string) (collector.Collector, error) {
 	c := PagingFile{}
 	c.id = "paging_file"
-	c.pkgID = PKG_NAME + "." + c.id
-	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
+	c.pkgID = pkgName + "." + c.id
+	c.logger = log.With().Str("pkg", pkgName).Str("id", c.id).Logger()
 	c.metricDefaultActive = true
 	c.metricNameChar = defaultMetricChar
 	c.metricNameRegex = defaultMetricNameRegex
@@ -196,7 +196,7 @@ func (c *PagingFile) Collect() error {
 			if name == nameFieldName {
 				continue
 			}
-			c.addMetric(&metrics, pfx, name, "L", val)
+			_ = c.addMetric(&metrics, pfx, name, "L", val, cgm.Tags{})
 		}
 	}
 

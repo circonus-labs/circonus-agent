@@ -14,7 +14,6 @@ import (
 	"net/url"
 	"path"
 	"regexp"
-	"strings"
 	"sync"
 	"time"
 
@@ -40,57 +39,42 @@ type URLDef struct {
 
 // Prom defines prom collector
 type Prom struct {
-	pkgID               string          // package prefix used for logging and errors
-	urls                []URLDef        // prom URLs to collect metric from
-	lastEnd             time.Time       // last collection end time
-	lastError           string          // last collection error
-	lastMetrics         cgm.Metrics     // last metrics collected
-	lastRunDuration     time.Duration   // last collection duration
-	lastStart           time.Time       // last collection start time
-	logger              zerolog.Logger  // collector logging instance
-	metricDefaultActive bool            // OPT default status for metrics NOT explicitly in metricStatus
-	metricNameRegex     *regexp.Regexp  // OPT regex for cleaning names, may be overridden in config
-	metricStatus        map[string]bool // OPT list of metrics and whether they should be collected or not
-	running             bool            // is collector currently running
-	runTTL              time.Duration   // OPT ttl for collector (default is for every request)
-	include             *regexp.Regexp
-	exclude             *regexp.Regexp
-	baseTags            []string
+	pkgID           string         // package prefix used for logging and errors
+	urls            []URLDef       // prom URLs to collect metric from
+	lastEnd         time.Time      // last collection end time
+	lastError       string         // last collection error
+	lastMetrics     cgm.Metrics    // last metrics collected
+	lastRunDuration time.Duration  // last collection duration
+	lastStart       time.Time      // last collection start time
+	logger          zerolog.Logger // collector logging instance
+	metricNameRegex *regexp.Regexp // OPT regex for cleaning names, may be overridden in config
+	running         bool           // is collector currently running
+	runTTL          time.Duration  // OPT ttl for collector (default is for every request)
+	baseTags        []string
 	sync.Mutex
 }
 
 // promOptions defines what elements can be overridden in a config file
 type promOptions struct {
-	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
-	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
-	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
-	IncludeRegex         string   `json:"include_regex" toml:"include_regex" yaml:"include_regex"`
-	ExcludeRegex         string   `json:"exclude_regex" toml:"exclude_regex" yaml:"exclude_regex"`
-	URLs                 []URLDef `json:"urls" toml:"urls" yaml:"urls"`
+	RunTTL string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
+	URLs   []URLDef `json:"urls" toml:"urls" yaml:"urls"`
 }
 
-const (
-	metricNameSeparator = "`"        // character used to separate parts of metric names
-	metricStatusEnabled = "enabled"  // setting string indicating metrics should be made 'active'
-	regexPat            = `^(?:%s)$` // fmt pattern used compile include/exclude regular expressions
-)
+// const (
+// 	regexPat = `^(?:%s)$` // fmt pattern used compile include/exclude regular expressions
+// )
 
-var (
-	defaultExcludeRegex = regexp.MustCompile(fmt.Sprintf(regexPat, ""))
-	defaultIncludeRegex = regexp.MustCompile(fmt.Sprintf(regexPat, ".+"))
-)
+// var (
+// 	defaultExcludeRegex = regexp.MustCompile(fmt.Sprintf(regexPat, ""))
+// 	defaultIncludeRegex = regexp.MustCompile(fmt.Sprintf(regexPat, ".+"))
+// )
 
 // New creates new prom collector
 func New(cfgBaseName string) (collector.Collector, error) {
 	c := Prom{
-		pkgID:               "builtins.prometheus",
-		metricStatus:        map[string]bool{},
-		metricDefaultActive: true,
-		include:             defaultIncludeRegex,
-		exclude:             defaultExcludeRegex,
-		metricNameRegex:     regexp.MustCompile("[\r\n\"']"), // used to strip unwanted characters
-		baseTags:            tags.GetBaseTags(),
+		pkgID:           "builtins.prometheus",
+		metricNameRegex: regexp.MustCompile("[\r\n\"']"), // used to strip unwanted characters
+		baseTags:        tags.GetBaseTags(),
 	}
 
 	c.logger = log.With().Str("pkg", c.pkgID).Logger()
@@ -142,41 +126,6 @@ func New(cfgBaseName string) (collector.Collector, error) {
 		}
 		c.logger.Debug().Int("item", i).Interface("url", u).Msg("enabling prom collection URL")
 		c.urls = append(c.urls, u)
-	}
-
-	if opts.IncludeRegex != "" {
-		rx, err := regexp.Compile(fmt.Sprintf(regexPat, opts.IncludeRegex))
-		if err != nil {
-			return nil, errors.Wrapf(err, "%s compiling include regex", c.pkgID)
-		}
-		c.include = rx
-	}
-
-	if opts.ExcludeRegex != "" {
-		rx, err := regexp.Compile(fmt.Sprintf(regexPat, opts.ExcludeRegex))
-		if err != nil {
-			return nil, errors.Wrapf(err, "%s compiling exclude regex", c.pkgID)
-		}
-		c.exclude = rx
-	}
-
-	if len(opts.MetricsEnabled) > 0 {
-		for _, name := range opts.MetricsEnabled {
-			c.metricStatus[name] = true
-		}
-	}
-	if len(opts.MetricsDisabled) > 0 {
-		for _, name := range opts.MetricsDisabled {
-			c.metricStatus[name] = false
-		}
-	}
-
-	if opts.MetricsDefaultStatus != "" {
-		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(opts.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(opts.MetricsDefaultStatus) == metricStatusEnabled
-		} else {
-			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, opts.MetricsDefaultStatus)
-		}
 	}
 
 	if opts.RunTTL != "" {
@@ -281,35 +230,39 @@ func (c *Prom) parse(id string, data io.ReadCloser, metrics *cgm.Metrics) error 
 		return err
 	}
 
-	pfx := id
+	pfx := ""
 	for mn, mf := range metricFamilies {
 		for _, m := range mf.Metric {
 			metricName := mn
 			tags := c.getLabels(m)
 			if mf.GetType() == dto.MetricType_SUMMARY {
-				c.addMetric(metrics, pfx, metricName+"_count", tags, "n", float64(m.GetSummary().GetSampleCount()))
-				c.addMetric(metrics, pfx, metricName+"_sum", tags, "n", float64(m.GetSummary().GetSampleSum()))
+				_ = c.addMetric(metrics, pfx, metricName+"_count", tags, "n", float64(m.GetSummary().GetSampleCount()))
+				_ = c.addMetric(metrics, pfx, metricName+"_sum", tags, "n", float64(m.GetSummary().GetSampleSum()))
 				for qn, qv := range c.getQuantiles(m) {
-					c.addMetric(metrics, pfx, metricName+"_"+qn, tags, "n", qv)
+					_ = c.addMetric(metrics, pfx, metricName+"_"+qn, tags, "n", qv)
 				}
 			} else if mf.GetType() == dto.MetricType_HISTOGRAM {
-				c.addMetric(metrics, pfx, metricName+"_count", tags, "n", float64(m.GetHistogram().GetSampleCount()))
-				c.addMetric(metrics, pfx, metricName+"_sum", tags, "n", float64(m.GetHistogram().GetSampleSum()))
+				_ = c.addMetric(metrics, pfx, metricName+"_count", tags, "n", float64(m.GetHistogram().GetSampleCount()))
+				_ = c.addMetric(metrics, pfx, metricName+"_sum", tags, "n", float64(m.GetHistogram().GetSampleSum()))
 				for bn, bv := range c.getBuckets(m) {
-					c.addMetric(metrics, pfx, metricName+"_"+bn, tags, "n", bv)
+					_ = c.addMetric(metrics, pfx, metricName+"_"+bn, tags, "n", bv)
 				}
 			} else {
 				if m.Gauge != nil {
 					if m.GetGauge().Value != nil {
-						c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetGauge().Value)
+						_ = c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetGauge().Value)
 					}
 				} else if m.Counter != nil {
 					if m.GetCounter().Value != nil {
-						c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetCounter().Value)
+						_ = c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetCounter().Value)
 					}
 				} else if m.Untyped != nil {
 					if m.GetUntyped().Value != nil {
-						c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetUntyped().Value)
+						if *m.GetUntyped().Value == math.Inf(+1) {
+							c.logger.Warn().Str("metric", metricName).Str("type", mf.GetType().String()).Str("value", (*m).GetUntyped().String()).Msg("cannot coerce +Inf to uint64")
+							continue
+						}
+						_ = c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetUntyped().Value)
 					}
 				}
 			}
@@ -339,7 +292,7 @@ func (c *Prom) getLabels(m *dto.Metric) tags.Tags {
 		return tags
 	}
 
-	return tags.Tags{}
+	return tags.FromList(c.baseTags)
 }
 
 func (c *Prom) getQuantiles(m *dto.Metric) map[string]float64 {

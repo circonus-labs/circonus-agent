@@ -32,20 +32,22 @@ builds:
 
         ldflags: -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.tag={{.Tag}}
 
-archive:
-    name_template: "{{.ProjectName}}_{{.Version}}_{{.Os}}_{{.Arch}}"
+archives:
+    - 
+      id: default
+      name_template: "{{.ProjectName}}_{{.Version}}_{{.Os}}_{{.Arch}}"
 
-    format: tar.gz
+      format: tar.gz
 
-    replacements:
+      replacements:
         amd64: x86_64
 
-    format_overrides:
+      format_overrides:
         -
-            goos: windows
-            format: zip
+          goos: windows
+          format: zip
 
-    files:
+      files:
         - LICENSE
         - README.md
         - CHANGELOG.md
@@ -59,7 +61,7 @@ release:
         owner: circonus-labs
         name: circonus-agent
 
-    draft: false
+    prerelease: auto
 
 snapshot:
     name_template: SNAPSHOT-{{.Commit}}

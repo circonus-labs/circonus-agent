@@ -18,6 +18,7 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins"
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	"github.com/maier/go-appstats"
 	"github.com/pkg/errors"
@@ -362,7 +363,7 @@ func (p *Plugins) scanPluginDirectory(b *builtins.Builtins) error {
 
 		} else {
 			for inst, args := range cfg {
-				pluginName := fmt.Sprintf("%s`%s", fileBase, inst)
+				pluginName := fileBase + defaults.MetricNameSeparator + inst
 				plug, ok := p.active[pluginName]
 				if !ok {
 					p.active[pluginName] = &plugin{

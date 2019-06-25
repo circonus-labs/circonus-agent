@@ -6,8 +6,6 @@
 package generic
 
 import (
-	"fmt"
-	"regexp"
 	"strings"
 	"time"
 
@@ -16,7 +14,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 	"github.com/shirou/gopsutil/disk"
 )
 
@@ -29,24 +27,19 @@ type Disk struct {
 // DiskOptions defines what elements can be overridden in a config file
 type DiskOptions struct {
 	// common
-	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
-	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
-	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
+	ID     string `json:"id" toml:"id" yaml:"id"`
+	RunTTL string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 
 	// collector specific
 	IODevices []string `json:"io_devices" toml:"io_devices" yaml:"io_devices"`
 }
 
 // NewDiskCollector creates new psutils disk collector
-func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
+func NewDiskCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector.Collector, error) {
 	c := Disk{}
-	c.id = DISK_NAME
-	c.pkgID = PKG_NAME + "." + c.id
-	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
-	c.metricStatus = map[string]bool{}
-	c.metricDefaultActive = true
+	c.id = NameDisk
+	c.pkgID = PackageName + "." + c.id
+	c.logger = parentLogger.With().Str("id", c.id).Logger()
 	c.ioDevices = []string{}
 	c.baseTags = tags.FromList(tags.GetBaseTags())
 
@@ -68,25 +61,6 @@ func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if opts.ID != "" {
 		c.id = opts.ID
-	}
-
-	if len(opts.MetricsEnabled) > 0 {
-		for _, name := range opts.MetricsEnabled {
-			c.metricStatus[name] = true
-		}
-	}
-	if len(opts.MetricsDisabled) > 0 {
-		for _, name := range opts.MetricsDisabled {
-			c.metricStatus[name] = false
-		}
-	}
-
-	if opts.MetricsDefaultStatus != "" {
-		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(opts.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(opts.MetricsDefaultStatus) == metricStatusEnabled
-		} else {
-			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, opts.MetricsDefaultStatus)
-		}
 	}
 
 	if opts.RunTTL != "" {
@@ -124,19 +98,39 @@ func (c *Disk) Collect() error {
 	ios, err := disk.IOCounters(c.ioDevices...)
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting disk io counter metrics")
-	} else {
-		for device, counters := range ios {
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "read_count"), "L", counters.ReadCount)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "merged_read_count"), "L", counters.MergedReadCount)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "write_count"), "L", counters.WriteCount)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "merged_write_count"), "L", counters.MergedWriteCount)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "read_bytes"), "L", counters.ReadBytes)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "write_bytes"), "L", counters.WriteBytes)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "read_time"), "L", counters.ReadTime)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "write_time"), "L", counters.WriteTime)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "iops_in_progress"), "L", counters.IopsInProgress)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "io_time"), "L", counters.IoTime)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "weighted_io"), "L", counters.WeightedIO)
+		c.setStatus(metrics, nil)
+		return nil
+	}
+
+	for device, counters := range ios {
+		diskTags := tags.Tags{
+			tags.Tag{Category: "device", Value: device},
+		}
+
+		{ // units:operations
+			tagList := tags.Tags{tags.Tag{Category: "units", Value: "operations"}}
+			tagList = append(tagList, diskTags...)
+			_ = c.addMetric(&metrics, "reads", "L", counters.ReadCount, tagList)
+			_ = c.addMetric(&metrics, "writes", "L", counters.WriteCount, tagList)
+			_ = c.addMetric(&metrics, "iops_in_progress", "L", counters.IopsInProgress, tagList)
+			_ = c.addMetric(&metrics, "merged_reads", "L", counters.MergedReadCount, tagList)
+			_ = c.addMetric(&metrics, "merged_writes", "L", counters.MergedWriteCount, tagList)
+		}
+
+		{ // units:bytes
+			tagList := tags.Tags{tags.Tag{Category: "units", Value: "bytes"}}
+			tagList = append(tagList, diskTags...)
+			_ = c.addMetric(&metrics, "reads", "L", counters.ReadBytes, tagList)
+			_ = c.addMetric(&metrics, "writes", "L", counters.WriteBytes, tagList)
+		}
+
+		{ // units:milliseconds
+			tagList := tags.Tags{tags.Tag{Category: "units", Value: "milliseconds"}}
+			tagList = append(tagList, diskTags...)
+			_ = c.addMetric(&metrics, "read_time", "L", counters.ReadTime, tagList)
+			_ = c.addMetric(&metrics, "write_time", "L", counters.WriteTime, tagList)
+			_ = c.addMetric(&metrics, "io_time", "L", counters.IoTime, tagList)
+			_ = c.addMetric(&metrics, "weighted_io_time", "L", counters.WeightedIO, tagList)
 		}
 	}
 

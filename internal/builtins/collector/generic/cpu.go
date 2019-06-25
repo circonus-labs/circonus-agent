@@ -7,7 +7,6 @@ package generic
 
 import (
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -17,7 +16,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 	"github.com/shirou/gopsutil/cpu"
 )
 
@@ -30,24 +29,19 @@ type CPU struct {
 // cpuOptions defines what elements can be overridden in a config file
 type cpuOptions struct {
 	// common
-	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
-	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
-	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
+	ID     string `json:"id" toml:"id" yaml:"id"`
+	RunTTL string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 
 	// collector specific
 	AllCPU string `json:"report_all_cpus" toml:"report_all_cpus" yaml:"report_all_cpus"`
 }
 
 // NewCPUCollector creates new psutils cpu collector
-func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
+func NewCPUCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector.Collector, error) {
 	c := CPU{}
-	c.id = CPU_NAME
-	c.pkgID = PKG_NAME + "." + c.id
-	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
-	c.metricStatus = map[string]bool{}
-	c.metricDefaultActive = true
+	c.id = NameCPU
+	c.pkgID = PackageName + "." + c.id
+	c.logger = parentLogger.With().Str("id", c.id).Logger()
 	c.reportAllCPUs = false
 	c.baseTags = tags.FromList(tags.GetBaseTags())
 
@@ -73,25 +67,6 @@ func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if opts.ID != "" {
 		c.id = opts.ID
-	}
-
-	if len(opts.MetricsEnabled) > 0 {
-		for _, name := range opts.MetricsEnabled {
-			c.metricStatus[name] = true
-		}
-	}
-	if len(opts.MetricsDisabled) > 0 {
-		for _, name := range opts.MetricsDisabled {
-			c.metricStatus[name] = false
-		}
-	}
-
-	if opts.MetricsDefaultStatus != "" {
-		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(opts.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(opts.MetricsDefaultStatus) == metricStatusEnabled
-		} else {
-			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, opts.MetricsDefaultStatus)
-		}
 	}
 
 	if opts.RunTTL != "" {
@@ -130,11 +105,19 @@ func (c *CPU) Collect() error {
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting metrics, cpu%")
 	} else {
+		metricName := "cpu_used"
+		metricType := "n"
+		tagUnitsPercent := tags.Tag{Category: "units", Value: "percent"}
 		if !c.reportAllCPUs && len(pcts) == 1 {
-			c.addMetric(&metrics, c.id, "used_pct", "n", pcts[0])
+			tagList := tags.Tags{tagUnitsPercent}
+			_ = c.addMetric(&metrics, metricName, metricType, pcts[0], tagList)
 		} else {
 			for idx, pct := range pcts {
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "used_pct"), "n", pct)
+				tagList := tags.Tags{
+					tags.Tag{Category: "cpu", Value: fmt.Sprintf("%d", idx)},
+				}
+				tagList = append(tagList, tagUnitsPercent)
+				_ = c.addMetric(&metrics, metricName, metricType, pct, tagList)
 			}
 		}
 	}
@@ -142,33 +125,41 @@ func (c *CPU) Collect() error {
 	ts, err := cpu.Times(c.reportAllCPUs)
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting metrics, cpu times")
+		c.setStatus(metrics, nil)
+		return nil
+	}
+
+	tagUnitsCentiseconds := tags.Tag{Category: "units", Value: "centiseconds"} // aka jiffies
+	if !c.reportAllCPUs && len(ts) == 1 {
+		tagList := tags.Tags{tagUnitsCentiseconds}
+		_ = c.addMetric(&metrics, "cpu_user", "n", ts[0].User, tagList)
+		_ = c.addMetric(&metrics, "cpu_system", "n", ts[0].System, tagList)
+		_ = c.addMetric(&metrics, "cpu_idle", "n", ts[0].Idle, tagList)
+		_ = c.addMetric(&metrics, "cpu_nice", "n", ts[0].Nice, tagList)
+		_ = c.addMetric(&metrics, "cpu_iowait", "n", ts[0].Iowait, tagList)
+		_ = c.addMetric(&metrics, "cpu_irq", "n", ts[0].Irq, tagList)
+		_ = c.addMetric(&metrics, "cpu_soft_irq", "n", ts[0].Softirq, tagList)
+		_ = c.addMetric(&metrics, "cpu_steal", "n", ts[0].Steal, tagList)
+		_ = c.addMetric(&metrics, "cpu_guest", "n", ts[0].Guest, tagList)
+		_ = c.addMetric(&metrics, "cpu_guest_nice", "n", ts[0].GuestNice, tagList)
+		// _ = c.addMetric(&metrics, "cpu_stolen", "n", ts[0].Stolen, tagList)
 	} else {
-		if !c.reportAllCPUs && len(ts) == 1 {
-			c.addMetric(&metrics, c.id, "user", "n", ts[0].User)
-			c.addMetric(&metrics, c.id, "system", "n", ts[0].System)
-			c.addMetric(&metrics, c.id, "idle", "n", ts[0].Idle)
-			c.addMetric(&metrics, c.id, "nice", "n", ts[0].Nice)
-			c.addMetric(&metrics, c.id, "iowait", "n", ts[0].Iowait)
-			c.addMetric(&metrics, c.id, "irq", "n", ts[0].Irq)
-			c.addMetric(&metrics, c.id, "soft_irq", "n", ts[0].Softirq)
-			c.addMetric(&metrics, c.id, "steal", "n", ts[0].Steal)
-			c.addMetric(&metrics, c.id, "guest", "n", ts[0].Guest)
-			c.addMetric(&metrics, c.id, "guest_nice", "n", ts[0].GuestNice)
-			c.addMetric(&metrics, c.id, "stolen", "n", ts[0].Stolen)
-		} else {
-			for idx, v := range ts {
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "user"), "n", v.User)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "system"), "n", v.System)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "idle"), "n", v.Idle)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "nice"), "n", v.Nice)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "iowait"), "n", v.Iowait)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "irq"), "n", v.Irq)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "soft_irq"), "n", v.Softirq)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "steal"), "n", v.Steal)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "guest"), "n", v.Guest)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "guest_nice"), "n", v.GuestNice)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "stolen"), "n", v.Stolen)
+		for idx, v := range ts {
+			tagList := tags.Tags{
+				tags.Tag{Category: "cpu", Value: fmt.Sprintf("%d", idx)},
 			}
+			tagList = append(tagList, tagUnitsCentiseconds)
+			_ = c.addMetric(&metrics, "cpu_user", "n", v.User, tagList)
+			_ = c.addMetric(&metrics, "cpu_system", "n", v.System, tagList)
+			_ = c.addMetric(&metrics, "cpu_idle", "n", v.Idle, tagList)
+			_ = c.addMetric(&metrics, "cpu_nice", "n", v.Nice, tagList)
+			_ = c.addMetric(&metrics, "cpu_iowait", "n", v.Iowait, tagList)
+			_ = c.addMetric(&metrics, "cpu_irq", "n", v.Irq, tagList)
+			_ = c.addMetric(&metrics, "cpu_soft_irq", "n", v.Softirq, tagList)
+			_ = c.addMetric(&metrics, "cpu_steal", "n", v.Steal, tagList)
+			_ = c.addMetric(&metrics, "cpu_guest", "n", v.Guest, tagList)
+			_ = c.addMetric(&metrics, "cpu_guest_nice", "n", v.GuestNice, tagList)
+			// _ = c.addMetric(&metrics, "cpu_stolen", "n", v.Stolen, tagList)
 		}
 	}
 

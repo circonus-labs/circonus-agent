@@ -17,12 +17,12 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/fatih/structs"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
 
 // Win32_PerfFormattedData_PerfOS_Cache defines the metrics to collect
+// https://wutils.com/wmi/root/cimv2/win32_perfformatteddata_perfos_cache/
 type Win32_PerfFormattedData_PerfOS_Cache struct {
 	AsyncCopyReadsPersec         uint32
 	AsyncDataMapsPersec          uint32
@@ -62,25 +62,20 @@ type Cache struct {
 
 // cacheOptions defines what elements can be overridden in a config file
 type cacheOptions struct {
-	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
-	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
-	MetricNameRegex      string   `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
-	MetricNameChar       string   `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
-	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
+	ID              string `json:"id" toml:"id" yaml:"id"`
+	MetricNameRegex string `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
+	MetricNameChar  string `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
+	RunTTL          string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
 // NewCacheCollector creates new wmi collector
 func NewCacheCollector(cfgBaseName string) (collector.Collector, error) {
 	c := Cache{}
 	c.id = "cache"
-	c.pkgID = PKG_NAME + "." + c.id
-	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
-	c.metricDefaultActive = true
+	c.pkgID = pkgName + "." + c.id
+	c.logger = log.With().Str("pkg", pkgName).Str("id", c.id).Logger()
 	c.metricNameChar = defaultMetricChar
 	c.metricNameRegex = defaultMetricNameRegex
-	c.metricStatus = map[string]bool{}
 	c.baseTags = tags.FromList(tags.GetBaseTags())
 
 	if cfgBaseName == "" {
@@ -101,25 +96,6 @@ func NewCacheCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if cfg.ID != "" {
 		c.id = cfg.ID
-	}
-
-	if len(cfg.MetricsEnabled) > 0 {
-		for _, name := range cfg.MetricsEnabled {
-			c.metricStatus[name] = true
-		}
-	}
-	if len(cfg.MetricsDisabled) > 0 {
-		for _, name := range cfg.MetricsDisabled {
-			c.metricStatus[name] = false
-		}
-	}
-
-	if cfg.MetricsDefaultStatus != "" {
-		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == metricStatusEnabled
-		} else {
-			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, cfg.MetricsDefaultStatus)
-		}
 	}
 
 	if cfg.MetricNameRegex != "" {
@@ -168,6 +144,10 @@ func (c *Cache) Collect() error {
 	c.lastStart = time.Now()
 	c.Unlock()
 
+	metricType := "L"
+	tagUnitsOperations := cgm.Tag{Category: "units", Value: "operations"}
+	tagUnitsPercent := cgm.Tag{Category: "units", Value: "percent"}
+
 	var dst []Win32_PerfFormattedData_PerfOS_Cache
 	qry := wmi.CreateQuery(dst, "")
 	if err := wmi.Query(qry, &dst); err != nil {
@@ -177,14 +157,35 @@ func (c *Cache) Collect() error {
 	}
 
 	for _, item := range dst {
-		pfx := c.id
-		d := structs.Map(item) // there is only one memory output
-		for name, val := range d {
-			if name == nameFieldName {
-				continue
-			}
-			c.addMetric(&metrics, pfx, name, "L", val)
-		}
+		_ = c.addMetric(&metrics, "", "AsyncCopyReadsPersec", metricType, item.AsyncCopyReadsPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "AsyncDataMapsPersec", metricType, item.AsyncDataMapsPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "AsyncFastReadsPersec", metricType, item.AsyncFastReadsPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "AsyncMDLReadsPersec", metricType, item.AsyncMDLReadsPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "AsyncPinReadsPersec", metricType, item.AsyncPinReadsPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "CopyReadHitsPercent", metricType, item.CopyReadHitsPercent, cgm.Tags{tagUnitsPercent})
+		_ = c.addMetric(&metrics, "", "CopyReadsPersec", metricType, item.CopyReadsPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "DataFlushesPersec", metricType, item.DataFlushesPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "DataFlushPagesPersec", metricType, item.DataFlushPagesPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "DataMapHitsPercent", metricType, item.DataMapHitsPercent, cgm.Tags{tagUnitsPercent})
+		_ = c.addMetric(&metrics, "", "DataMapPinsPersec", metricType, item.DataMapPinsPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "DataMapsPersec", metricType, item.DataMapsPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "DirtyPages", "I", item.DirtyPages, cgm.Tags{tagUnitsOperations})                 // uint64
+		_ = c.addMetric(&metrics, "", "DirtyPageThreshold", "I", item.DirtyPageThreshold, cgm.Tags{tagUnitsOperations}) // uint64
+		_ = c.addMetric(&metrics, "", "FastReadNotPossiblesPersec", metricType, item.FastReadNotPossiblesPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "FastReadResourceMissesPersec", metricType, item.FastReadResourceMissesPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "FastReadsPersec", metricType, item.FastReadsPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "LazyWriteFlushesPersec", metricType, item.LazyWriteFlushesPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "LazyWritePagesPersec", metricType, item.LazyWritePagesPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "MDLReadHitsPercent", metricType, item.MDLReadHitsPercent, cgm.Tags{tagUnitsPercent})
+		_ = c.addMetric(&metrics, "", "MDLReadsPersec", metricType, item.MDLReadsPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "PinReadHitsPercent", metricType, item.PinReadHitsPercent, cgm.Tags{tagUnitsPercent})
+		_ = c.addMetric(&metrics, "", "PinReadsPersec", metricType, item.PinReadsPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "ReadAheadsPersec", metricType, item.ReadAheadsPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "SyncCopyReadsPersec", metricType, item.SyncCopyReadsPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "SyncDataMapsPersec", metricType, item.SyncDataMapsPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "SyncFastReadsPersec", metricType, item.SyncFastReadsPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "SyncMDLReadsPersec", metricType, item.SyncMDLReadsPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "SyncPinReadsPersec", metricType, item.SyncPinReadsPersec, cgm.Tags{tagUnitsOperations})
 	}
 
 	c.setStatus(metrics, nil)

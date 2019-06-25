@@ -17,6 +17,7 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/api"
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/maier/go-appstats"
 	"github.com/pkg/errors"
@@ -63,7 +64,6 @@ type plugin struct {
 
 const (
 	fieldDelimiter  = "\t"
-	metricDelimiter = "`"
 	nullMetricValue = "[[null]]"
 )
 
@@ -146,11 +146,11 @@ func (p *Plugins) Flush(pluginName string) *cgm.Metrics {
 	for pluginID, plug := range p.active {
 		if pluginName == "" || // all plugins
 			pluginID == pluginName || // specific plugin
-			strings.HasPrefix(pluginID, pluginName+metricDelimiter) { // specific plugin with instances
+			strings.HasPrefix(pluginID, pluginName+defaults.MetricNameSeparator) { // specific plugin with instances
 
 			m := plug.drain()
 			for mn, mv := range *m {
-				metrics[pluginID+metricDelimiter+mn] = mv
+				metrics[mn] = mv
 			}
 		}
 	}
@@ -173,6 +173,12 @@ func (p *Plugins) Run(pluginName string) error {
 		p.logger.Info().Msg(msg)
 		p.Unlock()
 		return errors.Errorf(msg)
+	}
+
+	if len(p.active) == 0 {
+		p.logger.Debug().Msg("no active plugins, skipping run")
+		p.Unlock()
+		return nil
 	}
 
 	if len(p.plugList) == 0 {

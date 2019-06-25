@@ -1,6 +1,6 @@
 # Circonus Agent
 
-The circonus-agent is intended to be a drop-in replacement for NAD. There is, however, one specific caveat -- native plugins (.js) do not work. Unless modified to run `node` independently and follow [plugin output guidelines](#output)
+The circonus-agent is intended to be a drop-in replacement for NAD. There is, however, one specific caveat -- native plugins (.js) do not work. Unless modified to run `node` independently and follow [plugin output guidelines](#output). Additionally, as of v1, the circonus-agent only supports stream tags (if it is _dropped in_ an existing NAD install, the metric names will change). If metric name continuity is required, use the v0 circonus-agent releases.
 
 # Features
 
@@ -38,7 +38,6 @@ Supported Operating Systems (x86_64 and/or amd64):
 * RHEL6 (CentOS, RedHat, amzn)
 * Ubuntu18
 * Ubuntu16
-* Ubuntu14
 * Debian9
 * Debian8
 * FreeBSD 12
@@ -48,8 +47,10 @@ Please continue to use the original cosi(w/NAD) for OmniOS and Raspian - cosi v2
 
 ## Manual upgrade cosi installed NAD
 
+> Note: v1+ of the agent supports stream tags _only_. This will change metric names in any existing checks if a NAD install is updated. To maintain metric name continuity, use the v0 circonus-agent release packages.
+
 1. `mkdir -p /opt/circonus/agent`
-1. Download [latest release](../../releases/latest) from repository
+1. Download [latest release](../../releases/latest) from repository (v0 or v1 - see note above)
 1. Extract archive into `/opt/circonus/agent`
 1. If planning to use `--check-enable-new-metrics`, ensure the `state` directory is owned by the user `circonus-agentd` will run as -- note, this is no longer required if a **new** check is created by cosi or the circonus-agent
 1. Create a [config](https://github.com/circonus-labs/circonus-agent/blob/master/etc/README.md#main-configuration) (see minimal example below) or use command line parameters
@@ -87,7 +88,7 @@ enabled = true
 
 ## Docker
 
-This is one of _many_ potential methods for collecting metrics from a Docker infrastructure. Which method is leveraged is infrastructure and solution dependent. The advantages of this more generic method are metrics from the host system, as well as, individual container metrics will be collected. Additionally, applications running in containers will be able to leverage common StatsD and/or JSON endpoints exposed by the circonus-agent running on the host system.
+This is one of _many_ potential methods for collecting metrics from a Docker infrastructure. Which method is leveraged is infrastructure and solution dependent. The advantages of this more generic method would be that metrics from the host system, as well as, individual container metrics will be collected. Additionally, applications running in containers will be able to leverage common StatsD and/or JSON endpoints exposed by the circonus-agent running on the host system.
 
 1. Install the circonus-agent on the host system (via cosi or manually)
 1. Run [cAdvisor](https://github.com/google/cadvisor)
@@ -109,8 +110,6 @@ Flags:
   -C, --check-create                      [ENV: CA_CHECK_CREATE] Create check bundle (for reverse and auto enable new metrics)
   -I, --check-id string                   [ENV: CA_CHECK_ID] Check Bundle ID or 'cosi' for cosi system check (for reverse)
       --check-metric-filters string       [ENV: CA_CHECK_METRIC_FILTERS] List of filters used to manage which metrics are collected
-      --check-metric-refresh-ttl string   [ENV: CA_CHECK_METRIC_REFRESH_TTL] Refresh check metrics TTL (default "5m")
-  -S, --check-metric-streamtags           [ENV: CA_CHECK_METRIC_STREAMTAGS] Add check tags to metrics as stream tags
       --check-tags string                 [ENV: CA_CHECK_TAGS] Tags [comma separated list] to use, if creating a check bundle
   -T, --check-target string               [ENV: CA_CHECK_TARGET] Check target host (for creating a new check) (default "cosi-tool-c7")
       --check-title string                [ENV: CA_CHECK_TITLE] Title [display name] to use, if creating a check bundle (default "<check-target> /agent")
@@ -153,11 +152,25 @@ Flags:
 
 The Circonus agent can be configured via the command line, environment variables, and/or a configuration file. For details on using configuration files, see the configuration section of [etc/README.md](etc/README.md#main-configuration)
 
-# Plugins
+# Collecting metrics with the agent
+
+## Builtin collectors
+
+The circonus-agent has builtin collectors offering a higher level of efficiency over executing plugins. The circonus-agent `--collectors` command line option controls which collectors are enabled. Builtin collectors take precedence over plugins - if a builtin collector exists with the same ID as a plugin, the plugin will not be activated. For complete list of builtin collectors and details on collector specific configuration see [etc/README.md](etc/README.md#builtin-collector-configurations).
+
+Configuration:
+
+* Command line `--collectors` (space delimited list)
+* Environment `CA_COLLECTORS` (space delimited list)
+* Config file `collectors` (array of strings)
+
+To **disable** all default builtin collectors pass `--collectors=""` on the command line or configure `collectors` attribute in a configuration file.
+
+## Plugins
 
 For documentation on plugins please refer to [plugins/README.md](plugins/README.md).
 
-# Receiver
+## Receiver
 
 The Circonus agent provides a special handler for the endpoint `/write` which will accept HTTP POST and HTTP PUT requests containing structured JSON.
 
@@ -190,7 +203,7 @@ test`t1 numeric 32
 test`t2|ST[abc:123] text "foo"
 ```
 
-# StatsD
+## StatsD
 
 The Circonus  agent provides a StatsD listener by default (disable: `--no-statsd`, configure port: `--statsd-port`). It accepts the basic [StatsD metric types](https://github.com/etsy/statsd/blob/master/docs/metric_types.md#statsd-metric-types) as well as, Circonus specific metric types `h` and `t`. In addition, the StatsD listener support adding stream tags to metrics via `|#tag_list` added to a metric (where *tag_list* is a comma separated list of key:value pairs).
 
@@ -207,28 +220,14 @@ Syntax: `name:value|type[|@rate][|#tag_list]`
 
 >NOTE: the derivative metrics automatically generated with some StatsD types are not created by Circonus, as the data is already available within the Circonus UI.
 
-# Builtin collectors
+## Prometheus
 
-The circonus-agent has builtin collectors offering a higher level of efficiency over executing plugins. The circonus-agent `--collectors` command line option controls which collectors are enabled. Builtin collectors take precedence over plugins - if a builtin collector exists with the same ID as a plugin, the plugin will not be activated. Configuration files for builtins are located in the circonus-agent `etc` directory (e.g. `/opt/circonus/agent/etc` or `C:\circonus-agent\etc`).
-
-Configuration:
-
-* Command line `--collectors` (space delimited list)
-* Environment `CA_COLLECTORS` (space delimited list)
-* Config file `collectors` (array of strings)
-
-* Windows default WMI collectors: `['wmi/cache', 'wmi/disk', 'wmi/ip', 'wmi/interface', 'wmi/memory', 'wmi/object', 'wmi/paging_file' 'wmi/processor', 'wmi/tcp', 'wmi/udp']`
-* Linux default ProcFS collectors: `['procfs/cpu','procfs/diskstats','procfs/if','procfs/loadavg','procfs/vm']`
-* Common `prometheus` (disabled if no configuration file exists)
-
-For complete list of collectors and details on collector specific configuration see [etc/README.md](etc/README.md#collector-configurations).
-
-To **disable** all default builtin collectors pass `--collectors=""` on the command line or configure `collectors` attribute in a configuration file.
+The `/prom` endpoint will accept Prometheus style text formatted metrics sent via HTTP PUT or HTTP POST.
 
 # Manual build
 
 1. Clone repo `git clone https://github.com/circonus-labs/circonus-agent.git`
-  * circonus-agent uses go modules, go1.11+ is required
+  * circonus-agent uses go modules, go1.12+ is required
   * clone **oustide** of `GOPATH` (or use `GO111MODULE=on`)
 1. Build `go build -o circonus-agentd`
 1. Install `cp circonus-agentd /opt/circonus/agent/sbin`

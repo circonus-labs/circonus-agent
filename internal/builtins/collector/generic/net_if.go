@@ -16,7 +16,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 	"github.com/shirou/gopsutil/net"
 )
 
@@ -30,11 +30,8 @@ type IF struct {
 // ifOptions defines what elements can be overridden in a config file
 type ifOptions struct {
 	// common
-	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
-	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
-	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
+	ID     string `json:"id" toml:"id" yaml:"id"`
+	RunTTL string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 
 	// collector specific
 	IncludeRegex string `json:"include_regex" toml:"include_regex" yaml:"include_regex"`
@@ -42,13 +39,11 @@ type ifOptions struct {
 }
 
 // NewNetIFCollector creates new psutils collector
-func NewNetIFCollector(cfgBaseName string) (collector.Collector, error) {
+func NewNetIFCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector.Collector, error) {
 	c := IF{}
-	c.id = IF_NAME
-    c.pkgID = PKG_NAME + "." + c.id
-	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
-	c.metricStatus = map[string]bool{}
-	c.metricDefaultActive = true
+	c.id = NameIF
+	c.pkgID = PackageName + "." + c.id
+	c.logger = parentLogger.With().Str("id", c.id).Logger()
 	c.baseTags = tags.FromList(tags.GetBaseTags())
 
 	c.include = defaultIncludeRegex
@@ -86,25 +81,6 @@ func NewNetIFCollector(cfgBaseName string) (collector.Collector, error) {
 		c.id = opts.ID
 	}
 
-	if len(opts.MetricsEnabled) > 0 {
-		for _, name := range opts.MetricsEnabled {
-			c.metricStatus[name] = true
-		}
-	}
-	if len(opts.MetricsDisabled) > 0 {
-		for _, name := range opts.MetricsDisabled {
-			c.metricStatus[name] = false
-		}
-	}
-
-	if opts.MetricsDefaultStatus != "" {
-		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(opts.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(opts.MetricsDefaultStatus) == metricStatusEnabled
-		} else {
-			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, opts.MetricsDefaultStatus)
-		}
-	}
-
 	if opts.RunTTL != "" {
 		dur, err := time.ParseDuration(opts.RunTTL)
 		if err != nil {
@@ -140,22 +116,70 @@ func (c *IF) Collect() error {
 	ifaces, err := net.IOCounters(true)
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting network interface metrics")
-	} else {
-		for _, iface := range ifaces {
-			if c.exclude.MatchString(iface.Name) || !c.include.MatchString(iface.Name) {
-				c.logger.Debug().Str("iface", iface.Name).Msg("excluded iface name, skipping")
-				continue
+		c.setStatus(metrics, nil)
+		return nil
+	}
+
+	// units:packets
+	tagUnitsPackets := tags.Tag{Category: "units", Value: "packets"}
+	// units:bytes
+	tagUnitsBytes := tags.Tag{Category: "units", Value: "bytes"}
+
+	for _, iface := range ifaces {
+		if c.exclude.MatchString(iface.Name) || !c.include.MatchString(iface.Name) {
+			c.logger.Debug().Str("iface", iface.Name).Msg("excluded iface name, skipping")
+			continue
+		}
+
+		// interface tag(s)
+		ifTags := tags.Tags{tags.Tag{Category: "network-interface", Value: iface.Name}}
+
+		{
+			var tagList tags.Tags
+			tagList = append(tagList, tagUnitsBytes)
+			tagList = append(tagList, ifTags...)
+			_ = c.addMetric(&metrics, "sent", "L", iface.BytesSent, tagList)
+			_ = c.addMetric(&metrics, "recv", "L", iface.BytesRecv, tagList)
+		}
+
+		{
+			var tagList tags.Tags
+			tagList = append(tagList, tagUnitsPackets)
+			tagList = append(tagList, ifTags...)
+			_ = c.addMetric(&metrics, "sent", "L", iface.PacketsSent, tagList)
+			_ = c.addMetric(&metrics, "recv", "L", iface.PacketsRecv, tagList)
+		}
+
+		{
+			// directional in|out
+
+			inTags := tags.Tags{tags.Tag{Category: "direction", Value: "in"}}
+			inTags = append(inTags, ifTags...)
+
+			outTags := tags.Tags{tags.Tag{Category: "direction", Value: "out"}}
+			outTags = append(outTags, ifTags...)
+
+			// fifo - no units
+			_ = c.addMetric(&metrics, "fifo", "L", iface.Fifoin, inTags)
+			_ = c.addMetric(&metrics, "fifo", "L", iface.Fifoout, outTags)
+
+			// errors - no units
+			_ = c.addMetric(&metrics, "errors", "L", iface.Errin, inTags)
+			_ = c.addMetric(&metrics, "errors", "L", iface.Errout, outTags)
+
+			// drops
+			{
+				var tagList tags.Tags
+				tagList = append(tagList, inTags...)
+				tagList = append(tagList, tagUnitsPackets)
+				_ = c.addMetric(&metrics, "drops", "L", iface.Dropin, tagList)
 			}
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "sent_bytes"), "L", iface.BytesSent)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "recv_bytes"), "L", iface.BytesRecv)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "sent_pkts"), "L", iface.PacketsSent)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "recv_pkts"), "L", iface.PacketsRecv)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "in_errors"), "L", iface.Errin)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "out_errors"), "L", iface.Errout)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "in_drops"), "L", iface.Dropin)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "out_drops"), "L", iface.Dropout)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "in_fifo"), "L", iface.Fifoin)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "out_fifo"), "L", iface.Fifoout)
+			{
+				var tagList tags.Tags
+				tagList = append(tagList, outTags...)
+				tagList = append(tagList, tagUnitsPackets)
+				_ = c.addMetric(&metrics, "drops", "L", iface.Dropout, tagList)
+			}
 		}
 	}
 

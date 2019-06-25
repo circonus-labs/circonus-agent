@@ -35,7 +35,7 @@ func TestNewDiskCollector(t *testing.T) {
 		tst := test
 		t.Run(tst.id, func(t *testing.T) {
 			t.Parallel()
-			_, err := NewDiskCollector(tst.cfgFile)
+			_, err := NewDiskCollector(tst.cfgFile, zerolog.Logger{})
 			if tst.shouldFail {
 				if err == nil {
 					t.Fatalf("expected error")
@@ -52,7 +52,7 @@ func TestNewDiskCollector(t *testing.T) {
 
 	t.Log("config (id setting)")
 	{
-		c, err := NewDiskCollector(filepath.Join("testdata", "config_id_setting"))
+		c, err := NewDiskCollector(filepath.Join("testdata", "config_id_setting"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -63,7 +63,7 @@ func TestNewDiskCollector(t *testing.T) {
 
 	t.Log("config (io devices setting)")
 	{
-		c, err := NewDiskCollector(filepath.Join("testdata", "config_io_devices_setting"))
+		c, err := NewDiskCollector(filepath.Join("testdata", "config_io_devices_setting"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -72,75 +72,9 @@ func TestNewDiskCollector(t *testing.T) {
 		}
 	}
 
-	t.Log("config (metrics enabled setting)")
-	{
-		c, err := NewDiskCollector(filepath.Join("testdata", "config_metrics_enabled_setting"))
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if len(c.(*Disk).metricStatus) == 0 {
-			t.Fatalf("expected >0 metric status settings, got (%#v)", c.(*Disk).metricStatus)
-		}
-		enabled, ok := c.(*Disk).metricStatus["foo"]
-		if !ok {
-			t.Fatalf("expected 'foo' key in metric status settings, got (%#v)", c.(*Disk).metricStatus)
-		}
-		if !enabled {
-			t.Fatalf("expected 'foo' to be enabled in metric status settings, got (%#v)", c.(*Disk).metricStatus)
-		}
-	}
-
-	t.Log("config (metrics disabled setting)")
-	{
-		c, err := NewDiskCollector(filepath.Join("testdata", "config_metrics_disabled_setting"))
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if len(c.(*Disk).metricStatus) == 0 {
-			t.Fatalf("expected >0 metric status settings, got (%#v)", c.(*Disk).metricStatus)
-		}
-		enabled, ok := c.(*Disk).metricStatus["foo"]
-		if !ok {
-			t.Fatalf("expected 'foo' key in metric status settings, got (%#v)", c.(*Disk).metricStatus)
-		}
-		if enabled {
-			t.Fatalf("expected 'foo' to be disabled in metric status settings, got (%#v)", c.(*Disk).metricStatus)
-		}
-	}
-
-	t.Log("config (metrics default status enabled)")
-	{
-		c, err := NewDiskCollector(filepath.Join("testdata", "config_metrics_default_status_enabled_setting"))
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if !c.(*Disk).metricDefaultActive {
-			t.Fatal("expected true")
-		}
-	}
-
-	t.Log("config (metrics default status disabled)")
-	{
-		c, err := NewDiskCollector(filepath.Join("testdata", "config_metrics_default_status_disabled_setting"))
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if c.(*Disk).metricDefaultActive {
-			t.Fatal("expected false")
-		}
-	}
-
-	t.Log("config (metrics default status invalid)")
-	{
-		_, err := NewDiskCollector(filepath.Join("testdata", "config_metrics_default_status_invalid_setting"))
-		if err == nil {
-			t.Fatal("expected error")
-		}
-	}
-
 	t.Log("config (run ttl 5m)")
 	{
-		c, err := NewDiskCollector(filepath.Join("testdata", "config_run_ttl_valid_setting"))
+		c, err := NewDiskCollector(filepath.Join("testdata", "config_run_ttl_valid_setting"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -151,7 +85,7 @@ func TestNewDiskCollector(t *testing.T) {
 
 	t.Log("config (run ttl invalid)")
 	{
-		_, err := NewDiskCollector(filepath.Join("testdata", "config_run_ttl_invalid_setting"))
+		_, err := NewDiskCollector(filepath.Join("testdata", "config_run_ttl_invalid_setting"), zerolog.Logger{})
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -163,7 +97,7 @@ func TestDiskFlush(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	c, err := NewDiskCollector(filepath.Join("testdata", "missing"))
+	c, err := NewDiskCollector(filepath.Join("testdata", "missing"), zerolog.Logger{})
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
@@ -184,7 +118,7 @@ func TestDiskCollect(t *testing.T) {
 
 	t.Log("already running")
 	{
-		c, err := NewDiskCollector(filepath.Join("testdata", "missing"))
+		c, err := NewDiskCollector(filepath.Join("testdata", "missing"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -202,7 +136,7 @@ func TestDiskCollect(t *testing.T) {
 
 	t.Log("ttl not expired")
 	{
-		c, err := NewDiskCollector(filepath.Join("testdata", "missing"))
+		c, err := NewDiskCollector(filepath.Join("testdata", "missing"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -221,7 +155,7 @@ func TestDiskCollect(t *testing.T) {
 
 	t.Log("good")
 	{
-		c, err := NewDiskCollector(filepath.Join("testdata", "missing"))
+		c, err := NewDiskCollector(filepath.Join("testdata", "missing"), zerolog.Logger{})
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}

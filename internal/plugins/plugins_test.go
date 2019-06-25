@@ -17,6 +17,7 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins"
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
@@ -180,7 +181,7 @@ func TestFlush(t *testing.T) {
 		if runtime.GOOS == "windows" {
 			name = "testwin"
 		}
-		name += metricDelimiter + "metric"
+		name += defaults.MetricNameSeparator + "metric"
 
 		mv, ok := (*data)[name]
 		if !ok {

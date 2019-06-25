@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
+	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
@@ -68,24 +69,20 @@ func (c *Prom) addMetric(metrics *cgm.Metrics, prefix string, mname string, mtag
 	}
 
 	// cleanup the raw metric name, if needed
-	mname = c.cleanName(mname)
-	// check status of cleaned metric name
-	active, found := c.metricStatus[mname]
+	metricName := c.cleanName(mname)
 
-	if (found && active) || (!found && c.metricDefaultActive) {
-		metricName := mname
-		if prefix != "" {
-			metricName = prefix + metricNameSeparator + mname
-		}
+	var tagList tags.Tags
+	tagList = append(tagList, tags.Tags{
+		tags.Tag{Category: "source", Value: release.NAME},
+		tags.Tag{Category: "collector", Value: "promfetch"},
+	}...)
+	tagList = append(tagList, mtags...)
 
-		// Add stream tags
-		metricName = tags.MetricNameWithStreamTags(metricName, mtags)
+	// Add stream tags
+	metricName = tags.MetricNameWithStreamTags(metricName, tagList)
 
-		(*metrics)[metricName] = cgm.Metric{Type: mtype, Value: mval}
-		return nil
-	}
-
-	return errors.Errorf("metric (%s) not active", mname)
+	(*metrics)[metricName] = cgm.Metric{Type: mtype, Value: mval}
+	return nil
 }
 
 // setStatus is used in Collect to set the collector status

@@ -81,7 +81,7 @@ func TestAddMetric(t *testing.T) {
 			id:              "foo",
 			metricNameRegex: defaultMetricNameRegex,
 		}
-		if err := c.addMetric(nil, "", "", "", ""); err == nil {
+		if err := c.addMetric(nil, "pfx", "", "", "", cgm.Tags{}); err == nil {
 			t.Fatal("expected error")
 		} else {
 			expect := "invalid metric submission"
@@ -92,7 +92,7 @@ func TestAddMetric(t *testing.T) {
 
 		m := cgm.Metrics{}
 
-		if err := c.addMetric(&m, "", "", "", ""); err == nil {
+		if err := c.addMetric(&m, "pfx", "", "", "", cgm.Tags{}); err == nil {
 			t.Fatalf("expected error")
 		} else {
 			expect := "invalid metric, no name"
@@ -101,19 +101,10 @@ func TestAddMetric(t *testing.T) {
 			}
 		}
 
-		if err := c.addMetric(&m, "", "foo", "", ""); err == nil {
+		if err := c.addMetric(&m, "pfx", "foo", "", "", cgm.Tags{}); err == nil {
 			t.Fatalf("expected error")
 		} else {
 			expect := "invalid metric, no type"
-			if err.Error() != expect {
-				t.Fatalf("expected (%s) got (%v)", expect, err)
-			}
-		}
-
-		if err := c.addMetric(&m, "", "foo", "t", ""); err == nil {
-			t.Fatalf("expected error")
-		} else {
-			expect := "metric (foo) not active"
 			if err.Error() != expect {
 				t.Fatalf("expected (%s) got (%v)", expect, err)
 			}
@@ -129,10 +120,10 @@ func TestAddMetric(t *testing.T) {
 			metricNameRegex:     defaultMetricNameRegex,
 		}
 		m := cgm.Metrics{}
-		if err := c.addMetric(&m, "", "foo", "t", ""); err != nil {
+		if err := c.addMetric(&m, "pfx", "foo", "t", "", cgm.Tags{}); err != nil {
 			t.Fatalf("expected no error, got (%v)", err)
 		}
-		if err := c.addMetric(&m, "bar", "baz", "i", 10); err != nil {
+		if err := c.addMetric(&m, "", "baz", "i", 10, cgm.Tags{cgm.Tag{Category: "foo", Value: "bar"}}); err != nil {
 			t.Fatalf("expected no error, got (%v)", err)
 		}
 	}
