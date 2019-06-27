@@ -101,7 +101,9 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 			conduitID := "builtins"
 			num_metrics := 0
 			s.logger.Debug().Str("conduit_id", conduitID).Msg("start")
-			s.builtins.Run(id)
+			if err := s.builtins.Run(id); err != nil {
+				s.logger.Error().Err(err).Str("id", id).Msg("running builtin")
+			}
 			builtinMetrics := s.builtins.Flush(id)
 			if builtinMetrics != nil && len(*builtinMetrics) > 0 {
 				num_metrics = len(*builtinMetrics)
@@ -122,7 +124,9 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 			conduitID := "plugins"
 			num_metrics := 0
 			s.logger.Debug().Str("conduit_id", conduitID).Msg("start")
-			s.plugins.Run(id)
+			if err := s.plugins.Run(id); err != nil {
+				s.logger.Error().Err(err).Str("id", id).Msg("running plugin")
+			}
 			pluginMetrics := s.plugins.Flush(id)
 			if pluginMetrics != nil && len(*pluginMetrics) > 0 {
 				num_metrics = len(*pluginMetrics)
@@ -300,13 +304,13 @@ func (s *Server) inventory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(inventory)
+	_, _ = w.Write(inventory)
 }
 
 // socketHandler gates /write for the socket server only
 func (s *Server) socketHandler(w http.ResponseWriter, r *http.Request) {
 	if !writePathRx.MatchString(r.URL.Path) {
-		appstats.IncrementInt("requests_bad")
+		_ = appstats.IncrementInt("requests_bad")
 		s.logger.Warn().
 			Str("method", r.Method).
 			Str("url", r.URL.String()).
@@ -316,7 +320,7 @@ func (s *Server) socketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method != "PUT" && r.Method != "POST" {
-		appstats.IncrementInt("requests_bad")
+		_ = appstats.IncrementInt("requests_bad")
 		s.logger.Warn().
 			Str("method", r.Method).
 			Str("url", r.URL.String()).
@@ -459,6 +463,7 @@ func (s *Server) metricsToPromFormat(w io.Writer, prefix string, ts int64, val i
 			name := prefix
 			if pfx != "" {
 				// switching to ONLY stream tags
+				_ = pfx
 				// name = strings.Join([]string{name, pfx}, config.MetricNameSeparator)
 			}
 			s.metricsToPromFormat(w, name, ts, metric)
