@@ -41,7 +41,11 @@ func (p *Plugins) Scan(b *builtins.Builtins) error {
 			p.logger.Debug().
 				Str("plugin", id).
 				Msg("Initializing")
-			go plug.exec()
+			go func(plug *plugin) {
+				if err := plug.exec(); err != nil {
+					p.logger.Error().Err(err).Msg("executing")
+				}
+			}(plug)
 		}
 		return nil
 	}
@@ -168,7 +172,7 @@ func (p *Plugins) verifyPluginList(l []string) error {
 			plug = p.active[fileBase]
 		}
 
-		appstats.IncrementInt("plugins.total")
+		_ = appstats.IncrementInt("plugins.total")
 		// appstats.MapIncrementInt("plugins", "total")
 		plug.command = cmdName
 		p.logger.Info().Str("id", fileBase).Str("cmd", cmdName).Msg("activating")
@@ -356,7 +360,7 @@ func (p *Plugins) scanPluginDirectory(b *builtins.Builtins) error {
 				plug = p.active[fileBase]
 			}
 
-			appstats.IncrementInt("plugins.total")
+			_ = appstats.IncrementInt("plugins.total")
 			// appstats.MapIncrementInt("plugins", "total")
 			plug.command = cmdName
 			p.logger.Info().Str("id", fileBase).Str("cmd", cmdName).Msg("activating")
@@ -380,7 +384,7 @@ func (p *Plugins) scanPluginDirectory(b *builtins.Builtins) error {
 					plug = p.active[pluginName]
 				}
 
-				appstats.IncrementInt("plugins.total")
+				_ = appstats.IncrementInt("plugins.total")
 				// appstats.MapIncrementInt("plugins", "total")
 				plug.command = cmdName
 				p.logger.Info().Str("id", pluginName).Str("cmd", cmdName).Msg("activating")
