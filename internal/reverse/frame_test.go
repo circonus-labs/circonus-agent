@@ -62,7 +62,6 @@ func TestReadFrameHeader(t *testing.T) {
 
 	tt := []struct {
 		description string
-		expect      []byte
 		channelID   uint16
 		command     bool
 		payload     string
@@ -176,7 +175,6 @@ func TestReadFrameFromBroker(t *testing.T) {
 
 	tt := []struct {
 		description string
-		expect      []byte
 		channelID   uint16
 		command     bool
 		payload     string

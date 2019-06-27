@@ -97,14 +97,14 @@ func init() {
 func New(ctx context.Context, check *check.Check, agentAddress string) (*Connection, error) {
 	const (
 		// NOTE: TBD, make some of these user-configurable
-		commTimeoutSeconds    = 10 // seconds, when communicating with noit
-		dialerTimeoutSeconds  = 15 // seconds, establishing connection
-		metricTimeoutSeconds  = 50 // seconds, when communicating with agent
-		maxDelaySeconds       = 60 // maximum amount of delay between attempts
-		maxRequests           = -1 // max requests from broker before resetting connection, -1 = unlimited
-		brokerMaxRetries      = 5
-		brokerMaxResponseTime = 500 * time.Millisecond
-		brokerActiveStatus    = "active"
+		commTimeoutSeconds   = 10 // seconds, when communicating with noit
+		dialerTimeoutSeconds = 15 // seconds, establishing connection
+		metricTimeoutSeconds = 50 // seconds, when communicating with agent
+		maxDelaySeconds      = 60 // maximum amount of delay between attempts
+		maxRequests          = -1 // max requests from broker before resetting connection, -1 = unlimited
+		// brokerMaxRetries      = 5
+		// brokerMaxResponseTime = 500 * time.Millisecond
+		// brokerActiveStatus    = "active"
 	)
 
 	if check == nil {
@@ -171,10 +171,8 @@ func (c *Connection) Start() error {
 
 	c.group.Go(c.startReverse)
 	go func() {
-		select {
-		case <-c.groupCtx.Done():
-			c.logger.Warn().Msg("sent stop signal, may take a minute for timeout")
-		}
+		<-c.groupCtx.Done()
+		c.logger.Warn().Msg("sent stop signal, may take a minute for timeout")
 	}()
 
 	return c.group.Wait()

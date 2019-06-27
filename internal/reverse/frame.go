@@ -38,7 +38,9 @@ func buildFrame(channelID uint16, isCommand bool, payload []byte) []byte {
 // readFrameFromBroker reads a frame(header + payload) from broker
 func (c *Connection) readFrameFromBroker(r io.Reader) (*noitFrame, error) {
 	if conn, ok := r.(*tls.Conn); ok {
-		conn.SetDeadline(time.Now().Add(c.commTimeout))
+		if err := conn.SetDeadline(time.Now().Add(c.commTimeout)); err != nil {
+			c.logger.Warn().Err(err).Msg("setting conn deadline")
+		}
 	}
 	hdr, err := readFrameHeader(r)
 	if err != nil {
@@ -50,7 +52,9 @@ func (c *Connection) readFrameFromBroker(r io.Reader) (*noitFrame, error) {
 	}
 
 	if conn, ok := r.(*tls.Conn); ok {
-		conn.SetDeadline(time.Now().Add(c.commTimeout))
+		if err := conn.SetDeadline(time.Now().Add(c.commTimeout)); err != nil {
+			c.logger.Warn().Err(err).Msg("setting conn deadline")
+		}
 	}
 	payload, err := readFramePayload(r, hdr.payloadLen)
 	if err != nil {

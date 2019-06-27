@@ -15,7 +15,6 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"net/http/httputil"
 	"net/url"
 	"os"
 	"strconv"
@@ -68,14 +67,14 @@ func init() {
 	}
 }
 
-func dumpReq(r *http.Request) error {
-	output, err := httputil.DumpRequest(r, true)
-	if err != nil {
-		return errors.Wrap(err, "Error dumping request")
-	}
-	fmt.Println(string(output))
-	return nil
-}
+// func dumpReq(r *http.Request) error {
+// 	output, err := httputil.DumpRequest(r, true)
+// 	if err != nil {
+// 		return errors.Wrap(err, "Error dumping request")
+// 	}
+// 	fmt.Println(string(output))
+// 	return nil
+// }
 
 // brokerHandler simulates an actual broker
 func brokerHandler(w http.ResponseWriter, r *http.Request) {
