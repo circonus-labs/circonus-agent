@@ -27,7 +27,7 @@ func TestInventory(t *testing.T) {
 	for _, test := range tests {
 		t.Log("\t", test.name)
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte(test.response))
+			_, _ = w.Write([]byte(test.response))
 		}))
 
 		var c *Client

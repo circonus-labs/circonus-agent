@@ -36,7 +36,7 @@ func TestWrite(t *testing.T) {
 			if err != nil {
 				t.Fatalf("expected no error, got (%s)", err)
 			}
-			w.Write(data)
+			_, _ = w.Write(data)
 		}))
 
 		var c *Client
