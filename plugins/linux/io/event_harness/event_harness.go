@@ -98,7 +98,7 @@ func HarnessMain(instance string, args [][]string, handler func(string)) (*Harne
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, unix.SIGTERM, unix.SIGHUP, unix.SIGPIPE, unix.SIGTRAP)
 	go func() {
-		for _ = range c {
+		for range c {
 			done <- nil
 		}
 	}()
