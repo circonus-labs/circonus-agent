@@ -26,9 +26,9 @@ func (b *Builtins) configure() error {
 			return err
 		}
 		for _, c := range collectors {
-			appstats.IncrementInt("builtins.total")
 			b.logger.Info().Str("id", c.ID()).Msg("enabled wmi builtin")
 			b.collectors[c.ID()] = c
+			_ = appstats.IncrementInt("builtins.total")
 		}
 	}
 
@@ -45,9 +45,9 @@ func (b *Builtins) configure() error {
 		}
 		for _, c := range collectors {
 			if _, exists := b.collectors[c.ID()]; !exists {
-				appstats.IncrementInt("builtins.total")
 				b.logger.Info().Str("id", c.ID()).Msg("enabled generic builtin")
 				b.collectors[c.ID()] = c
+				_ = appstats.IncrementInt("builtins.total")
 			}
 		}
 	}
@@ -56,8 +56,9 @@ func (b *Builtins) configure() error {
 	if err != nil {
 		b.logger.Warn().Err(err).Msg("prom collector, disabling")
 	} else {
-		appstats.IncrementInt("builtins.total")
+		b.logger.Info().Str("id", "prom").Msg("enabled builtin")
 		b.collectors[prom.ID()] = prom
+		_ = appstats.IncrementInt("builtins.total")
 	}
 	return nil
 }
