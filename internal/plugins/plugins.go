@@ -138,7 +138,7 @@ func (p *Plugins) Flush(pluginName string) *cgm.Metrics {
 	p.RLock()
 	defer p.RUnlock()
 
-	appstats.SetString("plugins.last_flush", time.Now().String())
+	_ = appstats.SetString("plugins.last_flush", time.Now().String())
 	// appstats.MapSet("plugins", "last_flush", time.Now())
 
 	metrics := cgm.Metrics{}
@@ -191,7 +191,7 @@ func (p *Plugins) Run(pluginName string) error {
 	}
 
 	start := time.Now()
-	appstats.SetString("plugins.last_run_start", start.String())
+	_ = appstats.SetString("plugins.last_run_start", start.String())
 	// appstats.MapSet("plugins", "last_run_start", start)
 
 	p.running = true
@@ -208,7 +208,9 @@ func (p *Plugins) Run(pluginName string) error {
 				wg.Add(1)
 				p.logger.Debug().Str("id", pluginID).Msg("running")
 				go func(id string, plug *plugin) {
-					plug.exec()
+					if err := plug.exec(); err != nil {
+						plug.logger.Error().Err(err).Msg("executing")
+					}
 					plug.logger.Debug().Str("id", id).Str("duration", time.Since(start).String()).Msg("done")
 					wg.Done()
 				}(pluginID, pluginRef)
@@ -224,7 +226,9 @@ func (p *Plugins) Run(pluginName string) error {
 		for pluginID, pluginRef := range p.active {
 			wg.Add(1)
 			go func(id string, plug *plugin) {
-				plug.exec()
+				if err := plug.exec(); err != nil {
+					plug.logger.Error().Err(err).Msg("executing")
+				}
 				plug.logger.Debug().Str("id", id).Str("duration", time.Since(start).String()).Msg("done")
 				wg.Done()
 			}(pluginID, pluginRef)
@@ -233,8 +237,8 @@ func (p *Plugins) Run(pluginName string) error {
 
 	wg.Wait()
 
-	appstats.SetString("plugins.last_run_end", time.Now().String())
-	appstats.SetString("plugins.last_run_duration", time.Since(start).String())
+	_ = appstats.SetString("plugins.last_run_end", time.Now().String())
+	_ = appstats.SetString("plugins.last_run_duration", time.Since(start).String())
 	// appstats.MapSet("plugins", "last_run_end", time.Now())
 	// appstats.MapSet("plugins", "last_run_duration", time.Since(start))
 
