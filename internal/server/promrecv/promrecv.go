@@ -28,13 +28,13 @@ import (
 )
 
 var (
-	id                  string
-	baseTags            []string
-	nameCleanerRx       *regexp.Regexp
-	metricsmu           sync.Mutex
-	metrics             *cgm.CirconusMetrics
-	parseRx             *regexp.Regexp
-	logger              = log.With().Str("pkg", "promrecv").Logger()
+	id            string
+	baseTags      []string
+	nameCleanerRx *regexp.Regexp
+	metricsmu     sync.Mutex
+	metrics       *cgm.CirconusMetrics
+	// parseRx             *regexp.Regexp
+	logger = log.With().Str("pkg", "promrecv").Logger()
 )
 
 // logshim is used to satisfy apiclient Logger interface (avoiding ptr receiver issue)
@@ -84,14 +84,16 @@ func initCGM() error {
 
 // Flush returns current metrics
 func Flush() *cgm.Metrics {
-	initCGM()
+	_ = initCGM()
 
 	return metrics.FlushMetrics()
 }
 
 // Parse handles incoming PUT/POST requests
 func Parse(data io.ReadCloser) error {
-	initCGM()
+	if err := initCGM(); err != nil {
+		return err
+	}
 
 	var parser expfmt.TextParser
 
