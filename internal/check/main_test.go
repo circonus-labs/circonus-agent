@@ -135,7 +135,7 @@ func genMockClient() *APIMock {
 				m := apiclient.CheckBundleMetrics{
 					CID: "/check_bundle_metrics/1234",
 					Metrics: []apiclient.CheckBundleMetric{
-						apiclient.CheckBundleMetric{Name: "foo", Type: "n", Status: "active"},
+						{Name: "foo", Type: "n", Status: "active"},
 					},
 				}
 				data, err := json.Marshal(m)
