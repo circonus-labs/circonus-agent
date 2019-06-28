@@ -13,7 +13,7 @@ import (
 )
 
 func (s *Server) router(w http.ResponseWriter, r *http.Request) {
-	appstats.IncrementInt("requests_total")
+	_ = appstats.IncrementInt("requests_total")
 
 	s.logger.Debug().Str("method", r.Method).Str("url", r.URL.String()).Msg("request")
 
@@ -30,7 +30,7 @@ func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 		} else if promPathRx.MatchString(r.URL.Path) { // output prom format...
 			s.promOutput(w, r)
 		} else {
-			appstats.IncrementInt("requests_bad")
+			_ = appstats.IncrementInt("requests_bad")
 			s.logger.Warn().Str("method", r.Method).Str("url", r.URL.String()).Msg("not found")
 			http.NotFound(w, r)
 		}
@@ -42,12 +42,12 @@ func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 		} else if promPathRx.MatchString(r.URL.Path) {
 			s.promReceiver(w, r)
 		} else {
-			appstats.IncrementInt("requests_bad")
+			_ = appstats.IncrementInt("requests_bad")
 			s.logger.Warn().Str("method", r.Method).Str("url", r.URL.String()).Msg("not found")
 			http.NotFound(w, r)
 		}
 	default:
-		appstats.IncrementInt("requests_bad")
+		_ = appstats.IncrementInt("requests_bad")
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }

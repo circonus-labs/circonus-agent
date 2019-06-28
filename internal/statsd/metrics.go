@@ -26,7 +26,7 @@ func (s *Server) processPacket(pkt []byte) error {
 	metrics := bytes.Split(pkt, []byte("\n"))
 	for _, metric := range metrics {
 		if err := s.parseMetric(string(metric)); err != nil {
-			appstats.IncrementInt("statsd_metrics_bad")
+			_ = appstats.IncrementInt("statsd_metrics_bad")
 			s.logger.Warn().Err(err).Str("metric", string(metric)).Msg("parsing")
 		}
 	}
