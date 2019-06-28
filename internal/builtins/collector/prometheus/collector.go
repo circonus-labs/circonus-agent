@@ -10,6 +10,7 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/release"
+	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
@@ -70,6 +71,9 @@ func (c *Prom) addMetric(metrics *cgm.Metrics, prefix string, mname string, mtag
 
 	// cleanup the raw metric name, if needed
 	metricName := c.cleanName(mname)
+	if prefix != "" {
+		metricName = prefix + config.MetricNameSeparator + metricName
+	}
 
 	var tagList tags.Tags
 	tagList = append(tagList, tags.Tags{

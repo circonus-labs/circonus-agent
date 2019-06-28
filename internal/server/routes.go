@@ -19,17 +19,18 @@ func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case "GET":
-		if pluginPathRx.MatchString(r.URL.Path) { // run plugin(s)
+		switch {
+		case pluginPathRx.MatchString(r.URL.Path): // run plugin(s)
 			// s.logger.Debug().Msg("calling run")
 			s.run(w, r)
 			// s.logger.Debug().Msg("run complete")
-		} else if inventoryPathRx.MatchString(r.URL.Path) { // plugin inventory
-			s.inventory(w, r)
-		} else if statsPathRx.MatchString(r.URL.Path) { // app stats
+		case inventoryPathRx.MatchString(r.URL.Path): // plugin inventory
+			s.inventory(w)
+		case statsPathRx.MatchString(r.URL.Path): // app stats
 			expvar.Handler().ServeHTTP(w, r)
-		} else if promPathRx.MatchString(r.URL.Path) { // output prom format...
-			s.promOutput(w, r)
-		} else {
+		case promPathRx.MatchString(r.URL.Path): // output prom format...
+			s.promOutput(w)
+		default:
 			_ = appstats.IncrementInt("requests_bad")
 			s.logger.Warn().Str("method", r.Method).Str("url", r.URL.String()).Msg("not found")
 			http.NotFound(w, r)
@@ -37,11 +38,12 @@ func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 	case "POST":
 		fallthrough
 	case "PUT":
-		if writePathRx.MatchString(r.URL.Path) {
+		switch {
+		case writePathRx.MatchString(r.URL.Path):
 			s.write(w, r)
-		} else if promPathRx.MatchString(r.URL.Path) {
+		case promPathRx.MatchString(r.URL.Path):
 			s.promReceiver(w, r)
-		} else {
+		default:
 			_ = appstats.IncrementInt("requests_bad")
 			s.logger.Warn().Str("method", r.Method).Str("url", r.URL.String()).Msg("not found")
 			http.NotFound(w, r)

@@ -28,9 +28,10 @@ func TestMetrics(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		resp := test.response
 		t.Log("\t", test.name)
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			_, _ = w.Write([]byte(test.response))
+			_, _ = w.Write([]byte(resp))
 		}))
 
 		var c *Client
@@ -50,10 +51,8 @@ func TestMetrics(t *testing.T) {
 			if err.Error() != test.expectedErr {
 				t.Fatalf("unexpected error (%s)", err)
 			}
-		} else {
-			if err != nil {
-				t.Fatalf("expected no error, got (%s)", err)
-			}
+		} else if err != nil {
+			t.Fatalf("expected no error, got (%s)", err)
 		}
 
 		ts.Close()

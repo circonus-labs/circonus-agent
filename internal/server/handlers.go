@@ -99,17 +99,17 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 		go func() {
 			start := time.Now()
 			conduitID := "builtins"
-			num_metrics := 0
+			numMetrics := 0
 			s.logger.Debug().Str("conduit_id", conduitID).Msg("start")
 			if err := s.builtins.Run(id); err != nil {
 				s.logger.Error().Err(err).Str("id", id).Msg("running builtin")
 			}
 			builtinMetrics := s.builtins.Flush(id)
 			if builtinMetrics != nil && len(*builtinMetrics) > 0 {
-				num_metrics = len(*builtinMetrics)
+				numMetrics = len(*builtinMetrics)
 				conduitCh <- conduit{id: conduitID, metrics: builtinMetrics}
 			}
-			s.logger.Debug().Str("conduit_id", conduitID).Str("duration", time.Since(start).String()).Int("metrics", num_metrics).Msg("done")
+			s.logger.Debug().Str("conduit_id", conduitID).Str("duration", time.Since(start).String()).Int("metrics", numMetrics).Msg("done")
 			wg.Done()
 		}()
 	}
@@ -122,17 +122,17 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 			//       2. do not expose execution state to callers
 			start := time.Now()
 			conduitID := "plugins"
-			num_metrics := 0
+			numMetrics := 0
 			s.logger.Debug().Str("conduit_id", conduitID).Msg("start")
 			if err := s.plugins.Run(id); err != nil {
 				s.logger.Error().Err(err).Str("id", id).Msg("running plugin")
 			}
 			pluginMetrics := s.plugins.Flush(id)
 			if pluginMetrics != nil && len(*pluginMetrics) > 0 {
-				num_metrics = len(*pluginMetrics)
+				numMetrics = len(*pluginMetrics)
 				conduitCh <- conduit{id: conduitID, metrics: pluginMetrics}
 			}
-			s.logger.Debug().Str("conduit_id", conduitID).Str("duration", time.Since(start).String()).Int("metrics", num_metrics).Msg("done")
+			s.logger.Debug().Str("conduit_id", conduitID).Str("duration", time.Since(start).String()).Int("metrics", numMetrics).Msg("done")
 			wg.Done()
 		}()
 	}
@@ -142,14 +142,14 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 		go func() {
 			start := time.Now()
 			conduitID := "receiver"
-			num_metrics := 0
+			numMetrics := 0
 			s.logger.Debug().Str("conduit_id", conduitID).Msg("start")
 			receiverMetrics := receiver.Flush()
 			if receiverMetrics != nil && len(*receiverMetrics) > 0 {
-				num_metrics = len(*receiverMetrics)
+				numMetrics = len(*receiverMetrics)
 				conduitCh <- conduit{id: conduitID, metrics: receiverMetrics}
 			}
-			s.logger.Debug().Str("conduit_id", conduitID).Str("duration", time.Since(start).String()).Int("metrics", num_metrics).Msg("done")
+			s.logger.Debug().Str("conduit_id", conduitID).Str("duration", time.Since(start).String()).Int("metrics", numMetrics).Msg("done")
 			wg.Done()
 		}()
 	}
@@ -160,14 +160,14 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 			go func() {
 				start := time.Now()
 				conduitID := "statsd"
-				num_metrics := 0
+				numMetrics := 0
 				s.logger.Debug().Str("conduit_id", conduitID).Msg("start")
 				statsdMetrics := s.statsdSvr.Flush()
 				if statsdMetrics != nil && len(*statsdMetrics) > 0 {
-					num_metrics = len(*statsdMetrics)
+					numMetrics = len(*statsdMetrics)
 					conduitCh <- conduit{id: conduitID, metrics: statsdMetrics}
 				}
-				s.logger.Debug().Str("conduit_id", conduitID).Str("duration", time.Since(start).String()).Int("metrics", num_metrics).Msg("done")
+				s.logger.Debug().Str("conduit_id", conduitID).Str("duration", time.Since(start).String()).Int("metrics", numMetrics).Msg("done")
 				wg.Done()
 			}()
 		}
@@ -178,14 +178,14 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 		go func() {
 			start := time.Now()
 			conduitID := "prometheus"
-			num_metrics := 0
+			numMetrics := 0
 			s.logger.Debug().Str("conduit_id", conduitID).Msg("start")
 			promMetrics := promrecv.Flush()
 			if promMetrics != nil && len(*promMetrics) > 0 {
-				num_metrics = len(*promMetrics)
+				numMetrics = len(*promMetrics)
 				conduitCh <- conduit{id: conduitID, metrics: promMetrics}
 			}
-			s.logger.Debug().Str("conduit_id", conduitID).Str("duration", time.Since(start).String()).Int("metrics", num_metrics).Msg("done")
+			s.logger.Debug().Str("conduit_id", conduitID).Str("duration", time.Since(start).String()).Int("metrics", numMetrics).Msg("done")
 			wg.Done()
 		}()
 	}
@@ -199,7 +199,6 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 	// s.logger.Debug().Msg("aggregating metrics")
 	metrics := cgm.Metrics{}
 	for cm := range conduitCh {
-		// s.logger.Debug().Str("conduit_id", cm.id).Int("num_metrics", len(*cm.metrics)).Msg("adding metrics")
 		for m, v := range *cm.metrics {
 			metrics[m] = v
 		}
@@ -296,7 +295,7 @@ func (s *Server) encodeResponse(m *cgm.Metrics, w http.ResponseWriter, r *http.R
 }
 
 // inventory returns the current, active plugin inventory
-func (s *Server) inventory(w http.ResponseWriter, r *http.Request) {
+func (s *Server) inventory(w http.ResponseWriter) {
 	inventory := s.plugins.Inventory()
 	if inventory == nil {
 		inventory = []byte(`{"error": "empty inventory"}`)
@@ -383,7 +382,7 @@ func (s *Server) promReceiver(w http.ResponseWriter, r *http.Request) {
 }
 
 // promOutput returns the last metrics in prom format
-func (s *Server) promOutput(w http.ResponseWriter, r *http.Request) {
+func (s *Server) promOutput(w http.ResponseWriter) {
 	s.logger.Debug().Str("in", "prom output").Msg("start")
 
 	s.logger.Debug().Str("in", "prom output").Msg("lock lastMetrics")

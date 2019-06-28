@@ -46,18 +46,14 @@ var (
 func init() {
 	if data, err := ioutil.ReadFile("testdata/check1234.json"); err != nil {
 		panic(err)
-	} else {
-		if err := json.Unmarshal(data, &testCheckBundle); err != nil {
-			panic(err)
-		}
+	} else if err := json.Unmarshal(data, &testCheckBundle); err != nil {
+		panic(err)
 	}
 
 	if data, err := ioutil.ReadFile("testdata/broker1234.json"); err != nil {
 		panic(err)
-	} else {
-		if err := json.Unmarshal(data, &testBroker); err != nil {
-			panic(err)
-		}
+	} else if err := json.Unmarshal(data, &testBroker); err != nil {
+		panic(err)
 	}
 
 	if data, err := ioutil.ReadFile("testdata/ca.crt"); err != nil {
@@ -96,10 +92,11 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 	case "/check_bundle":
 		if strings.Contains(reqURL, "search") {
 			w.Header().Set("Content-Type", "application/json")
-			if strings.Contains(reqURL, "notfound") {
+			switch {
+			case strings.Contains(reqURL, "notfound"):
 				w.WriteHeader(200)
 				fmt.Fprintln(w, "[]")
-			} else if strings.Contains(reqURL, "multiple") {
+			case strings.Contains(reqURL, "multiple"):
 				c := []apiclient.CheckBundle{{}, {}}
 				ret, err := json.Marshal(c)
 				if err != nil {
@@ -107,10 +104,10 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 				}
 				w.WriteHeader(200)
 				fmt.Fprintln(w, string(ret))
-			} else if strings.Contains(reqURL, "error") {
+			case strings.Contains(reqURL, "error"):
 				w.WriteHeader(500)
 				fmt.Fprintln(w, `{"error":"requested an error"}`)
-			} else if strings.Contains(reqURL, "test") {
+			case strings.Contains(reqURL, "test"):
 				c := []apiclient.CheckBundle{testCheckBundle}
 				ret, err := json.Marshal(c)
 				if err != nil {
@@ -118,7 +115,7 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 				}
 				w.WriteHeader(200)
 				fmt.Fprintln(w, string(ret))
-			} else {
+			default:
 				w.WriteHeader(200)
 				fmt.Fprintln(w, "[]")
 			}

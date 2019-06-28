@@ -86,7 +86,7 @@ func New(ctx context.Context, defaultPluginPath string) (*Plugins, error) {
 	}
 
 	if pluginDir != "" && len(pluginList) > 0 {
-		return nil, errors.New("invalid configuration cannot specifiy plugin-dir AND plugin-list")
+		return nil, errors.New("invalid configuration cannot specify plugin-dir AND plugin-list")
 	}
 
 	if pluginDir == "" {

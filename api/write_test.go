@@ -56,10 +56,8 @@ func TestWrite(t *testing.T) {
 			if err.Error() != test.expectedErr {
 				t.Fatalf("unexpected error (%s)", err)
 			}
-		} else {
-			if err != nil {
-				t.Fatalf("expected no error, got (%s)", err)
-			}
+		} else if err != nil {
+			t.Fatalf("expected no error, got (%s)", err)
 		}
 
 		ts.Close()

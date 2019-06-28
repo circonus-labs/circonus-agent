@@ -31,23 +31,17 @@ func TestProcessPacket(t *testing.T) {
 
 	t.Log("empty")
 	{
-		if err := s.processPacket([]byte("\n")); err != nil {
-			t.Fatalf("expected no error, got (%s)", err)
-		}
+		s.processPacket([]byte("\n"))
 	}
 
 	t.Log("blank")
 	{
-		if err := s.processPacket([]byte("")); err != nil {
-			t.Fatalf("expected no error, got (%s)", err)
-		}
+		s.processPacket([]byte(""))
 	}
 
 	t.Log("bad")
 	{
-		if err := s.processPacket([]byte("test")); err != nil {
-			t.Fatalf("expected no error, got (%s)", err)
-		}
+		s.processPacket([]byte("test"))
 	}
 
 	s.listener.Close()

@@ -43,12 +43,14 @@ func (c *Connection) startReverse() error {
 				conn.Close()
 				return nil
 			}
+
 			if result.ignore {
 				// c.logger.Debug().Err(result.err).Int("timeouts", c.commTimeouts).Msg("ignored")
 				continue
 			}
+
 			if result.err != nil {
-				if result.reset {
+				if result.reset { //nolint: gocritic
 					c.logger.Warn().Err(result.err).Int("timeouts", c.commTimeouts).Msg("resetting connection")
 					close(done)
 					break

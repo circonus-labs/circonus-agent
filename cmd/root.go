@@ -979,31 +979,29 @@ func initLogging(cmd *cobra.Command, args []string) error {
 		viper.Set(config.KeyLogLevel, "debug")
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 		log.Debug().Msg("--debug flag, forcing debug log level")
-	} else {
-		if viper.IsSet(config.KeyLogLevel) {
-			level := viper.GetString(config.KeyLogLevel)
+	} else if viper.IsSet(config.KeyLogLevel) {
+		level := viper.GetString(config.KeyLogLevel)
 
-			switch level {
-			case "panic":
-				zerolog.SetGlobalLevel(zerolog.PanicLevel)
-			case "fatal":
-				zerolog.SetGlobalLevel(zerolog.FatalLevel)
-			case "error":
-				zerolog.SetGlobalLevel(zerolog.ErrorLevel)
-			case "warn":
-				zerolog.SetGlobalLevel(zerolog.WarnLevel)
-			case "info":
-				zerolog.SetGlobalLevel(zerolog.InfoLevel)
-			case "debug":
-				zerolog.SetGlobalLevel(zerolog.DebugLevel)
-			case "disabled":
-				zerolog.SetGlobalLevel(zerolog.Disabled)
-			default:
-				return errors.Errorf("Unknown log level (%s)", level)
-			}
-
-			log.Debug().Str("log-level", level).Msg("Logging level")
+		switch level {
+		case "panic":
+			zerolog.SetGlobalLevel(zerolog.PanicLevel)
+		case "fatal":
+			zerolog.SetGlobalLevel(zerolog.FatalLevel)
+		case "error":
+			zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+		case "warn":
+			zerolog.SetGlobalLevel(zerolog.WarnLevel)
+		case "info":
+			zerolog.SetGlobalLevel(zerolog.InfoLevel)
+		case "debug":
+			zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		case "disabled":
+			zerolog.SetGlobalLevel(zerolog.Disabled)
+		default:
+			return errors.Errorf("Unknown log level (%s)", level)
 		}
+
+		log.Debug().Str("log-level", level).Msg("Logging level")
 	}
 
 	return nil

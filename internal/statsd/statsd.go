@@ -292,12 +292,7 @@ func (s *Server) processor() error {
 		case <-s.groupCtx.Done():
 			return nil
 		case pkt := <-s.packetCh:
-			err := s.processPacket(pkt)
-			if err != nil {
-				_ = appstats.IncrementInt("statsd_packets_bad")
-				s.logger.Error().Err(err).Msg("processor")
-				return errors.Wrap(err, "processor")
-			}
+			s.processPacket(pkt)
 		}
 	}
 }

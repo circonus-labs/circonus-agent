@@ -201,14 +201,16 @@ func (s *Server) Start() error {
 	s.group.Go(s.startHTTPS)
 
 	for _, svrHTTP := range s.svrHTTP {
+		svr := svrHTTP
 		s.group.Go(func() error {
-			return s.startHTTP(svrHTTP)
+			return s.startHTTP(svr)
 		})
 	}
 
 	for _, svrSocket := range s.svrSockets {
+		svr := svrSocket
 		s.group.Go(func() error {
-			return s.startSocket(svrSocket)
+			return s.startSocket(svr)
 		})
 	}
 

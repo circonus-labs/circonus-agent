@@ -86,7 +86,7 @@ func Flush() *cgm.Metrics {
 }
 
 // Parse handles incoming PUT/POST requests
-func Parse(id string, data io.ReadCloser) error {
+func Parse(id string, data io.Reader) error {
 	if err := initCGM(); err != nil {
 		return err
 	}
