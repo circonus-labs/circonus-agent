@@ -19,7 +19,6 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 )
 
 // VM metrics from the Linux ProcFS
@@ -39,13 +38,9 @@ type vmOptions struct {
 func NewVMCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
 	procFile := "meminfo"
 
-	c := VM{}
-	c.id = NameVM
-	c.pkgID = PackageName + "." + c.id
-	c.logger = log.With().Str("pkg", PackageName).Str("id", c.id).Logger()
-	c.procFSPath = procFSPath
-	c.file = filepath.Join(c.procFSPath, procFile)
-	c.baseTags = tags.FromList(tags.GetBaseTags())
+	c := VM{
+		common: newCommon(NameVM, procFSPath, procFile, tags.FromList(tags.GetBaseTags())),
+	}
 
 	if cfgBaseName == "" {
 		if _, err := os.Stat(c.file); err != nil {

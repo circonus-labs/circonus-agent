@@ -23,7 +23,6 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 )
 
 // Disk metrics from the Linux ProcFS
@@ -69,15 +68,11 @@ type dstats struct {
 func NewDiskCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
 	procFile := "diskstats"
 
-	c := Disk{}
-	c.id = NameDisk
-	c.pkgID = PackageName + "." + c.id
-	c.logger = log.With().Str("pkg", PackageName).Str("id", c.id).Logger()
-	c.procFSPath = procFSPath
-	c.file = filepath.Join(c.procFSPath, procFile)
-	c.sectorSizeCache = make(map[string]uint64)
-	c.baseTags = tags.FromList(tags.GetBaseTags())
+	c := Disk{
+		common: newCommon(NameDisk, procFSPath, procFile, tags.FromList(tags.GetBaseTags())),
+	}
 
+	c.sectorSizeCache = make(map[string]uint64)
 	c.include = defaultIncludeRegex
 	c.exclude = defaultExcludeRegex
 	c.sectorSizeDefault = 512
@@ -244,34 +239,34 @@ func (c *Disk) Collect() error {
 		{
 			tagList := tags.Tags{unitOperationsTag}
 			tagList = append(tagList, diskTags...)
-			c.addMetric(&metrics, "", "reads", metricType, devStats.readsCompleted, tagList)
-			c.addMetric(&metrics, "", "merged_reads", metricType, devStats.readsMerged, tagList)
-			c.addMetric(&metrics, "", "writes", metricType, devStats.writesCompleted, tagList)
-			c.addMetric(&metrics, "", "merged_writes", metricType, devStats.writesMerged, tagList)
-			c.addMetric(&metrics, "", "iops_in_progress", metricType, devStats.currIO, tagList)
+			_ = c.addMetric(&metrics, "", "reads", metricType, devStats.readsCompleted, tagList)
+			_ = c.addMetric(&metrics, "", "merged_reads", metricType, devStats.readsMerged, tagList)
+			_ = c.addMetric(&metrics, "", "writes", metricType, devStats.writesCompleted, tagList)
+			_ = c.addMetric(&metrics, "", "merged_writes", metricType, devStats.writesMerged, tagList)
+			_ = c.addMetric(&metrics, "", "iops_in_progress", metricType, devStats.currIO, tagList)
 		}
 
 		{
 			tagList := tags.Tags{unitSectorsTag}
 			tagList = append(tagList, diskTags...)
-			c.addMetric(&metrics, "", "reads", metricType, devStats.sectorsRead, tagList)
-			c.addMetric(&metrics, "", "writes", metricType, devStats.sectorsWritten, tagList)
+			_ = c.addMetric(&metrics, "", "reads", metricType, devStats.sectorsRead, tagList)
+			_ = c.addMetric(&metrics, "", "writes", metricType, devStats.sectorsWritten, tagList)
 		}
 
 		{
 			tagList := tags.Tags{unitBytesTag}
 			tagList = append(tagList, diskTags...)
-			c.addMetric(&metrics, "", "reads", metricType, devStats.bytesRead, tagList)
-			c.addMetric(&metrics, "", "writes", metricType, devStats.bytesWritten, tagList)
+			_ = c.addMetric(&metrics, "", "reads", metricType, devStats.bytesRead, tagList)
+			_ = c.addMetric(&metrics, "", "writes", metricType, devStats.bytesWritten, tagList)
 		}
 
 		{
 			tagList := tags.Tags{unitMillisecondsTag}
 			tagList = append(tagList, diskTags...)
-			c.addMetric(&metrics, "", "read_time", metricType, devStats.readms, tagList)
-			c.addMetric(&metrics, "", "write_time", metricType, devStats.writems, tagList)
-			c.addMetric(&metrics, "", "io_time", metricType, devStats.ioms, tagList)
-			c.addMetric(&metrics, "", "weighted_io_time", metricType, devStats.iomsWeighted, tagList)
+			_ = c.addMetric(&metrics, "", "read_time", metricType, devStats.readms, tagList)
+			_ = c.addMetric(&metrics, "", "write_time", metricType, devStats.writems, tagList)
+			_ = c.addMetric(&metrics, "", "io_time", metricType, devStats.ioms, tagList)
+			_ = c.addMetric(&metrics, "", "weighted_io_time", metricType, devStats.iomsWeighted, tagList)
 		}
 
 		// c.addMetric(&metrics, pfx+devID, "rd_completed", metricType, devStats.readsCompleted)  // reads, operations

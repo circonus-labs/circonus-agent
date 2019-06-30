@@ -20,7 +20,6 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 )
 
 // CPU metrics from the Linux ProcFS
@@ -48,13 +47,9 @@ type cpuOptions struct {
 func NewCPUCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
 	procFile := "stat"
 
-	c := CPU{}
-	c.id = NameCPU
-	c.pkgID = PackageName + "." + c.id
-	c.logger = log.With().Str("pkg", PackageName).Str("id", c.id).Logger()
-	c.procFSPath = procFSPath
-	c.file = filepath.Join(c.procFSPath, procFile)
-	c.baseTags = tags.FromList(tags.GetBaseTags())
+	c := CPU{
+		common: newCommon(NameCPU, procFSPath, procFile, tags.FromList(tags.GetBaseTags())),
+	}
 
 	c.numCPU = float64(runtime.NumCPU())
 	clockHZ := float64(100)

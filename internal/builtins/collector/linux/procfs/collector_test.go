@@ -19,7 +19,7 @@ import (
 func TestCollect(t *testing.T) {
 	t.Log("Testing Collect")
 
-	c := &pfscommon{
+	c := &common{
 		id: "test",
 	}
 
@@ -32,7 +32,7 @@ func TestCollect(t *testing.T) {
 func TestFlush(t *testing.T) {
 	t.Log("Testing Flush")
 
-	c := &pfscommon{
+	c := &common{
 		id: "test",
 	}
 
@@ -48,7 +48,7 @@ func TestFlush(t *testing.T) {
 func TestID(t *testing.T) {
 	t.Log("Testing ID")
 
-	c := &pfscommon{
+	c := &common{
 		id: "test",
 	}
 
@@ -61,7 +61,7 @@ func TestID(t *testing.T) {
 func TestInventory(t *testing.T) {
 	t.Log("Testing Inventory")
 
-	c := &pfscommon{
+	c := &common{
 		id: "test",
 	}
 
@@ -77,10 +77,10 @@ func TestAddMetric(t *testing.T) {
 
 	t.Log("Testing invalid states/submissions")
 	{
-		c := &pfscommon{
+		c := &common{
 			id: "foo",
 		}
-		if err := c.addMetric(nil, "", "", "", ""); err == nil {
+		if err := c.addMetric(nil, "", "", "", "", cgm.Tags{}); err == nil {
 			t.Fatal("expected error")
 		} else {
 			expect := "invalid metric submission"
@@ -91,7 +91,7 @@ func TestAddMetric(t *testing.T) {
 
 		m := cgm.Metrics{}
 
-		if err := c.addMetric(&m, "", "", "", ""); err == nil {
+		if err := c.addMetric(&m, "", "", "", "", cgm.Tags{}); err == nil {
 			t.Fatalf("expected error")
 		} else {
 			expect := "invalid metric, no name"
@@ -100,19 +100,10 @@ func TestAddMetric(t *testing.T) {
 			}
 		}
 
-		if err := c.addMetric(&m, "", "foo", "", ""); err == nil {
+		if err := c.addMetric(&m, "", "foo", "", "", cgm.Tags{}); err == nil {
 			t.Fatalf("expected error")
 		} else {
 			expect := "invalid metric, no type"
-			if err.Error() != expect {
-				t.Fatalf("expected (%s) got (%v)", expect, err)
-			}
-		}
-
-		if err := c.addMetric(&m, "", "foo", "t", ""); err == nil {
-			t.Fatalf("expected error")
-		} else {
-			expect := "metric (foo) not active"
 			if err.Error() != expect {
 				t.Fatalf("expected (%s) got (%v)", expect, err)
 			}
@@ -121,16 +112,12 @@ func TestAddMetric(t *testing.T) {
 
 	t.Log("Testing valid states/submissions")
 	{
-		c := &pfscommon{
-			id:                  "foo",
-			metricStatus:        make(map[string]bool),
-			metricDefaultActive: true,
-		}
+		c := &common{id: "foo"}
 		m := cgm.Metrics{}
-		if err := c.addMetric(&m, "", "foo", "t", ""); err != nil {
+		if err := c.addMetric(&m, "", "foo", "t", "", cgm.Tags{}); err != nil {
 			t.Fatalf("expected no error, got (%v)", err)
 		}
-		if err := c.addMetric(&m, "bar", "baz", "i", 10); err != nil {
+		if err := c.addMetric(&m, "bar", "baz", "i", 10, cgm.Tags{}); err != nil {
 			t.Fatalf("expected no error, got (%v)", err)
 		}
 	}
@@ -139,7 +126,7 @@ func TestAddMetric(t *testing.T) {
 func TestSetStatus(t *testing.T) {
 	t.Log("Testing setStatus")
 
-	c := &pfscommon{
+	c := &common{
 		id: "foo",
 	}
 	t.Log("\tno metrics, no error")

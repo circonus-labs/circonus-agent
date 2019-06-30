@@ -18,14 +18,14 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func TestNewDiskstatsCollector(t *testing.T) {
-	t.Log("Testing NewDiskstatsCollector")
+func TestNewDiskCollector(t *testing.T) {
+	t.Log("Testing NewDiskCollector")
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	t.Log("no config")
 	{
-		_, err := NewDiskstatsCollector("", PROC_FS_PATH)
+		_, err := NewDiskCollector("", ProcFSPath)
 		if runtime.GOOS == "linux" {
 			if err != nil {
 				t.Fatalf("expected NO error, got (%s)", err)
@@ -39,7 +39,7 @@ func TestNewDiskstatsCollector(t *testing.T) {
 
 	t.Log("config (missing)")
 	{
-		_, err := NewDiskstatsCollector(filepath.Join("testdata", "missing"), PROC_FS_PATH)
+		_, err := NewDiskCollector(filepath.Join("testdata", "missing"), ProcFSPath)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -47,7 +47,7 @@ func TestNewDiskstatsCollector(t *testing.T) {
 
 	t.Log("config (bad syntax)")
 	{
-		_, err := NewDiskstatsCollector(filepath.Join("testdata", "bad_syntax"), PROC_FS_PATH)
+		_, err := NewDiskCollector(filepath.Join("testdata", "bad_syntax"), ProcFSPath)
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -55,7 +55,7 @@ func TestNewDiskstatsCollector(t *testing.T) {
 
 	t.Log("config (config no settings)")
 	{
-		c, err := NewDiskstatsCollector(filepath.Join("testdata", "config_no_settings"), PROC_FS_PATH)
+		c, err := NewDiskCollector(filepath.Join("testdata", "config_no_settings"), ProcFSPath)
 		if runtime.GOOS == "linux" {
 			if err != nil {
 				t.Fatalf("expected NO error, got (%s)", err)
@@ -75,30 +75,30 @@ func TestNewDiskstatsCollector(t *testing.T) {
 
 	t.Log("config (id setting)")
 	{
-		c, err := NewDiskstatsCollector(filepath.Join("testdata", "config_id_setting"), PROC_FS_PATH)
+		c, err := NewDiskCollector(filepath.Join("testdata", "config_id_setting"), ProcFSPath)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		if c.(*Diskstats).id != "foo" {
+		if c.(*Disk).id != "foo" {
 			t.Fatalf("expected foo, got (%s)", c.ID())
 		}
 	}
 
 	t.Log("config (procfs path setting)")
 	{
-		c, err := NewDiskstatsCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), PROC_FS_PATH)
+		c, err := NewDiskCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), ProcFSPath)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 		expect := "testdata"
-		if c.(*Diskstats).procFSPath != expect {
-			t.Fatalf("expected (%s), got (%s)", expect, c.(*Diskstats).procFSPath)
+		if c.(*Disk).procFSPath != expect {
+			t.Fatalf("expected (%s), got (%s)", expect, c.(*Disk).procFSPath)
 		}
 	}
 
 	t.Log("config (procfs path setting invalid)")
 	{
-		_, err := NewDiskstatsCollector(filepath.Join("testdata", "config_procfs_path_invalid_setting"), PROC_FS_PATH)
+		_, err := NewDiskCollector(filepath.Join("testdata", "config_procfs_path_invalid_setting"), ProcFSPath)
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -106,19 +106,19 @@ func TestNewDiskstatsCollector(t *testing.T) {
 
 	t.Log("config (include regex)")
 	{
-		c, err := NewDiskstatsCollector(filepath.Join("testdata", "config_include_regex_valid_setting"), PROC_FS_PATH)
+		c, err := NewDiskCollector(filepath.Join("testdata", "config_include_regex_valid_setting"), ProcFSPath)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 		expect := fmt.Sprintf(regexPat, `^foo`)
-		if c.(*Diskstats).include.String() != expect {
-			t.Fatalf("expected (%s) got (%s)", expect, c.(*Diskstats).include.String())
+		if c.(*Disk).include.String() != expect {
+			t.Fatalf("expected (%s) got (%s)", expect, c.(*Disk).include.String())
 		}
 	}
 
 	t.Log("config (include regex invalid)")
 	{
-		_, err := NewDiskstatsCollector(filepath.Join("testdata", "config_include_regex_invalid_setting"), PROC_FS_PATH)
+		_, err := NewDiskCollector(filepath.Join("testdata", "config_include_regex_invalid_setting"), ProcFSPath)
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -126,85 +126,19 @@ func TestNewDiskstatsCollector(t *testing.T) {
 
 	t.Log("config (exclude regex)")
 	{
-		c, err := NewDiskstatsCollector(filepath.Join("testdata", "config_exclude_regex_valid_setting"), PROC_FS_PATH)
+		c, err := NewDiskCollector(filepath.Join("testdata", "config_exclude_regex_valid_setting"), ProcFSPath)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 		expect := fmt.Sprintf(regexPat, `^foo`)
-		if c.(*Diskstats).exclude.String() != expect {
-			t.Fatalf("expected (%s) got (%s)", expect, c.(*Diskstats).exclude.String())
+		if c.(*Disk).exclude.String() != expect {
+			t.Fatalf("expected (%s) got (%s)", expect, c.(*Disk).exclude.String())
 		}
 	}
 
 	t.Log("config (exclude regex invalid)")
 	{
-		_, err := NewDiskstatsCollector(filepath.Join("testdata", "config_exclude_regex_invalid_setting"), PROC_FS_PATH)
-		if err == nil {
-			t.Fatal("expected error")
-		}
-	}
-
-	t.Log("config (metrics enabled setting)")
-	{
-		c, err := NewDiskstatsCollector(filepath.Join("testdata", "config_metrics_enabled_setting"), PROC_FS_PATH)
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if len(c.(*Diskstats).metricStatus) == 0 {
-			t.Fatalf("expected >0 metric status settings, got (%#v)", c.(*Diskstats).metricStatus)
-		}
-		enabled, ok := c.(*Diskstats).metricStatus["foo"]
-		if !ok {
-			t.Fatalf("expected 'foo' key in metric status settings, got (%#v)", c.(*Diskstats).metricStatus)
-		}
-		if !enabled {
-			t.Fatalf("expected 'foo' to be enabled in metric status settings, got (%#v)", c.(*Diskstats).metricStatus)
-		}
-	}
-
-	t.Log("config (metrics disabled setting)")
-	{
-		c, err := NewDiskstatsCollector(filepath.Join("testdata", "config_metrics_disabled_setting"), PROC_FS_PATH)
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if len(c.(*Diskstats).metricStatus) == 0 {
-			t.Fatalf("expected >0 metric status settings, got (%#v)", c.(*Diskstats).metricStatus)
-		}
-		enabled, ok := c.(*Diskstats).metricStatus["foo"]
-		if !ok {
-			t.Fatalf("expected 'foo' key in metric status settings, got (%#v)", c.(*Diskstats).metricStatus)
-		}
-		if enabled {
-			t.Fatalf("expected 'foo' to be disabled in metric status settings, got (%#v)", c.(*Diskstats).metricStatus)
-		}
-	}
-
-	t.Log("config (metrics default status enabled)")
-	{
-		c, err := NewDiskstatsCollector(filepath.Join("testdata", "config_metrics_default_status_enabled_setting"), PROC_FS_PATH)
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if !c.(*Diskstats).metricDefaultActive {
-			t.Fatal("expected true")
-		}
-	}
-
-	t.Log("config (metrics default status disabled)")
-	{
-		c, err := NewDiskstatsCollector(filepath.Join("testdata", "config_metrics_default_status_disabled_setting"), PROC_FS_PATH)
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if c.(*Diskstats).metricDefaultActive {
-			t.Fatal("expected false")
-		}
-	}
-
-	t.Log("config (metrics default status invalid)")
-	{
-		_, err := NewDiskstatsCollector(filepath.Join("testdata", "config_metrics_default_status_invalid_setting"), PROC_FS_PATH)
+		_, err := NewDiskCollector(filepath.Join("testdata", "config_exclude_regex_invalid_setting"), ProcFSPath)
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -212,30 +146,30 @@ func TestNewDiskstatsCollector(t *testing.T) {
 
 	t.Log("config (run ttl 5m)")
 	{
-		c, err := NewDiskstatsCollector(filepath.Join("testdata", "config_run_ttl_valid_setting"), PROC_FS_PATH)
+		c, err := NewDiskCollector(filepath.Join("testdata", "config_run_ttl_valid_setting"), ProcFSPath)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		if c.(*Diskstats).runTTL != 5*time.Minute {
+		if c.(*Disk).runTTL != 5*time.Minute {
 			t.Fatal("expected 5m")
 		}
 	}
 
 	t.Log("config (run ttl invalid)")
 	{
-		_, err := NewDiskstatsCollector(filepath.Join("testdata", "config_run_ttl_invalid_setting"), PROC_FS_PATH)
+		_, err := NewDiskCollector(filepath.Join("testdata", "config_run_ttl_invalid_setting"), ProcFSPath)
 		if err == nil {
 			t.Fatal("expected error")
 		}
 	}
 }
 
-func TestDiskstatsFlush(t *testing.T) {
+func TestDiskFlush(t *testing.T) {
 	t.Log("Testing Flush")
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	c, err := NewDiskstatsCollector(filepath.Join("testdata", "config_file_valid_setting"), PROC_FS_PATH)
+	c, err := NewDiskCollector(filepath.Join("testdata", "config_file_valid_setting"), ProcFSPath)
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
@@ -249,19 +183,19 @@ func TestDiskstatsFlush(t *testing.T) {
 	}
 }
 
-func TestDiskstatsCollect(t *testing.T) {
+func TestDiskCollect(t *testing.T) {
 	t.Log("Testing Collect")
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	t.Log("already running")
 	{
-		c, err := NewDiskstatsCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), PROC_FS_PATH)
+		c, err := NewDiskCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), ProcFSPath)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 
-		c.(*Diskstats).running = true
+		c.(*Disk).running = true
 
 		if err := c.Collect(); err != nil {
 			if err.Error() != collector.ErrAlreadyRunning.Error() {
@@ -274,13 +208,13 @@ func TestDiskstatsCollect(t *testing.T) {
 
 	t.Log("ttl not expired")
 	{
-		c, err := NewDiskstatsCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), PROC_FS_PATH)
+		c, err := NewDiskCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), ProcFSPath)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 
-		c.(*Diskstats).runTTL = 60 * time.Second
-		c.(*Diskstats).lastEnd = time.Now()
+		c.(*Disk).runTTL = 60 * time.Second
+		c.(*Disk).lastEnd = time.Now()
 
 		if err := c.Collect(); err != nil {
 			if err.Error() != collector.ErrTTLNotExpired.Error() {
@@ -293,7 +227,7 @@ func TestDiskstatsCollect(t *testing.T) {
 
 	t.Log("good")
 	{
-		c, err := NewDiskstatsCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), PROC_FS_PATH)
+		c, err := NewDiskCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), ProcFSPath)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
