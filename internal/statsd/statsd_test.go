@@ -91,7 +91,10 @@ func TestStart(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		s.Start()
+		err = s.Start()
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
 		viper.Reset()
 	}
 

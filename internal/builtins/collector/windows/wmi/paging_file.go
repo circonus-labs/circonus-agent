@@ -24,7 +24,7 @@ import (
 )
 
 // Win32_PerfFormattedData_PerfOS_PagingFile defines the metrics to collect
-type Win32_PerfFormattedData_PerfOS_PagingFile struct {
+type Win32_PerfFormattedData_PerfOS_PagingFile struct { //nolint: golint
 	Name         string
 	PercentUsage uint32
 }

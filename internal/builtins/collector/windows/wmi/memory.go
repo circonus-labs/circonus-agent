@@ -23,7 +23,7 @@ import (
 )
 
 // Win32_PerfFormattedData_PerfOS_Memory defines the metrics to collect
-type Win32_PerfFormattedData_PerfOS_Memory struct {
+type Win32_PerfFormattedData_PerfOS_Memory struct { //nolint: golint
 	AvailableBytes                  uint64
 	CacheBytes                      uint64
 	CacheFaultsPersec               uint64

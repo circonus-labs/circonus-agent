@@ -52,7 +52,7 @@ type genericDiskMetrics struct {
 
 // Win32_PerfFormattedData_PerfDisk_LogicalDisk defines the metrics to collect
 // https://technet.microsoft.com/en-ca/aa394261(v=vs.71)
-type Win32_PerfFormattedData_PerfDisk_LogicalDisk struct {
+type Win32_PerfFormattedData_PerfDisk_LogicalDisk struct { //nolint: golint
 	AvgDiskBytesPerRead     uint64
 	AvgDiskBytesPerTransfer uint64
 	AvgDiskBytesPerWrite    uint64
@@ -80,7 +80,7 @@ type Win32_PerfFormattedData_PerfDisk_LogicalDisk struct {
 }
 
 // Win32_PerfFormattedData_PerfDisk_PhysicalDisk defines the metrics to collect
-type Win32_PerfFormattedData_PerfDisk_PhysicalDisk struct {
+type Win32_PerfFormattedData_PerfDisk_PhysicalDisk struct { //nolint: golint
 	AvgDiskBytesPerRead     uint64
 	AvgDiskBytesPerTransfer uint64
 	AvgDiskBytesPerWrite    uint64
@@ -255,7 +255,8 @@ func (c *Disk) Collect() error {
 		}
 
 		for _, diskMetrics := range dst {
-			_ = c.emitLogicalDiskMetrics(&metrics, &diskMetrics)
+			dm := diskMetrics
+			_ = c.emitLogicalDiskMetrics(&metrics, &dm)
 		}
 	}
 
@@ -273,7 +274,8 @@ func (c *Disk) Collect() error {
 		}
 
 		for _, diskMetrics := range dst {
-			_ = c.emitPhysicalDiskMetrics(&metrics, &diskMetrics)
+			dm := diskMetrics
+			_ = c.emitPhysicalDiskMetrics(&metrics, &dm)
 		}
 	}
 

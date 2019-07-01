@@ -24,7 +24,7 @@ import (
 )
 
 // Win32_PerfRawData_Tcpip_NetworkInterface defines the metrics to collect
-type Win32_PerfRawData_Tcpip_NetworkInterface struct {
+type Win32_PerfRawData_Tcpip_NetworkInterface struct { //nolint: golint
 	BytesReceivedPersec             uint64
 	BytesSentPersec                 uint64
 	BytesTotalPersec                uint64

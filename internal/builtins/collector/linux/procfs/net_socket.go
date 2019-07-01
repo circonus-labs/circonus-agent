@@ -21,7 +21,6 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 )
 
 // NetSocket metrics from the Linux ProcFS
@@ -47,13 +46,9 @@ type netSocketOptions struct {
 func NewNetSocketCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
 	procFile := filepath.Join("net", "dev")
 
-	c := NetSocket{}
-	c.id = NameNetSocket
-	c.pkgID = PackageName + "." + c.id
-	c.logger = log.With().Str("pkg", PackageName).Str("id", c.id).Logger()
-	c.procFSPath = procFSPath
-	c.file = filepath.Join(c.procFSPath, procFile)
-	c.baseTags = tags.FromList(tags.GetBaseTags())
+	c := NetSocket{
+		common: newCommon(NameNetSocket, procFSPath, procFile, tags.FromList(tags.GetBaseTags())),
+	}
 
 	c.include = defaultIncludeRegex
 	c.exclude = regexp.MustCompile(fmt.Sprintf(regexPat, `lo`))
@@ -148,10 +143,10 @@ func (c *NetSocket) Collect() error {
 	return nil
 }
 
-type rawSocketStat struct {
-	name string
-	val  string
-}
+// type rawSocketStat struct {
+// 	name string
+// 	val  string
+// }
 
 // sockstatCollect gets metrics from /proc/net/sockstat and /proc/net/sockstat6
 func (c *NetSocket) sockstatCollect(metrics *cgm.Metrics) error {
@@ -201,7 +196,7 @@ func (c *NetSocket) sockstatCollect(metrics *cgm.Metrics) error {
 						break
 					}
 					tagList := tags.Tags{tags.Tag{Category: "proto", Value: statType}}
-					c.addMetric(metrics, "", name, metricType, v, tagList)
+					_ = c.addMetric(metrics, "", name, metricType, v, tagList)
 				}
 
 			case "tcp":
@@ -219,7 +214,7 @@ func (c *NetSocket) sockstatCollect(metrics *cgm.Metrics) error {
 							break
 						}
 						tagList := tags.Tags{tags.Tag{Category: "proto", Value: statType}, tagUnitsConnections}
-						c.addMetric(metrics, "", name, metricType, v, tagList)
+						_ = c.addMetric(metrics, "", name, metricType, v, tagList)
 					}
 				}
 				{
@@ -232,7 +227,7 @@ func (c *NetSocket) sockstatCollect(metrics *cgm.Metrics) error {
 							break
 						}
 						tagList := tags.Tags{tags.Tag{Category: "proto", Value: statType}, tagUnitsConnections}
-						c.addMetric(metrics, "", name, metricType, v, tagList)
+						_ = c.addMetric(metrics, "", name, metricType, v, tagList)
 					}
 				}
 				{
@@ -251,7 +246,7 @@ func (c *NetSocket) sockstatCollect(metrics *cgm.Metrics) error {
 							break
 						}
 						tagList := tags.Tags{tags.Tag{Category: "proto", Value: statType}, tagUnitsConnections}
-						c.addMetric(metrics, "", "time_wait", metricType, v, tagList)
+						_ = c.addMetric(metrics, "", "time_wait", metricType, v, tagList)
 					}
 				}
 				{
@@ -264,7 +259,7 @@ func (c *NetSocket) sockstatCollect(metrics *cgm.Metrics) error {
 							break
 						}
 						tagList := tags.Tags{tags.Tag{Category: "proto", Value: statType}}
-						c.addMetric(metrics, "", "allocated", metricType, v, tagList)
+						_ = c.addMetric(metrics, "", "allocated", metricType, v, tagList)
 					}
 				}
 				// stats[statType] = []rawSocketStat{
@@ -304,7 +299,7 @@ func (c *NetSocket) sockstatCollect(metrics *cgm.Metrics) error {
 						break
 					}
 					tagList := tags.Tags{tags.Tag{Category: "proto", Value: statType}, tagUnitsConnections}
-					c.addMetric(metrics, "", name, metricType, v, tagList)
+					_ = c.addMetric(metrics, "", name, metricType, v, tagList)
 				}
 				// stats[statType] = []rawSocketStat{
 				// 	{
@@ -331,7 +326,7 @@ func (c *NetSocket) sockstatCollect(metrics *cgm.Metrics) error {
 						break
 					}
 					tagList := tags.Tags{tags.Tag{Category: "proto", Value: statType}, tagUnitsConnections}
-					c.addMetric(metrics, "", name, metricType, v, tagList)
+					_ = c.addMetric(metrics, "", name, metricType, v, tagList)
 				}
 				// stats[statType] = []rawSocketStat{
 				// 	{
@@ -354,7 +349,7 @@ func (c *NetSocket) sockstatCollect(metrics *cgm.Metrics) error {
 						break
 					}
 					tagList := tags.Tags{tags.Tag{Category: "proto", Value: statType}, tagUnitsConnections}
-					c.addMetric(metrics, "", name, metricType, v, tagList)
+					_ = c.addMetric(metrics, "", name, metricType, v, tagList)
 				}
 				// stats[statType] = []rawSocketStat{
 				// 	{
@@ -377,7 +372,7 @@ func (c *NetSocket) sockstatCollect(metrics *cgm.Metrics) error {
 						break
 					}
 					tagList := tags.Tags{tags.Tag{Category: "proto", Value: statType}, tagUnitsConnections}
-					c.addMetric(metrics, "", name, metricType, v, tagList)
+					_ = c.addMetric(metrics, "", name, metricType, v, tagList)
 				}
 				// stats[statType] = []rawSocketStat{
 				// 	{
@@ -448,7 +443,7 @@ func (c *NetSocket) sockstatCollect(metrics *cgm.Metrics) error {
 						break
 					}
 					tagList := tags.Tags{tags.Tag{Category: "proto", Value: statType}, tagUnitsConnections}
-					c.addMetric(metrics, "", name, metricType, v, tagList)
+					_ = c.addMetric(metrics, "", name, metricType, v, tagList)
 				}
 				// stats[statType] = []rawSocketStat{
 				// 	{
@@ -471,7 +466,7 @@ func (c *NetSocket) sockstatCollect(metrics *cgm.Metrics) error {
 						break
 					}
 					tagList := tags.Tags{tags.Tag{Category: "proto", Value: statType}, tagUnitsConnections}
-					c.addMetric(metrics, "", name, metricType, v, tagList)
+					_ = c.addMetric(metrics, "", name, metricType, v, tagList)
 				}
 				// stats[statType] = []rawSocketStat{
 				// 	{
@@ -494,7 +489,7 @@ func (c *NetSocket) sockstatCollect(metrics *cgm.Metrics) error {
 						break
 					}
 					tagList := tags.Tags{tags.Tag{Category: "proto", Value: statType}, tagUnitsConnections}
-					c.addMetric(metrics, "", name, metricType, v, tagList)
+					_ = c.addMetric(metrics, "", name, metricType, v, tagList)
 				}
 				// stats[statType] = []rawSocketStat{
 				// 	{
@@ -517,7 +512,7 @@ func (c *NetSocket) sockstatCollect(metrics *cgm.Metrics) error {
 						break
 					}
 					tagList := tags.Tags{tags.Tag{Category: "proto", Value: statType}, tagUnitsConnections}
-					c.addMetric(metrics, "", name, metricType, v, tagList)
+					_ = c.addMetric(metrics, "", name, metricType, v, tagList)
 				}
 				// stats[statType] = []rawSocketStat{
 				// 	{
@@ -540,7 +535,7 @@ func (c *NetSocket) sockstatCollect(metrics *cgm.Metrics) error {
 						break
 					}
 					tagList := tags.Tags{tags.Tag{Category: "proto", Value: statType}, tagUnitsConnections}
-					c.addMetric(metrics, "", name, metricType, v, tagList)
+					_ = c.addMetric(metrics, "", name, metricType, v, tagList)
 				}
 				// stats[statType] = []rawSocketStat{
 				// 	{

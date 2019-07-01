@@ -19,7 +19,6 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 )
 
 // Load metrics from the Linux ProcFS (actually from unix.Sysinfo call)
@@ -44,14 +43,11 @@ func NewLoadCollector(cfgBaseName, procFSPath string) (collector.Collector, erro
 	loadFile := "loadavg"
 	statFile := "stat"
 
-	c := Load{}
-	c.id = NameLoad
-	c.pkgID = PackageName + "." + c.id
-	c.logger = log.With().Str("pkg", PackageName).Str("id", c.id).Logger()
-	c.procFSPath = procFSPath
-	c.file = filepath.Join(c.procFSPath, loadFile)
+	c := Load{
+		common: newCommon(NameLoad, procFSPath, loadFile, tags.FromList(tags.GetBaseTags())),
+	}
+
 	c.processStatsFile = filepath.Join(c.procFSPath, statFile)
-	c.baseTags = tags.FromList(tags.GetBaseTags())
 
 	if cfgBaseName == "" {
 		if _, err := os.Stat(c.file); os.IsNotExist(err) {
@@ -145,21 +141,21 @@ func (c *Load) Collect() error {
 				c.logger.Warn().Err(err).Msg("parsing 1min field")
 				continue
 			} else {
-				c.addMetric(&metrics, "", "load_1min", metricType, v, tagList)
+				_ = c.addMetric(&metrics, "", "load_1min", metricType, v, tagList)
 			}
 
 			if v, err := strconv.ParseFloat(fields[1], 64); err != nil {
 				c.logger.Warn().Err(err).Msg("parsing 5min field")
 				continue
 			} else {
-				c.addMetric(&metrics, "", "load_5min", metricType, v, tagList)
+				_ = c.addMetric(&metrics, "", "load_5min", metricType, v, tagList)
 			}
 
 			if v, err := strconv.ParseFloat(fields[2], 64); err != nil {
 				c.logger.Warn().Err(err).Msg("parsing 15min field")
 				continue
 			} else {
-				c.addMetric(&metrics, "", "load_15min", metricType, v, tagList)
+				_ = c.addMetric(&metrics, "", "load_15min", metricType, v, tagList)
 			}
 		}
 	}
@@ -203,14 +199,14 @@ func (c *Load) Collect() error {
 
 		{
 			tagList := tags.Tags{tagUnitsProcesses}
-			c.addMetric(&metrics, "", "total", metricType, processes, tagList)
-			c.addMetric(&metrics, "", "running", metricType, running, tagList)
-			c.addMetric(&metrics, "", "blocked", metricType, blocked, tagList)
+			_ = c.addMetric(&metrics, "", "total", metricType, processes, tagList)
+			_ = c.addMetric(&metrics, "", "running", metricType, running, tagList)
+			_ = c.addMetric(&metrics, "", "blocked", metricType, blocked, tagList)
 		}
 
 		{
 			tagList := tags.Tags{tags.Tag{Category: "units", Value: "switches"}}
-			c.addMetric(&metrics, "", "ctxt", metricType, ctxswitch, tagList)
+			_ = c.addMetric(&metrics, "", "ctxt", metricType, ctxswitch, tagList)
 		}
 
 	}

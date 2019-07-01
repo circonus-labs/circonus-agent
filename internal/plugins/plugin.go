@@ -120,7 +120,7 @@ func (p *plugin) parsePluginOutput(output []string) error {
 		}
 
 		metricName := strings.Replace(fields[0], " ", "_", -1)
-		metricType := fields[1]
+		metricType := strings.TrimSpace(fields[1])
 
 		if _, ok := metrics[metricName]; ok {
 			p.logger.Warn().Str("name", metricName).Msg("duplicate name, skipping")
@@ -337,7 +337,9 @@ func (p *plugin) exec() error {
 		// blank line, long running plugin signal to parse
 		// what has already been received.
 		if line == "" {
-			p.parsePluginOutput(lines)
+			if err := p.parsePluginOutput(lines); err != nil {
+				plog.Error().Err(err).Str("id", p.id).Msg("parsing output")
+			}
 			lines = []string{}
 			continue
 		}
@@ -358,7 +360,9 @@ func (p *plugin) exec() error {
 
 	// parse lines if there are any in the buffer
 	// or, in case of long running plugin, any left in buffer on exit
-	p.parsePluginOutput(lines)
+	if err := p.parsePluginOutput(lines); err != nil {
+		plog.Error().Err(err).Str("id", p.id).Msg("parsing output")
+	}
 
 	if err := p.cmd.Wait(); err != nil {
 		var stderr string

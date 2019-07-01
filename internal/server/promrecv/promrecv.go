@@ -28,13 +28,13 @@ import (
 )
 
 var (
-	id                  string
-	baseTags            []string
-	nameCleanerRx       *regexp.Regexp
-	metricsmu           sync.Mutex
-	metrics             *cgm.CirconusMetrics
-	parseRx             *regexp.Regexp
-	logger              = log.With().Str("pkg", "promrecv").Logger()
+	id            string
+	baseTags      []string
+	nameCleanerRx *regexp.Regexp
+	metricsmu     sync.Mutex
+	metrics       *cgm.CirconusMetrics
+	// parseRx             *regexp.Regexp
+	logger = log.With().Str("pkg", "promrecv").Logger()
 )
 
 // logshim is used to satisfy apiclient Logger interface (avoiding ptr receiver issue)
@@ -84,14 +84,16 @@ func initCGM() error {
 
 // Flush returns current metrics
 func Flush() *cgm.Metrics {
-	initCGM()
+	_ = initCGM()
 
 	return metrics.FlushMetrics()
 }
 
 // Parse handles incoming PUT/POST requests
-func Parse(data io.ReadCloser) error {
-	initCGM()
+func Parse(data io.Reader) error {
+	if err := initCGM(); err != nil {
+		return err
+	}
 
 	var parser expfmt.TextParser
 
@@ -106,28 +108,30 @@ func Parse(data io.ReadCloser) error {
 		for _, m := range mf.Metric {
 			metricName := nameCleanerRx.ReplaceAllString(mn, "")
 			tags := getLabels(m)
-			if mf.GetType() == dto.MetricType_SUMMARY {
+			switch {
+			case mf.GetType() == dto.MetricType_SUMMARY:
 				metrics.Gauge(metricName+"_count", float64(m.GetSummary().GetSampleCount()))
 				metrics.Gauge(metricName+"_sum", float64(m.GetSummary().GetSampleSum()))
 				for qn, qv := range getQuantiles(m) {
 					metrics.GaugeWithTags(metricName+"_"+qn, tags, qv)
 				}
-			} else if mf.GetType() == dto.MetricType_HISTOGRAM {
+			case mf.GetType() == dto.MetricType_HISTOGRAM:
 				metrics.Gauge(metricName+"_count", float64(m.GetHistogram().GetSampleCount()))
 				metrics.Gauge(metricName+"_sum", float64(m.GetHistogram().GetSampleSum()))
 				for bn, bv := range getBuckets(m) {
 					metrics.GaugeWithTags(metricName+"_"+bn, tags, bv)
 				}
-			} else {
-				if m.Gauge != nil {
+			default:
+				switch {
+				case m.Gauge != nil:
 					if m.GetGauge().Value != nil {
 						metrics.GaugeWithTags(metricName, tags, *m.GetGauge().Value)
 					}
-				} else if m.Counter != nil {
+				case m.Counter != nil:
 					if m.GetCounter().Value != nil {
 						metrics.GaugeWithTags(metricName, tags, *m.GetCounter().Value)
 					}
-				} else if m.Untyped != nil {
+				case m.Untyped != nil:
 					if m.GetUntyped().Value != nil {
 						if *m.GetUntyped().Value == math.Inf(+1) {
 							logger.Warn().Str("metric", metricName).Str("type", mf.GetType().String()).Str("value", (*m).GetUntyped().String()).Msg("cannot coerce +Inf to uint64")

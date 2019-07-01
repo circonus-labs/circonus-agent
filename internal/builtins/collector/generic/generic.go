@@ -28,7 +28,7 @@ const (
 	NameVM      = "vm"
 	NameIF      = "if"
 	NameProto   = "proto"
-	regexPat = `^(?:%s)$` // fmt pattern used compile include/exclude regular expressions
+	regexPat    = `^(?:%s)$` // fmt pattern used compile include/exclude regular expressions
 )
 
 var (

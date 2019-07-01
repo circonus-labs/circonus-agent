@@ -3,14 +3,14 @@
 // license that can be found in the LICENSE file.
 //
 
-// +\build linux
+// +build linux
 
 package procfs
 
 import (
 	"bufio"
 	"os"
-	"regexp"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -21,6 +21,7 @@ import (
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 // common defines ProcFS metrics common elements
@@ -35,11 +36,11 @@ type common struct {
 	lastRunDuration time.Duration  // last collection duration
 	lastStart       time.Time      // last collection start time
 	logger          zerolog.Logger // collector logging instance
-	metricNameChar  string         // OPT character(s) used as replacement for metricNameRegex
-	metricNameRegex *regexp.Regexp // OPT regex for cleaning names, may be overridden in config
-	running         bool           // is collector currently running
-	runTTL          time.Duration  // OPT ttl for collectors (default is for every request)
-	baseTags        tags.Tags
+	// metricNameChar  string         // OPT character(s) used as replacement for metricNameRegex
+	// metricNameRegex *regexp.Regexp // OPT regex for cleaning names, may be overridden in config
+	running  bool          // is collector currently running
+	runTTL   time.Duration // OPT ttl for collectors (default is for every request)
+	baseTags tags.Tags
 	sync.Mutex
 }
 
@@ -49,6 +50,18 @@ type common struct {
 //
 // ID and Inventory are generic and do not need to be overridden unless the
 // collector implementation requires it.
+
+func newCommon(id, procFSPath, procFile string, baseTags cgm.Tags) common {
+	return common{
+		id:         id,
+		pkgID:      PackageName + "." + id,
+		procFSPath: procFSPath,
+		file:       filepath.Join(procFSPath, procFile),
+		logger:     log.With().Str("pkg", PackageName).Str("id", id).Logger(),
+		runTTL:     time.Duration(0),
+		baseTags:   baseTags,
+	}
+}
 
 // Collect returns collector metrics
 func (c *common) Collect() error {

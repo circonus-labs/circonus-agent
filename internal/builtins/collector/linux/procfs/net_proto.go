@@ -21,7 +21,6 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 )
 
 // NetProto metrics from the Linux ProcFS
@@ -47,13 +46,9 @@ type netProtoOptions struct {
 func NewNetProtoCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
 	procFile := filepath.Join("net", "snmp")
 
-	c := NetProto{}
-	c.id = NameNetProto
-	c.pkgID = PackageName + "." + c.id
-	c.logger = log.With().Str("pkg", PackageName).Str("id", c.id).Logger()
-	c.procFSPath = procFSPath
-	c.file = filepath.Join(c.procFSPath, procFile)
-	c.baseTags = tags.FromList(tags.GetBaseTags())
+	c := NetProto{
+		common: newCommon(NameNetProto, procFSPath, procFile, tags.FromList(tags.GetBaseTags())),
+	}
 
 	c.include = defaultIncludeRegex
 	c.exclude = defaultExcludeRegex

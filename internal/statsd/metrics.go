@@ -17,21 +17,19 @@ import (
 )
 
 // processPacket parses a packet for metrics
-func (s *Server) processPacket(pkt []byte) error {
+func (s *Server) processPacket(pkt []byte) {
 	if len(pkt) == 0 {
-		return nil
+		return
 	}
 
 	s.logger.Debug().Str("packet", string(pkt)).Msg("received")
 	metrics := bytes.Split(pkt, []byte("\n"))
 	for _, metric := range metrics {
 		if err := s.parseMetric(string(metric)); err != nil {
-			appstats.IncrementInt("statsd_metrics_bad")
+			_ = appstats.IncrementInt("statsd_metrics_bad")
 			s.logger.Warn().Err(err).Str("metric", string(metric)).Msg("parsing")
 		}
 	}
-
-	return nil
 }
 
 // getMetricDestination determines "where" a metric should be sent (host or group)
@@ -156,19 +154,20 @@ func (s *Server) parseMetric(metric string) error {
 		}
 		dest.IncrementByValueWithTags(metricName, metricTags, v)
 	case "g": // gauge
-		if strings.Contains(metricValue, ".") {
+		switch {
+		case strings.Contains(metricValue, "."):
 			v, err := strconv.ParseFloat(metricValue, 64)
 			if err != nil {
 				return errors.Wrap(err, "invalid gauge value")
 			}
 			dest.GaugeWithTags(metricName, metricTags, v)
-		} else if strings.Contains(metricValue, "-") {
+		case strings.Contains(metricValue, "-"):
 			v, err := strconv.ParseInt(metricValue, 10, 64)
 			if err != nil {
 				return errors.Wrap(err, "invalid gauge value")
 			}
 			dest.GaugeWithTags(metricName, metricTags, v)
-		} else {
+		default:
 			v, err := strconv.ParseUint(metricValue, 10, 64)
 			if err != nil {
 				return errors.Wrap(err, "invalid gauge value")

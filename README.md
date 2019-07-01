@@ -113,7 +113,7 @@ Flags:
       --check-tags string                 [ENV: CA_CHECK_TAGS] Tags [comma separated list] to use, if creating a check bundle
   -T, --check-target string               [ENV: CA_CHECK_TARGET] Check target host (for creating a new check) (default "cosi-tool-c7")
       --check-title string                [ENV: CA_CHECK_TITLE] Title [display name] to use, if creating a check bundle (default "<check-target> /agent")
-      --collectors strings                [ENV: CA_COLLECTORS] List of builtin collectors to enable (default [procfs/cpu,procfs/diskstats,procfs/if,procfs/loadavg,procfs/vm])
+      --collectors strings                [ENV: CA_COLLECTORS] List of builtin collectors to enable (default [procfs/cpu,procfs/disk,procfs/if,procfs/load,procfs/vm])
   -c, --config string                     config file (default is /opt/circonus/agent/etc/circonus-agent.(json|toml|yaml)
   -d, --debug                             [ENV: CA_DEBUG] Enable debug messages
       --debug-api                         [ENV: CA_DEBUG_API] Enable Circonus API debug messages

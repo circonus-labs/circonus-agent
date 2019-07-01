@@ -24,7 +24,7 @@ import (
 )
 
 // Win32_PerfRawData_Tcpip_IPv4 defines the metrics to collect
-type Win32_PerfRawData_Tcpip_IPv4 struct {
+type Win32_PerfRawData_Tcpip_IPv4 struct { //nolint: golint
 	DatagramsForwardedPersec         uint32
 	DatagramsOutboundDiscarded       uint32
 	DatagramsOutboundNoRoute         uint32
@@ -45,7 +45,7 @@ type Win32_PerfRawData_Tcpip_IPv4 struct {
 }
 
 // Win32_PerfRawData_Tcpip_IPv6 defines the metrics to collect
-type Win32_PerfRawData_Tcpip_IPv6 struct {
+type Win32_PerfRawData_Tcpip_IPv6 struct { //nolint: golint
 	DatagramsForwardedPersec         uint32
 	DatagramsOutboundDiscarded       uint32
 	DatagramsOutboundNoRoute         uint32

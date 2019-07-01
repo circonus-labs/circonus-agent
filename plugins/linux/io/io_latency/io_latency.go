@@ -17,23 +17,23 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/circonus-labs/circonus-agent/plugins/linux/io/event_harness"
+	"github.com/circonus-labs/circonus-agent/plugins/linux/io/eventharness"
 	"github.com/circonus-labs/circonusllhist"
 )
 
-var MAX_AGE = 310.0 // 5m10s
+var maxAge = 310.0 // 5m10s
 var devlist = map[string]string{}
 
 var inserts = map[string]float64{}
 var issues = map[string]float64{}
-var max_whence = float64(0)
+var maxWhence = float64(0)
 var latencies = map[string]interface{}{}
 var cleantables = time.Ticker{}
 
 func trackLatency(dev, typ string, duration float64) {
 	var latency map[string]*circonusllhist.Histogram
-	if latency_gen, ok := latencies[typ]; ok {
-		latency = latency_gen.(map[string]*circonusllhist.Histogram)
+	if latencyGen, ok := latencies[typ]; ok {
+		latency = latencyGen.(map[string]*circonusllhist.Histogram)
 	} else {
 		latency = make(map[string]*circonusllhist.Histogram)
 		latencies[typ] = latency
@@ -43,7 +43,7 @@ func trackLatency(dev, typ string, duration float64) {
 		latency[dev] = circonusllhist.NewNoLocks()
 		hist = latency[dev]
 	}
-	hist.RecordValue(duration)
+	_ = hist.RecordValue(duration)
 }
 
 func dumpHistAndClear() {
@@ -72,8 +72,8 @@ func handleLogLine(line string) {
 		if err != nil {
 			return
 		}
-		if whence > max_whence {
-			max_whence = whence
+		if whence > maxWhence {
+			maxWhence = whence
 		}
 		op, dev := strings.Replace(parts[4], ":", "", 1), devlist[parts[5]]
 		if whence == 0 {
@@ -82,12 +82,12 @@ func handleLogLine(line string) {
 		select {
 		case <-cleantables.C:
 			for k, v := range inserts {
-				if max_whence-v > MAX_AGE {
+				if maxWhence-v > maxAge {
 					delete(inserts, k)
 				}
 			}
 			for k, v := range issues {
-				if max_whence-v > MAX_AGE {
+				if maxWhence-v > maxAge {
 					delete(inserts, k)
 				}
 			}
@@ -146,12 +146,12 @@ func refreshDevs() {
 }
 func cleanupTables() {
 	for k, v := range inserts {
-		if max_whence-v > MAX_AGE {
+		if maxWhence-v > maxAge {
 			delete(inserts, k)
 		}
 	}
 	for k, v := range issues {
-		if max_whence-v > MAX_AGE {
+		if maxWhence-v > maxAge {
 			delete(inserts, k)
 		}
 	}
@@ -159,10 +159,10 @@ func cleanupTables() {
 func main() {
 	refreshDevs()
 
-	h, err := event_harness.HarnessMain("circ_blk",
-		[][]string{[]string{"events/block/block_rq_issue/enable", "1\n"},
-			[]string{"events/block/block_rq_insert/enable", "1\n"},
-			[]string{"events/block/block_rq_complete/enable", "1\n"}},
+	h, err := eventharness.HarnessMain("circ_blk",
+		[][]string{{"events/block/block_rq_issue/enable", "1\n"},
+			{"events/block/block_rq_insert/enable", "1\n"},
+			{"events/block/block_rq_complete/enable", "1\n"}},
 		handleLogLine)
 	if err != nil {
 		log.Fatalf("Cannot start tracing.\n%s\n", err)
