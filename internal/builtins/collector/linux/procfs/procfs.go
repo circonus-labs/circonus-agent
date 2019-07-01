@@ -73,7 +73,7 @@ func New() ([]collector.Collector, error) {
 			}
 			collectors = append(collectors, c)
 
-		case NameDisk:
+		case NameDisk, "diskstats": // cover old, deprecated name
 			c, err := NewDiskCollector(path.Join(defaults.EtcPath, cfgBase), ProcFSPath)
 			if err != nil {
 				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
@@ -105,7 +105,7 @@ func New() ([]collector.Collector, error) {
 			}
 			collectors = append(collectors, c)
 
-		case NameLoad:
+		case NameLoad, "loadavg": // cover old, deprecated name
 			c, err := NewLoadCollector(path.Join(defaults.EtcPath, cfgBase), ProcFSPath)
 			if err != nil {
 				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
