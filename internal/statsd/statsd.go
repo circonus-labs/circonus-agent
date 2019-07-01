@@ -150,7 +150,7 @@ func (s *Server) Start() error {
 	s.group.Go(s.processor)
 
 	go func() {
-		s.group.Wait()
+		_ = s.group.Wait()
 		// only try to flush group metrics since they go
 		// directly to a broker. there is no point in trying
 		// to flush host metrics as the 'server' portion of
@@ -276,7 +276,7 @@ func (s *Server) reader() error {
 			return errors.Wrap(err, "reader")
 		}
 		if n > 0 {
-			appstats.IncrementInt("statsd_packets_total")
+			_ = appstats.IncrementInt("statsd_packets_total")
 			pkt := make([]byte, n)
 			copy(pkt, buff[:n])
 			s.packetCh <- pkt
@@ -292,12 +292,7 @@ func (s *Server) processor() error {
 		case <-s.groupCtx.Done():
 			return nil
 		case pkt := <-s.packetCh:
-			err := s.processPacket(pkt)
-			if err != nil {
-				appstats.IncrementInt("statsd_packets_bad")
-				s.logger.Error().Err(err).Msg("processor")
-				return errors.Wrap(err, "processor")
-			}
+			s.processPacket(pkt)
 		}
 	}
 }

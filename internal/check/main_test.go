@@ -31,18 +31,15 @@ var (
 func init() {
 	if data, err := ioutil.ReadFile("testdata/check1234.json"); err != nil {
 		panic(err)
-	} else {
-		if err := json.Unmarshal(data, &testCheckBundle); err != nil {
-			panic(err)
-		}
+	} else if err := json.Unmarshal(data, &testCheckBundle); err != nil {
+		panic(err)
+
 	}
 
 	if data, err := ioutil.ReadFile("testdata/broker1234.json"); err != nil {
 		panic(err)
-	} else {
-		if err := json.Unmarshal(data, &testBroker); err != nil {
-			panic(err)
-		}
+	} else if err := json.Unmarshal(data, &testBroker); err != nil {
+		panic(err)
 	}
 
 	if data, err := ioutil.ReadFile("testdata/ca.crt"); err != nil {
@@ -138,7 +135,7 @@ func genMockClient() *APIMock {
 				m := apiclient.CheckBundleMetrics{
 					CID: "/check_bundle_metrics/1234",
 					Metrics: []apiclient.CheckBundleMetric{
-						apiclient.CheckBundleMetric{Name: "foo", Type: "n", Status: "active"},
+						{Name: "foo", Type: "n", Status: "active"},
 					},
 				}
 				data, err := json.Marshal(m)

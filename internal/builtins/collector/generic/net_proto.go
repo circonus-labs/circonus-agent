@@ -305,6 +305,8 @@ func (c *Proto) emitICMPMetric(metrics *cgm.Metrics, proto, name string, val int
 }
 
 func (c *Proto) emitICMPMsgMetric(metrics *cgm.Metrics, proto, name string, val int64, protoTags tags.Tags) {
+	_ = proto // just so it's used and the func call signatures stay consistent
+
 	// possible message types:
 	// https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml
 

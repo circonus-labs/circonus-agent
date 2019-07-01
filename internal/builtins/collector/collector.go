@@ -32,10 +32,10 @@ type InventoryStats struct {
 
 var (
 	// ErrNotImplemented collector type is not implemented on this os
-	ErrNotImplemented = errors.New("Not implemented on OS")
+	ErrNotImplemented = errors.New("not implemented on OS")
 
 	// ErrAlreadyRunning collector is already running
-	ErrAlreadyRunning = errors.New("Already running")
+	ErrAlreadyRunning = errors.New("already running")
 
 	// ErrTTLNotExpired collector run ttl has not expired
 	ErrTTLNotExpired = errors.New("TTL not expired")

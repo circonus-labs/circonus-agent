@@ -84,16 +84,18 @@ func TestConnect(t *testing.T) {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
 
-		go func() {
+		go func(t *testing.T) {
 			conn, cerr := l.Accept()
 			if cerr != nil {
-				t.Errorf("expected no error got (%s)", err)
+				t.Logf("expected no error got (%s)", err)
 				return
 			}
 
-			io.Copy(conn, conn)
+			if _, err := io.Copy(conn, conn); err != nil {
+				t.Logf("copy error (%s)", err)
+			}
 			conn.Close()
-		}()
+		}(t)
 
 		chk, cerr := check.New(nil)
 		if cerr != nil {
@@ -130,7 +132,9 @@ func TestConnect(t *testing.T) {
 			if err != nil {
 				t.Fatalf("expected no error got (%s)", err)
 			}
-			conn.SetDeadline(time.Now().Add(s.commTimeout))
+			if err := conn.SetDeadline(time.Now().Add(s.commTimeout)); err != nil {
+				t.Fatalf("setting deadline (%s)", err)
+			}
 			data := make([]byte, 256)
 			s.logger.Debug().Msg("reading data")
 			dlen, rerr := conn.Read(data)

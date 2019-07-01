@@ -43,12 +43,14 @@ func (c *Connection) startReverse() error {
 				conn.Close()
 				return nil
 			}
+
 			if result.ignore {
 				// c.logger.Debug().Err(result.err).Int("timeouts", c.commTimeouts).Msg("ignored")
 				continue
 			}
+
 			if result.err != nil {
-				if result.reset {
+				if result.reset { //nolint: gocritic
 					c.logger.Warn().Err(result.err).Int("timeouts", c.commTimeouts).Msg("resetting connection")
 					close(done)
 					break
@@ -147,17 +149,18 @@ func (c *Connection) connect() (*tls.Conn, *connError) {
 	}
 	c.logger.Info().Str("host", revHost).Msg("connected")
 
-	conn.SetDeadline(time.Now().Add(c.commTimeout))
+	if err := conn.SetDeadline(time.Now().Add(c.commTimeout)); err != nil {
+		c.logger.Warn().Err(err).Msg("setting conn deadline")
+	}
 	introReq := "REVERSE " + c.revConfig.ReverseURL.Path
 	if c.revConfig.ReverseURL.Fragment != "" {
 		introReq += "#" + c.revConfig.ReverseURL.Fragment // reverse secret is placed here when reverse url is parsed
 	}
 	c.logger.Debug().Msg(fmt.Sprintf("sending intro '%s'", introReq))
 	if _, err := fmt.Fprintf(conn, "%s HTTP/1.1\r\n\r\n", introReq); err != nil {
-		if err != nil {
-			c.logger.Error().Err(err).Msg("sending intro")
-			return nil, &connError{fatal: false, err: errors.Wrapf(err, "unable to write intro to %s", revHost)}
-		}
+		c.logger.Error().Err(err).Msg("sending intro")
+		return nil, &connError{fatal: false, err: errors.Wrapf(err, "unable to write intro to %s", revHost)}
+
 	}
 
 	c.Lock()

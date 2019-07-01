@@ -31,19 +31,22 @@ func (p *Plugins) Scan(b *builtins.Builtins) error {
 	defer p.Unlock()
 
 	// initialRun fires each plugin one time. Unlike 'Run' it does
-	// not wait for plugins to finish this will provides:
+	// not wait for plugins to finish this provides:
 	//
 	// 1. an initial seeding of results
 	// 2. starts any long running plugins without blocking
 	//
-	initialRun := func() error {
+	initialRun := func() {
 		for id, plug := range p.active {
 			p.logger.Debug().
 				Str("plugin", id).
 				Msg("Initializing")
-			go plug.exec()
+			go func(plug *plugin) {
+				if err := plug.exec(); err != nil {
+					p.logger.Error().Err(err).Msg("executing")
+				}
+			}(plug)
 		}
-		return nil
 	}
 
 	pluginList := viper.GetStringSlice(config.KeyPluginList)
@@ -58,9 +61,7 @@ func (p *Plugins) Scan(b *builtins.Builtins) error {
 		}
 	}
 
-	if err := initialRun(); err != nil {
-		return errors.Wrap(err, "initializing plugin(s)")
-	}
+	initialRun()
 
 	if len(p.active) == 0 {
 		p.logger.Warn().Msg("no active plugins found")
@@ -75,14 +76,8 @@ func (p *Plugins) verifyPluginList(l []string) error {
 		return errors.New("invalid plugin list (empty)")
 	}
 
-	ttlRx, err := regexp.Compile(`_ttl(.+)$`)
-	if err != nil {
-		return errors.Wrap(err, "compiling ttl regex")
-	}
-	ttlUnitRx, err := regexp.Compile(`(ms|s|m|h)$`)
-	if err != nil {
-		return errors.Wrap(err, "compiling ttl unit regex")
-	}
+	ttlRx := regexp.MustCompile(`_ttl(.+)$`)
+	ttlUnitRx := regexp.MustCompile(`(ms|s|m|h)$`)
 
 	for _, fileSpec := range l {
 		fileDir, fileName := filepath.Split(fileSpec)
@@ -168,7 +163,7 @@ func (p *Plugins) verifyPluginList(l []string) error {
 			plug = p.active[fileBase]
 		}
 
-		appstats.IncrementInt("plugins.total")
+		_ = appstats.IncrementInt("plugins.total")
 		// appstats.MapIncrementInt("plugins", "total")
 		plug.command = cmdName
 		p.logger.Info().Str("id", fileBase).Str("cmd", cmdName).Msg("activating")
@@ -197,14 +192,8 @@ func (p *Plugins) scanPluginDirectory(b *builtins.Builtins) error {
 		return errors.Wrap(err, "reading plugin directory")
 	}
 
-	ttlRx, err := regexp.Compile(`_ttl(.+)$`)
-	if err != nil {
-		return errors.Wrap(err, "compiling ttl regex")
-	}
-	ttlUnitRx, err := regexp.Compile(`(ms|s|m|h)$`)
-	if err != nil {
-		return errors.Wrap(err, "compiling ttl unit regex")
-	}
+	ttlRx := regexp.MustCompile(`_ttl(.+)$`)
+	ttlUnitRx := regexp.MustCompile(`(ms|s|m|h)$`)
 
 	for _, fi := range files {
 		fileName := fi.Name()
@@ -356,7 +345,7 @@ func (p *Plugins) scanPluginDirectory(b *builtins.Builtins) error {
 				plug = p.active[fileBase]
 			}
 
-			appstats.IncrementInt("plugins.total")
+			_ = appstats.IncrementInt("plugins.total")
 			// appstats.MapIncrementInt("plugins", "total")
 			plug.command = cmdName
 			p.logger.Info().Str("id", fileBase).Str("cmd", cmdName).Msg("activating")
@@ -380,7 +369,7 @@ func (p *Plugins) scanPluginDirectory(b *builtins.Builtins) error {
 					plug = p.active[pluginName]
 				}
 
-				appstats.IncrementInt("plugins.total")
+				_ = appstats.IncrementInt("plugins.total")
 				// appstats.MapIncrementInt("plugins", "total")
 				plug.command = cmdName
 				p.logger.Info().Str("id", pluginName).Str("cmd", cmdName).Msg("activating")

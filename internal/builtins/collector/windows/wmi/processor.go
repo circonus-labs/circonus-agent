@@ -24,7 +24,7 @@ import (
 )
 
 // Win32_PerfFormattedData_PerfOS_Processor defines the metrics to collect
-type Win32_PerfFormattedData_PerfOS_Processor struct {
+type Win32_PerfFormattedData_PerfOS_Processor struct { //nolint: golint
 	Name                  string
 	C1TransitionsPersec   uint64
 	C2TransitionsPersec   uint64

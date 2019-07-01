@@ -24,7 +24,7 @@ import (
 )
 
 // Win32_PerfFormattedData_PerfProc_Process defines the metrics to collect
-type Win32_PerfFormattedData_PerfProc_Process struct {
+type Win32_PerfFormattedData_PerfProc_Process struct { //nolint: golint
 	CreatingProcessID       uint32
 	ElapsedTime             uint64
 	HandleCount             uint32

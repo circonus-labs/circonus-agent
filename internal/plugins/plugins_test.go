@@ -34,7 +34,7 @@ func TestNew(t *testing.T) {
 		shouldFail bool
 		errMsg     string
 	}{
-		{"invalid - both dir/list specified", "testdata", "testdata", []string{path.Join("testdata", "test.sh")}, true, "invalid configuration cannot specifiy plugin-dir AND plugin-list"},
+		{"invalid - both dir/list specified", "testdata", "testdata", []string{path.Join("testdata", "test.sh")}, true, "invalid configuration cannot specify plugin-dir AND plugin-list"},
 		{"invalid - not a dir", "testdata", path.Join("testdata", "test.sh"), []string{}, true, "Invalid plugin directory"},
 		{"valid - no dir/list, default to dir", "testdata", "", []string{}, false, ""},
 		{"valid - dir", "", "testdata", []string{}, false, ""},

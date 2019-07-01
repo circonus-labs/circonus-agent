@@ -21,7 +21,6 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 )
 
 // NetIF metrics from the Linux ProcFS
@@ -47,13 +46,9 @@ type netIFOptions struct {
 func NewNetIFCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
 	procFile := filepath.Join("net", "dev")
 
-	c := NetIF{}
-	c.id = NameNetInterface
-	c.pkgID = PackageName + "." + c.id
-	c.logger = log.With().Str("pkg", PackageName).Str("id", c.id).Logger()
-	c.procFSPath = procFSPath
-	c.file = filepath.Join(c.procFSPath, procFile)
-	c.baseTags = tags.FromList(tags.GetBaseTags())
+	c := NetIF{
+		common: newCommon(NameNetInterface, procFSPath, procFile, tags.FromList(tags.GetBaseTags())),
+	}
 
 	c.include = defaultIncludeRegex
 	c.exclude = regexp.MustCompile(fmt.Sprintf(regexPat, `lo`))
@@ -237,7 +232,7 @@ func (c *NetIF) ifCollect(metrics *cgm.Metrics) error {
 
 			tagList := tags.Tags{tags.Tag{Category: "network-interface", Value: iface}}
 			tagList = append(tagList, s.stags...)
-			c.addMetric(metrics, "", s.name, metricType, v, tagList)
+			_ = c.addMetric(metrics, "", s.name, metricType, v, tagList)
 		}
 	}
 

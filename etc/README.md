@@ -37,7 +37,7 @@ Three formats are supported (json, toml, yaml) for collector configurations. Col
 
 ## Default collectors:
 
-* Linux: `['procfs/cpu', 'procfs/diskstats', 'procfs/if', 'procfs/loadavg', 'procfs/vm']`
+* Linux: `['procfs/cpu', 'procfs/disk', 'procfs/if', 'procfs/load', 'procfs/proto', 'procfs/vm']`
 * Windows: `['wmi/cache', 'wmi/disk', 'wmi/ip', 'wmi/interface', 'wmi/memory', 'wmi/object', 'wmi/paging_file' 'wmi/processor', 'wmi/tcp', 'wmi/udp']`
 * Generic: `['generic/cpu', 'generic/disk', 'generic/fs', 'generic/if', 'generic/load', 'generic/proto', 'generic/vm']`
 * Common `prometheus` (disabled if no configuration file exists)
@@ -55,7 +55,7 @@ All ProcFS collectors have a basic set of configuration options:
 
 Additionally, each collector may have more configuration options specific to _what_ is being collected. (e.g. include/exclude regular expression for items such as network interfaces, disks, etc.)
 
-Example usage: `--collectors="procfs/cpu,procfs/diskstats,procfs/if,procfs/loadavg,procfs/vm"`
+Example usage: `--collectors="procfs/cpu,procfs/disk,procfs/if,procfs/load,procfs/vm"`
 
 * CPU
     * ID: `procfs/cpu`
@@ -63,8 +63,8 @@ Example usage: `--collectors="procfs/cpu,procfs/diskstats,procfs/if,procfs/loada
     * Options:
         * `report_all_cpus` string, include all cpus, not just total (default "false")
 * Disk stats
-    * ID: `procfs/diskstats`
-    * Config file: `procfs_diskstats_collector.(json|toml|yaml)`
+    * ID: `procfs/disk`
+    * Config file: `procfs_disk_collector.(json|toml|yaml)`
     * Options:
         * `include_regex` string, regular expression for disk inclusion - default `.+`
         * `exclude_regex` string, regular expression for disk exclusion - default empty
@@ -79,8 +79,8 @@ Example usage: `--collectors="procfs/cpu,procfs/diskstats,procfs/if,procfs/loada
     * Config file: `procfs_vm_collector.(json|toml|yaml)`
     * Options: _only the common options_
 * System load
-    * ID: `procfs/loadavg`
-    * Config file: `procfs_loadavg_collector.(json|toml|yaml)`
+    * ID: `procfs/load`
+    * Config file: `procfs_load_collector.(json|toml|yaml)`
     * Options: _only the common options_
 
 # Windows
