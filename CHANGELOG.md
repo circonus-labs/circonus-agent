@@ -1,3 +1,14 @@
+# v1.0.0-alpha.2
+
+* testing release, not guaranteed to be feature complete
+* add: integrate golangci check when PR opened
+* more stringent linting
+* upd: output errors for plugin parsing and exec
+* fix: plugins, trim spaces from metric type (omnios plugin returns "L " for type)
+* fix: handle deprecated procfs/diskstats and procfs/loadvg names (translate to procfs/disk and procfs/load)
+* doc: update for new collector names
+* add: finish wmi builtin collector(s)
+
 # v1.0.0-alpha.1
 
 * testing release, not guaranteed to be feature complete
