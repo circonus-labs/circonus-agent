@@ -369,7 +369,6 @@ func (c *Disk) emitDiskMetrics(metrics *cgm.Metrics, diskType string, diskMetric
 		cgm.Tag{Category: "disk_name", Value: diskName},
 	}
 
-	c.logger.Debug().Interface("tags", tagList).Msg("metrics going out")
 	var tagsBytes cgm.Tags
 	tagsBytes = append(tagsBytes, tagList...)
 	tagsBytes = append(tagsBytes, tagUnitsBytes)

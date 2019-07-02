@@ -18,7 +18,6 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/fatih/structs"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
@@ -74,15 +73,12 @@ type NetIP struct {
 
 // NetIPOptions defines what elements can be overridden in a config file
 type NetIPOptions struct {
-	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
-	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
-	MetricNameRegex      string   `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
-	MetricNameChar       string   `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
-	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
-	EnableIPv4           string   `json:"enable_ipv4" toml:"enable_ipv4" yaml:"enable_ipv4"`
-	EnableIPv6           string   `json:"enable_ipv6" toml:"enable_ipv6" yaml:"enable_ipv6"`
+	ID              string `json:"id" toml:"id" yaml:"id"`
+	MetricNameRegex string `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
+	MetricNameChar  string `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
+	RunTTL          string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
+	EnableIPv4      string `json:"enable_ipv4" toml:"enable_ipv4" yaml:"enable_ipv4"`
+	EnableIPv6      string `json:"enable_ipv6" toml:"enable_ipv6" yaml:"enable_ipv6"`
 }
 
 // NewNetIPCollector creates new wmi collector
@@ -91,10 +87,8 @@ func NewNetIPCollector(cfgBaseName string) (collector.Collector, error) {
 	c.id = "net_ip"
 	c.pkgID = pkgName + "." + c.id
 	c.logger = log.With().Str("pkg", pkgName).Str("id", c.id).Logger()
-	c.metricDefaultActive = true
 	c.metricNameChar = defaultMetricChar
 	c.metricNameRegex = defaultMetricNameRegex
-	c.metricStatus = map[string]bool{}
 	c.baseTags = tags.FromList(tags.GetBaseTags())
 
 	c.ipv4Enabled = true
@@ -134,25 +128,6 @@ func NewNetIPCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if cfg.ID != "" {
 		c.id = cfg.ID
-	}
-
-	if len(cfg.MetricsEnabled) > 0 {
-		for _, name := range cfg.MetricsEnabled {
-			c.metricStatus[name] = true
-		}
-	}
-	if len(cfg.MetricsDisabled) > 0 {
-		for _, name := range cfg.MetricsDisabled {
-			c.metricStatus[name] = false
-		}
-	}
-
-	if cfg.MetricsDefaultStatus != "" {
-		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == metricStatusEnabled
-		} else {
-			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, cfg.MetricsDefaultStatus)
-		}
 	}
 
 	if cfg.MetricNameRegex != "" {
@@ -201,6 +176,10 @@ func (c *NetIP) Collect() error {
 	c.lastStart = time.Now()
 	c.Unlock()
 
+	metricType := "I"
+	tagUnitsDatagrams := cgm.Tag{Category: "units", Value: "datagrams"}
+	tagUnitsFragments := cgm.Tag{Category: "units", Value: "fragments"}
+
 	if c.ipv4Enabled {
 		var dst []Win32_PerfRawData_Tcpip_IPv4
 		qry := wmi.CreateQuery(dst, "")
@@ -210,16 +189,30 @@ func (c *NetIP) Collect() error {
 			return errors.Wrap(err, c.pkgID)
 		}
 
-		for _, item := range dst {
-			pfx := c.id + metricNameSeparator + "v4"
-			d := structs.Map(item) // there is only one NetIP output
+		if len(dst) > 1 {
+			c.logger.Warn().Int("len", len(dst)).Msg("prot ip4 metrics has more than one SET of enteries")
+		}
 
-			for name, val := range d {
-				if name == nameFieldName {
-					continue
-				}
-				_ = c.addMetric(&metrics, pfx, name, "L", val, cgm.Tags{})
-			}
+		protoTag := cgm.Tag{Category: "network-proto", Value: "ip4"}
+
+		for _, item := range dst {
+			_ = c.addMetric(&metrics, "", "DatagramsForwardedPersec", metricType, item.DatagramsForwardedPersec, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsOutboundDiscarded", metricType, item.DatagramsOutboundDiscarded, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsOutboundNoRoute", metricType, item.DatagramsOutboundNoRoute, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsPersec", metricType, item.DatagramsPersec, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsReceivedAddressErrors", metricType, item.DatagramsReceivedAddressErrors, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsReceivedDeliveredPersec", metricType, item.DatagramsReceivedDeliveredPersec, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsReceivedDiscarded", metricType, item.DatagramsReceivedDiscarded, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsReceivedHeaderErrors", metricType, item.DatagramsReceivedHeaderErrors, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsReceivedPersec", metricType, item.DatagramsReceivedPersec, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsReceivedUnknownProtocol", metricType, item.DatagramsReceivedUnknownProtocol, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsSentPersec", metricType, item.DatagramsSentPersec, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "FragmentationFailures", metricType, item.FragmentationFailures, cgm.Tags{protoTag, tagUnitsFragments})
+			_ = c.addMetric(&metrics, "", "FragmentedDatagramsPersec", metricType, item.FragmentedDatagramsPersec, cgm.Tags{protoTag, tagUnitsFragments})
+			_ = c.addMetric(&metrics, "", "FragmentReassemblyFailures", metricType, item.FragmentReassemblyFailures, cgm.Tags{protoTag, tagUnitsFragments})
+			_ = c.addMetric(&metrics, "", "FragmentsCreatedPersec", metricType, item.FragmentsCreatedPersec, cgm.Tags{protoTag, tagUnitsFragments})
+			_ = c.addMetric(&metrics, "", "FragmentsReassembledPersec", metricType, item.FragmentsReassembledPersec, cgm.Tags{protoTag, tagUnitsFragments})
+			_ = c.addMetric(&metrics, "", "FragmentsReceivedPersec", metricType, item.FragmentsReceivedPersec, cgm.Tags{protoTag, tagUnitsFragments})
 		}
 	}
 
@@ -232,16 +225,30 @@ func (c *NetIP) Collect() error {
 			return errors.Wrap(err, c.pkgID)
 		}
 
-		for _, item := range dst {
-			pfx := c.id + metricNameSeparator + "v6"
-			d := structs.Map(item) // there is only one NetIP output
+		if len(dst) > 1 {
+			c.logger.Warn().Int("len", len(dst)).Msg("prot ip6 metrics has more than one SET of enteries")
+		}
 
-			for name, val := range d {
-				if name == nameFieldName {
-					continue
-				}
-				_ = c.addMetric(&metrics, pfx, name, "L", val, cgm.Tags{})
-			}
+		protoTag := cgm.Tag{Category: "network-proto", Value: "ip6"}
+
+		for _, item := range dst {
+			_ = c.addMetric(&metrics, "", "DatagramsForwardedPersec", metricType, item.DatagramsForwardedPersec, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsOutboundDiscarded", metricType, item.DatagramsOutboundDiscarded, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsOutboundNoRoute", metricType, item.DatagramsOutboundNoRoute, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsPersec", metricType, item.DatagramsPersec, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsReceivedAddressErrors", metricType, item.DatagramsReceivedAddressErrors, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsReceivedDeliveredPersec", metricType, item.DatagramsReceivedDeliveredPersec, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsReceivedDiscarded", metricType, item.DatagramsReceivedDiscarded, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsReceivedHeaderErrors", metricType, item.DatagramsReceivedHeaderErrors, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsReceivedPersec", metricType, item.DatagramsReceivedPersec, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsReceivedUnknownProtocol", metricType, item.DatagramsReceivedUnknownProtocol, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsSentPersec", metricType, item.DatagramsSentPersec, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "FragmentationFailures", metricType, item.FragmentationFailures, cgm.Tags{protoTag, tagUnitsFragments})
+			_ = c.addMetric(&metrics, "", "FragmentedDatagramsPersec", metricType, item.FragmentedDatagramsPersec, cgm.Tags{protoTag, tagUnitsFragments})
+			_ = c.addMetric(&metrics, "", "FragmentReassemblyFailures", metricType, item.FragmentReassemblyFailures, cgm.Tags{protoTag, tagUnitsFragments})
+			_ = c.addMetric(&metrics, "", "FragmentsCreatedPersec", metricType, item.FragmentsCreatedPersec, cgm.Tags{protoTag, tagUnitsFragments})
+			_ = c.addMetric(&metrics, "", "FragmentsReassembledPersec", metricType, item.FragmentsReassembledPersec, cgm.Tags{protoTag, tagUnitsFragments})
+			_ = c.addMetric(&metrics, "", "FragmentsReceivedPersec", metricType, item.FragmentsReceivedPersec, cgm.Tags{protoTag, tagUnitsFragments})
 		}
 	}
 

@@ -18,12 +18,12 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/fatih/structs"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
 
 // Win32_PerfFormattedData_PerfProc_Process defines the metrics to collect
+// https://technet.microsoft.com/en-ca/aa394277(v=vs.71)
 type Win32_PerfFormattedData_PerfProc_Process struct { //nolint: golint
 	CreatingProcessID       uint32
 	ElapsedTime             uint64
@@ -65,15 +65,12 @@ type Processes struct {
 
 // ProcessesOptions defines what elements can be overridden in a config file
 type ProcessesOptions struct {
-	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	IncludeRegex         string   `json:"include_regex" toml:"include_regex" yaml:"include_regex"`
-	ExcludeRegex         string   `json:"exclude_regex" toml:"exclude_regex" yaml:"exclude_regex"`
-	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
-	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
-	MetricNameRegex      string   `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
-	MetricNameChar       string   `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
-	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
+	ID              string `json:"id" toml:"id" yaml:"id"`
+	IncludeRegex    string `json:"include_regex" toml:"include_regex" yaml:"include_regex"`
+	ExcludeRegex    string `json:"exclude_regex" toml:"exclude_regex" yaml:"exclude_regex"`
+	MetricNameRegex string `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
+	MetricNameChar  string `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
+	RunTTL          string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
 // NewProcessesCollector creates new wmi collector
@@ -82,10 +79,8 @@ func NewProcessesCollector(cfgBaseName string) (collector.Collector, error) {
 	c.id = "processes"
 	c.pkgID = pkgName + "." + c.id
 	c.logger = log.With().Str("pkg", pkgName).Str("id", c.id).Logger()
-	c.metricDefaultActive = true
 	c.metricNameChar = defaultMetricChar
 	c.metricNameRegex = defaultMetricNameRegex
-	c.metricStatus = map[string]bool{}
 	c.baseTags = tags.FromList(tags.GetBaseTags())
 
 	c.include = defaultIncludeRegex
@@ -127,25 +122,6 @@ func NewProcessesCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if cfg.ID != "" {
 		c.id = cfg.ID
-	}
-
-	if len(cfg.MetricsEnabled) > 0 {
-		for _, name := range cfg.MetricsEnabled {
-			c.metricStatus[name] = true
-		}
-	}
-	if len(cfg.MetricsDisabled) > 0 {
-		for _, name := range cfg.MetricsDisabled {
-			c.metricStatus[name] = false
-		}
-	}
-
-	if cfg.MetricsDefaultStatus != "" {
-		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == metricStatusEnabled
-		} else {
-			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, cfg.MetricsDefaultStatus)
-		}
 	}
 
 	if cfg.MetricNameRegex != "" {
@@ -202,29 +178,54 @@ func (c *Processes) Collect() error {
 		return errors.Wrap(err, c.pkgID)
 	}
 
+	metricTypeUint32 := "I"
+	metricTypeUint64 := "L"
+	tagUnitsSeconds := cgm.Tag{Category: "units", Value: "seconds"}
+	tagUnitsBytes := cgm.Tag{Category: "units", Value: "bytes"}
+	tagUnitsOperations := cgm.Tag{Category: "units", Value: "operations"}
+	tagUnitsPercent := cgm.Tag{Category: "units", Value: "percent"}
 	for _, item := range dst {
-
-		// apply include/exclude to CLEAN item name
 		itemName := c.cleanName(item.Name)
 		if c.exclude.MatchString(itemName) || !c.include.MatchString(itemName) {
 			continue
 		}
 
-		// adjust prefix, add item name
-		pfx := c.id
-		if strings.Contains(item.Name, totalName) { // use the unclean name
-			pfx += totalPrefix
-		} else {
-			pfx += metricNameSeparator + itemName
+		metricSuffix := ""
+		if strings.Contains(item.Name, totalName) {
+			itemName = "all"
+			metricSuffix = totalName
 		}
 
-		d := structs.Map(item)
-		for name, val := range d {
-			if name == nameFieldName {
-				continue
-			}
-			_ = c.addMetric(&metrics, pfx, name, "L", val, cgm.Tags{})
-		}
+		nameTag := cgm.Tag{Category: "process-name", Value: itemName}
+
+		_ = c.addMetric(&metrics, "", "CreatingProcessID"+metricSuffix, metricTypeUint32, item.CreatingProcessID, cgm.Tags{nameTag})
+		_ = c.addMetric(&metrics, "", "ElapsedTime"+metricSuffix, metricTypeUint64, item.ElapsedTime, cgm.Tags{nameTag, tagUnitsSeconds})
+		_ = c.addMetric(&metrics, "", "HandleCount"+metricSuffix, metricTypeUint32, item.HandleCount, cgm.Tags{nameTag})
+		_ = c.addMetric(&metrics, "", "IDProcess"+metricSuffix, metricTypeUint32, item.IDProcess, cgm.Tags{nameTag})
+		_ = c.addMetric(&metrics, "", "IODataBytesPersec"+metricSuffix, metricTypeUint64, item.IODataBytesPersec, cgm.Tags{nameTag, tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "IODataOperationsPersec"+metricSuffix, metricTypeUint64, item.IODataOperationsPersec, cgm.Tags{nameTag, tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "IOOtherBytesPersec"+metricSuffix, metricTypeUint64, item.IOOtherBytesPersec, cgm.Tags{nameTag, tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "IOOtherOperationsPersec"+metricSuffix, metricTypeUint64, item.IOOtherOperationsPersec, cgm.Tags{nameTag, tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "IOReadBytesPersec"+metricSuffix, metricTypeUint64, item.IOReadBytesPersec, cgm.Tags{nameTag, tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "IOReadOperationsPersec"+metricSuffix, metricTypeUint64, item.IOReadOperationsPersec, cgm.Tags{nameTag, tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "IOWriteBytesPersec"+metricSuffix, metricTypeUint64, item.IOWriteBytesPersec, cgm.Tags{nameTag, tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "IOWriteOperationsPersec"+metricSuffix, metricTypeUint64, item.IOWriteOperationsPersec, cgm.Tags{nameTag, tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "PageFaultsPersec"+metricSuffix, metricTypeUint32, item.PageFaultsPersec, cgm.Tags{nameTag})
+		_ = c.addMetric(&metrics, "", "PageFileBytes"+metricSuffix, metricTypeUint64, item.PageFileBytes, cgm.Tags{nameTag, tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "PageFileBytesPeak"+metricSuffix, metricTypeUint64, item.PageFileBytesPeak, cgm.Tags{nameTag, tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "PercentPrivilegedTime"+metricSuffix, metricTypeUint64, item.PercentPrivilegedTime, cgm.Tags{nameTag, tagUnitsPercent})
+		_ = c.addMetric(&metrics, "", "PercentProcessorTime"+metricSuffix, metricTypeUint64, item.PercentProcessorTime, cgm.Tags{nameTag, tagUnitsPercent})
+		_ = c.addMetric(&metrics, "", "PercentUserTime"+metricSuffix, metricTypeUint64, item.PercentUserTime, cgm.Tags{nameTag, tagUnitsPercent})
+		_ = c.addMetric(&metrics, "", "PoolNonpagedBytes"+metricSuffix, metricTypeUint32, item.PoolNonpagedBytes, cgm.Tags{nameTag, tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "PoolPagedBytes"+metricSuffix, metricTypeUint32, item.PoolPagedBytes, cgm.Tags{nameTag, tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "PriorityBase"+metricSuffix, metricTypeUint32, item.PriorityBase, cgm.Tags{nameTag})
+		_ = c.addMetric(&metrics, "", "PrivateBytes"+metricSuffix, metricTypeUint64, item.PrivateBytes, cgm.Tags{nameTag, tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "ThreadCount"+metricSuffix, metricTypeUint32, item.ThreadCount, cgm.Tags{nameTag})
+		_ = c.addMetric(&metrics, "", "VirtualBytes"+metricSuffix, metricTypeUint64, item.VirtualBytes, cgm.Tags{nameTag, tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "VirtualBytesPeak"+metricSuffix, metricTypeUint64, item.VirtualBytesPeak, cgm.Tags{nameTag, tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "WorkingSet"+metricSuffix, metricTypeUint64, item.WorkingSet, cgm.Tags{nameTag, tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "WorkingSetPeak"+metricSuffix, metricTypeUint64, item.WorkingSetPeak, cgm.Tags{nameTag, tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "WorkingSetPrivate"+metricSuffix, metricTypeUint64, item.WorkingSetPrivate, cgm.Tags{nameTag, tagUnitsBytes})
 	}
 
 	c.setStatus(metrics, nil)

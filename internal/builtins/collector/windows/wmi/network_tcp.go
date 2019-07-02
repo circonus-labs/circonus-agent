@@ -18,7 +18,6 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/fatih/structs"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
@@ -58,15 +57,12 @@ type NetTCP struct {
 
 // NetTCPOptions defines what elements can be overridden in a config file
 type NetTCPOptions struct {
-	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
-	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
-	MetricNameRegex      string   `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
-	MetricNameChar       string   `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
-	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
-	EnableIPv4           string   `json:"enable_ipv4" toml:"enable_ipv4" yaml:"enable_ipv4"`
-	EnableIPv6           string   `json:"enable_ipv6" toml:"enable_ipv6" yaml:"enable_ipv6"`
+	ID              string `json:"id" toml:"id" yaml:"id"`
+	MetricNameRegex string `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
+	MetricNameChar  string `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
+	RunTTL          string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
+	EnableIPv4      string `json:"enable_ipv4" toml:"enable_ipv4" yaml:"enable_ipv4"`
+	EnableIPv6      string `json:"enable_ipv6" toml:"enable_ipv6" yaml:"enable_ipv6"`
 }
 
 // NewNetTCPCollector creates new wmi collector
@@ -75,10 +71,8 @@ func NewNetTCPCollector(cfgBaseName string) (collector.Collector, error) {
 	c.id = "net_tcp"
 	c.pkgID = pkgName + "." + c.id
 	c.logger = log.With().Str("pkg", pkgName).Str("id", c.id).Logger()
-	c.metricDefaultActive = true
 	c.metricNameChar = defaultMetricChar
 	c.metricNameRegex = defaultMetricNameRegex
-	c.metricStatus = map[string]bool{}
 	c.baseTags = tags.FromList(tags.GetBaseTags())
 
 	c.ipv4Enabled = true
@@ -118,25 +112,6 @@ func NewNetTCPCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if cfg.ID != "" {
 		c.id = cfg.ID
-	}
-
-	if len(cfg.MetricsEnabled) > 0 {
-		for _, name := range cfg.MetricsEnabled {
-			c.metricStatus[name] = true
-		}
-	}
-	if len(cfg.MetricsDisabled) > 0 {
-		for _, name := range cfg.MetricsDisabled {
-			c.metricStatus[name] = false
-		}
-	}
-
-	if cfg.MetricsDefaultStatus != "" {
-		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == metricStatusEnabled
-		} else {
-			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, cfg.MetricsDefaultStatus)
-		}
 	}
 
 	if cfg.MetricNameRegex != "" {
@@ -185,6 +160,10 @@ func (c *NetTCP) Collect() error {
 	c.lastStart = time.Now()
 	c.Unlock()
 
+	metricType := "I"
+	tagUnitsConnections := cgm.Tag{Category: "units", Value: "connections"}
+	tagUnitsSegments := cgm.Tag{Category: "units", Value: "segments"}
+
 	if c.ipv4Enabled {
 		var dst []Win32_PerfRawData_Tcpip_TCPv4
 		qry := wmi.CreateQuery(dst, "")
@@ -194,16 +173,22 @@ func (c *NetTCP) Collect() error {
 			return errors.Wrap(err, c.pkgID)
 		}
 
-		for _, item := range dst {
-			pfx := c.id + metricNameSeparator + "v4"
-			d := structs.Map(item) // there is only one NetTCP output
+		if len(dst) > 1 {
+			c.logger.Warn().Int("len", len(dst)).Msg("prot tcp4 metrics has more than one SET of enteries")
+		}
 
-			for name, val := range d {
-				if name == nameFieldName {
-					continue
-				}
-				_ = c.addMetric(&metrics, pfx, name, "L", val, cgm.Tags{})
-			}
+		protoTag := cgm.Tag{Category: "network-proto", Value: "tcp4"}
+
+		for _, item := range dst {
+			_ = c.addMetric(&metrics, "", "ConnectionFailures", metricType, item.ConnectionFailures, cgm.Tags{protoTag, tagUnitsConnections})
+			_ = c.addMetric(&metrics, "", "ConnectionsActive", metricType, item.ConnectionsActive, cgm.Tags{protoTag, tagUnitsConnections})
+			_ = c.addMetric(&metrics, "", "ConnectionsEstablished", metricType, item.ConnectionsEstablished, cgm.Tags{protoTag, tagUnitsConnections})
+			_ = c.addMetric(&metrics, "", "ConnectionsPassive", metricType, item.ConnectionsPassive, cgm.Tags{protoTag, tagUnitsConnections})
+			_ = c.addMetric(&metrics, "", "ConnectionsReset", metricType, item.ConnectionsReset, cgm.Tags{protoTag, tagUnitsConnections})
+			_ = c.addMetric(&metrics, "", "SegmentsPersec", metricType, item.SegmentsPersec, cgm.Tags{protoTag, tagUnitsSegments})
+			_ = c.addMetric(&metrics, "", "SegmentsReceivedPersec", metricType, item.SegmentsReceivedPersec, cgm.Tags{protoTag, tagUnitsSegments})
+			_ = c.addMetric(&metrics, "", "SegmentsRetransmittedPersec", metricType, item.SegmentsRetransmittedPersec, cgm.Tags{protoTag, tagUnitsSegments})
+			_ = c.addMetric(&metrics, "", "SegmentsSentPersec", metricType, item.SegmentsSentPersec, cgm.Tags{protoTag, tagUnitsSegments})
 		}
 	}
 
@@ -216,16 +201,22 @@ func (c *NetTCP) Collect() error {
 			return errors.Wrap(err, c.pkgID)
 		}
 
-		for _, item := range dst {
-			pfx := c.id + metricNameSeparator + "v6"
-			d := structs.Map(item) // there is only one NetTCP output
+		if len(dst) > 1 {
+			c.logger.Warn().Int("len", len(dst)).Msg("prot tcp4 metrics has more than one SET of enteries")
+		}
 
-			for name, val := range d {
-				if name == nameFieldName {
-					continue
-				}
-				_ = c.addMetric(&metrics, pfx, name, "L", val, cgm.Tags{})
-			}
+		protoTag := cgm.Tag{Category: "network-proto", Value: "tcp6"}
+
+		for _, item := range dst {
+			_ = c.addMetric(&metrics, "", "ConnectionFailures", metricType, item.ConnectionFailures, cgm.Tags{protoTag, tagUnitsConnections})
+			_ = c.addMetric(&metrics, "", "ConnectionsActive", metricType, item.ConnectionsActive, cgm.Tags{protoTag, tagUnitsConnections})
+			_ = c.addMetric(&metrics, "", "ConnectionsEstablished", metricType, item.ConnectionsEstablished, cgm.Tags{protoTag, tagUnitsConnections})
+			_ = c.addMetric(&metrics, "", "ConnectionsPassive", metricType, item.ConnectionsPassive, cgm.Tags{protoTag, tagUnitsConnections})
+			_ = c.addMetric(&metrics, "", "ConnectionsReset", metricType, item.ConnectionsReset, cgm.Tags{protoTag, tagUnitsConnections})
+			_ = c.addMetric(&metrics, "", "SegmentsPersec", metricType, item.SegmentsPersec, cgm.Tags{protoTag, tagUnitsSegments})
+			_ = c.addMetric(&metrics, "", "SegmentsReceivedPersec", metricType, item.SegmentsReceivedPersec, cgm.Tags{protoTag, tagUnitsSegments})
+			_ = c.addMetric(&metrics, "", "SegmentsRetransmittedPersec", metricType, item.SegmentsRetransmittedPersec, cgm.Tags{protoTag, tagUnitsSegments})
+			_ = c.addMetric(&metrics, "", "SegmentsSentPersec", metricType, item.SegmentsSentPersec, cgm.Tags{protoTag, tagUnitsSegments})
 		}
 	}
 

@@ -156,6 +156,10 @@ func (c *Cache) Collect() error {
 		return errors.Wrap(err, c.pkgID)
 	}
 
+	if len(dst) > 1 {
+		c.logger.Warn().Int("len", len(dst)).Msg("cache metrics has more than one SET of enteries")
+	}
+
 	for _, item := range dst {
 		_ = c.addMetric(&metrics, "", "AsyncCopyReadsPersec", metricType, item.AsyncCopyReadsPersec, cgm.Tags{tagUnitsOperations})
 		_ = c.addMetric(&metrics, "", "AsyncDataMapsPersec", metricType, item.AsyncDataMapsPersec, cgm.Tags{tagUnitsOperations})

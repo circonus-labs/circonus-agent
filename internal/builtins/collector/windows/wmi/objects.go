@@ -17,7 +17,6 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/fatih/structs"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
@@ -39,13 +38,10 @@ type Objects struct {
 
 // objectsOptions defines what elements can be overridden in a config file
 type objectsOptions struct {
-	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
-	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
-	MetricNameRegex      string   `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
-	MetricNameChar       string   `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
-	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
+	ID              string `json:"id" toml:"id" yaml:"id"`
+	MetricNameRegex string `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
+	MetricNameChar  string `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
+	RunTTL          string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
 // NewObjectsCollector creates new wmi collector
@@ -54,10 +50,8 @@ func NewObjectsCollector(cfgBaseName string) (collector.Collector, error) {
 	c.id = "objects"
 	c.pkgID = pkgName + "." + c.id
 	c.logger = log.With().Str("pkg", pkgName).Str("id", c.id).Logger()
-	c.metricDefaultActive = true
 	c.metricNameChar = defaultMetricChar
 	c.metricNameRegex = defaultMetricNameRegex
-	c.metricStatus = map[string]bool{}
 	c.baseTags = tags.FromList(tags.GetBaseTags())
 
 	if cfgBaseName == "" {
@@ -78,25 +72,6 @@ func NewObjectsCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if cfg.ID != "" {
 		c.id = cfg.ID
-	}
-
-	if len(cfg.MetricsEnabled) > 0 {
-		for _, name := range cfg.MetricsEnabled {
-			c.metricStatus[name] = true
-		}
-	}
-	if len(cfg.MetricsDisabled) > 0 {
-		for _, name := range cfg.MetricsDisabled {
-			c.metricStatus[name] = false
-		}
-	}
-
-	if cfg.MetricsDefaultStatus != "" {
-		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == metricStatusEnabled
-		} else {
-			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, cfg.MetricsDefaultStatus)
-		}
 	}
 
 	if cfg.MetricNameRegex != "" {
@@ -153,13 +128,14 @@ func (c *Objects) Collect() error {
 		return errors.Wrap(err, c.pkgID)
 	}
 
+	metricType := "I"
 	for _, item := range dst {
-		pfx := c.id
-		d := structs.Map(item) // there is only one 'objects' output
-
-		for name, val := range d {
-			_ = c.addMetric(&metrics, pfx, name, "L", val, cgm.Tags{})
-		}
+		_ = c.addMetric(&metrics, "", "Events", metricType, item.Events, cgm.Tags{})
+		_ = c.addMetric(&metrics, "", "Mutexes", metricType, item.Mutexes, cgm.Tags{})
+		_ = c.addMetric(&metrics, "", "Processes", metricType, item.Processes, cgm.Tags{})
+		_ = c.addMetric(&metrics, "", "Sections", metricType, item.Sections, cgm.Tags{})
+		_ = c.addMetric(&metrics, "", "Semaphores", metricType, item.Semaphores, cgm.Tags{})
+		_ = c.addMetric(&metrics, "", "Threads", metricType, item.Threads, cgm.Tags{})
 	}
 
 	c.setStatus(metrics, nil)

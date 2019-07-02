@@ -51,14 +51,11 @@ type Processor struct {
 
 // processorOptions defines what elements can be overridden in a config file
 type processorOptions struct {
-	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	AllCPU               string   `json:"report_all_cpus" toml:"report_all_cpus" yaml:"report_all_cpus"`
-	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
-	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
-	MetricNameRegex      string   `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
-	MetricNameChar       string   `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
-	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
+	ID              string `json:"id" toml:"id" yaml:"id"`
+	AllCPU          string `json:"report_all_cpus" toml:"report_all_cpus" yaml:"report_all_cpus"`
+	MetricNameRegex string `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
+	MetricNameChar  string `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
+	RunTTL          string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
 // NewProcessorCollector creates new wmi collector
@@ -67,10 +64,8 @@ func NewProcessorCollector(cfgBaseName string) (collector.Collector, error) {
 	c.id = "processor"
 	c.pkgID = pkgName + "." + c.id
 	c.logger = log.With().Str("pkg", pkgName).Str("id", c.id).Logger()
-	c.metricDefaultActive = true
 	c.metricNameChar = defaultMetricChar
 	c.metricNameRegex = defaultMetricNameRegex
-	c.metricStatus = map[string]bool{}
 	c.baseTags = tags.FromList(tags.GetBaseTags())
 
 	c.numCPU = float64(runtime.NumCPU())
@@ -102,25 +97,6 @@ func NewProcessorCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if cfg.ID != "" {
 		c.id = cfg.ID
-	}
-
-	if len(cfg.MetricsEnabled) > 0 {
-		for _, name := range cfg.MetricsEnabled {
-			c.metricStatus[name] = true
-		}
-	}
-	if len(cfg.MetricsDisabled) > 0 {
-		for _, name := range cfg.MetricsDisabled {
-			c.metricStatus[name] = false
-		}
-	}
-
-	if cfg.MetricsDefaultStatus != "" {
-		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == metricStatusEnabled
-		} else {
-			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, cfg.MetricsDefaultStatus)
-		}
 	}
 
 	if cfg.MetricNameRegex != "" {
@@ -177,31 +153,35 @@ func (c *Processor) Collect() error {
 		return errors.Wrap(err, c.pkgID)
 	}
 
+	metricType := "L"
+	tagUnitsPercent := cgm.Tag{Category: "units", Value: "percent"}
 	for _, item := range dst {
-		pfx := c.id
+		cpuID := c.cleanName(item.Name)
+
+		metricSuffix := ""
 		if strings.Contains(item.Name, totalName) {
-			pfx += totalPrefix
-		} else {
-			if !c.reportAllCPUs {
-				continue
-			}
-			pfx += metricNameSeparator + c.cleanName(item.Name)
+			cpuID = "all"
+			metricSuffix = totalName
+		} else if !c.reportAllCPUs {
+			continue
 		}
 
-		_ = c.addMetric(&metrics, pfx, "PercentC1Time", "L", item.PercentC1Time, cgm.Tags{})
-		_ = c.addMetric(&metrics, pfx, "PercentC2Time", "L", item.PercentC2Time, cgm.Tags{})
-		_ = c.addMetric(&metrics, pfx, "PercentC3Time", "L", item.PercentC3Time, cgm.Tags{})
-		_ = c.addMetric(&metrics, pfx, "PercentIdleTime", "L", item.PercentIdleTime, cgm.Tags{})
-		_ = c.addMetric(&metrics, pfx, "PercentInterruptTime", "L", item.PercentInterruptTime, cgm.Tags{})
-		_ = c.addMetric(&metrics, pfx, "PercentDPCTime", "L", item.PercentDPCTime, cgm.Tags{})
-		_ = c.addMetric(&metrics, pfx, "PercentPrivilegedTime", "L", item.PercentPrivilegedTime, cgm.Tags{})
-		_ = c.addMetric(&metrics, pfx, "PercentUserTime", "L", item.PercentUserTime, cgm.Tags{})
-		_ = c.addMetric(&metrics, pfx, "PercentProcessorTime", "L", item.PercentProcessorTime, cgm.Tags{})
-		_ = c.addMetric(&metrics, pfx, "C1TransitionsPersec", "L", item.C1TransitionsPersec, cgm.Tags{})
-		_ = c.addMetric(&metrics, pfx, "C2TransitionsPersec", "L", item.C2TransitionsPersec, cgm.Tags{})
-		_ = c.addMetric(&metrics, pfx, "C3TransitionsPersec", "L", item.C3TransitionsPersec, cgm.Tags{})
-		_ = c.addMetric(&metrics, pfx, "InterruptsPersec", "L", item.InterruptsPersec, cgm.Tags{})
-		_ = c.addMetric(&metrics, pfx, "DPCsQueuedPersec", "L", item.DPCsQueuedPersec, cgm.Tags{})
+		cpuTag := cgm.Tag{Category: "cpu-id", Value: cpuID}
+
+		_ = c.addMetric(&metrics, "", "PercentC1Time"+metricSuffix, metricType, item.PercentC1Time, cgm.Tags{cpuTag, tagUnitsPercent})
+		_ = c.addMetric(&metrics, "", "PercentC2Time"+metricSuffix, metricType, item.PercentC2Time, cgm.Tags{cpuTag, tagUnitsPercent})
+		_ = c.addMetric(&metrics, "", "PercentC3Time"+metricSuffix, metricType, item.PercentC3Time, cgm.Tags{cpuTag, tagUnitsPercent})
+		_ = c.addMetric(&metrics, "", "PercentIdleTime"+metricSuffix, metricType, item.PercentIdleTime, cgm.Tags{cpuTag, tagUnitsPercent})
+		_ = c.addMetric(&metrics, "", "PercentInterruptTime"+metricSuffix, metricType, item.PercentInterruptTime, cgm.Tags{cpuTag, tagUnitsPercent})
+		_ = c.addMetric(&metrics, "", "PercentDPCTime"+metricSuffix, metricType, item.PercentDPCTime, cgm.Tags{cpuTag, tagUnitsPercent})
+		_ = c.addMetric(&metrics, "", "PercentPrivilegedTime"+metricSuffix, metricType, item.PercentPrivilegedTime, cgm.Tags{cpuTag, tagUnitsPercent})
+		_ = c.addMetric(&metrics, "", "PercentUserTime"+metricSuffix, metricType, item.PercentUserTime, cgm.Tags{cpuTag, tagUnitsPercent})
+		_ = c.addMetric(&metrics, "", "PercentProcessorTime"+metricSuffix, metricType, item.PercentProcessorTime, cgm.Tags{cpuTag, tagUnitsPercent})
+		_ = c.addMetric(&metrics, "", "C1TransitionsPersec"+metricSuffix, metricType, item.C1TransitionsPersec, cgm.Tags{cpuTag})
+		_ = c.addMetric(&metrics, "", "C2TransitionsPersec"+metricSuffix, metricType, item.C2TransitionsPersec, cgm.Tags{cpuTag})
+		_ = c.addMetric(&metrics, "", "C3TransitionsPersec"+metricSuffix, metricType, item.C3TransitionsPersec, cgm.Tags{cpuTag})
+		_ = c.addMetric(&metrics, "", "InterruptsPersec"+metricSuffix, metricType, item.InterruptsPersec, cgm.Tags{cpuTag})
+		_ = c.addMetric(&metrics, "", "DPCsQueuedPersec"+metricSuffix, metricType, item.DPCsQueuedPersec, cgm.Tags{cpuTag})
 	}
 
 	c.setStatus(metrics, nil)

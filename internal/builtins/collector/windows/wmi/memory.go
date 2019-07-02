@@ -17,7 +17,6 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/fatih/structs"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
@@ -63,13 +62,10 @@ type Memory struct {
 
 // memoryOptions defines what elements can be overridden in a config file
 type memoryOptions struct {
-	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
-	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
-	MetricNameRegex      string   `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
-	MetricNameChar       string   `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
-	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
+	ID              string `json:"id" toml:"id" yaml:"id"`
+	MetricNameRegex string `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
+	MetricNameChar  string `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
+	RunTTL          string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
 // NewMemoryCollector creates new wmi collector
@@ -78,10 +74,8 @@ func NewMemoryCollector(cfgBaseName string) (collector.Collector, error) {
 	c.id = "memory"
 	c.pkgID = pkgName + "." + c.id
 	c.logger = log.With().Str("pkg", pkgName).Str("id", c.id).Logger()
-	c.metricDefaultActive = true
 	c.metricNameChar = defaultMetricChar
 	c.metricNameRegex = defaultMetricNameRegex
-	c.metricStatus = map[string]bool{}
 	c.baseTags = tags.FromList(tags.GetBaseTags())
 
 	if cfgBaseName == "" {
@@ -102,25 +96,6 @@ func NewMemoryCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if cfg.ID != "" {
 		c.id = cfg.ID
-	}
-
-	if len(cfg.MetricsEnabled) > 0 {
-		for _, name := range cfg.MetricsEnabled {
-			c.metricStatus[name] = true
-		}
-	}
-	if len(cfg.MetricsDisabled) > 0 {
-		for _, name := range cfg.MetricsDisabled {
-			c.metricStatus[name] = false
-		}
-	}
-
-	if cfg.MetricsDefaultStatus != "" {
-		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == metricStatusEnabled
-		} else {
-			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, cfg.MetricsDefaultStatus)
-		}
 	}
 
 	if cfg.MetricNameRegex != "" {
@@ -177,15 +152,45 @@ func (c *Memory) Collect() error {
 		return errors.Wrap(err, c.pkgID)
 	}
 
+	metricType := "L"
+	tagUnitsBytes := cgm.Tag{Category: "units", Value: "bytes"}
+	tagUnitsOperations := cgm.Tag{Category: "units", Value: "operations"}
+
+	if len(dst) > 1 {
+		c.logger.Warn().Int("len", len(dst)).Msg("memory metrics has more than one SET of enteries")
+	}
+
 	for _, item := range dst {
-		d := structs.Map(item) // there is only one memory output
-		pfx := c.id
-		for name, val := range d {
-			if name == nameFieldName {
-				continue
-			}
-			_ = c.addMetric(&metrics, pfx, name, "L", val, cgm.Tags{})
-		}
+		_ = c.addMetric(&metrics, "", "AvailableBytes", metricType, item.AvailableBytes, cgm.Tags{tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "CacheBytes", metricType, item.CacheBytes, cgm.Tags{tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "CacheFaultsPersec", metricType, item.CacheFaultsPersec, cgm.Tags{})
+		_ = c.addMetric(&metrics, "", "CommittedBytes", metricType, item.CommittedBytes, cgm.Tags{tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "DemandZeroFaultsPersec", metricType, item.DemandZeroFaultsPersec, cgm.Tags{})
+		_ = c.addMetric(&metrics, "", "FreeAndZeroPageListBytes", metricType, item.FreeAndZeroPageListBytes, cgm.Tags{tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "FreeSystemPageTableEntries", metricType, item.FreeSystemPageTableEntries, cgm.Tags{})
+		_ = c.addMetric(&metrics, "", "ModifiedPageListBytes", metricType, item.ModifiedPageListBytes, cgm.Tags{tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "PageFaultsPersec", metricType, item.PageFaultsPersec, cgm.Tags{})
+		_ = c.addMetric(&metrics, "", "PageReadsPersec", metricType, item.PageReadsPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "PagesInputPersec", metricType, item.PagesInputPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "PagesOutputPersec", metricType, item.PagesOutputPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "PagesPersec", metricType, item.PagesPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "PageWritesPersec", metricType, item.PageWritesPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "PercentCommittedBytesInUse", metricType, item.PercentCommittedBytesInUse, cgm.Tags{tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "PoolNonpagedAllocs", metricType, item.PoolNonpagedAllocs, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "PoolNonpagedBytes", metricType, item.PoolNonpagedBytes, cgm.Tags{tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "PoolPagedAllocs", metricType, item.PoolPagedAllocs, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "PoolPagedBytes", metricType, item.PoolPagedBytes, cgm.Tags{tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "PoolPagedResidentBytes", metricType, item.PoolPagedResidentBytes, cgm.Tags{tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "StandbyCacheCoreBytes", metricType, item.StandbyCacheCoreBytes, cgm.Tags{tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "StandbyCacheNormalPriorityBytes", metricType, item.StandbyCacheNormalPriorityBytes, cgm.Tags{tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "StandbyCacheReserveBytes", metricType, item.StandbyCacheReserveBytes, cgm.Tags{tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "SystemCacheResidentBytes", metricType, item.SystemCacheResidentBytes, cgm.Tags{tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "SystemCodeResidentBytes", metricType, item.SystemCodeResidentBytes, cgm.Tags{tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "SystemCodeTotalBytes", metricType, item.SystemCodeTotalBytes, cgm.Tags{tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "SystemDriverTotalBytes", metricType, item.SystemDriverTotalBytes, cgm.Tags{tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "TransitionFaultsPersec", metricType, item.TransitionFaultsPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "TransitionPagesRePurposedPersec", metricType, item.TransitionPagesRePurposedPersec, cgm.Tags{tagUnitsOperations})
+		_ = c.addMetric(&metrics, "", "WriteCopiesPersec", metricType, item.WriteCopiesPersec, cgm.Tags{tagUnitsOperations})
 	}
 
 	c.setStatus(metrics, nil)
