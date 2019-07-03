@@ -1,3 +1,9 @@
+# v1.0.0-alpha.3
+
+* testing release, not guaranteed to be feature complete
+* upd: finish adding stream tags to wmi builtin collectors
+* upd: remove obsolete code for deprecated settings from wmi builtin collectors
+
 # v1.0.0-alpha.2
 
 * testing release, not guaranteed to be feature complete
