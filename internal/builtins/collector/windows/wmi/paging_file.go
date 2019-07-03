@@ -18,7 +18,6 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/fatih/structs"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
@@ -38,15 +37,12 @@ type PagingFile struct {
 
 // pagingFileOptions defines what elements can be overridden in a config file
 type pagingFileOptions struct {
-	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	IncludeRegex         string   `json:"include_regex" toml:"include_regex" yaml:"include_regex"`
-	ExcludeRegex         string   `json:"exclude_regex" toml:"exclude_regex" yaml:"exclude_regex"`
-	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
-	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
-	MetricNameRegex      string   `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
-	MetricNameChar       string   `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
-	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
+	ID              string `json:"id" toml:"id" yaml:"id"`
+	IncludeRegex    string `json:"include_regex" toml:"include_regex" yaml:"include_regex"`
+	ExcludeRegex    string `json:"exclude_regex" toml:"exclude_regex" yaml:"exclude_regex"`
+	MetricNameRegex string `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
+	MetricNameChar  string `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
+	RunTTL          string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
 // NewPagingFileCollector creates new wmi collector
@@ -55,10 +51,8 @@ func NewPagingFileCollector(cfgBaseName string) (collector.Collector, error) {
 	c.id = "paging_file"
 	c.pkgID = pkgName + "." + c.id
 	c.logger = log.With().Str("pkg", pkgName).Str("id", c.id).Logger()
-	c.metricDefaultActive = true
 	c.metricNameChar = defaultMetricChar
 	c.metricNameRegex = defaultMetricNameRegex
-	c.metricStatus = map[string]bool{}
 	c.baseTags = tags.FromList(tags.GetBaseTags())
 
 	c.include = defaultIncludeRegex
@@ -100,25 +94,6 @@ func NewPagingFileCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if cfg.ID != "" {
 		c.id = cfg.ID
-	}
-
-	if len(cfg.MetricsEnabled) > 0 {
-		for _, name := range cfg.MetricsEnabled {
-			c.metricStatus[name] = true
-		}
-	}
-	if len(cfg.MetricsDisabled) > 0 {
-		for _, name := range cfg.MetricsDisabled {
-			c.metricStatus[name] = false
-		}
-	}
-
-	if cfg.MetricsDefaultStatus != "" {
-		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == metricStatusEnabled
-		} else {
-			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, cfg.MetricsDefaultStatus)
-		}
 	}
 
 	if cfg.MetricNameRegex != "" {
@@ -175,29 +150,23 @@ func (c *PagingFile) Collect() error {
 		return errors.Wrap(err, c.pkgID)
 	}
 
+	metricType := "I"
+	tagUnitsPercent := cgm.Tag{Category: "units", Value: "percent"}
 	for _, item := range dst {
-
-		// apply include/exclude to CLEAN item name
 		itemName := c.cleanName(item.Name)
 		if c.exclude.MatchString(itemName) || !c.include.MatchString(itemName) {
 			continue
 		}
 
-		// adjust prefix, add item name
-		pfx := c.id
-		if strings.Contains(item.Name, totalName) { // use the unclean name
-			pfx += totalPrefix
-		} else {
-			pfx += metricNameSeparator + itemName
+		metricSuffix := ""
+		if strings.Contains(item.Name, totalName) {
+			itemName = "all"
+			metricSuffix = totalName
 		}
 
-		d := structs.Map(item)
-		for name, val := range d {
-			if name == nameFieldName {
-				continue
-			}
-			_ = c.addMetric(&metrics, pfx, name, "L", val, cgm.Tags{})
-		}
+		fileTag := cgm.Tag{Category: "paging-file", Value: itemName}
+
+		_ = c.addMetric(&metrics, "", "PercentUsage"+metricSuffix, metricType, item.PercentUsage, cgm.Tags{fileTag, tagUnitsPercent})
 	}
 
 	c.setStatus(metrics, nil)

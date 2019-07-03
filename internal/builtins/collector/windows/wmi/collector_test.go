@@ -114,10 +114,8 @@ func TestAddMetric(t *testing.T) {
 	t.Log("Testing valid states/submissions")
 	{
 		c := &wmicommon{
-			id:                  "foo",
-			metricStatus:        make(map[string]bool),
-			metricDefaultActive: true,
-			metricNameRegex:     defaultMetricNameRegex,
+			id:              "foo",
+			metricNameRegex: defaultMetricNameRegex,
 		}
 		m := cgm.Metrics{}
 		if err := c.addMetric(&m, "pfx", "foo", "t", "", cgm.Tags{}); err != nil {

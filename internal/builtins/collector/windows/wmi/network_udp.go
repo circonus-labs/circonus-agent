@@ -18,7 +18,6 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/fatih/structs"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
@@ -50,15 +49,12 @@ type NetUDP struct {
 
 // NetUDPOptions defines what elements can be overridden in a config file
 type NetUDPOptions struct {
-	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
-	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
-	MetricNameRegex      string   `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
-	MetricNameChar       string   `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
-	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
-	EnableIPv4           string   `json:"enable_ipv4" toml:"enable_ipv4" yaml:"enable_ipv4"`
-	EnableIPv6           string   `json:"enable_ipv6" toml:"enable_ipv6" yaml:"enable_ipv6"`
+	ID              string `json:"id" toml:"id" yaml:"id"`
+	MetricNameRegex string `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
+	MetricNameChar  string `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
+	RunTTL          string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
+	EnableIPv4      string `json:"enable_ipv4" toml:"enable_ipv4" yaml:"enable_ipv4"`
+	EnableIPv6      string `json:"enable_ipv6" toml:"enable_ipv6" yaml:"enable_ipv6"`
 }
 
 // NewNetUDPCollector creates new wmi collector
@@ -67,10 +63,8 @@ func NewNetUDPCollector(cfgBaseName string) (collector.Collector, error) {
 	c.id = "net_udp"
 	c.pkgID = pkgName + "." + c.id
 	c.logger = log.With().Str("pkg", pkgName).Str("id", c.id).Logger()
-	c.metricDefaultActive = true
 	c.metricNameChar = defaultMetricChar
 	c.metricNameRegex = defaultMetricNameRegex
-	c.metricStatus = map[string]bool{}
 	c.baseTags = tags.FromList(tags.GetBaseTags())
 
 	c.ipv4Enabled = true
@@ -110,25 +104,6 @@ func NewNetUDPCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if cfg.ID != "" {
 		c.id = cfg.ID
-	}
-
-	if len(cfg.MetricsEnabled) > 0 {
-		for _, name := range cfg.MetricsEnabled {
-			c.metricStatus[name] = true
-		}
-	}
-	if len(cfg.MetricsDisabled) > 0 {
-		for _, name := range cfg.MetricsDisabled {
-			c.metricStatus[name] = false
-		}
-	}
-
-	if cfg.MetricsDefaultStatus != "" {
-		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == metricStatusEnabled
-		} else {
-			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, cfg.MetricsDefaultStatus)
-		}
 	}
 
 	if cfg.MetricNameRegex != "" {
@@ -177,6 +152,9 @@ func (c *NetUDP) Collect() error {
 	c.lastStart = time.Now()
 	c.Unlock()
 
+	metricType := "I"
+	tagUnitsDatagrams := cgm.Tag{Category: "units", Value: "datagrams"}
+
 	if c.ipv4Enabled {
 		var dst []Win32_PerfRawData_Tcpip_UDPv4
 		qry := wmi.CreateQuery(dst, "")
@@ -186,16 +164,18 @@ func (c *NetUDP) Collect() error {
 			return errors.Wrap(err, c.pkgID)
 		}
 
-		for _, item := range dst {
-			pfx := c.id + metricNameSeparator + "v4"
-			d := structs.Map(item) // there is only one NetUDP output
+		if len(dst) > 1 {
+			c.logger.Warn().Int("len", len(dst)).Msg("prot udp4 metrics has more than one SET of enteries")
+		}
 
-			for name, val := range d {
-				if name == nameFieldName {
-					continue
-				}
-				_ = c.addMetric(&metrics, pfx, name, "L", val, cgm.Tags{})
-			}
+		protoTag := cgm.Tag{Category: "network-proto", Value: "udp4"}
+
+		for _, item := range dst {
+			_ = c.addMetric(&metrics, "", "DatagramsNoPortPersec", metricType, item.DatagramsNoPortPersec, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsPersec", metricType, item.DatagramsPersec, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsReceivedErrors", metricType, item.DatagramsReceivedErrors, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsReceivedPersec", metricType, item.DatagramsReceivedPersec, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsSentPersec", metricType, item.DatagramsSentPersec, cgm.Tags{protoTag, tagUnitsDatagrams})
 		}
 	}
 
@@ -208,16 +188,18 @@ func (c *NetUDP) Collect() error {
 			return errors.Wrap(err, c.pkgID)
 		}
 
-		for _, item := range dst {
-			pfx := c.id + metricNameSeparator + "v6"
-			d := structs.Map(item) // there is only one NetUDP output
+		if len(dst) > 1 {
+			c.logger.Warn().Int("len", len(dst)).Msg("prot udp6 metrics has more than one SET of enteries")
+		}
 
-			for name, val := range d {
-				if name == nameFieldName {
-					continue
-				}
-				_ = c.addMetric(&metrics, pfx, name, "L", val, cgm.Tags{})
-			}
+		protoTag := cgm.Tag{Category: "network-proto", Value: "udp6"}
+
+		for _, item := range dst {
+			_ = c.addMetric(&metrics, "", "DatagramsNoPortPersec", metricType, item.DatagramsNoPortPersec, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsPersec", metricType, item.DatagramsPersec, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsReceivedErrors", metricType, item.DatagramsReceivedErrors, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsReceivedPersec", metricType, item.DatagramsReceivedPersec, cgm.Tags{protoTag, tagUnitsDatagrams})
+			_ = c.addMetric(&metrics, "", "DatagramsSentPersec", metricType, item.DatagramsSentPersec, cgm.Tags{protoTag, tagUnitsDatagrams})
 		}
 	}
 

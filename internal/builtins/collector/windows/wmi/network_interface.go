@@ -18,12 +18,12 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/fatih/structs"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
 
 // Win32_PerfRawData_Tcpip_NetworkInterface defines the metrics to collect
+// https://technet.microsoft.com/en-us/security/aa394340(v=vs.80)
 type Win32_PerfRawData_Tcpip_NetworkInterface struct { //nolint: golint
 	BytesReceivedPersec             uint64
 	BytesSentPersec                 uint64
@@ -59,15 +59,12 @@ type NetInterface struct {
 
 // netInterfaceOptions defines what elements can be overridden in a config file
 type netInterfaceOptions struct {
-	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	IncludeRegex         string   `json:"include_regex" toml:"include_regex" yaml:"include_regex"`
-	ExcludeRegex         string   `json:"exclude_regex" toml:"exclude_regex" yaml:"exclude_regex"`
-	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
-	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
-	MetricNameRegex      string   `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
-	MetricNameChar       string   `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
-	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
+	ID              string `json:"id" toml:"id" yaml:"id"`
+	IncludeRegex    string `json:"include_regex" toml:"include_regex" yaml:"include_regex"`
+	ExcludeRegex    string `json:"exclude_regex" toml:"exclude_regex" yaml:"exclude_regex"`
+	MetricNameRegex string `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
+	MetricNameChar  string `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
+	RunTTL          string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
 // NewNetInterfaceCollector creates new wmi collector
@@ -76,10 +73,8 @@ func NewNetInterfaceCollector(cfgBaseName string) (collector.Collector, error) {
 	c.id = "network_interface"
 	c.pkgID = pkgName + "." + c.id
 	c.logger = log.With().Str("pkg", pkgName).Str("id", c.id).Logger()
-	c.metricDefaultActive = true
 	c.metricNameChar = defaultMetricChar
 	c.metricNameRegex = defaultMetricNameRegex
-	c.metricStatus = map[string]bool{}
 	c.baseTags = tags.FromList(tags.GetBaseTags())
 
 	c.include = defaultIncludeRegex
@@ -121,25 +116,6 @@ func NewNetInterfaceCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if cfg.ID != "" {
 		c.id = cfg.ID
-	}
-
-	if len(cfg.MetricsEnabled) > 0 {
-		for _, name := range cfg.MetricsEnabled {
-			c.metricStatus[name] = true
-		}
-	}
-	if len(cfg.MetricsDisabled) > 0 {
-		for _, name := range cfg.MetricsDisabled {
-			c.metricStatus[name] = false
-		}
-	}
-
-	if cfg.MetricsDefaultStatus != "" {
-		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == metricStatusEnabled
-		} else {
-			return nil, errors.Errorf("%s invalid metric default status (%s)", c.pkgID, cfg.MetricsDefaultStatus)
-		}
 	}
 
 	if cfg.MetricNameRegex != "" {
@@ -196,29 +172,47 @@ func (c *NetInterface) Collect() error {
 		return errors.Wrap(err, c.pkgID)
 	}
 
-	for _, item := range dst {
+	metricType := "L"
+	tagUnitsBytes := cgm.Tag{Category: "units", Value: "bytes"}
+	tagUnitsBits := cgm.Tag{Category: "units", Value: "bits"}
+	tagUnitsPackets := cgm.Tag{Category: "units", Value: "packets"}
 
-		// apply include/exclude to CLEAN item name
-		itemName := c.cleanName(item.Name)
-		if c.exclude.MatchString(itemName) || !c.include.MatchString(itemName) {
+	for _, ifMetrics := range dst {
+		ifName := c.cleanName(ifMetrics.Name)
+		if c.exclude.MatchString(ifName) || !c.include.MatchString(ifName) {
 			continue
 		}
 
-		// adjust prefix, add item name
-		pfx := c.id
-		if strings.Contains(item.Name, "_Total") { // use the unclean name
-			pfx += totalPrefix
-		} else {
-			pfx += metricNameSeparator + itemName
+		metricSuffix := ""
+		if strings.Contains(ifMetrics.Name, totalName) {
+			ifName = "all"
+			metricSuffix = totalName
 		}
 
-		d := structs.Map(item)
-		for name, val := range d {
-			if name == nameFieldName {
-				continue
-			}
-			_ = c.addMetric(&metrics, pfx, name, "L", val, cgm.Tags{})
-		}
+		ifTag := cgm.Tag{Category: "network-interface", Value: ifName}
+
+		_ = c.addMetric(&metrics, "", "BytesReceivedPersec"+metricSuffix, metricType, ifMetrics.BytesReceivedPersec, cgm.Tags{ifTag, tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "BytesSentPersec"+metricSuffix, metricType, ifMetrics.BytesSentPersec, cgm.Tags{ifTag, tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "BytesTotalPersec"+metricSuffix, metricType, ifMetrics.BytesTotalPersec, cgm.Tags{ifTag, tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "CurrentBandwidth"+metricSuffix, metricType, ifMetrics.CurrentBandwidth, cgm.Tags{ifTag, tagUnitsBits})
+		_ = c.addMetric(&metrics, "", "OffloadedConnections"+metricSuffix, metricType, ifMetrics.OffloadedConnections, cgm.Tags{ifTag})
+		_ = c.addMetric(&metrics, "", "OutputQueueLength"+metricSuffix, metricType, ifMetrics.OutputQueueLength, cgm.Tags{ifTag})
+		_ = c.addMetric(&metrics, "", "PacketsOutboundDiscarded"+metricSuffix, metricType, ifMetrics.PacketsOutboundDiscarded, cgm.Tags{ifTag, tagUnitsPackets})
+		_ = c.addMetric(&metrics, "", "PacketsOutboundErrors"+metricSuffix, metricType, ifMetrics.PacketsOutboundErrors, cgm.Tags{ifTag, tagUnitsPackets})
+		_ = c.addMetric(&metrics, "", "PacketsPersec"+metricSuffix, metricType, ifMetrics.PacketsPersec, cgm.Tags{ifTag, tagUnitsPackets})
+		_ = c.addMetric(&metrics, "", "PacketsReceivedDiscarded"+metricSuffix, metricType, ifMetrics.PacketsReceivedDiscarded, cgm.Tags{ifTag, tagUnitsPackets})
+		_ = c.addMetric(&metrics, "", "PacketsReceivedErrors"+metricSuffix, metricType, ifMetrics.PacketsReceivedErrors, cgm.Tags{ifTag, tagUnitsPackets})
+		_ = c.addMetric(&metrics, "", "PacketsReceivedNonUnicastPersec"+metricSuffix, metricType, ifMetrics.PacketsReceivedNonUnicastPersec, cgm.Tags{ifTag, tagUnitsPackets})
+		_ = c.addMetric(&metrics, "", "PacketsReceivedPersec"+metricSuffix, metricType, ifMetrics.PacketsReceivedPersec, cgm.Tags{ifTag, tagUnitsPackets})
+		_ = c.addMetric(&metrics, "", "PacketsReceivedUnicastPersec"+metricSuffix, metricType, ifMetrics.PacketsReceivedUnicastPersec, cgm.Tags{ifTag, tagUnitsPackets})
+		_ = c.addMetric(&metrics, "", "PacketsReceivedUnknown"+metricSuffix, metricType, ifMetrics.PacketsReceivedUnknown, cgm.Tags{ifTag, tagUnitsPackets})
+		_ = c.addMetric(&metrics, "", "PacketsSentNonUnicastPersec"+metricSuffix, metricType, ifMetrics.PacketsSentNonUnicastPersec, cgm.Tags{ifTag, tagUnitsPackets})
+		_ = c.addMetric(&metrics, "", "PacketsSentPersec"+metricSuffix, metricType, ifMetrics.PacketsSentPersec, cgm.Tags{ifTag, tagUnitsPackets})
+		_ = c.addMetric(&metrics, "", "PacketsSentUnicastPersec"+metricSuffix, metricType, ifMetrics.PacketsSentUnicastPersec, cgm.Tags{ifTag, tagUnitsPackets})
+		_ = c.addMetric(&metrics, "", "TCPActiveRSCConnections"+metricSuffix, metricType, ifMetrics.TCPActiveRSCConnections, cgm.Tags{ifTag})
+		_ = c.addMetric(&metrics, "", "TCPRSCAveragePacketSize"+metricSuffix, metricType, ifMetrics.TCPRSCAveragePacketSize, cgm.Tags{ifTag, tagUnitsBytes})
+		_ = c.addMetric(&metrics, "", "TCPRSCCoalescedPacketsPersec"+metricSuffix, metricType, ifMetrics.TCPRSCCoalescedPacketsPersec, cgm.Tags{ifTag, tagUnitsPackets})
+		_ = c.addMetric(&metrics, "", "TCPRSCExceptionsPersec"+metricSuffix, metricType, ifMetrics.TCPRSCExceptionsPersec, cgm.Tags{ifTag})
 	}
 
 	c.setStatus(metrics, nil)
