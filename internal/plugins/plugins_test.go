@@ -17,7 +17,8 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins"
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
+	"github.com/circonus-labs/circonus-agent/internal/tags"
+	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
@@ -177,15 +178,15 @@ func TestFlush(t *testing.T) {
 			t.Fatalf("expected metrics got none (%#v)", data)
 		}
 
-		name := "test"
-		if runtime.GOOS == "windows" {
-			name = "testwin"
+		tagList := cgm.Tags{
+			cgm.Tag{Category: "source", Value: "circonus-agent"},
+			cgm.Tag{Category: "collector", Value: id},
 		}
-		name += defaults.MetricNameSeparator + "metric"
+		metricName := tags.MetricNameWithStreamTags("metric", tagList)
 
-		mv, ok := (*data)[name]
+		mv, ok := (*data)[metricName]
 		if !ok {
-			t.Fatalf("expected metric named (%s) got (%#v)", name, *data)
+			t.Fatalf("expected metric named (%s) got (%#v)", metricName, *data)
 		}
 		if mv.Type != "n" {
 			t.Fatalf("expected type 'n', got %#v", mv)

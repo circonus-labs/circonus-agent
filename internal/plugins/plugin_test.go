@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
@@ -159,6 +160,12 @@ func TestExec(t *testing.T) {
 		command:    path.Join("testdata", "test.sh"),
 	}
 
+	// tags agent v1+ will add by default
+	baseTags := cgm.Tags{
+		cgm.Tag{Category: "collector", Value: "test"},
+		cgm.Tag{Category: "source", Value: "circonus-agent"},
+	}
+
 	dir, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("unable to get cwd (%s)", err)
@@ -223,6 +230,7 @@ func TestExec(t *testing.T) {
 
 	t.Log("args")
 	{
+
 		if runtime.GOOS == "windows" {
 			p.command = path.Join(testDir, "argswin.bat")
 		} else {
@@ -236,10 +244,12 @@ func TestExec(t *testing.T) {
 		if len(*p.metrics) == 0 {
 			t.Fatal("expected metrics")
 		}
-		metricName := strings.Join(p.instanceArgs, "`")
+		var tagList cgm.Tags
+		tagList = append(tagList, baseTags...)
+		metricName := tags.MetricNameWithStreamTags(strings.Join(p.instanceArgs, "`"), tagList)
 		_, ok := (*p.metrics)[metricName]
 		if !ok {
-			t.Fatalf("expected '%s' metric", metricName)
+			t.Fatalf("expected '%s' metric, got (%v)", metricName, *p.metrics)
 		}
 	}
 }
