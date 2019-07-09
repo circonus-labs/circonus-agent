@@ -107,18 +107,9 @@ func TestAddMetric(t *testing.T) {
 				t.Fatalf("expected (%s) got (%v)", expect, err)
 			}
 		}
-
-		if err := c.addMetric(&m, "foo", "t", "", tags.Tags{}); err == nil {
-			t.Fatalf("expected error")
-		} else {
-			expect := "metric (foo) not active"
-			if err.Error() != expect {
-				t.Fatalf("expected (%s) got (%v)", expect, err)
-			}
-		}
 	}
 
-	t.Log("Testing valid states/submissions")
+	t.Log("Testing valid submissions")
 	{
 		c := &gencommon{
 			id: "foo",
