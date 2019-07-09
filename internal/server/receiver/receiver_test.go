@@ -126,6 +126,13 @@ func TestParse(t *testing.T) {
 		}
 	}
 
+	baseTags := tags.Tags{
+		tags.Tag{Category: "source", Value: "circonus-agent"},
+		tags.Tag{Category: "collector", Value: "write"},
+		tags.Tag{Category: "collector_id", Value: "testg"},
+	}
+	metricName := tags.MetricNameWithStreamTags("test", baseTags)
+
 	t.Log("\ttype 'i' int32")
 	{
 		data := []byte(`{"test": {"_type": "i", "_value": 1}}`)
@@ -135,9 +142,9 @@ func TestParse(t *testing.T) {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 		m := metrics.FlushMetrics()
-		testMetric, ok := (*m)["testg`test"]
+		testMetric, ok := (*m)[metricName]
 		if !ok {
-			t.Fatalf("expected metric 'testg`test', %#v", m)
+			t.Fatalf("expected metric '%s', got (%v)", metricName, m)
 		}
 		if testMetric.Value.(int32) != int32(1) {
 			t.Fatalf("expected 1 got %v", testMetric.Value)
@@ -153,7 +160,7 @@ func TestParse(t *testing.T) {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 		m := metrics.FlushMetrics()
-		testMetric, ok := (*m)["testg`test"]
+		testMetric, ok := (*m)[metricName]
 		if !ok {
 			t.Fatalf("expected metric 'testg`test', %#v", m)
 		}
@@ -171,7 +178,7 @@ func TestParse(t *testing.T) {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 		m := metrics.FlushMetrics()
-		testMetric, ok := (*m)["testg`test"]
+		testMetric, ok := (*m)[metricName]
 		if !ok {
 			t.Fatalf("expected metric 'testg`test', %#v", m)
 		}
@@ -189,7 +196,7 @@ func TestParse(t *testing.T) {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 		m := metrics.FlushMetrics()
-		testMetric, ok := (*m)["testg`test"]
+		testMetric, ok := (*m)[metricName]
 		if !ok {
 			t.Fatalf("expected metric 'testg`test', %#v", m)
 		}
@@ -207,7 +214,7 @@ func TestParse(t *testing.T) {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 		m := metrics.FlushMetrics()
-		testMetric, ok := (*m)["testg`test"]
+		testMetric, ok := (*m)[metricName]
 		if !ok {
 			t.Fatalf("expected metric 'testg`test', %#v", m)
 		}
@@ -225,7 +232,7 @@ func TestParse(t *testing.T) {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 		m := metrics.FlushMetrics()
-		testMetric, ok := (*m)["testg`test"]
+		testMetric, ok := (*m)[metricName]
 		if !ok {
 			t.Fatalf("expected metric 'testg`test', %#v", m)
 		}
@@ -247,7 +254,7 @@ func TestParse(t *testing.T) {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 		m := metrics.FlushMetrics()
-		testMetric, ok := (*m)["testg`test"]
+		testMetric, ok := (*m)[metricName]
 		if !ok {
 			t.Fatalf("expected metric 'testg`test', %#v", m)
 		}
@@ -269,7 +276,7 @@ func TestParse(t *testing.T) {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 		m := metrics.FlushMetrics()
-		testMetric, ok := (*m)["testg`test"]
+		testMetric, ok := (*m)[metricName]
 		if !ok {
 			t.Fatalf("expected metric 'testg`test', %#v", m)
 		}
@@ -287,7 +294,7 @@ func TestParse(t *testing.T) {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 		m := metrics.FlushMetrics()
-		testMetric, ok := (*m)["testg`test"]
+		testMetric, ok := (*m)[metricName]
 		if !ok {
 			t.Fatalf("expected metric 'testg`test', %#v", m)
 		}
@@ -309,7 +316,7 @@ func TestParse(t *testing.T) {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 		m := metrics.FlushMetrics()
-		testMetric, ok := (*m)["testg`test"]
+		testMetric, ok := (*m)[metricName]
 		if !ok {
 			t.Fatalf("expected metric 'testg`test', %#v", m)
 		}
@@ -331,7 +338,7 @@ func TestParse(t *testing.T) {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 		m := metrics.FlushMetrics()
-		testMetric, ok := (*m)["testg`test"]
+		testMetric, ok := (*m)[metricName]
 		if !ok {
 			t.Fatalf("expected metric 'testg`test', %#v", m)
 		}
@@ -349,7 +356,7 @@ func TestParse(t *testing.T) {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 		m := metrics.FlushMetrics()
-		testMetric, ok := (*m)["testg`test"]
+		testMetric, ok := (*m)[metricName]
 		if ok {
 			t.Fatalf("expected no metric got, %#v", testMetric)
 		}
@@ -363,7 +370,13 @@ func TestParse(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		mn := "testg`test" + `|ST[b"YzE=":b"djE=",b"YzI=":b"djI="]`
+		var tagList tags.Tags
+		tagList = append(tagList, baseTags...)
+		tagList = append(tagList, tags.Tags{
+			tags.Tag{Category: "c1", Value: "v1"},
+			tags.Tag{Category: "c2", Value: "v2"},
+		}...)
+		mn := tags.MetricNameWithStreamTags("test", tagList)
 		m := metrics.FlushMetrics()
 		_, ok := (*m)[mn]
 		if !ok {
