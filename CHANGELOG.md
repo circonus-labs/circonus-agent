@@ -1,3 +1,11 @@
+# v1.0.0-alpha.4
+
+* testing release, not guaranteed to be feature complete
+* fix: tests to include default stream tags
+* fix: remove deprecated tests using metric states in builtins
+* upd: module dependencies
+* upd: go1.12.7
+
 # v1.0.0-alpha.3
 
 * testing release, not guaranteed to be feature complete
