@@ -94,18 +94,9 @@ func TestAddMetric(t *testing.T) {
 				t.Fatalf("expected (%s) got (%v)", expect, err)
 			}
 		}
-
-		if err := c.addMetric(&m, "", "foo", tags.Tags{}, "t", ""); err == nil {
-			t.Fatalf("expected error")
-		} else {
-			expect := "metric (foo) not active"
-			if err.Error() != expect {
-				t.Fatalf("expected (%s) got (%v)", expect, err)
-			}
-		}
 	}
 
-	t.Log("Testing valid states/submissions")
+	t.Log("Testing valid submissions")
 	{
 		c := &Prom{
 			metricNameRegex: regexp.MustCompile("[\r\n\"']"),
