@@ -5,7 +5,7 @@
 # defines VMs for developing/testing Circonus Agent
 #
 
-go_ver = '1.12'
+go_ver = '1.12.7'
 go_url_base = 'https://dl.google.com/go'
 agent_src_path = '/home/vagrant/godev/src/github.com/circonus-labs/circonus-agent'
 
