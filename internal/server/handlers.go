@@ -461,9 +461,7 @@ func (s *Server) metricsToPromFormat(w io.Writer, prefix string, ts int64, val i
 		for pfx, metric := range metrics {
 			name := prefix
 			if pfx != "" {
-				// switching to ONLY stream tags
-				_ = pfx
-				// name = strings.Join([]string{name, pfx}, config.MetricNameSeparator)
+				name = strings.Join([]string{name, pfx}, config.MetricNameSeparator)
 			}
 			s.metricsToPromFormat(w, name, ts, metric)
 		}

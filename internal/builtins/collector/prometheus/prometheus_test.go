@@ -6,7 +6,6 @@
 package prometheus
 
 import (
-	"encoding/base64"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -15,6 +14,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/circonus-labs/circonus-agent/internal/tags"
+	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/rs/zerolog"
 )
 
@@ -153,13 +154,23 @@ func TestCollect(t *testing.T) {
 	}
 
 	m := c.Flush()
-	numExpected := 22
+	numExpected := 21
 	if len(m) != numExpected {
 		t.Fatalf("expected %d metrics, got %d", numExpected, len(m))
 	}
 
+	// tags agent v1+ will add by default
+	baseTags := cgm.Tags{
+		cgm.Tag{Category: "collector", Value: "promfetch"},
+		cgm.Tag{Category: "prom_id", Value: "foo"},
+		cgm.Tag{Category: "source", Value: "circonus-agent"},
+	}
+
 	{
-		mn := "foo`test"
+		var tagList cgm.Tags
+		tagList = append(tagList, baseTags...)
+
+		mn := tags.MetricNameWithStreamTags("test", tagList)
 		testMetric, ok := m[mn]
 		if !ok {
 			t.Fatalf("expected metric '%s', %#v", mn, m)
@@ -172,12 +183,13 @@ func TestCollect(t *testing.T) {
 
 	{
 		// http_requests_total{method="post",code="400"}
-		mn := fmt.Sprintf(`%s|ST[b"%s":b"%s",b"%s":b"%s"]`,
-			"foo`http_requests_total",
-			base64.StdEncoding.EncodeToString([]byte("code")),
-			base64.StdEncoding.EncodeToString([]byte("400")),
-			base64.StdEncoding.EncodeToString([]byte("method")),
-			base64.StdEncoding.EncodeToString([]byte("post")))
+		var tagList cgm.Tags
+		tagList = append(tagList, baseTags...)
+		tagList = append(tagList, cgm.Tags{
+			cgm.Tag{Category: "code", Value: "400"},
+			cgm.Tag{Category: "method", Value: "post"},
+		}...)
+		mn := tags.MetricNameWithStreamTags("http_requests_total", tagList)
 		testMetric, ok := m[mn]
 		if !ok {
 			t.Fatalf("expected metric '%s', %#v", mn, m)
