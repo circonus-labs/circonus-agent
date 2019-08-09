@@ -36,7 +36,7 @@ Features of the COSI installed circonus-agent on Linux systems:
 * includes (if OS supports) [circonus-logwatch](https://github.com/circonus-labs/circonus-logwatch), no longer needs to be installed manually
 * includes OS/version/architecture-specific NAD plugins (non-javascript only) -- **Note:** the circonus-agent is **not** capable of using NAD _native plugins_ since they require NodeJS
 
-Supported Operating Systems (x86_64 and/or amd64):
+Operating Systems (x86_64 and/or amd64) supported by cosi:
 
 * RHEL7 (CentOS, RedHat, Oracle)
 * RHEL6 (CentOS, RedHat, amzn)
