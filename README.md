@@ -14,6 +14,10 @@ The circonus-agent is intended to be a drop-in replacement for NAD. There is, ho
     1. Fetch (see [Prometheus collector](https://github.com/circonus-labs/circonus-agent/blob/master/etc/README.md#prometheus-collector) for details)
     1. Extract HTTP `GET` of `/prom` endpoint will emit metrics in Prometheus format (e.g. `GET http://127.0.0.1:2609/prom`)
 
+# Releases
+
+[Releases](https://github.com/circonus-labs/circonus-agent/releases) provide pre-built binaries for Linux (arm and x86_64), FreeBSD (x86_64), Solaris (x86_64), and Windows (x86_64).
+
 # Install
 
 ## Automated via [cosi](https://github.com/circonus-labs/cosi-tool)
