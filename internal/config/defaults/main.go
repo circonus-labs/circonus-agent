@@ -192,6 +192,7 @@ func init() {
 		Collectors = []string{
 			"procfs/cpu",
 			"procfs/disk",
+			"generic/fs",
 			"procfs/if",
 			"procfs/load",
 			"procfs/proto",
