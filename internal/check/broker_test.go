@@ -11,6 +11,7 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/go-apiclient"
+	"github.com/gojuno/minimock/v3"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
@@ -24,6 +25,9 @@ func TestBrokerTLSConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parsing test url (%s)", err)
 	}
+
+	mc := minimock.NewController(t)
+	client := genMockClient(mc)
 
 	t.Log("cid (empty)")
 	{
@@ -53,7 +57,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 
 	t.Log("api error")
 	{
-		c := Check{client: genMockClient()}
+		c := Check{client: client}
 		_, err := c.brokerTLSConfig("/broker/000", rurl)
 		viper.Reset()
 
@@ -72,7 +76,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 			t.Fatalf("parsing test url (%s)", uerr)
 		}
 
-		c := Check{client: genMockClient()}
+		c := Check{client: client}
 		_, err := c.brokerTLSConfig("/broker/1234", badrurl)
 		viper.Reset()
 
@@ -86,7 +90,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 
 	t.Log("bad file cert")
 	{
-		c := Check{client: genMockClient()}
+		c := Check{client: client}
 		viper.Set(config.KeyReverseBrokerCAFile, "testdata/missingca.crt")
 		_, err := c.brokerTLSConfig("/broker/1234", rurl)
 		viper.Reset()
@@ -101,7 +105,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 
 	t.Log("valid w/file cert")
 	{
-		c := Check{client: genMockClient()}
+		c := Check{client: client}
 		viper.Set(config.KeyReverseBrokerCAFile, "testdata/ca.crt")
 		_, err := c.brokerTLSConfig("/broker/1234", rurl)
 		viper.Reset()
@@ -113,7 +117,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 
 	t.Log("valid w/api cert (full cid)")
 	{
-		c := Check{client: genMockClient()}
+		c := Check{client: client}
 		_, err := c.brokerTLSConfig("/broker/1234", rurl)
 		viper.Reset()
 
@@ -124,7 +128,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 
 	t.Log("valid w/api cert (# cid)")
 	{
-		c := Check{client: genMockClient()}
+		c := Check{client: client}
 		_, err := c.brokerTLSConfig("1234", rurl)
 		viper.Reset()
 

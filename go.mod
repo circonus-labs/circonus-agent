@@ -15,6 +15,7 @@ require (
 	github.com/circonus-labs/circonusllhist v0.1.3
 	github.com/circonus-labs/go-apiclient v0.6.4
 	github.com/go-ole/go-ole v1.2.4 // indirect
+	github.com/gojuno/minimock/v3 v3.0.0
 	github.com/hashicorp/go-retryablehttp v0.5.4 // indirect
 	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/maier/go-appstats v0.2.0

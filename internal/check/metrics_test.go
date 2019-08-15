@@ -10,6 +10,7 @@ import (
 
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/circonus-labs/go-apiclient"
+	"github.com/gojuno/minimock/v3"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -19,7 +20,9 @@ func TestGetFullCheckMetrics(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	client := genMockClient()
+	mc := minimock.NewController(t)
+	client := genMockClient(mc)
+
 	c := Check{bundle: &apiclient.CheckBundle{CID: ""}, client: client}
 
 	t.Log("api error")
@@ -65,7 +68,9 @@ func TestUpdateCheckBundleMetrics(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	client := genMockClient()
+	mc := minimock.NewController(t)
+	client := genMockClient(mc)
+
 	c := Check{bundle: &apiclient.CheckBundle{CID: ""}, client: client}
 
 	t.Log("nil metrics")

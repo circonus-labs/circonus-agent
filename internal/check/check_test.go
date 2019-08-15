@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/gojuno/minimock/v3"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
@@ -17,6 +18,9 @@ func TestFetchCheck(t *testing.T) {
 	t.Log("Testing fetchCheck")
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
+
+	mc := minimock.NewController(t)
+	client := genMockClient(mc)
 
 	t.Log("cid (empty)")
 	{
@@ -29,7 +33,7 @@ func TestFetchCheck(t *testing.T) {
 		viper.Set(config.KeyCheckBundleID, cid)
 		viper.Set(config.KeyCheckEnableNewMetrics, true)
 
-		c := Check{client: genMockClient()}
+		c := Check{client: client}
 
 		_, err := c.fetchCheck(cid)
 		if err == nil {
@@ -52,7 +56,7 @@ func TestFetchCheck(t *testing.T) {
 		viper.Set(config.KeyCheckBundleID, cid)
 		viper.Set(config.KeyCheckEnableNewMetrics, true)
 
-		c := Check{client: genMockClient()}
+		c := Check{client: client}
 
 		_, err := c.fetchCheck(cid)
 		if err == nil {
@@ -75,7 +79,7 @@ func TestFetchCheck(t *testing.T) {
 		viper.Set(config.KeyCheckBundleID, cid)
 		viper.Set(config.KeyCheckEnableNewMetrics, true)
 
-		c := Check{client: genMockClient()}
+		c := Check{client: client}
 
 		_, err := c.fetchCheck(cid)
 		if err == nil {
@@ -98,7 +102,7 @@ func TestFetchCheck(t *testing.T) {
 		viper.Set(config.KeyCheckBundleID, cid)
 		viper.Set(config.KeyCheckEnableNewMetrics, true)
 
-		c := Check{client: genMockClient()}
+		c := Check{client: client}
 
 		_, err := c.fetchCheck(cid)
 		if err != nil {
@@ -112,6 +116,9 @@ func TestFindCheck(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
+	mc := minimock.NewController(t)
+	client := genMockClient(mc)
+
 	t.Log("target (empty)")
 	{
 		viper.Reset()
@@ -123,7 +130,7 @@ func TestFindCheck(t *testing.T) {
 		viper.Set(config.KeyCheckTarget, target)
 		viper.Set(config.KeyCheckEnableNewMetrics, true)
 
-		c := Check{client: genMockClient()}
+		c := Check{client: client}
 
 		_, found, err := c.findCheck()
 		if err == nil {
@@ -149,7 +156,7 @@ func TestFindCheck(t *testing.T) {
 		viper.Set(config.KeyCheckTarget, target)
 		viper.Set(config.KeyCheckEnableNewMetrics, true)
 
-		c := Check{client: genMockClient()}
+		c := Check{client: client}
 
 		_, found, err := c.findCheck()
 		if err == nil {
@@ -175,7 +182,7 @@ func TestFindCheck(t *testing.T) {
 		viper.Set(config.KeyCheckTarget, target)
 		viper.Set(config.KeyCheckEnableNewMetrics, true)
 
-		c := Check{client: genMockClient()}
+		c := Check{client: client}
 
 		_, found, err := c.findCheck()
 		if err == nil {
@@ -201,7 +208,7 @@ func TestFindCheck(t *testing.T) {
 		viper.Set(config.KeyCheckTarget, target)
 		viper.Set(config.KeyCheckEnableNewMetrics, true)
 
-		c := Check{client: genMockClient()}
+		c := Check{client: client}
 
 		_, found, err := c.findCheck()
 		if err == nil {
@@ -227,7 +234,7 @@ func TestFindCheck(t *testing.T) {
 		viper.Set(config.KeyCheckTarget, target)
 		viper.Set(config.KeyCheckEnableNewMetrics, true)
 
-		c := Check{client: genMockClient()}
+		c := Check{client: client}
 
 		_, found, err := c.findCheck()
 		if err != nil {
@@ -244,6 +251,9 @@ func TestCreateCheck(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
+	mc := minimock.NewController(t)
+	client := genMockClient(mc)
+
 	t.Log("target (empty)")
 	{
 		viper.Reset()
@@ -255,7 +265,7 @@ func TestCreateCheck(t *testing.T) {
 		viper.Set(config.KeyCheckTarget, target)
 		viper.Set(config.KeyCheckEnableNewMetrics, true)
 
-		c := Check{client: genMockClient()}
+		c := Check{client: client}
 
 		_, err := c.createCheck()
 		if err == nil {
