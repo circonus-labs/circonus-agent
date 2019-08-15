@@ -84,17 +84,23 @@ type command struct {
 	start     time.Time
 }
 
-func init() {
-	n, err := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
-	if err != nil {
-		rand.Seed(time.Now().UTC().UnixNano())
-		return
-	}
-	rand.Seed(n.Int64())
-}
+// func init() {
+// 	n, err := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
+// 	if err != nil {
+// 		rand.Seed(time.Now().UTC().UnixNano())
+// 		return
+// 	}
+// 	rand.Seed(n.Int64())
+// }
 
 // New creates a new connection
 func New(ctx context.Context, check *check.Check, agentAddress string) (*Connection, error) {
+	if n, err := crand.Int(crand.Reader, big.NewInt(math.MaxInt64)); err == nil {
+		rand.Seed(n.Int64())
+	} else {
+		rand.Seed(time.Now().UTC().UnixNano())
+	}
+
 	const (
 		// NOTE: TBD, make some of these user-configurable
 		commTimeoutSeconds   = 10 // seconds, when communicating with noit
@@ -162,12 +168,12 @@ func (c *Connection) Start() error {
 		return nil
 	}
 
-	c.logger.Info().
-		Str("rev_host", c.revConfig.ReverseURL.Hostname()).
-		Str("rev_port", c.revConfig.ReverseURL.Port()).
-		Str("rev_path", c.revConfig.ReverseURL.Path).
-		Str("agent", c.agentAddress).
-		Msg("configuration")
+	// c.logger.Info().
+	// 	Str("rev_host", c.revConfig.ReverseURL.Hostname()).
+	// 	Str("rev_port", c.revConfig.ReverseURL.Port()).
+	// 	Str("rev_path", c.revConfig.ReverseURL.Path).
+	// 	Str("agent", c.agentAddress).
+	// 	Msg("configuration")
 
 	c.group.Go(c.startReverse)
 	go func() {
