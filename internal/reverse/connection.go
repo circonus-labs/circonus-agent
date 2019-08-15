@@ -21,6 +21,10 @@ import (
 // startReverse manages the actual reverse connection to the Circonus broker
 func (c *Connection) startReverse() error {
 	for {
+		if c.shutdown() {
+			return nil
+		}
+
 		conn, cerr := c.connect()
 		if cerr != nil {
 			if cerr.fatal {
@@ -28,10 +32,6 @@ func (c *Connection) startReverse() error {
 			}
 			c.logger.Warn().Err(cerr.err).Msg("retrying")
 			continue
-		}
-
-		if c.shutdown() {
-			return nil
 		}
 
 		done := make(chan interface{})
@@ -115,27 +115,31 @@ func (c *Connection) connect() (*tls.Conn, *connError) {
 				c.Unlock()
 				return nil, &connError{fatal: false, err: errors.Wrap(err, "refreshing check configuration")}
 			}
-			c.logger.Debug().Msg("setting reverse config")
-			rc, err := c.check.GetReverseConfig()
-			if err != nil {
-				c.Unlock()
-				return nil, &connError{fatal: true, err: errors.Wrap(err, "reconfiguring reverse connection")}
-			}
-			if rc == nil {
-				c.Unlock()
-				return nil, &connError{fatal: true, err: errors.New("invalid reverse configuration (nil)")}
-			}
-			c.revConfig = *rc
 			c.logger = log.With().Str("pkg", "reverse").Str("cid", viper.GetString(config.KeyCheckBundleID)).Logger()
-			c.logger.Info().
-				Str("rev_host", c.revConfig.ReverseURL.Hostname()).
-				Str("rev_port", c.revConfig.ReverseURL.Port()).
-				Str("rev_path", c.revConfig.ReverseURL.Path).
-				Str("agent", c.agentAddress).
-				Msg("reverse configuration")
+
+			// c.logger.Debug().Msg("setting reverse config")
+			// rc, err := c.check.GetReverseConfig()
+			// if err != nil {
+			// 	c.Unlock()
+			// 	return nil, &connError{fatal: true, err: errors.Wrap(err, "reconfiguring reverse connection")}
+			// }
+			// if rc == nil {
+			// 	c.Unlock()
+			// 	return nil, &connError{fatal: true, err: errors.New("invalid reverse configuration (nil)")}
+			// }
+			// c.revConfig = *rc
+			// c.logger.Info().
+			// 	Str("rev_host", c.revConfig.ReverseURL.Hostname()).
+			// 	Str("rev_port", c.revConfig.ReverseURL.Port()).
+			// 	Str("rev_path", c.revConfig.ReverseURL.Path).
+			// 	Str("agent", c.agentAddress).
+			// 	Msg("reverse configuration")
 		}
 	}
 	c.Unlock()
+
+	// get reverse config
+	// when to referesh which broker is responsible...
 
 	revHost := c.revConfig.ReverseURL.Host
 	c.logger.Debug().Str("host", revHost).Msg("connecting")
