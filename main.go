@@ -9,24 +9,8 @@ package main
 
 import (
 	"github.com/circonus-labs/circonus-agent/cmd"
-	"github.com/circonus-labs/circonus-agent/internal/release"
 )
 
 func main() {
 	cmd.Execute()
-}
-
-// defined during build (e.g. goreleaser, see .goreleaser.yml)
-var (
-	version = "dev"
-	commit  = "none"
-	date    = "unknown"
-	tag     = ""
-)
-
-func init() {
-	release.VERSION = version
-	release.COMMIT = commit
-	release.DATE = date
-	release.TAG = tag
 }
