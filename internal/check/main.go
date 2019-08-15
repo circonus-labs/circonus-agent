@@ -32,7 +32,9 @@ type Check struct {
 	statusActiveBroker    string
 	brokerMaxResponseTime time.Duration
 	brokerMaxRetries      int
+	checkConfig           *apiclient.Check
 	bundle                *apiclient.CheckBundle
+	broker                *apiclient.Broker
 	client                API
 	lastRefresh           time.Time
 	logger                zerolog.Logger
