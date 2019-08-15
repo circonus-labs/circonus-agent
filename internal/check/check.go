@@ -59,6 +59,26 @@ func (c *Check) initCheck(cid string, create bool) error {
 
 	c.bundle = bundle
 
+	// TODO: make RefreshCheckConfig method for code below
+	if len(bundle.Checks) == 0 {
+		return errors.New("check bundle has no checks")
+	}
+	check, err := c.client.FetchCheck(apiclient.CIDType(&bundle.Checks[0]))
+	if err != nil {
+		return errors.Wrapf(err, "unable to retrieve check (%s)", bundle.Checks[0])
+	}
+	c.checkConfig = check
+
+	// TODO: make RefreshBroker method for code below
+	if len(bundle.Brokers) == 0 {
+		return errors.New("check bundle has no brokers")
+	}
+	broker, err := c.client.FetchBroker(apiclient.CIDType(&bundle.Brokers[0]))
+	if err != nil {
+		return errors.Wrapf(err, "unable to retrieve broker (%s)", bundle.Brokers[0])
+	}
+	c.broker = broker
+
 	return nil
 }
 
