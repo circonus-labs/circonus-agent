@@ -197,7 +197,7 @@ func New(apiClient API) (*Check, error) {
 	return &c, nil
 }
 
-// CheckMeta returns check bundle id and check ids
+// CheckMeta returns check bundle id and check ids - used in http metric submission responses
 func (c *Check) CheckMeta() (*Meta, error) {
 	c.Lock()
 	defer c.Unlock()
@@ -218,7 +218,7 @@ func (c *Check) RefreshCheckConfig() error {
 
 	c.logger.Debug().Msg("refreshing check configuration using API")
 
-	b, err := c.fetchCheck(viper.GetString(config.KeyCheckBundleID))
+	b, err := c.fetchCheckBundle(viper.GetString(config.KeyCheckBundleID))
 	if err != nil {
 		return errors.Wrap(err, "refresh check, fetching check")
 	}

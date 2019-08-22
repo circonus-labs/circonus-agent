@@ -31,30 +31,30 @@ func (c *Check) initCheck(cid string, create bool) error {
 
 	// if explicit cid configured, attempt to fetch check bundle using cid
 	if cid != "" {
-		b, err := c.fetchCheck(cid)
+		b, err := c.fetchCheckBundle(cid)
 		if err != nil {
-			return errors.Wrapf(err, "fetching check for cid %s", cid)
+			return errors.Wrapf(err, "fetching check bundle for cid %s", cid)
 		}
 		bundle = b
 	} else {
 		// if no cid configured, attempt to find check bundle matching this system
-		b, found, err := c.findCheck()
+		b, found, err := c.findCheckBundle()
 		if err != nil {
 			if !create || found != 0 {
-				return errors.Wrap(err, "unable to find a check for this system")
+				return errors.Wrap(err, "unable to find a check bundle for this system")
 			}
-			c.logger.Info().Msg("no existing check found, creating")
+			c.logger.Info().Msg("no existing check bundle found, creating")
 			// attempt to create if not found and create flag ON
-			b, err = c.createCheck()
+			b, err = c.createCheckBundle()
 			if err != nil {
-				return errors.Wrap(err, "creating new check for this system")
+				return errors.Wrap(err, "creating new check bundle for this system")
 			}
 		}
 		bundle = b
 	}
 
 	if bundle == nil {
-		return errors.New("invalid Check object state, bundle is nil")
+		return errors.New("invalid Check bundle object state, bundle is nil")
 	}
 
 	c.bundle = bundle
@@ -82,7 +82,7 @@ func (c *Check) initCheck(cid string, create bool) error {
 	return nil
 }
 
-func (c *Check) fetchCheck(cid string) (*apiclient.CheckBundle, error) {
+func (c *Check) fetchCheckBundle(cid string) (*apiclient.CheckBundle, error) {
 	if cid == "" {
 		return nil, errors.New("invalid cid (empty)")
 	}
@@ -107,10 +107,10 @@ func (c *Check) fetchCheck(cid string) (*apiclient.CheckBundle, error) {
 	return bundle, nil
 }
 
-func (c *Check) findCheck() (*apiclient.CheckBundle, int, error) {
+func (c *Check) findCheckBundle() (*apiclient.CheckBundle, int, error) {
 	target := viper.GetString(config.KeyCheckTarget)
 	if target == "" {
-		return nil, -1, errors.New("invalid check target (empty)")
+		return nil, -1, errors.New("invalid check bundle target (empty)")
 	}
 
 	criteria := apiclient.SearchQueryType(fmt.Sprintf(`(active:1)(type:"json:nad")(target:"%s")`, target))
@@ -132,7 +132,7 @@ func (c *Check) findCheck() (*apiclient.CheckBundle, int, error) {
 	return &(*bundles)[0], found, nil
 }
 
-func (c *Check) createCheck() (*apiclient.CheckBundle, error) {
+func (c *Check) createCheckBundle() (*apiclient.CheckBundle, error) {
 
 	// parse the first listen address to use as the required
 	// URL in the check config
@@ -155,7 +155,7 @@ func (c *Check) createCheck() (*apiclient.CheckBundle, error) {
 
 	target := viper.GetString(config.KeyCheckTarget)
 	if target == "" {
-		return nil, errors.New("invalid check target (empty)")
+		return nil, errors.New("invalid check bundle target (empty)")
 	}
 
 	cfg := apiclient.NewCheckBundle()
@@ -174,7 +174,7 @@ func (c *Check) createCheck() (*apiclient.CheckBundle, error) {
 	if viper.GetString(config.KeyCheckMetricFilters) != "" {
 		var filters [][]string
 		if err := json.Unmarshal([]byte(viper.GetString(config.KeyCheckMetricFilters)), &filters); err != nil {
-			return nil, errors.Wrap(err, "parsing check metric filters")
+			return nil, errors.Wrap(err, "parsing check bundle metric filters")
 		}
 		cfg.MetricFilters = filters
 	}
@@ -188,7 +188,7 @@ func (c *Check) createCheck() (*apiclient.CheckBundle, error) {
 	if brokerCID == "" || strings.ToLower(brokerCID) == "select" {
 		broker, err := c.selectBroker("json:nad")
 		if err != nil {
-			return nil, errors.Wrap(err, "selecting broker to create check")
+			return nil, errors.Wrap(err, "selecting broker to create check bundle")
 		}
 
 		brokerCID = broker.CID

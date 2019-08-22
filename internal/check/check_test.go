@@ -14,8 +14,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-func TestFetchCheck(t *testing.T) {
-	t.Log("Testing fetchCheck")
+func TestFetchCheckBundle(t *testing.T) {
+	t.Log("Testing fetchCheckBundle")
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
@@ -35,7 +35,7 @@ func TestFetchCheck(t *testing.T) {
 
 		c := Check{client: client}
 
-		_, err := c.fetchCheck(cid)
+		_, err := c.fetchCheckBundle(cid)
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -58,7 +58,7 @@ func TestFetchCheck(t *testing.T) {
 
 		c := Check{client: client}
 
-		_, err := c.fetchCheck(cid)
+		_, err := c.fetchCheckBundle(cid)
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -81,7 +81,7 @@ func TestFetchCheck(t *testing.T) {
 
 		c := Check{client: client}
 
-		_, err := c.fetchCheck(cid)
+		_, err := c.fetchCheckBundle(cid)
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -104,15 +104,15 @@ func TestFetchCheck(t *testing.T) {
 
 		c := Check{client: client}
 
-		_, err := c.fetchCheck(cid)
+		_, err := c.fetchCheckBundle(cid)
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
 	}
 }
 
-func TestFindCheck(t *testing.T) {
-	t.Log("Testing findCheck")
+func TestFindCheckBundle(t *testing.T) {
+	t.Log("Testing findCheckBundle")
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
@@ -132,7 +132,7 @@ func TestFindCheck(t *testing.T) {
 
 		c := Check{client: client}
 
-		_, found, err := c.findCheck()
+		_, found, err := c.findCheckBundle()
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -140,7 +140,7 @@ func TestFindCheck(t *testing.T) {
 			t.Fatal("expected found == -1")
 		}
 
-		if err.Error() != "invalid check target (empty)" {
+		if err.Error() != "invalid check bundle target (empty)" {
 			t.Fatalf("unexpected error return (%s)", err)
 		}
 	}
@@ -158,7 +158,7 @@ func TestFindCheck(t *testing.T) {
 
 		c := Check{client: client}
 
-		_, found, err := c.findCheck()
+		_, found, err := c.findCheckBundle()
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -184,7 +184,7 @@ func TestFindCheck(t *testing.T) {
 
 		c := Check{client: client}
 
-		_, found, err := c.findCheck()
+		_, found, err := c.findCheckBundle()
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -210,7 +210,7 @@ func TestFindCheck(t *testing.T) {
 
 		c := Check{client: client}
 
-		_, found, err := c.findCheck()
+		_, found, err := c.findCheckBundle()
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -236,7 +236,7 @@ func TestFindCheck(t *testing.T) {
 
 		c := Check{client: client}
 
-		_, found, err := c.findCheck()
+		_, found, err := c.findCheckBundle()
 		if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
@@ -246,8 +246,8 @@ func TestFindCheck(t *testing.T) {
 	}
 }
 
-func TestCreateCheck(t *testing.T) {
-	t.Log("Testing createCheck")
+func TestCreateCheckBundle(t *testing.T) {
+	t.Log("Testing createCheckBundle")
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
@@ -267,12 +267,12 @@ func TestCreateCheck(t *testing.T) {
 
 		c := Check{client: client}
 
-		_, err := c.createCheck()
+		_, err := c.createCheckBundle()
 		if err == nil {
 			t.Fatal("expected error")
 		}
 
-		if err.Error() != "invalid check target (empty)" {
+		if err.Error() != "invalid check bundle target (empty)" {
 			t.Fatalf("unexpected error return (%s)", err)
 		}
 	}
