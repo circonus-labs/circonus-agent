@@ -6,274 +6,213 @@
 package check
 
 import (
+	"encoding/json"
+	"io/ioutil"
+	"strings"
 	"testing"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/gojuno/minimock/v3"
+	"github.com/circonus-labs/go-apiclient"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
 
-func TestFetchCheckBundle(t *testing.T) {
-	t.Log("Testing fetchCheckBundle")
+type pkicacert struct {
+	Contents string `json:"contents"`
+}
 
-	zerolog.SetGlobalLevel(zerolog.Disabled)
+var (
+	testCheckBundle apiclient.CheckBundle
+	testBroker      apiclient.Broker
+	cacert          pkicacert
+)
 
-	mc := minimock.NewController(t)
-	client := genMockClient(mc)
-
-	t.Log("cid (empty)")
-	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
-
-		cid := ""
-		viper.Set(config.KeyCheckBundleID, cid)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: client}
-
-		_, err := c.fetchCheckBundle(cid)
-		if err == nil {
-			t.Fatal("expected error")
-		}
-
-		if err.Error() != "invalid cid (empty)" {
-			t.Fatalf("unexpected error return (%s)", err)
+func init() {
+	if data, err := ioutil.ReadFile("testdata/check1234.json"); err != nil {
+		panic(err)
+	} else {
+		if err := json.Unmarshal(data, &testCheckBundle); err != nil {
+			panic(err)
 		}
 	}
 
-	t.Log("cid (abc)")
-	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
-
-		cid := "abc"
-		viper.Set(config.KeyCheckBundleID, cid)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: client}
-
-		_, err := c.fetchCheckBundle(cid)
-		if err == nil {
-			t.Fatal("expected error")
-		}
-
-		if err.Error() != "invalid cid (abc)" {
-			t.Fatalf("unexpected error return (%s)", err)
+	if data, err := ioutil.ReadFile("testdata/broker1234.json"); err != nil {
+		panic(err)
+	} else {
+		if err := json.Unmarshal(data, &testBroker); err != nil {
+			panic(err)
 		}
 	}
 
-	t.Log("api error")
-	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
-
-		cid := "000"
-		viper.Set(config.KeyCheckBundleID, cid)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: client}
-
-		_, err := c.fetchCheckBundle(cid)
-		if err == nil {
-			t.Fatal("expected error")
-		}
-
-		if err.Error() != "unable to retrieve check bundle (/check_bundle/000): forced mock api call error" {
-			t.Fatalf("unexpected error return (%s)", err)
-		}
-	}
-
-	t.Log("valid")
-	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
-
-		cid := "1234"
-		viper.Set(config.KeyCheckBundleID, cid)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: client}
-
-		_, err := c.fetchCheckBundle(cid)
-		if err != nil {
-			t.Fatalf("expected no error, got (%s)", err)
-		}
+	if data, err := ioutil.ReadFile("testdata/ca.crt"); err != nil {
+		panic(err)
+	} else {
+		cacert.Contents = string(data)
 	}
 }
 
-func TestFindCheckBundle(t *testing.T) {
-	t.Log("Testing findCheckBundle")
+func genMockClient(mc *minimock.Controller) *APIMock {
 
-	zerolog.SetGlobalLevel(zerolog.Disabled)
+	m := NewAPIMock(mc)
 
-	mc := minimock.NewController(t)
-	client := genMockClient(mc)
+	m.CreateCheckBundleMock.Set(func(cfg *apiclient.CheckBundle) (*apiclient.CheckBundle, error) {
+		panic("TODO: mock CreateCheckBundle method")
+	})
 
-	t.Log("target (empty)")
-	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
-
-		target := ""
-		viper.Set(config.KeyCheckTarget, target)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: client}
-
-		_, found, err := c.findCheckBundle()
-		if err == nil {
-			t.Fatal("expected error")
+	m.FetchBrokerMock.Set(func(cid apiclient.CIDType) (*apiclient.Broker, error) {
+		switch *cid {
+		case "/broker/000":
+			return nil, errors.New("forced mock api call error")
+		case "/broker/123":
+			return &apiclient.Broker{
+				CID:  "/broker/123",
+				Name: "foo",
+				Type: "xxx",
+				Details: []apiclient.BrokerDetail{
+					{
+						Status:  "active",
+						Modules: []string{"abc", "selfcheck", "hidden:abc123", "abcdef", "abcdefghi", "abcdefghijkl", "abcdefghijklmnopqrstu"},
+					},
+					{
+						Status: "foobar",
+					},
+				},
+			}, nil
+		case "/broker/456":
+			return &apiclient.Broker{
+				CID:  "/broker/456",
+				Name: "bar",
+				Type: "yyy",
+				Details: []apiclient.BrokerDetail{
+					{
+						Status: "foobar",
+					},
+				},
+			}, nil
+		case "/broker/1234":
+			return &testBroker, nil
+		default:
+			return nil, errors.Errorf("bad broker request cid (%s)", *cid)
 		}
-		if found != -1 {
-			t.Fatal("expected found == -1")
+	})
+
+	m.FetchBrokersMock.Return(&[]apiclient.Broker{
+		{CID: "/broker/123", Name: "foo", Type: "circonus"},
+		{CID: "/broker/456", Name: "bar", Type: "enterprise"},
+		{CID: "/broker/789", Name: "baz", Type: "circonus"},
+	}, nil)
+
+	m.FetchCheckMock.Set(func(cid apiclient.CIDType) (*apiclient.Check, error) {
+		panic("TODO: mock FetchCheck method")
+	})
+
+	m.FetchCheckBundleMock.Set(func(cid apiclient.CIDType) (*apiclient.CheckBundle, error) {
+		switch *cid {
+		case "/check_bundle/000":
+			return nil, errors.New("forced mock api call error")
+		case "/check_bundle/0002":
+			x := testCheckBundle
+			x.CID = *cid
+			return &x, nil
+		case "/check_bundle/1234":
+			return &testCheckBundle, nil
+		default:
+			return nil, errors.Errorf("bad request cid (%s)", *cid)
 		}
+	})
 
-		if err.Error() != "invalid check bundle target (empty)" {
-			t.Fatalf("unexpected error return (%s)", err)
+	m.FetchCheckBundleMetricsMock.Set(func(cid apiclient.CIDType) (*apiclient.CheckBundleMetrics, error) {
+		panic("TODO: mock FetchCheckBundleMetrics method")
+	})
+
+	m.GetMock.Set(func(url string) ([]byte, error) {
+		switch url {
+		case "/pki/ca.crt":
+			ret, err := json.Marshal(cacert)
+			if err != nil {
+				panic(err)
+			}
+			return ret, nil
+		case "/check_bundle_metrics/000?query_broker=1":
+			return nil, errors.New("forced mock api call error")
+		case "/check_bundle_metrics/0001?query_broker=1":
+			return []byte("{"), nil
+		case "/check_bundle_metrics/1234?query_broker=1":
+			m := apiclient.CheckBundleMetrics{
+				CID: "/check_bundle_metrics/1234",
+				Metrics: []apiclient.CheckBundleMetric{
+					{Name: "foo", Type: "n", Status: "active"},
+				},
+			}
+			data, err := json.Marshal(m)
+			if err != nil {
+				panic(err)
+			}
+			return data, nil
+		default:
+			return nil, errors.Errorf("bad apiclient.Get(%s), no handler for url", url)
 		}
-	}
+	})
 
-	t.Log("api error")
-	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
-
-		target := "000"
-		viper.Set(config.KeyCheckTarget, target)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: client}
-
-		_, found, err := c.findCheckBundle()
-		if err == nil {
-			t.Fatal("expected error")
+	m.SearchCheckBundlesMock.Set(func(searchCriteria *apiclient.SearchQueryType, filterCriteria *apiclient.SearchFilterType) (*[]apiclient.CheckBundle, error) {
+		if strings.Contains(string(*searchCriteria), `target:"000"`) {
+			return nil, errors.New("forced mock api call error")
 		}
-		if found != -1 {
-			t.Fatal("expected found == -1")
+		if strings.Contains(string(*searchCriteria), `target:"not_found"`) {
+			return &[]apiclient.CheckBundle{}, nil
 		}
-
-		if err.Error() != "searching for check bundle: forced mock api call error" {
-			t.Fatalf("unexpected error return (%s)", err)
+		if strings.Contains(string(*searchCriteria), `target:"multiple"`) {
+			return &[]apiclient.CheckBundle{testCheckBundle, testCheckBundle}, nil
 		}
-	}
-
-	t.Log("not found")
-	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
-
-		target := "not_found"
-		viper.Set(config.KeyCheckTarget, target)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: client}
-
-		_, found, err := c.findCheckBundle()
-		if err == nil {
-			t.Fatal("expected error")
+		if strings.Contains(string(*searchCriteria), `target:"valid"`) {
+			return &[]apiclient.CheckBundle{testCheckBundle}, nil
 		}
-		if found != 0 {
-			t.Fatal("expected found == 0")
+		return nil, errors.Errorf("don't know what to do with search criteria (%s)", string(*searchCriteria))
+	})
+
+	m.UpdateCheckBundleMock.Set(func(cfg *apiclient.CheckBundle) (*apiclient.CheckBundle, error) {
+		switch cfg.CID {
+		case "/check_bundle/1234":
+			return cfg, nil
+		case "/check_bundle/0002":
+			return nil, errors.New("api update check bundle error")
+		default:
+			return nil, errors.Errorf("add handler for %s", cfg.CID)
 		}
+	})
 
-		if err.Error() != `no check bundles matched criteria ((active:1)(type:"json:nad")(target:"not_found"))` {
-			t.Fatalf("unexpected error return (%s)", err)
-		}
-	}
+	m.UpdateCheckBundleMetricsMock.Set(func(cfg *apiclient.CheckBundleMetrics) (*apiclient.CheckBundleMetrics, error) {
+		panic("TODO: mock UpdateCheckBundleMetrics method")
+	})
 
-	t.Log("multiple")
-	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
-
-		target := "multiple"
-		viper.Set(config.KeyCheckTarget, target)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: client}
-
-		_, found, err := c.findCheckBundle()
-		if err == nil {
-			t.Fatal("expected error")
-		}
-		if found != 2 {
-			t.Fatal("expected found == 2")
-		}
-
-		if err.Error() != `more than one (2) check bundle matched criteria ((active:1)(type:"json:nad")(target:"multiple"))` {
-			t.Fatalf("unexpected error return (%s)", err)
-		}
-	}
-
-	t.Log("valid")
-	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
-
-		target := "valid"
-		viper.Set(config.KeyCheckTarget, target)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: client}
-
-		_, found, err := c.findCheckBundle()
-		if err != nil {
-			t.Fatalf("expected no error, got (%s)", err)
-		}
-		if found != 1 {
-			t.Fatal("expected found == 1")
-		}
-	}
+	return m
 }
 
-func TestCreateCheckBundle(t *testing.T) {
-	t.Log("Testing createCheckBundle")
+//
+// start actual tests for methods in main
+//
+
+func TestNew(t *testing.T) {
+	t.Log("Testing New")
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	mc := minimock.NewController(t)
-	client := genMockClient(mc)
-
-	t.Log("target (empty)")
+	t.Log("check not needed")
 	{
 		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
+		viper.Set(config.KeyCheckBundleID, "")
+		viper.Set(config.KeyCheckCreate, false)
+		viper.Set(config.KeyCheckEnableNewMetrics, false)
+		viper.Set(config.KeyReverse, false)
+		viper.Set(config.KeyAPITokenKey, "")
+		viper.Set(config.KeyAPITokenApp, "")
+		viper.Set(config.KeyAPIURL, "")
 
-		target := ""
-		viper.Set(config.KeyCheckTarget, target)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: client}
-
-		_, err := c.createCheckBundle()
-		if err == nil {
-			t.Fatal("expected error")
-		}
-
-		if err.Error() != "invalid check bundle target (empty)" {
-			t.Fatalf("unexpected error return (%s)", err)
+		_, err := New(nil)
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
 		}
 	}
 }

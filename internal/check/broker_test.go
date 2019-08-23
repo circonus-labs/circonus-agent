@@ -21,18 +21,18 @@ func TestBrokerTLSConfig(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
+	mc := minimock.NewController(t)
+	client := genMockClient(mc)
+
 	rurl, err := url.Parse("http://127.0.0.1:1234/")
 	if err != nil {
 		t.Fatalf("parsing test url (%s)", err)
 	}
 
-	mc := minimock.NewController(t)
-	client := genMockClient(mc)
-
 	t.Log("cid (empty)")
 	{
 		c := Check{}
-		_, err := c.brokerTLSConfig("", rurl)
+		_, _, err := c.brokerTLSConfig("", rurl)
 
 		if err == nil {
 			t.Fatal("expected error")
@@ -45,7 +45,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 	t.Log("cid (invalid)")
 	{
 		c := Check{}
-		_, err := c.brokerTLSConfig("foo", rurl)
+		_, _, err := c.brokerTLSConfig("foo", rurl)
 
 		if err == nil {
 			t.Fatal("expected error")
@@ -58,7 +58,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 	t.Log("api error")
 	{
 		c := Check{client: client}
-		_, err := c.brokerTLSConfig("/broker/000", rurl)
+		_, _, err := c.brokerTLSConfig("/broker/000", rurl)
 		viper.Reset()
 
 		if err == nil {
@@ -77,7 +77,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 		}
 
 		c := Check{client: client}
-		_, err := c.brokerTLSConfig("/broker/1234", badrurl)
+		_, _, err := c.brokerTLSConfig("/broker/1234", badrurl)
 		viper.Reset()
 
 		if err == nil {
@@ -92,7 +92,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 	{
 		c := Check{client: client}
 		viper.Set(config.KeyReverseBrokerCAFile, "testdata/missingca.crt")
-		_, err := c.brokerTLSConfig("/broker/1234", rurl)
+		_, _, err := c.brokerTLSConfig("/broker/1234", rurl)
 		viper.Reset()
 
 		if err == nil {
@@ -107,7 +107,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 	{
 		c := Check{client: client}
 		viper.Set(config.KeyReverseBrokerCAFile, "testdata/ca.crt")
-		_, err := c.brokerTLSConfig("/broker/1234", rurl)
+		_, _, err := c.brokerTLSConfig("/broker/1234", rurl)
 		viper.Reset()
 
 		if err != nil {
@@ -118,7 +118,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 	t.Log("valid w/api cert (full cid)")
 	{
 		c := Check{client: client}
-		_, err := c.brokerTLSConfig("/broker/1234", rurl)
+		_, _, err := c.brokerTLSConfig("/broker/1234", rurl)
 		viper.Reset()
 
 		if err != nil {
@@ -129,7 +129,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 	t.Log("valid w/api cert (# cid)")
 	{
 		c := Check{client: client}
-		_, err := c.brokerTLSConfig("1234", rurl)
+		_, _, err := c.brokerTLSConfig("1234", rurl)
 		viper.Reset()
 
 		if err != nil {

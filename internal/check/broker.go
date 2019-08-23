@@ -26,9 +26,9 @@ import (
 )
 
 // brokerTLSConfig returns the correct TLS configuration for the broker
-func (c *Check) brokerTLSConfig(cid string, reverseURL *url.URL) (*tls.Config, error) {
+func (c *Check) brokerTLSConfig(cid string, reverseURL *url.URL) (*tls.Config, string, error) {
 	if cid == "" {
-		return nil, errors.New("invalid broker cid (empty)")
+		return nil, "", errors.New("invalid broker cid (empty)")
 	}
 
 	bcid := cid
@@ -38,25 +38,25 @@ func (c *Check) brokerTLSConfig(cid string, reverseURL *url.URL) (*tls.Config, e
 	}
 
 	if ok, _ := regexp.MatchString(`^/broker/[0-9]+$`, bcid); !ok {
-		return nil, errors.Errorf("invalid broker cid (%s)", cid)
+		return nil, "", errors.Errorf("invalid broker cid (%s)", cid)
 	}
 
 	broker, err := c.client.FetchBroker(apiclient.CIDType(&bcid))
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to retrieve broker (%s)", cid)
+		return nil, "", errors.Wrapf(err, "unable to retrieve broker (%s)", cid)
 	}
 
 	cn, err := c.getBrokerCN(broker, reverseURL)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	cert, err := c.fetchBrokerCA()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	cp := x509.NewCertPool()
 	if !cp.AppendCertsFromPEM(cert) {
-		return nil, errors.New("unable to add Broker CA Certificate to x509 cert pool")
+		return nil, "", errors.New("unable to add Broker CA Certificate to x509 cert pool")
 	}
 
 	tlsConfig := &tls.Config{
@@ -66,7 +66,7 @@ func (c *Check) brokerTLSConfig(cid string, reverseURL *url.URL) (*tls.Config, e
 
 	c.logger.Debug().Str("CN", cn).Msg("setting tls CN")
 
-	return tlsConfig, nil
+	return tlsConfig, cn, nil
 }
 
 func (c *Check) getBrokerCN(broker *apiclient.Broker, reverseURL *url.URL) (string, error) {
@@ -158,16 +158,18 @@ func (c *Check) selectBroker(checkType string) (*apiclient.Broker, error) {
 		if !ok {
 			continue
 		}
-
-		switch {
-		case dur > threshold:
+		if dur > threshold {
 			continue
-		case dur == threshold:
+		}
+
+		if dur == threshold {
 			validBrokers[broker.CID] = broker
-		case dur < threshold:
+		} else if dur < threshold {
+			// we're looking for the 'fastest' valid broker
+			// reset threshold and list when duration less than threshold
+			threshold = dur
 			validBrokers = make(map[string]apiclient.Broker)
 			haveEnterprise = false
-			threshold = dur
 			validBrokers[broker.CID] = broker
 		}
 
