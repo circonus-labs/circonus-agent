@@ -158,18 +158,20 @@ func (c *Check) selectBroker(checkType string) (*apiclient.Broker, error) {
 		if !ok {
 			continue
 		}
-		if dur > threshold {
-			continue
-		}
 
-		if dur == threshold {
+		switch {
+		case dur > threshold:
+			continue
+		case dur == threshold:
 			validBrokers[broker.CID] = broker
-		} else if dur < threshold {
-			// we're looking for the 'fastest' valid broker
-			// reset threshold and list when duration less than threshold
-			threshold = dur
-			validBrokers = make(map[string]apiclient.Broker)
+		case dur < threshold:
+			if len(validBrokers) > 0 {
+				// we want the fastest broker(s), reset list if any
+				// slower brokers were already added
+				validBrokers = make(map[string]apiclient.Broker)
+			}
 			haveEnterprise = false
+			threshold = dur
 			validBrokers[broker.CID] = broker
 		}
 
