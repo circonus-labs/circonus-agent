@@ -5,7 +5,9 @@
 
 package check
 
-import "github.com/circonus-labs/go-apiclient"
+import (
+	"github.com/circonus-labs/go-apiclient"
+)
 
 // API interface abstraction of circonus api (for mocking)
 type API interface {
