@@ -21,14 +21,14 @@ import (
 type Reverse struct {
 	agentAddress string
 	configs      *check.ReverseConfigs
-	checkBundle  *check.Check
+	chk          *check.Check
 	enabled      bool
 	logger       zerolog.Logger
 }
 
-func New(parentLogger zerolog.Logger, checkBundle *check.Check, agentAddress string) (*Reverse, error) {
-	if checkBundle == nil {
-		return nil, errors.New("invalid checkBundle (nil")
+func New(parentLogger zerolog.Logger, chk *check.Check, agentAddress string) (*Reverse, error) {
+	if chk == nil {
+		return nil, errors.New("invalid check (nil")
 	}
 	if agentAddress == "" {
 		return nil, errors.New("invalid agent address (empty)")
@@ -36,11 +36,11 @@ func New(parentLogger zerolog.Logger, checkBundle *check.Check, agentAddress str
 
 	r := &Reverse{
 		agentAddress: agentAddress,
-		checkBundle:  checkBundle,
+		chk:          chk,
 		enabled:      viper.GetBool(config.KeyReverse),
 	}
 
-	cfgs, err := r.checkBundle.GetReverseConfigs()
+	cfgs, err := r.chk.GetReverseConfigs()
 	if err != nil {
 		return nil, errors.Wrap(err, "getting reverse configurations")
 	}
@@ -81,8 +81,8 @@ func (r *Reverse) Start(ctx context.Context) error {
 
 		if refreshCheck {
 			r.logger.Debug().Msg("refreshing check")
-			if err := r.checkBundle.RefreshCheckConfig(); err != nil {
-				if cberr, ok := errors.Cause(err).(*check.BundleNotActiveError); ok {
+			if err := r.chk.FetchCheckConfig(); err != nil {
+				if cberr, ok := errors.Cause(err).(*check.ErrNotActive); ok {
 					r.logger.Error().Err(cberr).Msg("exiting reverse")
 					cancel()
 					return err
@@ -90,8 +90,13 @@ func (r *Reverse) Start(ctx context.Context) error {
 				r.logger.Error().Err(err).Msg("refreshing check")
 				continue
 			}
+			if err := r.chk.FetchBrokerConfig(); err != nil {
+				r.logger.Error().Err(err).Msg("exiting reverse")
+				cancel()
+				return err
+			}
 
-			cfgs, err := r.checkBundle.GetReverseConfigs()
+			cfgs, err := r.chk.GetReverseConfigs()
 			if err != nil {
 				cancel()
 				return errors.Wrap(err, "getting reverse configurations")
@@ -101,9 +106,9 @@ func (r *Reverse) Start(ctx context.Context) error {
 		}
 
 		r.logger.Debug().Msg("find primary broker instance")
-		primaryCN, err := r.checkBundle.FindPrimaryBrokerInstance(r.configs)
+		primaryCN, err := r.chk.FindPrimaryBrokerInstance(r.configs)
 		if err != nil {
-			if nferr, ok := errors.Cause(err).(*check.NoOwnerFoundError); ok {
+			if nferr, ok := errors.Cause(err).(*check.ErrNoOwnerFound); ok {
 				r.logger.Warn().Err(nferr).Msg("refreshing check bundle configuration")
 				refreshCheck = true
 				continue

@@ -46,14 +46,14 @@ type Bundle struct {
 
 var ErrUninitialized = errors.New("uninitialized check bundle")
 
-type BundleNotActiveError struct {
+type ErrNotActive struct {
 	Err      string
 	Checks   string
 	BundleID string
 	Status   string
 }
 
-func (e *BundleNotActiveError) Error() string {
+func (e *ErrNotActive) Error() string {
 	if e == nil {
 		return "<nil>"
 	}
@@ -305,7 +305,7 @@ func (cb *Bundle) initCheckBundle(cid string, create bool) error {
 	}
 
 	if bundle.Status != StatusActive {
-		return &BundleNotActiveError{
+		return &ErrNotActive{
 			Err:      "not active",
 			BundleID: bundle.CID,
 			Checks:   strings.Join(bundle.Checks, ", "),
@@ -337,7 +337,7 @@ func (cb *Bundle) fetchCheckBundle(cid string) (*apiclient.CheckBundle, error) {
 	}
 
 	if bundle.Status != StatusActive {
-		return nil, &BundleNotActiveError{
+		return nil, &ErrNotActive{
 			Err:      "not active",
 			BundleID: bundle.CID,
 			Checks:   strings.Join(bundle.Checks, ", "),

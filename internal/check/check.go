@@ -60,14 +60,18 @@ const (
 	PrimaryCheckIndex = 0
 )
 
-type BundleNotActiveError struct {
-	Err      string
-	Checks   string
-	BundleID string
-	Status   string
+type ErrNoOwnerFound struct {
+	Err     string
+	CheckID string
 }
 
-func (e *BundleNotActiveError) Error() string {
+type ErrNotActive struct {
+	Err      string
+	CheckID  string
+	BundleID string
+}
+
+func (e *ErrNotActive) Error() string {
 	if e == nil {
 		return "<nil>"
 	}
@@ -75,21 +79,13 @@ func (e *BundleNotActiveError) Error() string {
 	if e.BundleID != "" {
 		s = s + "Bundle: " + e.BundleID + " "
 	}
-	if e.Checks != "" {
-		s = s + "Check(s): " + e.Checks + " "
-	}
-	if e.Status != "" {
-		s = s + "(" + e.Status + ")"
+	if e.CheckID != "" {
+		s = s + "Check: " + e.CheckID + " "
 	}
 	return s
 }
 
-type NoOwnerFoundError struct {
-	Err     string
-	CheckID string
-}
-
-func (e *NoOwnerFoundError) Error() string {
+func (e *ErrNoOwnerFound) Error() string {
 	if e == nil {
 		return "<nil>"
 	}
@@ -228,7 +224,11 @@ func (c *Check) FetchCheckConfig() error {
 	}
 	c.checkConfig = check
 	if !check.Active {
-		return errors.Errorf("check (%s) is not active", check.CID)
+		return &ErrNotActive{
+			Err:      "check is not active",
+			BundleID: check.CheckBundleCID,
+			CheckID:  check.CID,
+		}
 	}
 
 	return nil

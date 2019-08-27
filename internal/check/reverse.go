@@ -154,7 +154,10 @@ func (c *Check) FindPrimaryBrokerInstance(cfgs *ReverseConfigs) (string, error) 
 	}
 
 	if primaryCN == "" {
-		return "", &NoOwnerFoundError{Err: "unable to locate check owner broker instance", CheckID: c.checkConfig.CID}
+		return "", &ErrNoOwnerFound{
+			Err:     "unable to locate check owner broker instance",
+			CheckID: c.checkConfig.CID,
+		}
 	}
 
 	c.logger.Debug().Str("cn", primaryCN).Msg("check owner broker instance")
