@@ -18,7 +18,6 @@ import (
 	"syscall"
 
 	"github.com/alecthomas/units"
-	"github.com/rs/zerolog/log"
 )
 
 func (a *Agent) signalNotifySetup() {
@@ -35,7 +34,7 @@ func (a *Agent) handleSignals() error {
 	for {
 		select {
 		case sig := <-a.signalCh:
-			log.Info().Str("signal", sig.String()).Msg("received signal")
+			a.logger.Info().Str("signal", sig.String()).Msg("received signal")
 			switch sig {
 			case os.Interrupt, syscall.SIGTERM:
 				a.Stop()
@@ -45,7 +44,7 @@ func (a *Agent) handleSignals() error {
 				stacklen := runtime.Stack(buf, true)
 				fmt.Printf("=== received SIGTRAP ===\n*** goroutine dump...\n%s\n*** end\n", buf[:stacklen])
 			default:
-				log.Warn().Str("signal", sig.String()).Msg("unsupported")
+				a.logger.Warn().Str("signal", sig.String()).Msg("unsupported")
 			}
 		case <-a.groupCtx.Done():
 			return nil
