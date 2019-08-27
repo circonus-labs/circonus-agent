@@ -61,3 +61,7 @@ package/publish/*.rpm
 package/publish/*.deb
 package/publish/*.tgz
 package/rhel/circonus-agent.spec
+
+# wip dirs
+internal/check-orig
+internal/reverse-orig
