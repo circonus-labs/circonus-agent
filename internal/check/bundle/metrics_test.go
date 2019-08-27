@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 //
 
-package check
+package bundle
 
 import (
 	"testing"
@@ -23,7 +23,7 @@ func TestGetFullCheckMetrics(t *testing.T) {
 	mc := minimock.NewController(t)
 	client := genMockClient(mc)
 
-	c := Check{bundle: &apiclient.CheckBundle{CID: ""}, client: client}
+	c := Bundle{bundle: &apiclient.CheckBundle{CID: ""}, client: client}
 
 	t.Log("api error")
 	{
@@ -70,7 +70,7 @@ func TestUpdateCheckBundleMetrics(t *testing.T) {
 
 	mc := minimock.NewController(t)
 	client := genMockClient(mc)
-	c := Check{bundle: &apiclient.CheckBundle{CID: ""}, client: client}
+	c := Bundle{bundle: &apiclient.CheckBundle{CID: ""}, client: client}
 
 	t.Log("nil metrics")
 	{
@@ -144,7 +144,7 @@ func TestConfigMetric(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	c := Check{logger: log.Logger}
+	c := Bundle{logger: log.Logger}
 	cases := []struct {
 		desc string
 		mn   string

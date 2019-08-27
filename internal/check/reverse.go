@@ -12,39 +12,25 @@ import (
 	"strings"
 	"time"
 
-	"github.com/circonus-labs/go-apiclient"
 	"github.com/pkg/errors"
 )
 
 func (c *Check) setReverseConfigs() error {
 	c.revConfigs = nil
-
-	if len(c.bundle.ReverseConnectURLs) == 0 {
-		return errors.New("no reverse URLs found in check bundle")
+	if c.broker == nil {
+		return errors.New("broker is uninitialized")
+	}
+	if c.checkConfig == nil {
+		return errors.New("check is uninitialized")
 	}
 
-	// set the check broker
-	if len(c.bundle.Brokers) == 0 {
-		return errors.New("no brokers found in check bundle")
+	if len(c.checkConfig.ReverseURLs) == 0 {
+		return errors.New("no reverse URLs found in check")
 	}
-	brokerID := c.bundle.Brokers[0]
-
-	c.broker = nil
-	broker, err := c.client.FetchBroker(apiclient.CIDType(&brokerID))
-	if err != nil {
-		return errors.Wrapf(err, "unable to retrieve broker (%s)", brokerID)
-	}
-	c.broker = broker
 
 	cfgs := make(ReverseConfigs)
 
-	for _, rURL := range c.bundle.ReverseConnectURLs {
-		rSecret := c.bundle.Config["reverse:secret_key"]
-
-		if rSecret != "" {
-			rURL += "#" + rSecret
-		}
-
+	for _, rURL := range c.checkConfig.ReverseURLs {
 		// Replace protocol, url.Parse does not understand 'mtev_reverse'.
 		// Important part is validating what's after 'proto://'.
 		// Using raw tls connections, the url protocol is not germane.
@@ -58,15 +44,15 @@ func (c *Check) setReverseConfigs() error {
 			return errors.Wrapf(err, "invalid reverse service address (%s)", rURL)
 		}
 
-		tlsConfig, cn, err := c.brokerTLSConfig(brokerID, reverseURL)
+		tlsConfig, cn, err := c.brokerTLSConfig(reverseURL)
 		if err != nil {
-			return errors.Wrapf(err, "creating TLS config for (%s - %s)", brokerID, rURL)
+			return errors.Wrapf(err, "creating TLS config for (%s - %s)", c.broker.CID, rURL)
 		}
 
 		cfgs[cn] = ReverseConfig{
 			CN:         cn,
 			ReverseURL: reverseURL,
-			BrokerID:   brokerID,
+			BrokerID:   c.broker.CID,
 			BrokerAddr: brokerAddr,
 			TLSConfig:  tlsConfig,
 		}
@@ -168,7 +154,7 @@ func (c *Check) FindPrimaryBrokerInstance(cfgs *ReverseConfigs) (string, error) 
 	}
 
 	if primaryCN == "" {
-		return "", &NoOwnerFoundError{Err: "unable to locate check owner broker instance", BundleID: c.bundle.CID}
+		return "", &NoOwnerFoundError{Err: "unable to locate check owner broker instance", CheckID: c.checkConfig.CID}
 	}
 
 	c.logger.Debug().Str("cn", primaryCN).Msg("check owner broker instance")

@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 //
 
-package check
+package bundle
 
 import (
 	"testing"
@@ -19,21 +19,20 @@ func TestFetchCheck(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
+	viper.Reset()
+	viper.Set(config.KeyAPITokenKey, "foo")
+	viper.Set(config.KeyAPITokenApp, "bar")
+	viper.Set(config.KeyAPIURL, "baz")
+
 	mc := minimock.NewController(t)
 	client := genMockClient(mc)
+	c := Bundle{client: client}
 
 	t.Log("cid (empty)")
 	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
-
 		cid := ""
 		viper.Set(config.KeyCheckBundleID, cid)
 		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: client}
 
 		_, err := c.fetchCheckBundle(cid)
 		if err == nil {
@@ -47,16 +46,9 @@ func TestFetchCheck(t *testing.T) {
 
 	t.Log("cid (abc)")
 	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
-
 		cid := "abc"
 		viper.Set(config.KeyCheckBundleID, cid)
 		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: client}
 
 		_, err := c.fetchCheckBundle(cid)
 		if err == nil {
@@ -70,16 +62,9 @@ func TestFetchCheck(t *testing.T) {
 
 	t.Log("api error")
 	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
-
 		cid := "000"
 		viper.Set(config.KeyCheckBundleID, cid)
 		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: client}
 
 		_, err := c.fetchCheckBundle(cid)
 		if err == nil {
@@ -93,16 +78,9 @@ func TestFetchCheck(t *testing.T) {
 
 	t.Log("valid")
 	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
-
 		cid := "1234"
 		viper.Set(config.KeyCheckBundleID, cid)
 		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: client}
 
 		_, err := c.fetchCheckBundle(cid)
 		if err != nil {
@@ -116,21 +94,21 @@ func TestFindCheck(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
+	viper.Reset()
+	viper.Set(config.KeyAPITokenKey, "foo")
+	viper.Set(config.KeyAPITokenApp, "bar")
+	viper.Set(config.KeyAPIURL, "baz")
+
 	mc := minimock.NewController(t)
 	client := genMockClient(mc)
+	c := Bundle{client: client}
 
 	t.Log("target (empty)")
 	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
 
 		target := ""
 		viper.Set(config.KeyCheckTarget, target)
 		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: client}
 
 		_, found, err := c.findCheckBundle()
 		if err == nil {
@@ -147,16 +125,9 @@ func TestFindCheck(t *testing.T) {
 
 	t.Log("api error")
 	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
-
 		target := "000"
 		viper.Set(config.KeyCheckTarget, target)
 		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: client}
 
 		_, found, err := c.findCheckBundle()
 		if err == nil {
@@ -173,16 +144,9 @@ func TestFindCheck(t *testing.T) {
 
 	t.Log("not found")
 	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
-
 		target := "not_found"
 		viper.Set(config.KeyCheckTarget, target)
 		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: client}
 
 		_, found, err := c.findCheckBundle()
 		if err == nil {
@@ -199,16 +163,9 @@ func TestFindCheck(t *testing.T) {
 
 	t.Log("multiple")
 	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
-
 		target := "multiple"
 		viper.Set(config.KeyCheckTarget, target)
 		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: client}
 
 		_, found, err := c.findCheckBundle()
 		if err == nil {
@@ -225,16 +182,9 @@ func TestFindCheck(t *testing.T) {
 
 	t.Log("valid")
 	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
-
 		target := "valid"
 		viper.Set(config.KeyCheckTarget, target)
 		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: client}
 
 		_, found, err := c.findCheckBundle()
 		if err != nil {
@@ -251,21 +201,20 @@ func TestCreateCheck(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
+	viper.Reset()
+	viper.Set(config.KeyAPITokenKey, "foo")
+	viper.Set(config.KeyAPITokenApp, "bar")
+	viper.Set(config.KeyAPIURL, "baz")
+
 	mc := minimock.NewController(t)
 	client := genMockClient(mc)
+	c := Bundle{client: client}
 
 	t.Log("target (empty)")
 	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
-
 		target := ""
 		viper.Set(config.KeyCheckTarget, target)
 		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: client}
 
 		_, err := c.createCheckBundle()
 		if err == nil {

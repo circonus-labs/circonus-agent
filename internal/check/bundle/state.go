@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 //
 
-package check
+package bundle
 
 import (
 	"encoding/json"
@@ -15,41 +15,41 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (c *Check) setMetricStates(m *[]apiclient.CheckBundleMetric) error {
+func (cb *Bundle) setMetricStates(m *[]apiclient.CheckBundleMetric) error {
 	if m == nil {
-		metrics, err := c.getFullCheckMetrics()
+		metrics, err := cb.getFullCheckMetrics()
 		if err != nil {
 			return errors.Wrap(err, "updating metric states")
 		}
 		m = metrics
 	}
 
-	if c.metricStates == nil {
-		c.metricStates = &metricStates{}
+	if cb.metricStates == nil {
+		cb.metricStates = &metricStates{}
 	}
 
 	for _, metric := range *m {
-		(*c.metricStates)[metric.Name] = metric.Status
+		(*cb.metricStates)[metric.Name] = metric.Status
 	}
 
-	c.lastRefresh = time.Now()
-	c.metricStateUpdate = false
-	if err := c.saveState(c.metricStates); err != nil {
-		c.logger.Warn().Err(err).Msg("saving metric states")
+	cb.lastRefresh = time.Now()
+	cb.metricStateUpdate = false
+	if err := cb.saveState(cb.metricStates); err != nil {
+		cb.logger.Warn().Err(err).Msg("saving metric states")
 	}
 
-	c.logger.Debug().Int("metrics", len(*c.metricStates)).Msg("updating metric states done")
+	cb.logger.Debug().Int("metrics", len(*cb.metricStates)).Msg("updating metric states done")
 	return nil
 }
 
-func (c *Check) loadState() (*metricStates, error) {
-	if c.stateFile == "" {
+func (cb *Bundle) loadState() (*metricStates, error) {
+	if cb.stateFile == "" {
 		return nil, errors.New("invalid state file (empty)")
 	}
 
 	var ms metricStates
 
-	sf, err := os.Open(c.stateFile)
+	sf, err := os.Open(cb.stateFile)
 	if err != nil {
 		return nil, errors.Wrap(err, "opening state file")
 	}
@@ -63,12 +63,12 @@ func (c *Check) loadState() (*metricStates, error) {
 	return &ms, nil
 }
 
-func (c *Check) saveState(ms *metricStates) error {
-	if c.stateFile == "" {
+func (cb *Bundle) saveState(ms *metricStates) error {
+	if cb.stateFile == "" {
 		return errors.New("invalid state file (empty)")
 	}
 
-	sf, err := ioutil.TempFile(c.statePath, "state")
+	sf, err := ioutil.TempFile(cb.statePath, "state")
 	if err != nil {
 		return errors.Wrap(err, "creating temp state file")
 	}
@@ -82,7 +82,7 @@ func (c *Check) saveState(ms *metricStates) error {
 	}
 
 	sf.Close()
-	if err := os.Rename(sf.Name(), c.stateFile); err != nil {
+	if err := os.Rename(sf.Name(), cb.stateFile); err != nil {
 		os.Remove(sf.Name())
 		return errors.Wrap(err, "updating state file (removing temp file)")
 	}
@@ -90,21 +90,21 @@ func (c *Check) saveState(ms *metricStates) error {
 	return nil
 }
 
-func (c *Check) verifyStatePath() (bool, error) {
-	if c.statePath == "" {
+func (cb *Bundle) verifyStatePath() (bool, error) {
+	if cb.statePath == "" {
 		return false, errors.New("invalid state path (empty)")
 	}
 
-	fs, err := os.Stat(c.statePath)
+	fs, err := os.Stat(cb.statePath)
 	if err != nil {
 		return false, errors.Wrap(err, "stat state path")
 	}
 
 	if !fs.IsDir() {
-		return false, errors.Errorf("state path is not a directory (%s)", c.statePath)
+		return false, errors.Errorf("state path is not a directory (%s)", cb.statePath)
 	}
 
-	tf, err := ioutil.TempFile(c.statePath, "verify")
+	tf, err := ioutil.TempFile(cb.statePath, "verify")
 	if err != nil {
 		return false, errors.Wrap(err, "creating test state file")
 	}

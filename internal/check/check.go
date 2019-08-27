@@ -9,12 +9,11 @@ import (
 	"crypto/tls"
 	"net"
 	"net/url"
-	"path/filepath"
 	"sync"
 	"time"
 
+	"github.com/circonus-labs/circonus-agent/internal/check/bundle"
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/circonus-labs/go-apiclient"
 	"github.com/pkg/errors"
@@ -23,29 +22,19 @@ import (
 	"github.com/spf13/viper"
 )
 
-// metricStates holds the status of known metrics persisted to metrics.json in defaults.StatePath
-type metricStates map[string]string
-
 // Check exposes the check bundle management interface
 type Check struct {
-	statusActiveMetric    string
 	statusActiveBroker    string
 	brokerMaxResponseTime time.Duration
 	brokerMaxRetries      int
 	checkConfig           *apiclient.Check
-	bundle                *apiclient.CheckBundle
+	checkBundle           *bundle.Bundle
 	broker                *apiclient.Broker
 	client                API
-	lastRefresh           time.Time
 	logger                zerolog.Logger
-	manage                bool
-	metricStates          *metricStates
-	metricStateUpdate     bool
 	refreshTTL            time.Duration
 	reverse               bool
 	revConfigs            *ReverseConfigs
-	stateFile             string
-	statePath             string
 	sync.Mutex
 }
 
@@ -67,7 +56,8 @@ type ReverseConfig struct {
 type ReverseConfigs map[string]ReverseConfig
 
 const (
-	StatusActive = "active"
+	StatusActive      = "active"
+	PrimaryCheckIndex = 0
 )
 
 type BundleNotActiveError struct {
@@ -95,8 +85,8 @@ func (e *BundleNotActiveError) Error() string {
 }
 
 type NoOwnerFoundError struct {
-	Err      string
-	BundleID string
+	Err     string
+	CheckID string
 }
 
 func (e *NoOwnerFoundError) Error() string {
@@ -104,8 +94,8 @@ func (e *NoOwnerFoundError) Error() string {
 		return "<nil>"
 	}
 	s := e.Err
-	if e.BundleID != "" {
-		s = s + "Bundle: " + e.BundleID + " "
+	if e.CheckID != "" {
+		s = s + "Check: " + e.CheckID + " "
 	}
 	return s
 }
@@ -125,16 +115,13 @@ func New(apiClient API) (*Check, error) {
 	c := Check{
 		brokerMaxResponseTime: 500 * time.Millisecond,
 		brokerMaxRetries:      5,
-		bundle:                nil,
+		checkConfig:           nil,
+		checkBundle:           nil,
 		broker:                nil,
 		logger:                log.With().Str("pkg", "check").Logger(),
-		manage:                false,
-		metricStateUpdate:     false,
 		refreshTTL:            time.Duration(0),
 		reverse:               false,
-		statePath:             viper.GetString(config.KeyCheckMetricStateDir),
 		statusActiveBroker:    StatusActive,
-		statusActiveMetric:    StatusActive,
 	}
 
 	isCreate := viper.GetBool(config.KeyCheckCreate)
@@ -170,17 +157,18 @@ func New(apiClient API) (*Check, error) {
 
 	c.client = apiClient
 
-	if err := c.initCheckBundle(cid, isCreate); err != nil {
-		return nil, errors.Wrap(err, "initializing check")
+	b, err := bundle.New(c.client)
+	if err != nil {
+		return nil, err
 	}
+	c.checkBundle = b
 
-	c.logger.Debug().Interface("check_config", c.bundle).Msg("using check bundle config")
-
-	// ensure a) the global check bundle id is set and b) it is set correctly
-	// to the check bundle actually being used - need to do this even if the
-	// check was created initially since user 'nobody' cannot create or update
-	// the configuration (if one was used)
-	viper.Set(config.KeyCheckBundleID, c.bundle.CID)
+	if err := c.FetchCheckConfig(); err != nil {
+		return nil, err
+	}
+	if err := c.FetchBrokerConfig(); err != nil {
+		return nil, err
+	}
 
 	if isReverse {
 		err := c.setReverseConfigs()
@@ -190,58 +178,6 @@ func New(apiClient API) (*Check, error) {
 		c.reverse = true
 	}
 
-	if len(c.bundle.MetricFilters) > 0 {
-		c.logger.Debug().Msg("setting managed off, check has metric_filters")
-		c.manage = false
-		return &c, nil
-	}
-
-	if !isManaged {
-		c.manage = false
-		return &c, nil
-	}
-
-	c.stateFile = filepath.Join(c.statePath, "metrics.json")
-
-	if ok, err := c.verifyStatePath(); ok {
-		ms, err := c.loadState()
-		if err != nil {
-			c.logger.Error().Err(err).Msg("unable to load existing metric states, all metrics considered existing")
-		} else {
-			c.metricStates = ms
-			c.logger.Debug().Interface("metric_states", len(*c.metricStates)).Msg("loaded metric states")
-		}
-	} else {
-		if err != nil {
-			c.logger.Error().Err(err).Msg("verify state path")
-		}
-		c.logger.Warn().Str("state_path", c.statePath).Msg("encountered state path issue(s), disabling check-enable-new-metrics")
-		viper.Set(config.KeyCheckEnableNewMetrics, false)
-		c.manage = false
-		return &c, nil
-	}
-
-	err := c.setMetricStates(&c.bundle.Metrics)
-	if err != nil {
-		return nil, errors.Wrap(err, "setting metric states")
-	}
-	c.bundle.Metrics = []apiclient.CheckBundleMetric{} // save a little memory (or a lot depending on how many metrics are being managed...)
-
-	// check metrics refresh ttl
-	ttl, err := time.ParseDuration(viper.GetString(config.KeyCheckMetricRefreshTTL))
-	if err != nil {
-		return nil, errors.Wrap(err, "parsing check metric refresh TTL")
-	}
-	if ttl == time.Duration(0) {
-		ttl, err = time.ParseDuration(defaults.CheckMetricRefreshTTL)
-		if err != nil {
-			return nil, errors.Wrap(err, "parsing default check metric refresh TTL")
-		}
-	}
-
-	c.refreshTTL = ttl
-	c.manage = isManaged
-
 	return &c, nil
 }
 
@@ -250,24 +186,20 @@ func (c *Check) CheckMeta() (*Meta, error) {
 	c.Lock()
 	defer c.Unlock()
 
-	if c.bundle != nil {
-		return &Meta{
-			BundleID: c.bundle.CID,
-			CheckIDs: c.bundle.Checks,
-		}, nil
+	checkInfo, err := c.checkBundle.Info()
+	if err != nil {
+		return nil, errors.Wrap(err, "getting meta data")
 	}
-	return nil, errors.New("check not initialized")
+
+	return &Meta{
+		BundleID: checkInfo.CID,
+		CheckIDs: checkInfo.Checks,
+	}, nil
 }
 
 // CheckPeriod returns check bundle period (intetrval between when broker should make request)
 func (c *Check) CheckPeriod() (uint, error) {
-	c.Lock()
-	defer c.Unlock()
-
-	if c.bundle != nil {
-		return c.bundle.Period, nil
-	}
-	return 0, errors.New("check not initialized")
+	return c.checkBundle.Period()
 }
 
 // GetReverseConfigs returns the reverse connection configuration(s) to use for the check
@@ -281,89 +213,51 @@ func (c *Check) GetReverseConfigs() (*ReverseConfigs, error) {
 	return c.revConfigs, nil
 }
 
-// RefreshCheckConfig re-loads the check bundle using the API and reconfigures reverse (if needed)
-func (c *Check) RefreshCheckConfig() error {
+// FetchCheckConfig re-loads the check using the API
+func (c *Check) FetchCheckConfig() error {
 	c.Lock()
 	defer c.Unlock()
 
-	c.logger.Debug().Msg("refreshing check configuration using API")
-
-	b, err := c.fetchCheckBundle(viper.GetString(config.KeyCheckBundleID))
+	checkCID, err := c.checkBundle.CheckCID(PrimaryCheckIndex)
 	if err != nil {
-		return errors.Wrap(err, "refresh check, fetching check")
+		return err
 	}
-
-	c.bundle = b
-
-	if c.manage {
-		c.logger.Debug().Msg("setting metric states")
-		err := c.setMetricStates(&c.bundle.Metrics)
-		if err != nil {
-			return errors.Wrap(err, "setting metric states")
-		}
+	check, err := c.client.FetchCheck(apiclient.CIDType(&checkCID))
+	if err != nil {
+		return errors.Wrapf(err, "unable to fetch check (%s)", checkCID)
 	}
-	c.bundle.Metrics = []apiclient.CheckBundleMetric{} // save a little memory (or a lot depending on how many metrics are being managed...)
-
-	if err := c.setReverseConfigs(); err != nil {
-		return errors.Wrap(err, "refresh check, setting reverse config")
+	c.checkConfig = check
+	if !check.Active {
+		return errors.Errorf("check (%s) is not active", check.CID)
 	}
 
 	return nil
 }
 
-//
-// NOTE: manually managing metrics is deprecated, allow/deny filters should
-//       be used going forward. Methods related to metric management will
-//       be removed in the future.
-//
-
-// EnableNewMetrics updates the check bundle enabling any new metrics
-func (c *Check) EnableNewMetrics(m *cgm.Metrics) error {
+// FetchBrokerConfig re-loads the broker using the API
+func (c *Check) FetchBrokerConfig() error {
 	c.Lock()
 	defer c.Unlock()
 
-	if !c.manage {
-		return nil
+	if c.checkConfig == nil {
+		return errors.New("check is uninitialized")
 	}
 
-	if !c.metricStateUpdate {
-		// let first submission of metrics go through if no state file
-		// use case where agent is replacing an existing nad install (check already exists)
-		if c.metricStates == nil {
-			c.logger.Debug().Msg("no existing metric states, triggering load")
-			c.metricStateUpdate = true
-			return nil
-		}
-
-		if time.Since(c.lastRefresh) > c.refreshTTL {
-			c.logger.Debug().Dur("since_last", time.Since(c.lastRefresh)).Dur("ttl", c.refreshTTL).Msg("TTL triggering metric state refresh")
-			c.metricStateUpdate = true
-		}
+	broker, err := c.client.FetchBroker(apiclient.CIDType(&c.checkConfig.BrokerCID))
+	if err != nil {
+		return errors.Wrapf(err, "unable to fetch broker (%s)", c.checkConfig.BrokerCID)
 	}
-
-	if c.metricStateUpdate {
-		err := c.setMetricStates(nil)
-		if err != nil {
-			return errors.Wrap(err, "updating metric states")
-		}
-	}
-
-	c.logger.Debug().Msg("scanning for new metrics")
-
-	newMetrics := map[string]apiclient.CheckBundleMetric{}
-
-	for mn, mv := range *m {
-		if _, known := (*c.metricStates)[mn]; !known {
-			newMetrics[mn] = c.configMetric(mn, mv)
-			c.logger.Debug().Interface("metric", newMetrics[mn]).Interface("mv", mv).Msg("found new metric")
-		}
-	}
-
-	if len(newMetrics) > 0 {
-		if err := c.updateCheckBundleMetrics(&newMetrics); err != nil {
-			c.logger.Error().Err(err).Msg("adding new metrics to check bundle")
-		}
-	}
+	c.broker = broker
 
 	return nil
+}
+
+// RefreshCheckBundleConfig re-loads the check bundle using the API
+func (c *Check) RefreshCheckBundleConfig() error {
+	return c.checkBundle.Refresh()
+}
+
+// EnableNewMetrics updates the check bundle enabling any new metrics
+func (c *Check) EnableNewMetrics(m *cgm.Metrics) error {
+	return c.checkBundle.EnableNewMetrics(m)
 }
