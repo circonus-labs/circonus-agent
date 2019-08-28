@@ -117,6 +117,9 @@ func New(ctx context.Context) (*Server, error) {
 	}
 
 	s.address = addr
+	// standard statsd metric format supported (with addition of tags):
+	// name:value|type[|@rate][|#tag_list]
+	// where tag_list is comma separated list of <tag_category:tag_value> pairs
 	s.metricRegex = regexp.MustCompile(`^(?P<name>[^:\s]+):(?P<value>[^|\s]+)\|(?P<type>[a-z]+)(?:\|@(?P<sample>[0-9.]+))?(?:\|#(?P<tags>[^:,]+:[^:,]+(,[^:,]+:[^:,]+)*))?$`)
 	s.metricRegexGroupNames = s.metricRegex.SubexpNames()
 
