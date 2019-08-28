@@ -7,7 +7,6 @@ package connection
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"net"
@@ -16,12 +15,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (c *Connection) newCommandReader(ctx context.Context, conn *tls.Conn) <-chan command {
+func (c *Connection) newCommandReader(ctx context.Context, r io.Reader) <-chan command {
 	commandReader := make(chan command)
 	go func() {
 		defer close(commandReader)
 		for {
-			cmd := c.readCommand(conn)
+			cmd := c.readCommand(r)
 			select {
 			case <-ctx.Done():
 				c.logger.Debug().Msg("stopping cmd reader (ctx)")

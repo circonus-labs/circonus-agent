@@ -23,18 +23,14 @@ var (
 func init() {
 	if data, err := ioutil.ReadFile("testdata/check1234.json"); err != nil {
 		panic(err)
-	} else {
-		if err := json.Unmarshal(data, &testCheckBundle); err != nil {
-			panic(err)
-		}
+	} else if err := json.Unmarshal(data, &testCheckBundle); err != nil {
+		panic(err)
 	}
 
 	if data, err := ioutil.ReadFile("testdata/broker1234.json"); err != nil {
 		panic(err)
-	} else {
-		if err := json.Unmarshal(data, &testBroker); err != nil {
-			panic(err)
-		}
+	} else if err := json.Unmarshal(data, &testBroker); err != nil {
+		panic(err)
 	}
 
 	if data, err := ioutil.ReadFile("testdata/ca.crt"); err != nil {

@@ -154,7 +154,6 @@ func (r *Reverse) Start(ctx context.Context) error {
 				// otherwise, fall through and find the check owner again
 			}
 			wg.Done()
-			return
 		}()
 
 		r.logger.Debug().Msg("waiting for reverse connection to terminate")

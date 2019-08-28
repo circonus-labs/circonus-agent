@@ -5,7 +5,6 @@
 
 package check
 
-
 import (
 	"testing"
 
@@ -13,7 +12,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
-
 
 //
 // start actual tests for methods in main

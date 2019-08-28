@@ -122,7 +122,6 @@ func (c *Check) FindPrimaryBrokerInstance(cfgs *ReverseConfigs) (string, error) 
 		case http.StatusNoContent:
 			primaryCN = name
 			c.logger.Debug().Str("cn", primaryCN).Msg("found owner")
-			break
 		case http.StatusFound:
 			location := resp.Header.Get("Location")
 			if location == "" {
@@ -139,7 +138,6 @@ func (c *Check) FindPrimaryBrokerInstance(cfgs *ReverseConfigs) (string, error) 
 			}
 			primaryHost = pu.Host
 			c.logger.Debug().Str("cn", primaryCN).Msg("using owner from location header")
-			break
 		default:
 			// try next reverse url host (e.g. if there was an error connecting to this one)
 		}

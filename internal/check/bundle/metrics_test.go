@@ -96,7 +96,11 @@ func TestUpdateCheckBundleMetrics(t *testing.T) {
 	{
 		c.bundle.CID = "/check_bundle/000"
 		metrics := map[string]apiclient.CheckBundleMetric{
-			"foo": apiclient.CheckBundleMetric{Name: "foo", Type: "n", Status: "active"},
+			"foo": {
+				Name:   "foo",
+				Type:   "n",
+				Status: "active",
+			},
 		}
 		err := c.updateCheckBundleMetrics(&metrics)
 		if err == nil {
@@ -111,7 +115,7 @@ func TestUpdateCheckBundleMetrics(t *testing.T) {
 	{
 		c.bundle.CID = "/check_bundle/0002"
 		metrics := map[string]apiclient.CheckBundleMetric{
-			"foo": apiclient.CheckBundleMetric{Name: "foo", Type: "n", Status: "active"},
+			"foo": {Name: "foo", Type: "n", Status: "active"},
 		}
 		err := c.updateCheckBundleMetrics(&metrics)
 		if err == nil {
@@ -126,7 +130,7 @@ func TestUpdateCheckBundleMetrics(t *testing.T) {
 	{
 		c.bundle.CID = "/check_bundle/1234"
 		metrics := map[string]apiclient.CheckBundleMetric{
-			"foo": apiclient.CheckBundleMetric{Name: "foo", Type: "n", Status: "active"},
+			"foo": {Name: "foo", Type: "n", Status: "active"},
 		}
 		err := c.updateCheckBundleMetrics(&metrics)
 		if err != nil {

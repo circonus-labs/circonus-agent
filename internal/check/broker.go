@@ -10,13 +10,8 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"io/ioutil"
-	"math/rand"
-	"net"
 	"net/url"
-	"reflect"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/go-apiclient"
@@ -120,152 +115,152 @@ func (c *Check) fetchBrokerCA() ([]byte, error) {
 	return []byte(cadata.Contents), nil
 }
 
-// Select a broker for use when creating a check, if a specific broker
-// was not specified.
-func (c *Check) selectBroker(checkType string) (*apiclient.Broker, error) {
-	brokerList, err := c.client.FetchBrokers()
-	if err != nil {
-		return nil, errors.Wrap(err, "select broker")
-	}
+// // Select a broker for use when creating a check, if a specific broker
+// // was not specified.
+// func (c *Check) selectBroker(checkType string) (*apiclient.Broker, error) {
+// 	brokerList, err := c.client.FetchBrokers()
+// 	if err != nil {
+// 		return nil, errors.Wrap(err, "select broker")
+// 	}
 
-	if len(*brokerList) == 0 {
-		return nil, errors.New("no brokers returned from API")
-	}
+// 	if len(*brokerList) == 0 {
+// 		return nil, errors.New("no brokers returned from API")
+// 	}
 
-	validBrokers := make(map[string]apiclient.Broker)
-	haveEnterprise := false
-	threshold := 10 * time.Second
+// 	validBrokers := make(map[string]apiclient.Broker)
+// 	haveEnterprise := false
+// 	threshold := 10 * time.Second
 
-	for _, broker := range *brokerList {
-		broker := broker
-		dur, ok := c.isValidBroker(&broker, checkType)
-		if !ok {
-			continue
-		}
+// 	for _, broker := range *brokerList {
+// 		broker := broker
+// 		dur, ok := c.isValidBroker(&broker, checkType)
+// 		if !ok {
+// 			continue
+// 		}
 
-		switch {
-		case dur > threshold:
-			continue
-		case dur == threshold:
-			validBrokers[broker.CID] = broker
-		case dur < threshold:
-			if len(validBrokers) > 0 {
-				// we want the fastest broker(s), reset list if any
-				// slower brokers were already added
-				validBrokers = make(map[string]apiclient.Broker)
-			}
-			haveEnterprise = false
-			threshold = dur
-			validBrokers[broker.CID] = broker
-		}
+// 		switch {
+// 		case dur > threshold:
+// 			continue
+// 		case dur == threshold:
+// 			validBrokers[broker.CID] = broker
+// 		case dur < threshold:
+// 			if len(validBrokers) > 0 {
+// 				// we want the fastest broker(s), reset list if any
+// 				// slower brokers were already added
+// 				validBrokers = make(map[string]apiclient.Broker)
+// 			}
+// 			haveEnterprise = false
+// 			threshold = dur
+// 			validBrokers[broker.CID] = broker
+// 		}
 
-		if broker.Type == "enterprise" {
-			haveEnterprise = true
-		}
-	}
+// 		if broker.Type == "enterprise" {
+// 			haveEnterprise = true
+// 		}
+// 	}
 
-	if haveEnterprise { // eliminate non-enterprise brokers from valid brokers
-		for k, v := range validBrokers {
-			if v.Type != "enterprise" {
-				delete(validBrokers, k)
-			}
-		}
-	}
+// 	if haveEnterprise { // eliminate non-enterprise brokers from valid brokers
+// 		for k, v := range validBrokers {
+// 			if v.Type != "enterprise" {
+// 				delete(validBrokers, k)
+// 			}
+// 		}
+// 	}
 
-	if len(validBrokers) == 0 {
-		return nil, errors.Errorf("found %d broker(s), zero are valid", len(*brokerList))
-	}
+// 	if len(validBrokers) == 0 {
+// 		return nil, errors.Errorf("found %d broker(s), zero are valid", len(*brokerList))
+// 	}
 
-	var selectedBroker apiclient.Broker
-	validBrokerKeys := reflect.ValueOf(validBrokers).MapKeys()
-	if len(validBrokerKeys) == 1 {
-		selectedBroker = validBrokers[validBrokerKeys[0].String()]
-	} else {
-		selectedBroker = validBrokers[validBrokerKeys[rand.Intn(len(validBrokerKeys))].String()]
-	}
+// 	var selectedBroker apiclient.Broker
+// 	validBrokerKeys := reflect.ValueOf(validBrokers).MapKeys()
+// 	if len(validBrokerKeys) == 1 {
+// 		selectedBroker = validBrokers[validBrokerKeys[0].String()]
+// 	} else {
+// 		selectedBroker = validBrokers[validBrokerKeys[rand.Intn(len(validBrokerKeys))].String()]
+// 	}
 
-	c.logger.Debug().Str("broker", selectedBroker.Name).Msg("selected")
+// 	c.logger.Debug().Str("broker", selectedBroker.Name).Msg("selected")
 
-	return &selectedBroker, nil
-}
+// 	return &selectedBroker, nil
+// }
 
-// Is the broker valid (active, supports check type, and reachable)
-func (c *Check) isValidBroker(broker *apiclient.Broker, checkType string) (time.Duration, bool) {
-	var brokerHost string
-	var brokerPort string
-	var connDuration time.Duration
-	valid := false
+// // Is the broker valid (active, supports check type, and reachable)
+// func (c *Check) isValidBroker(broker *apiclient.Broker, checkType string) (time.Duration, bool) {
+// 	var brokerHost string
+// 	var brokerPort string
+// 	var connDuration time.Duration
+// 	valid := false
 
-	for _, detail := range broker.Details {
-		detail := detail
+// 	for _, detail := range broker.Details {
+// 		detail := detail
 
-		// broker must be active
-		if detail.Status != c.statusActiveBroker {
-			c.logger.Debug().Str("broker", broker.Name).Msg("not active, skipping")
-			continue
-		}
+// 		// broker must be active
+// 		if detail.Status != c.statusActiveBroker {
+// 			c.logger.Debug().Str("broker", broker.Name).Msg("not active, skipping")
+// 			continue
+// 		}
 
-		// broker must have module loaded for the check type to be used
-		if !brokerSupportsCheckType(checkType, &detail) {
-			c.logger.Debug().Str("broker", broker.Name).Str("type", checkType).Msg("unsupported check type, skipping")
-			continue
-		}
+// 		// broker must have module loaded for the check type to be used
+// 		if !brokerSupportsCheckType(checkType, &detail) {
+// 			c.logger.Debug().Str("broker", broker.Name).Str("type", checkType).Msg("unsupported check type, skipping")
+// 			continue
+// 		}
 
-		if detail.ExternalPort != 0 {
-			brokerPort = strconv.Itoa(int(detail.ExternalPort))
-		} else {
-			if *detail.Port != 0 {
-				brokerPort = strconv.Itoa(int(*detail.Port))
-			} else {
-				brokerPort = "43191"
-			}
-		}
+// 		if detail.ExternalPort != 0 {
+// 			brokerPort = strconv.Itoa(int(detail.ExternalPort))
+// 		} else {
+// 			if *detail.Port != 0 {
+// 				brokerPort = strconv.Itoa(int(*detail.Port))
+// 			} else {
+// 				brokerPort = "43191"
+// 			}
+// 		}
 
-		if detail.ExternalHost != nil && *detail.ExternalHost != "" {
-			brokerHost = *detail.ExternalHost
-		} else {
-			brokerHost = *detail.IP
-		}
+// 		if detail.ExternalHost != nil && *detail.ExternalHost != "" {
+// 			brokerHost = *detail.ExternalHost
+// 		} else {
+// 			brokerHost = *detail.IP
+// 		}
 
-		if brokerHost == "trap.noit.circonus.net" && brokerPort != "443" {
-			brokerPort = "443"
-		}
+// 		if brokerHost == "trap.noit.circonus.net" && brokerPort != "443" {
+// 			brokerPort = "443"
+// 		}
 
-		minDelay := int(200 * time.Millisecond)
-		maxDelay := int(2 * time.Second)
+// 		minDelay := int(200 * time.Millisecond)
+// 		maxDelay := int(2 * time.Second)
 
-		for attempt := 1; attempt <= c.brokerMaxRetries; attempt++ {
-			start := time.Now()
-			// broker must be reachable and respond within designated time
-			conn, err := net.DialTimeout("tcp", net.JoinHostPort(brokerHost, brokerPort), c.brokerMaxResponseTime)
-			if err == nil {
-				connDuration = time.Since(start)
-				conn.Close()
-				valid = true
-				break
-			}
+// 		for attempt := 1; attempt <= c.brokerMaxRetries; attempt++ {
+// 			start := time.Now()
+// 			// broker must be reachable and respond within designated time
+// 			conn, err := net.DialTimeout("tcp", net.JoinHostPort(brokerHost, brokerPort), c.brokerMaxResponseTime)
+// 			if err == nil {
+// 				connDuration = time.Since(start)
+// 				conn.Close()
+// 				valid = true
+// 				break
+// 			}
 
-			delay := time.Duration(rand.Intn(maxDelay-minDelay) + minDelay)
+// 			delay := time.Duration(rand.Intn(maxDelay-minDelay) + minDelay)
 
-			c.logger.Warn().
-				Err(err).
-				Str("delay", delay.String()).
-				Str("broker", broker.Name).
-				Int("attempt", attempt).
-				Int("retries", c.brokerMaxRetries).
-				Msg("unable to connect, retrying")
+// 			c.logger.Warn().
+// 				Err(err).
+// 				Str("delay", delay.String()).
+// 				Str("broker", broker.Name).
+// 				Int("attempt", attempt).
+// 				Int("retries", c.brokerMaxRetries).
+// 				Msg("unable to connect, retrying")
 
-			time.Sleep(delay)
-		}
+// 			time.Sleep(delay)
+// 		}
 
-		if valid {
-			c.logger.Debug().Str("broker", broker.Name).Msg("valid")
-			break
-		}
-	}
+// 		if valid {
+// 			c.logger.Debug().Str("broker", broker.Name).Msg("valid")
+// 			break
+// 		}
+// 	}
 
-	return connDuration, valid
-}
+// 	return connDuration, valid
+// }
 
 // brokerSupportsCheckType verifies a broker supports the check type to be used
 func brokerSupportsCheckType(checkType string, details *apiclient.BrokerDetail) bool {

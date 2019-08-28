@@ -139,7 +139,7 @@ func (c *Connection) Start(ctx context.Context) error {
 
 	for {
 
-		conn, cerr := c.connect(ctx)
+		conn, cerr := c.connect()
 		if cerr != nil {
 			if cerr.retry {
 				c.logger.Warn().Err(cerr.err).Msg("retrying")
@@ -182,7 +182,6 @@ func (c *Connection) Start(ctx context.Context) error {
 				case result.reset:
 					c.logger.Warn().Err(result.err).Int("timeouts", c.commTimeouts).Msg("resetting connection")
 					cmdCancel()
-					break
 				case result.fatal:
 					c.logger.Error().Err(result.err).Interface("result", result).Msg("fatal error, exiting")
 					conn.Close()
@@ -228,7 +227,7 @@ func (c *Connection) Start(ctx context.Context) error {
 
 // connect to broker w/tls and send initial introduction
 // NOTE: all reverse connections require tls
-func (c *Connection) connect(ctx context.Context) (*tls.Conn, *connError) {
+func (c *Connection) connect() (*tls.Conn, *connError) {
 	c.Lock()
 	if c.connAttempts > 0 {
 		if c.maxConnRetry != -1 && c.connAttempts >= c.maxConnRetry {
@@ -290,10 +289,8 @@ func (c *Connection) connect(ctx context.Context) (*tls.Conn, *connError) {
 	}
 	c.logger.Debug().Msg(fmt.Sprintf("sending intro '%s'", introReq))
 	if _, err := fmt.Fprintf(conn, "%s HTTP/1.1\r\n\r\n", introReq); err != nil {
-		if err != nil {
-			c.logger.Error().Err(err).Msg("sending intro")
-			return nil, &connError{retry: true, err: errors.Wrapf(err, "unable to write intro to %s", revHost)}
-		}
+		c.logger.Error().Err(err).Msg("sending intro")
+		return nil, &connError{retry: true, err: errors.Wrapf(err, "unable to write intro to %s", revHost)}
 	}
 
 	c.Lock()
