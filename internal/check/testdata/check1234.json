@@ -1,0 +1,13 @@
+{
+    "_cid": "/check/1234",
+    "_active": true,
+    "_broker": "/broker/1234",
+    "_check_bundle": "/check_bundle/1234",
+    "_check_uuid": "abc123-a1b2-c3d4-e5f6-123abc",
+    "_details": {},
+    "_reverse_url": "mtev_reverse://192.168.1.1:1234/check/abc123-a1b2-c3d4-e5f6-123abc#foobar",
+    "_reverse_urls": [
+        "mtev_reverse://192.168.1.1:1234/check/abc123-a1b2-c3d4-e5f6-123abc#foobar",
+        "mtev_reverse://192.168.1.2:1234/check/abc123-a1b2-c3d4-e5f6-123abc#foobar"
+    ]
+}

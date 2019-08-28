@@ -15,12 +15,19 @@ type pkicacert struct {
 }
 
 var (
+	testCheck       apiclient.Check
 	testCheckBundle apiclient.CheckBundle
 	testBroker      apiclient.Broker
 	cacert          pkicacert
 )
 
 func init() {
+	if data, err := ioutil.ReadFile("testdata/check1234.json"); err != nil {
+		panic(err)
+	} else if err := json.Unmarshal(data, &testCheck); err != nil {
+		panic(err)
+	}
+
 	if data, err := ioutil.ReadFile("testdata/checkbundle1234.json"); err != nil {
 		panic(err)
 	} else if err := json.Unmarshal(data, &testCheckBundle); err != nil {
@@ -92,7 +99,18 @@ func genMockClient(mc *minimock.Controller) *APIMock {
 	}, nil)
 
 	m.FetchCheckMock.Set(func(cid apiclient.CIDType) (*apiclient.Check, error) {
-		panic("TODO: mock FetchCheck method")
+		switch *cid {
+		case "/check_bundle/000":
+			return nil, errors.New("forced mock api call error")
+		case "/check/0002":
+			x := testCheck
+			x.CID = *cid
+			return &x, nil
+		case "/check/1234":
+			return &testCheck, nil
+		default:
+			return nil, errors.Errorf("bad request cid (%s)", *cid)
+		}
 	})
 
 	m.FetchCheckBundleMock.Set(func(cid apiclient.CIDType) (*apiclient.CheckBundle, error) {

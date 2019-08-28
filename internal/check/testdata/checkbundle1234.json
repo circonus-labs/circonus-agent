@@ -10,7 +10,7 @@
     "_last_modified": 1505417926,
     "_last_modified_by": "/user/1234",
     "_reverse_connection_urls": [
-        "mtev_reverse://127.0.0.1:1234/check/abc123-a1b2-c3d4-e5f6-123abc"
+        "mtev_reverse://192.168.1.1:1234/check/abc123-a1b2-c3d4-e5f6-123abc"
     ],
     "brokers": [
         "/broker/1234"
