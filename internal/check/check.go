@@ -182,6 +182,10 @@ func (c *Check) CheckMeta() (*Meta, error) {
 	c.Lock()
 	defer c.Unlock()
 
+	if c.checkBundle == nil {
+		return nil, errors.New("check bundle not initialized")
+	}
+
 	checkInfo, err := c.checkBundle.Info()
 	if err != nil {
 		return nil, errors.Wrap(err, "getting meta data")
@@ -254,10 +258,16 @@ func (c *Check) FetchBrokerConfig() error {
 
 // RefreshCheckBundleConfig re-loads the check bundle using the API
 func (c *Check) RefreshCheckBundleConfig() error {
+	if c.checkBundle == nil {
+		return nil
+	}
 	return c.checkBundle.Refresh()
 }
 
 // EnableNewMetrics updates the check bundle enabling any new metrics
 func (c *Check) EnableNewMetrics(m *cgm.Metrics) error {
+	if c.checkBundle == nil {
+		return nil
+	}
 	return c.checkBundle.EnableNewMetrics(m)
 }

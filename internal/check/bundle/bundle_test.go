@@ -118,7 +118,7 @@ func TestFindCheck(t *testing.T) {
 			t.Fatal("expected found == -1")
 		}
 
-		if err.Error() != "invalid check target (empty)" {
+		if err.Error() != "invalid check bundle target (empty)" {
 			t.Fatalf("unexpected error return (%s)", err)
 		}
 	}
@@ -221,7 +221,7 @@ func TestCreateCheck(t *testing.T) {
 			t.Fatal("expected error")
 		}
 
-		if err.Error() != "invalid check target (empty)" {
+		if err.Error() != "invalid check bundle target (empty)" {
 			t.Fatalf("unexpected error return (%s)", err)
 		}
 	}

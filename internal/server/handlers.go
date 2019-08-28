@@ -338,8 +338,6 @@ func (s *Server) socketHandler(w http.ResponseWriter, r *http.Request) {
 // representation (e.g. {"foo": {_type: "i", _value: 1}, ...}).
 func (s *Server) write(w http.ResponseWriter, r *http.Request) {
 	id := strings.Replace(r.URL.Path, "/write/", "", -1)
-
-	// s.logger.Debug().Str("path", r.URL.Path).Str("id", id).Msg("write request")
 	// a write request *MUST* include a metric group id to act as a namespace.
 	// in other words, a "plugin name", all metrics for that write will appear
 	// _under_ the metric group id (aka plugin name)
@@ -356,6 +354,9 @@ func (s *Server) write(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if meta, _ := s.check.CheckMeta(); meta != nil {
+		// we ignore the error here intentionally; one of the modes
+		// the agent can run in is for PULL, where it would have
+		// no direct knowledge of what check bundle/check is pulling
 		w.Header().Set("X-Circonus-Check-Bundle-ID", meta.BundleID)
 		w.Header().Set("X-Circonus-Check-ID", strings.Join(meta.CheckIDs, ","))
 	}

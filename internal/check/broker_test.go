@@ -37,7 +37,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error")
 		}
-		if err.Error() != "invalid broker cid (empty)" {
+		if err.Error() != "broker not initialized" {
 			t.Fatalf("unexpected error (%s)", err)
 		}
 	}

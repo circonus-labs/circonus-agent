@@ -40,6 +40,10 @@ func New(parentLogger zerolog.Logger, chk *check.Check, agentAddress string) (*R
 		enabled:      viper.GetBool(config.KeyReverse),
 	}
 
+	if !r.enabled {
+		return r, nil
+	}
+
 	cfgs, err := r.chk.GetReverseConfigs()
 	if err != nil {
 		return nil, errors.Wrap(err, "getting reverse configurations")
