@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	"github.com/circonus-labs/go-apiclient"
 	"github.com/gojuno/minimock/v3"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
@@ -24,7 +23,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 	mc := minimock.NewController(t)
 	client := genMockClient(mc)
 
-	rurl, err := url.Parse("http://127.0.0.1:1234/")
+	rurl, err := url.Parse("http://192.168.1.1:1234/")
 	if err != nil {
 		t.Fatalf("parsing test url (%s)", err)
 	}
@@ -44,7 +43,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 
 	t.Log("host not matched")
 	{
-		badrurl, uerr := url.Parse("http://127.0.0.2:1234/")
+		badrurl, uerr := url.Parse("http://1.2.3.4:1234/")
 		if uerr != nil {
 			t.Fatalf("parsing test url (%s)", uerr)
 		}
@@ -56,7 +55,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error")
 		}
-		if err.Error() != "unable to match reverse URL host (127.0.0.2) to broker" {
+		if err.Error() != "unable to match reverse URL host (1.2.3.4) to broker" {
 			t.Fatalf("unexpected error (%s)", err)
 		}
 	}
@@ -96,38 +95,6 @@ func TestBrokerTLSConfig(t *testing.T) {
 
 		if err != nil {
 			t.Fatalf("expected NO error got (%s)", err)
-		}
-	}
-}
-
-func TestBrokerSupportsCheckType(t *testing.T) {
-	t.Log("Testing brokerSupportsCheckType")
-
-	zerolog.SetGlobalLevel(zerolog.Disabled)
-
-	details := apiclient.BrokerDetail{Modules: []string{"json", "httptrap"}}
-
-	t.Log("unsupported (foo)")
-	{
-		checkType := "foo"
-		if brokerSupportsCheckType(checkType, &details) {
-			t.Fatal("expected unsupported")
-		}
-	}
-
-	t.Log("supported (json:nad)")
-	{
-		checkType := "json:nad"
-		if !brokerSupportsCheckType(checkType, &details) {
-			t.Fatal("expected supported")
-		}
-	}
-
-	t.Log("supported (httptrap)")
-	{
-		checkType := "httptrap"
-		if !brokerSupportsCheckType(checkType, &details) {
-			t.Fatal("expected supported")
 		}
 	}
 }
