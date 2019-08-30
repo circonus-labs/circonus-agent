@@ -19,14 +19,17 @@ import (
 
 // Select a broker for use when creating a check, if a specific broker
 // was not specified.
-func (cb *Bundle) selectBroker(checkType string) (*apiclient.Broker, error) {
-	brokerList, err := cb.client.FetchBrokers()
-	if err != nil {
-		return nil, errors.Wrap(err, "select broker")
+func (cb *Bundle) selectBroker(checkType string, brokerList *[]apiclient.Broker) (*apiclient.Broker, error) {
+	if checkType == "" {
+		return nil, errors.New("invalid check type (empty)")
+	}
+
+	if brokerList == nil {
+		return nil, errors.New("invalid broker list (nil)")
 	}
 
 	if len(*brokerList) == 0 {
-		return nil, errors.New("no brokers returned from API")
+		return nil, errors.New("invalid broker list (empty)")
 	}
 
 	validBrokers := make(map[string]apiclient.Broker)
@@ -88,6 +91,13 @@ func (cb *Bundle) selectBroker(checkType string) (*apiclient.Broker, error) {
 
 // Is the broker valid (active, supports check type, and reachable)
 func (cb *Bundle) isValidBroker(broker *apiclient.Broker, checkType string) (time.Duration, bool) {
+	if broker == nil {
+		return 0, false
+	}
+	if checkType == "" {
+		return 0, false
+	}
+
 	var brokerHost string
 	var brokerPort string
 	var connDuration time.Duration
@@ -98,20 +108,27 @@ func (cb *Bundle) isValidBroker(broker *apiclient.Broker, checkType string) (tim
 
 		// broker must be active
 		if detail.Status != cb.statusActiveBroker {
-			cb.logger.Debug().Str("broker", broker.Name).Msg("not active, skipping")
+			cb.logger.Debug().
+				Str("broker", broker.Name).
+				Str("instance", detail.CN).
+				Msg("not active, skipping")
 			continue
 		}
 
 		// broker must have module loaded for the check type to be used
 		if !brokerSupportsCheckType(checkType, &detail) {
-			cb.logger.Debug().Str("broker", broker.Name).Str("type", checkType).Msg("unsupported check type, skipping")
+			cb.logger.Debug().
+				Str("broker", broker.Name).
+				Str("instance", detail.CN).
+				Str("type", checkType).
+				Msg("unsupported check type, skipping")
 			continue
 		}
 
 		if detail.ExternalPort != 0 {
 			brokerPort = strconv.Itoa(int(detail.ExternalPort))
 		} else {
-			if *detail.Port != 0 {
+			if detail.Port != nil && *detail.Port != 0 {
 				brokerPort = strconv.Itoa(int(*detail.Port))
 			} else {
 				brokerPort = "43191"
@@ -121,6 +138,13 @@ func (cb *Bundle) isValidBroker(broker *apiclient.Broker, checkType string) (tim
 		if detail.ExternalHost != nil && *detail.ExternalHost != "" {
 			brokerHost = *detail.ExternalHost
 		} else {
+			if detail.IP == nil || *detail.IP == "" {
+				cb.logger.Debug().
+					Str("broker", broker.Name).
+					Str("instance", detail.CN).
+					Msg("no external host or ip, skipping")
+				continue
+			}
 			brokerHost = *detail.IP
 		}
 
@@ -148,6 +172,7 @@ func (cb *Bundle) isValidBroker(broker *apiclient.Broker, checkType string) (tim
 				Err(err).
 				Str("delay", delay.String()).
 				Str("broker", broker.Name).
+				Str("instance", detail.CN).
 				Int("attempt", attempt).
 				Int("retries", cb.brokerMaxRetries).
 				Msg("unable to connect, retrying")
@@ -156,7 +181,10 @@ func (cb *Bundle) isValidBroker(broker *apiclient.Broker, checkType string) (tim
 		}
 
 		if valid {
-			cb.logger.Debug().Str("broker", broker.Name).Msg("valid")
+			cb.logger.Debug().
+				Str("broker", broker.Name).
+				Str("instance", detail.CN).
+				Msg("valid")
 			break
 		}
 	}
@@ -166,6 +194,13 @@ func (cb *Bundle) isValidBroker(broker *apiclient.Broker, checkType string) (tim
 
 // brokerSupportsCheckType verifies a broker supports the check type to be used
 func brokerSupportsCheckType(checkType string, details *apiclient.BrokerDetail) bool {
+	if checkType == "" {
+		return false
+	}
+	if details == nil {
+		return false
+	}
+
 	baseType := string(checkType)
 
 	if idx := strings.Index(baseType, ":"); idx > 0 {

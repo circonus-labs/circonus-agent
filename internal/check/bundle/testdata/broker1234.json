@@ -3,7 +3,7 @@
     "_details": [
         {
             "status": "active",
-            "cn": "foo.bar.baz",
+            "cn": "foo.valid.baz",
             "version": 1,
             "skew": "-0.356",
             "port": null,
@@ -12,6 +12,80 @@
             "modules": [
                 "httptrap",
                 "json"
+            ],
+            "ipaddress": "127.0.0.1",
+            "external_port": 1234
+        },
+        {
+            "status": "active",
+            "cn": "foo.valid2.baz",
+            "version": 1,
+            "skew": "-0.356",
+            "port": 1234,
+            "minimum_version_required": 1,
+            "external_host": null,
+            "modules": [
+                "httptrap",
+                "json"
+            ],
+            "ipaddress": "127.0.0.1",
+            "external_port": null
+        },
+        {
+            "status": "active",
+            "cn": "foo.valid3.baz",
+            "version": 1,
+            "skew": "-0.356",
+            "port": null,
+            "minimum_version_required": 1,
+            "external_host": "broker.example.como",
+            "modules": [
+                "httptrap",
+                "json"
+            ],
+            "ipaddress": "127.0.0.1",
+            "external_port": 1234
+        },
+        {
+            "status": "active",
+            "cn": "foo.valid4.baz",
+            "version": 1,
+            "skew": "-0.356",
+            "port": null,
+            "minimum_version_required": 1,
+            "external_host": "broker.example.como",
+            "modules": [
+                "httptrap",
+                "json"
+            ],
+            "ipaddress": "127.0.0.1",
+            "external_port": null
+        },
+        {
+            "status": "invalid",
+            "cn": "foo.invalid_status",
+            "version": 1,
+            "skew": "-0.356",
+            "port": null,
+            "minimum_version_required": 1,
+            "external_host": null,
+            "modules": [
+                "httptrap",
+                "json"
+            ],
+            "ipaddress": "127.0.0.1",
+            "external_port": 1234
+        },
+        {
+            "status": "active",
+            "cn": "foo.unsupported_check_type",
+            "version": 1,
+            "skew": "-0.356",
+            "port": null,
+            "minimum_version_required": 1,
+            "external_host": null,
+            "modules": [
+                "invalid"
             ],
             "ipaddress": "127.0.0.1",
             "external_port": 1234
