@@ -438,7 +438,9 @@ func (c *NetProto) emitICMPMetric(proto string, metrics *cgm.Metrics, name strin
 	case "OutTimeExcds":
 		// no units
 	case "InTimeExcds":
-	// no units
+		// no units
+	case "InType1":
+		// no units
 
 	//
 	// ICMPv6 specific
@@ -486,6 +488,8 @@ func (c *NetProto) emitICMPMetric(proto string, metrics *cgm.Metrics, name strin
 	case "OutParmProblems":
 		// no units
 	case "OutMLDv2Reports":
+		// no units
+	case "OutType1":
 		// no units
 	case "OutType133":
 		// no units
