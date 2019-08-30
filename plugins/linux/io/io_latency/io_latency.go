@@ -54,7 +54,7 @@ func dumpHistAndClear() {
 			if ss := hist.DecStrings(); len(ss) > 0 {
 				hist.Reset()
 				val := make(map[string]interface{})
-				val["_type"] = "n"
+				val["_type"] = "h"
 				val["_value"] = ss
 				tmp[typ+"|ST[device:"+dev+",units:seconds]"] = val
 			}
