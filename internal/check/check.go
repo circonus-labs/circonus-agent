@@ -65,6 +65,12 @@ type ErrNoOwnerFound struct {
 	CheckID string
 }
 
+type ErrInvalidOwner struct {
+	Err      string
+	CheckID  string
+	BrokerCN string
+}
+
 type ErrNotActive struct {
 	Err      string
 	CheckID  string
@@ -92,6 +98,20 @@ func (e *ErrNoOwnerFound) Error() string {
 	s := e.Err
 	if e.CheckID != "" {
 		s = s + "Check: " + e.CheckID + " "
+	}
+	return s
+}
+
+func (e *ErrInvalidOwner) Error() string {
+	if e == nil {
+		return "<nil>"
+	}
+	s := e.Err
+	if e.CheckID != "" {
+		s = s + "Check: " + e.CheckID + " "
+	}
+	if e.BrokerCN != "" {
+		s = s + "CN: " + e.BrokerCN + " "
 	}
 	return s
 }
@@ -157,11 +177,13 @@ func New(apiClient API) (*Check, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	c.checkBundle = b
 
 	if err := c.FetchCheckConfig(); err != nil {
 		return nil, err
 	}
+
 	if err := c.FetchBrokerConfig(); err != nil {
 		return nil, err
 	}
@@ -183,7 +205,7 @@ func (c *Check) CheckMeta() (*Meta, error) {
 	defer c.Unlock()
 
 	if c.checkBundle == nil {
-		return nil, errors.New("check bundle not initialized")
+		return nil, errors.New("check bundle uninitialized")
 	}
 
 	checkInfo, err := c.checkBundle.Info()
@@ -199,6 +221,13 @@ func (c *Check) CheckMeta() (*Meta, error) {
 
 // CheckPeriod returns check bundle period (intetrval between when broker should make request)
 func (c *Check) CheckPeriod() (uint, error) {
+	c.Lock()
+	defer c.Unlock()
+
+	if c.checkBundle == nil {
+		return 0, errors.New("check bundle uninitialized")
+	}
+
 	return c.checkBundle.Period()
 }
 
@@ -210,6 +239,7 @@ func (c *Check) GetReverseConfigs() (*ReverseConfigs, error) {
 	if c.revConfigs == nil {
 		return nil, errors.New("invalid reverse configuration")
 	}
+
 	return c.revConfigs, nil
 }
 
@@ -218,15 +248,20 @@ func (c *Check) FetchCheckConfig() error {
 	c.Lock()
 	defer c.Unlock()
 
+	if c.checkBundle == nil {
+		return errors.New("check bundle uninitialized")
+	}
+
 	checkCID, err := c.checkBundle.CheckCID(PrimaryCheckIndex)
 	if err != nil {
 		return err
 	}
+
 	check, err := c.client.FetchCheck(apiclient.CIDType(&checkCID))
 	if err != nil {
 		return errors.Wrapf(err, "unable to fetch check (%s)", checkCID)
 	}
-	c.checkConfig = check
+
 	if !check.Active {
 		return &ErrNotActive{
 			Err:      "check is not active",
@@ -234,6 +269,8 @@ func (c *Check) FetchCheckConfig() error {
 			CheckID:  check.CID,
 		}
 	}
+
+	c.checkConfig = check
 
 	return nil
 }
@@ -244,30 +281,24 @@ func (c *Check) FetchBrokerConfig() error {
 	defer c.Unlock()
 
 	if c.checkConfig == nil {
-		return errors.New("check is uninitialized")
+		return errors.New("check uninitialized")
 	}
 
 	broker, err := c.client.FetchBroker(apiclient.CIDType(&c.checkConfig.BrokerCID))
 	if err != nil {
 		return errors.Wrapf(err, "unable to fetch broker (%s)", c.checkConfig.BrokerCID)
 	}
+
 	c.broker = broker
 
 	return nil
 }
 
-// RefreshCheckBundleConfig re-loads the check bundle using the API
-func (c *Check) RefreshCheckBundleConfig() error {
-	if c.checkBundle == nil {
-		return nil
-	}
-	return c.checkBundle.Refresh()
-}
-
 // EnableNewMetrics updates the check bundle enabling any new metrics
 func (c *Check) EnableNewMetrics(m *cgm.Metrics) error {
 	if c.checkBundle == nil {
-		return nil
+		return nil // noop -- errors.New("check bundle uninitialized")
 	}
+
 	return c.checkBundle.EnableNewMetrics(m)
 }
