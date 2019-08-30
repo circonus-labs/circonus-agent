@@ -36,7 +36,7 @@ func (c *Check) setReverseConfigs() error {
 		// Using raw tls connections, the url protocol is not germane.
 		reverseURL, err := url.Parse(strings.Replace(rURL, "mtev_reverse", "https", -1))
 		if err != nil {
-			return errors.Wrapf(err, "parsing check bundle reverse URL (%s)", rURL)
+			return errors.Wrapf(err, "parsing check reverse URL (%s)", rURL)
 		}
 
 		brokerAddr, err := net.ResolveTCPAddr("tcp", reverseURL.Host)
@@ -68,7 +68,6 @@ func (c *Check) FindPrimaryBrokerInstance(cfgs *ReverseConfigs) (string, error) 
 	c.Lock()
 	defer c.Unlock()
 
-	primaryHost := ""
 	primaryCN := ""
 
 	// there is only one reverse url, broker is not clustered
@@ -125,29 +124,21 @@ func (c *Check) FindPrimaryBrokerInstance(cfgs *ReverseConfigs) (string, error) 
 		case http.StatusFound:
 			location := resp.Header.Get("Location")
 			if location == "" {
-				c.logger.Warn().Msg("received 302 but 'Location' header missing/blank")
+				c.logger.Warn().Str("req_url", ownerReqURL).Msg("received 302 but 'Location' header missing/blank")
 				continue
 			}
 			c.logger.Debug().Str("location", location).Msg("received Location header")
 			// NOTE: this isn't actually a URL, the 'host' portion is actually the CN of
 			//       the broker detail which should be used for the reverse connection.
-			pu, err := url.Parse(location)
+			pu, err := url.Parse(strings.Replace(location, "mtev_reverse", "https", 1))
 			if err != nil {
 				c.logger.Warn().Err(err).Str("location", location).Msg("unable to parse location")
 				continue
 			}
-			primaryHost = pu.Host
+			primaryCN = pu.Host
 			c.logger.Debug().Str("cn", primaryCN).Msg("using owner from location header")
 		default:
 			// try next reverse url host (e.g. if there was an error connecting to this one)
-		}
-	}
-
-	if primaryCN == "" && primaryHost != "" {
-		for name, cfg := range *cfgs {
-			if cfg.ReverseURL.Host == primaryHost {
-				primaryCN = name
-			}
 		}
 	}
 
@@ -155,6 +146,14 @@ func (c *Check) FindPrimaryBrokerInstance(cfgs *ReverseConfigs) (string, error) 
 		return "", &ErrNoOwnerFound{
 			Err:     "unable to locate check owner broker instance",
 			CheckID: c.checkConfig.CID,
+		}
+	}
+
+	if _, ok := (*cfgs)[primaryCN]; !ok {
+		return "", &ErrInvalidOwner{
+			Err:      "broker owner identified with invalid CN",
+			CheckID:  c.checkConfig.CID,
+			BrokerCN: primaryCN,
 		}
 	}
 
