@@ -211,7 +211,7 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 	lastMetricsmu.Unlock()
 
 	if err := s.check.EnableNewMetrics(&metrics); err != nil {
-		s.logger.Warn().Err(err).Msg("unable to update check metrics")
+		s.logger.Warn().Err(err).Msg("unable to update check bundle metrics")
 	}
 
 	s.encodeResponse(&metrics, w, r, runStart)
