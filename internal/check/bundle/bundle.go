@@ -427,7 +427,12 @@ func (cb *Bundle) createCheckBundle() (*apiclient.CheckBundle, error) {
 
 	brokerCID := viper.GetString(config.KeyCheckBroker)
 	if brokerCID == "" || strings.ToLower(brokerCID) == "select" {
-		broker, err := cb.selectBroker("json:nad")
+		brokerList, err := cb.client.FetchBrokers()
+		if err != nil {
+			return nil, errors.Wrap(err, "select broker")
+		}
+
+		broker, err := cb.selectBroker("json:nad", brokerList)
 		if err != nil {
 			return nil, errors.Wrap(err, "selecting broker to create check bundle")
 		}
