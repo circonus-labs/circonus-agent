@@ -271,6 +271,7 @@ func (c *Check) FetchCheckConfig() error {
 	}
 
 	c.checkConfig = check
+	c.logger.Debug().Interface("config", c.checkConfig).Msg("using check config")
 
 	return nil
 }
@@ -290,6 +291,7 @@ func (c *Check) FetchBrokerConfig() error {
 	}
 
 	c.broker = broker
+	c.logger.Debug().Interface("config", c.broker).Msg("using broker config")
 
 	return nil
 }
