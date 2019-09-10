@@ -8,14 +8,40 @@ package bundle
 import (
 	"reflect"
 	"testing"
-	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/go-apiclient"
 	"github.com/gojuno/minimock/v3"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
+
+func TestNew(t *testing.T) {
+	type args struct {
+		client API
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *Bundle
+		wantErr bool
+	}{
+		{"invalid (nil client)", args{client: nil}, nil, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := New(tt.args.client)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("New() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
 func TestFetchCheck(t *testing.T) {
 	t.Log("Testing fetchCheck")
@@ -29,7 +55,9 @@ func TestFetchCheck(t *testing.T) {
 
 	mc := minimock.NewController(t)
 	client := genMockClient(mc)
-	c := Bundle{client: client}
+	c := Bundle{
+		client: client,
+	}
 
 	t.Log("cid (empty)")
 	{
@@ -321,49 +349,70 @@ func TestBundle_Info(t *testing.T) {
 }
 
 func TestBundle_Refresh(t *testing.T) {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+	viper.Set(config.KeyCheckBundleID, "/check_bundle/1234")
+	mc := minimock.NewController(t)
+	client := genMockClient(mc)
+	tb := testCheckBundle
 	type fields struct {
-		statusActiveMetric    string
-		statusActiveBroker    string
-		brokerMaxResponseTime time.Duration
-		brokerMaxRetries      int
-		bundle                *apiclient.CheckBundle
-		client                API
-		lastRefresh           time.Time
-		logger                zerolog.Logger
-		manage                bool
-		metricStates          *metricStates
-		metricStateUpdate     bool
-		refreshTTL            time.Duration
-		stateFile             string
-		statePath             string
+		bundle *apiclient.CheckBundle
+		client API
+		logger zerolog.Logger
 	}
 	tests := []struct {
 		name    string
 		fields  fields
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{"nil bundle", fields{bundle: nil, client: client, logger: log.With().Logger()}, true},
+		{"valid", fields{bundle: &tb, client: client, logger: log.With().Logger()}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cb := &Bundle{
-				statusActiveMetric:    tt.fields.statusActiveMetric,
-				statusActiveBroker:    tt.fields.statusActiveBroker,
-				brokerMaxResponseTime: tt.fields.brokerMaxResponseTime,
-				brokerMaxRetries:      tt.fields.brokerMaxRetries,
-				bundle:                tt.fields.bundle,
-				client:                tt.fields.client,
-				lastRefresh:           tt.fields.lastRefresh,
-				logger:                tt.fields.logger,
-				manage:                tt.fields.manage,
-				metricStates:          tt.fields.metricStates,
-				metricStateUpdate:     tt.fields.metricStateUpdate,
-				refreshTTL:            tt.fields.refreshTTL,
-				stateFile:             tt.fields.stateFile,
-				statePath:             tt.fields.statePath,
+				bundle: tt.fields.bundle,
+				client: tt.fields.client,
+				logger: tt.fields.logger,
 			}
 			if err := cb.Refresh(); (err != nil) != tt.wantErr {
 				t.Errorf("Bundle.Refresh() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestBundle_CheckCID(t *testing.T) {
+	tb := testCheckBundle
+	type fields struct {
+		bundle *apiclient.CheckBundle
+	}
+	type args struct {
+		idx uint
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{"invalid (nil bundle)", fields{bundle: nil}, args{idx: 0}, "", true},
+		{"invalid (no checks in bundle)", fields{bundle: &apiclient.CheckBundle{}}, args{idx: 0}, "", true},
+		{"invalid (idx out of range)", fields{bundle: &tb}, args{idx: 10}, "", true},
+		{"valid", fields{bundle: &tb}, args{idx: 0}, testCheckBundle.Checks[0], false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cb := &Bundle{
+				bundle: tt.fields.bundle,
+			}
+			got, err := cb.CheckCID(tt.args.idx)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Bundle.CheckCID() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("Bundle.CheckCID() = %v, want %v", got, tt.want)
 			}
 		})
 	}
