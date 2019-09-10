@@ -76,7 +76,12 @@ const (
 
 func New(client API) (*Bundle, error) {
 
+	if client == nil {
+		return nil, errors.New("invalid client (nil)")
+	}
+
 	cb := Bundle{
+		client:                client,
 		brokerMaxResponseTime: 500 * time.Millisecond,
 		brokerMaxRetries:      5,
 		bundle:                nil,
@@ -114,7 +119,7 @@ func New(client API) (*Bundle, error) {
 	// check was created initially since user 'nobody' cannot create or update
 	// the configuration (if one was used)
 	viper.Set(config.KeyCheckBundleID, cb.bundle.CID)
-	cb.logger.Debug().Interface("check_config", cb.bundle).Msg("using check bundle config")
+	cb.logger.Debug().Interface("config", cb.bundle).Msg("using check bundle config")
 
 	if isManaged && len(cb.bundle.MetricFilters) > 0 {
 		cb.logger.Debug().Msg("disabling metric management, check bundle using metric_filters")
@@ -250,7 +255,7 @@ func (cb *Bundle) Refresh() error {
 }
 
 // CheckCID returns the check cid at the passed index within the check bundle's checks array or an error if bundle not initialized
-func (cb *Bundle) CheckCID(idx int) (string, error) {
+func (cb *Bundle) CheckCID(idx uint) (string, error) {
 	cb.Lock()
 	defer cb.Unlock()
 
@@ -260,8 +265,8 @@ func (cb *Bundle) CheckCID(idx int) (string, error) {
 	if len(cb.bundle.Checks) == 0 {
 		return "", errors.New("no checks found in check bundle")
 	}
-	if idx > len(cb.bundle.Checks) {
-		return "", errors.Errorf("invalid check index (%d)", idx)
+	if int(idx) > len(cb.bundle.Checks) {
+		return "", errors.Errorf("invalid check index (%d>%d)", idx, len(cb.bundle.Checks))
 	}
 
 	return cb.bundle.Checks[idx], nil
