@@ -56,9 +56,16 @@ func (c *Check) setReverseConfigs() error {
 			BrokerAddr: brokerAddr,
 			TLSConfig:  tlsConfig,
 		}
+		c.logger.Debug().
+			Str("CN", cn).
+			Str("reverse_url", reverseURL.String()).
+			Str("broker_id", c.broker.CID).
+			Bool("tls", tlsConfig != nil).
+			Msg("added reverse config")
 	}
 
 	c.revConfigs = &cfgs
+
 	return nil
 }
 
@@ -82,6 +89,12 @@ func (c *Check) FindPrimaryBrokerInstance(cfgs *ReverseConfigs) (string, error) 
 	// clustered brokers, need to identify which broker is the primary for the check
 	for name, cfg := range *cfgs {
 		client := &http.Client{
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				// NOTE: so client doesn't automatically try to connect to the
+				// 'Location' returned in the response header. Need to process
+				// it not "go" to it.
+				return http.ErrUseLastResponse
+			},
 			Transport: &http.Transport{
 				Proxy: http.ProxyFromEnvironment,
 				Dial: (&net.Dialer{
@@ -107,7 +120,7 @@ func (c *Check) FindPrimaryBrokerInstance(cfgs *ReverseConfigs) (string, error) 
 
 		resp, err := client.Do(req)
 		if err != nil {
-			c.logger.Warn().Err(err).Str("url", cfg.ReverseURL.String()).Msg("executing check owner request")
+			c.logger.Warn().Err(err).Str("url", ownerReqURL).Msg("executing check owner request")
 			if nerr, ok := err.(net.Error); ok {
 				if nerr.Timeout() {
 					continue
