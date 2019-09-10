@@ -160,7 +160,6 @@ func (r *Reverse) Start(ctx context.Context) error {
 			wg.Done()
 		}()
 
-		r.logger.Debug().Msg("waiting for reverse connection to terminate")
 		wg.Wait()
 	}
 }
