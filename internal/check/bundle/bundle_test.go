@@ -30,6 +30,7 @@ func TestNew(t *testing.T) {
 		{"invalid (nil client)", args{client: nil}, nil, true},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := New(tt.args.client)
 			if (err != nil) != tt.wantErr {
@@ -272,6 +273,7 @@ func TestBundle_CID(t *testing.T) {
 		{"valid bundle", fields{bundle: &testCheckBundle}, "/check_bundle/1234", false},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			cb := &Bundle{
 				bundle: tt.fields.bundle,
@@ -302,6 +304,7 @@ func TestBundle_Period(t *testing.T) {
 		{"valid bundle", fields{bundle: &testCheckBundle}, 60, false},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			cb := &Bundle{
 				bundle: tt.fields.bundle,
@@ -332,6 +335,7 @@ func TestBundle_Info(t *testing.T) {
 		{"valid bundle", fields{bundle: &testCheckBundle}, &Info{CID: "/check_bundle/1234", Checks: []string{"/check/1234"}}, false},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			cb := &Bundle{
 				bundle: tt.fields.bundle,
@@ -368,6 +372,7 @@ func TestBundle_Refresh(t *testing.T) {
 		{"valid", fields{bundle: &tb, client: client, logger: log.With().Logger()}, false},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			cb := &Bundle{
 				bundle: tt.fields.bundle,
@@ -402,6 +407,7 @@ func TestBundle_CheckCID(t *testing.T) {
 		{"valid", fields{bundle: &tb}, args{idx: 0}, testCheckBundle.Checks[0], false},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			cb := &Bundle{
 				bundle: tt.fields.bundle,

@@ -56,6 +56,7 @@ func TestBundle_isValidBroker(t *testing.T) {
 		{"valid", defaultFields, args{broker: &testBroker, checkType: "json"}, time.Millisecond * 100, true, true},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			cb := &Bundle{
 				statusActiveBroker:    tt.fields.statusActiveBroker,
@@ -82,7 +83,7 @@ func TestBundle_isValidBroker(t *testing.T) {
 					CID:  "/broker/1234",
 					Type: "enterprise",
 					Details: []apiclient.BrokerDetail{
-						apiclient.BrokerDetail{
+						{
 							IP:      &host,
 							Port:    &port,
 							Modules: []string{"json"},
@@ -123,6 +124,7 @@ func Test_brokerSupportsCheckType(t *testing.T) {
 		{"supported subtype (json:nad)", args{checkType: "json:nad", details: defaultDetails}, true},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			if got := brokerSupportsCheckType(tt.args.checkType, tt.args.details); got != tt.want {
 				t.Errorf("brokerSupportsCheckType() = %v, want %v", got, tt.want)
@@ -138,11 +140,11 @@ func TestBundle_selectBroker(t *testing.T) {
 	host := "127.0.0.1"
 	port := uint16(123)
 	noValidBrokers := []apiclient.Broker{
-		apiclient.Broker{
+		{
 			CID:  "/broker/123",
 			Type: "enterprise",
 			Details: []apiclient.BrokerDetail{
-				apiclient.BrokerDetail{
+				{
 					IP:      &host,
 					Port:    &port,
 					Modules: []string{"json"},
@@ -185,6 +187,7 @@ func TestBundle_selectBroker(t *testing.T) {
 		{"valid", defaultFields, args{checkType: "json:nad", brokerList: &noValidBrokers}, nil, false, true},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			cb := &Bundle{
 				statusActiveBroker:    tt.fields.statusActiveBroker,
@@ -210,11 +213,11 @@ func TestBundle_selectBroker(t *testing.T) {
 				port := uint16(p)
 				// test broker list argument with the dynamically created broker details
 				tt.args.brokerList = &[]apiclient.Broker{
-					apiclient.Broker{
+					{
 						CID:  "/broker/4321",
 						Type: "enterprise",
 						Details: []apiclient.BrokerDetail{
-							apiclient.BrokerDetail{
+							{
 								IP:      &host,
 								Port:    &port,
 								Modules: []string{"json"},

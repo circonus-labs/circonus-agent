@@ -36,6 +36,7 @@ func TestCheck_setReverseConfigs(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Check{
 				statusActiveBroker:    tt.fields.statusActiveBroker,
@@ -84,6 +85,7 @@ func TestCheck_FindPrimaryBrokerInstance(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Check{
 				statusActiveBroker:    tt.fields.statusActiveBroker,
