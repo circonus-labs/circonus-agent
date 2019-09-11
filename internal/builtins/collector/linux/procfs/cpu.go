@@ -28,7 +28,6 @@ type CPU struct {
 	numCPU        float64 // number of cpus
 	clockNorm     float64 // cpu clock normalized to 100Hz tick rate
 	reportAllCPUs bool    // OPT report all cpus (vs just total) may be overridden in config file
-	file          string
 }
 
 // cpuOptions defines what elements can be overridden in a config file
@@ -60,20 +59,20 @@ func NewCPUCollector(cfgBaseName, procFSPath string) (collector.Collector, error
 		if _, err := os.Stat(c.file); os.IsNotExist(err) {
 			return nil, errors.Wrap(err, c.pkgID)
 		}
+
 		return &c, nil
 	}
 
 	var opts cpuOptions
 	err := config.LoadConfigFile(cfgBaseName, &opts)
 	if err != nil {
-		if strings.Contains(err.Error(), "no config found matching") {
-			return &c, nil
+		if !strings.Contains(err.Error(), "no config found matching") {
+			c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
+			return nil, errors.Wrapf(err, "%s config", c.pkgID)
 		}
-		c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-		return nil, errors.Wrapf(err, "%s config", c.pkgID)
+	} else {
+		c.logger.Debug().Interface("config", opts).Msg("loaded config")
 	}
-
-	c.logger.Debug().Interface("config", opts).Msg("loaded config")
 
 	if opts.ClockHZ != "" {
 		v, err := strconv.ParseFloat(opts.ClockHZ, 64)
