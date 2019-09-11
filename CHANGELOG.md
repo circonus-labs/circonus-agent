@@ -1,3 +1,16 @@
+# v1.0.0-alpha.5
+
+* add: clustered broker support (initial)
+* upd: do not exit when io_latency target dir already exists (artifact left when SIGKILL sent to child)
+* upd: config option handling for procfs builtins
+* fix: duplicate struct member causing blank procfs file for cpu
+* add: `IgnoredMulti` metric for procfs/proto.{udp,udplite}
+* add: `InType1` and `OutType` metrics for procfs/proto.icmp6
+* upd: squelch "already running" error message for long running plugins (note, message is still emitted in debug)
+* fix: io_latency output histograms as type `h`
+* upd: module dependencies
+* upd: go1.13
+
 # v1.0.0-alpha.4
 
 * testing release, not guaranteed to be feature complete
