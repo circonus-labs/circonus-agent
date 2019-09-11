@@ -11,6 +11,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -34,7 +35,10 @@ func StartTracing(instance string, args [][]string) error {
 	inst := filepath.Join(base, instance)
 	os.Remove(inst) // force cleanup
 	if err := os.Mkdir(inst, 0550); err != nil {
-		return err
+		if !os.IsExist(err) {
+			return err
+		}
+		log.Printf("WARN: %s already exists (%v)\n", inst, err)
 	}
 	for _, pa := range args {
 		if err := echoEmulate(filepath.Join(inst, pa[0]), pa[1]); err != nil {

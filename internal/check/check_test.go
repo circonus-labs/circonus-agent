@@ -6,264 +6,69 @@
 package check
 
 import (
+	"reflect"
 	"testing"
 
+	"github.com/circonus-labs/circonus-agent/internal/check/bundle"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
 
-func TestFetchCheck(t *testing.T) {
-	t.Log("Testing fetchCheck")
+//
+// start actual tests for methods in main
+//
+
+func TestNew(t *testing.T) {
+	t.Log("Testing New")
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	t.Log("cid (empty)")
+	t.Log("check not needed")
 	{
 		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
+		viper.Set(config.KeyCheckBundleID, "")
+		viper.Set(config.KeyCheckCreate, false)
+		viper.Set(config.KeyCheckEnableNewMetrics, false)
+		viper.Set(config.KeyReverse, false)
+		viper.Set(config.KeyAPITokenKey, "")
+		viper.Set(config.KeyAPITokenApp, "")
+		viper.Set(config.KeyAPIURL, "")
 
-		cid := ""
-		viper.Set(config.KeyCheckBundleID, cid)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: genMockClient()}
-
-		_, err := c.fetchCheck(cid)
-		if err == nil {
-			t.Fatal("expected error")
-		}
-
-		if err.Error() != "invalid cid (empty)" {
-			t.Fatalf("unexpected error return (%s)", err)
-		}
-	}
-
-	t.Log("cid (abc)")
-	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
-
-		cid := "abc"
-		viper.Set(config.KeyCheckBundleID, cid)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: genMockClient()}
-
-		_, err := c.fetchCheck(cid)
-		if err == nil {
-			t.Fatal("expected error")
-		}
-
-		if err.Error() != "invalid cid (abc)" {
-			t.Fatalf("unexpected error return (%s)", err)
-		}
-	}
-
-	t.Log("api error")
-	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
-
-		cid := "000"
-		viper.Set(config.KeyCheckBundleID, cid)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: genMockClient()}
-
-		_, err := c.fetchCheck(cid)
-		if err == nil {
-			t.Fatal("expected error")
-		}
-
-		if err.Error() != "unable to retrieve check bundle (/check_bundle/000): forced mock api call error" {
-			t.Fatalf("unexpected error return (%s)", err)
-		}
-	}
-
-	t.Log("valid")
-	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
-
-		cid := "1234"
-		viper.Set(config.KeyCheckBundleID, cid)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: genMockClient()}
-
-		_, err := c.fetchCheck(cid)
+		_, err := New(nil)
 		if err != nil {
-			t.Fatalf("expected no error, got (%s)", err)
+			t.Fatalf("expected NO error, got (%s)", err)
 		}
 	}
 }
 
-func TestFindCheck(t *testing.T) {
-	t.Log("Testing findCheck")
-
-	zerolog.SetGlobalLevel(zerolog.Disabled)
-
-	t.Log("target (empty)")
-	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
-
-		target := ""
-		viper.Set(config.KeyCheckTarget, target)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: genMockClient()}
-
-		_, found, err := c.findCheck()
-		if err == nil {
-			t.Fatal("expected error")
-		}
-		if found != -1 {
-			t.Fatal("expected found == -1")
-		}
-
-		if err.Error() != "invalid check target (empty)" {
-			t.Fatalf("unexpected error return (%s)", err)
-		}
+func TestCheck_CheckMeta(t *testing.T) {
+	type fields struct {
+		checkBundle *bundle.Bundle
 	}
-
-	t.Log("api error")
-	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
-
-		target := "000"
-		viper.Set(config.KeyCheckTarget, target)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: genMockClient()}
-
-		_, found, err := c.findCheck()
-		if err == nil {
-			t.Fatal("expected error")
-		}
-		if found != -1 {
-			t.Fatal("expected found == -1")
-		}
-
-		if err.Error() != "searching for check bundle: forced mock api call error" {
-			t.Fatalf("unexpected error return (%s)", err)
-		}
+	tests := []struct {
+		name    string
+		fields  fields
+		want    *Meta
+		wantErr bool
+	}{
+		{"nil checkbundle", fields{}, nil, true},
+		{"checkbundle (nil bundle)", fields{checkBundle: &bundle.Bundle{}}, nil, true},
 	}
-
-	t.Log("not found")
-	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
-
-		target := "not_found"
-		viper.Set(config.KeyCheckTarget, target)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: genMockClient()}
-
-		_, found, err := c.findCheck()
-		if err == nil {
-			t.Fatal("expected error")
-		}
-		if found != 0 {
-			t.Fatal("expected found == 0")
-		}
-
-		if err.Error() != `no check bundles matched criteria ((active:1)(type:"json:nad")(target:"not_found"))` {
-			t.Fatalf("unexpected error return (%s)", err)
-		}
-	}
-
-	t.Log("multiple")
-	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
-
-		target := "multiple"
-		viper.Set(config.KeyCheckTarget, target)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: genMockClient()}
-
-		_, found, err := c.findCheck()
-		if err == nil {
-			t.Fatal("expected error")
-		}
-		if found != 2 {
-			t.Fatal("expected found == 2")
-		}
-
-		if err.Error() != `more than one (2) check bundle matched criteria ((active:1)(type:"json:nad")(target:"multiple"))` {
-			t.Fatalf("unexpected error return (%s)", err)
-		}
-	}
-
-	t.Log("valid")
-	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
-
-		target := "valid"
-		viper.Set(config.KeyCheckTarget, target)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: genMockClient()}
-
-		_, found, err := c.findCheck()
-		if err != nil {
-			t.Fatalf("expected no error, got (%s)", err)
-		}
-		if found != 1 {
-			t.Fatal("expected found == 1")
-		}
-	}
-}
-
-func TestCreateCheck(t *testing.T) {
-	t.Log("Testing createCheck")
-
-	zerolog.SetGlobalLevel(zerolog.Disabled)
-
-	t.Log("target (empty)")
-	{
-		viper.Reset()
-		viper.Set(config.KeyAPITokenKey, "foo")
-		viper.Set(config.KeyAPITokenApp, "bar")
-		viper.Set(config.KeyAPIURL, "baz")
-
-		target := ""
-		viper.Set(config.KeyCheckTarget, target)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
-
-		c := Check{client: genMockClient()}
-
-		_, err := c.createCheck()
-		if err == nil {
-			t.Fatal("expected error")
-		}
-
-		if err.Error() != "invalid check target (empty)" {
-			t.Fatalf("unexpected error return (%s)", err)
-		}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Check{
+				checkBundle: tt.fields.checkBundle,
+			}
+			got, err := c.CheckMeta()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Check.CheckMeta() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Check.CheckMeta() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

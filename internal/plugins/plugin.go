@@ -278,7 +278,7 @@ func (p *plugin) exec() error {
 		msg := "already running"
 		plog.Debug().Msg(msg)
 		p.Unlock()
-		return errors.New(msg)
+		return nil
 	}
 
 	plog.Debug().Msg("start")

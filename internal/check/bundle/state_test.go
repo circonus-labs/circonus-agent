@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 //
 
-package check
+package bundle
 
 import (
 	"testing"
@@ -20,7 +20,7 @@ func TestLoadState(t *testing.T) {
 
 	t.Log("stateFile (empty)")
 	{
-		c := Check{stateFile: ""}
+		c := Bundle{stateFile: ""}
 
 		_, err := c.loadState()
 		if err == nil {
@@ -33,7 +33,7 @@ func TestLoadState(t *testing.T) {
 
 	t.Log("stateFile (missing)")
 	{
-		c := Check{stateFile: "testdata/state/missing"}
+		c := Bundle{stateFile: "testdata/state/missing"}
 
 		_, err := c.loadState()
 		if err == nil {
@@ -46,7 +46,7 @@ func TestLoadState(t *testing.T) {
 
 	t.Log("stateFile (bad)")
 	{
-		c := Check{stateFile: "testdata/state/bad.json"}
+		c := Bundle{stateFile: "testdata/state/bad.json"}
 
 		_, err := c.loadState()
 		if err == nil {
@@ -59,7 +59,7 @@ func TestLoadState(t *testing.T) {
 
 	t.Log("stateFile (valid)")
 	{
-		c := Check{stateFile: "testdata/state/valid.json"}
+		c := Bundle{stateFile: "testdata/state/valid.json"}
 
 		ms, err := c.loadState()
 		if err != nil {
@@ -84,7 +84,7 @@ func TestSaveState(t *testing.T) {
 
 	t.Log("stateFile (empty)")
 	{
-		c := Check{stateFile: ""}
+		c := Bundle{stateFile: ""}
 
 		err := c.saveState(&ms)
 		if err == nil {
@@ -97,7 +97,7 @@ func TestSaveState(t *testing.T) {
 
 	t.Log("stateFile (valid)")
 	{
-		c := Check{stateFile: "testdata/state/save.test"}
+		c := Bundle{stateFile: "testdata/state/save.test"}
 
 		err := c.saveState(&ms)
 		if err != nil {
@@ -115,7 +115,7 @@ func TestVerifyStatePath(t *testing.T) {
 	{
 		viper.Reset()
 		viper.Set(config.KeyCheckMetricStateDir, "")
-		c := Check{statePath: viper.GetString(config.KeyCheckMetricStateDir)}
+		c := Bundle{statePath: viper.GetString(config.KeyCheckMetricStateDir)}
 
 		_, err := c.verifyStatePath()
 		if err == nil {
@@ -130,7 +130,7 @@ func TestVerifyStatePath(t *testing.T) {
 	{
 		viper.Reset()
 		viper.Set(config.KeyCheckMetricStateDir, "testdata/state/missing")
-		c := Check{statePath: viper.GetString(config.KeyCheckMetricStateDir)}
+		c := Bundle{statePath: viper.GetString(config.KeyCheckMetricStateDir)}
 
 		_, err := c.verifyStatePath()
 		if err == nil {
@@ -145,7 +145,7 @@ func TestVerifyStatePath(t *testing.T) {
 	{
 		viper.Reset()
 		viper.Set(config.KeyCheckMetricStateDir, "testdata/state/not_a_dir")
-		c := Check{statePath: viper.GetString(config.KeyCheckMetricStateDir)}
+		c := Bundle{statePath: viper.GetString(config.KeyCheckMetricStateDir)}
 
 		_, err := c.verifyStatePath()
 		if err == nil {
@@ -160,7 +160,7 @@ func TestVerifyStatePath(t *testing.T) {
 	{
 		viper.Reset()
 		viper.Set(config.KeyCheckMetricStateDir, "testdata/state")
-		c := Check{statePath: viper.GetString(config.KeyCheckMetricStateDir)}
+		c := Bundle{statePath: viper.GetString(config.KeyCheckMetricStateDir)}
 
 		ok, err := c.verifyStatePath()
 		if err != nil {

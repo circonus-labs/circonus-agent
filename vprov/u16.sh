@@ -6,8 +6,8 @@ go_base_url="$1"
 go_ver="$2"
 
 echo "Installing needed packages (e.g. git, go, etc.)"
-apt-get update
-apt-get --assume-yes install git ruby ruby-dev rubygems build-essential libpcap-dev
+DEBIAN_FRONTEND=noninteractive apt-get -yq update
+DEBIAN_FRONTEND=noninteractive apt-get -yq install git ruby ruby-dev rubygems build-essential libpcap-dev
 
 echo "Installing FPM gem"
 gem install --no-ri --no-rdoc fpm

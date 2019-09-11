@@ -175,14 +175,15 @@ func TestExec(t *testing.T) {
 	t.Log("already running")
 	{
 		p.running = true
-		expectedErr := errors.Errorf("already running")
+		// this error has been removed to declutter log
+		// expectedErr := errors.Errorf("already running")
 		err := p.exec()
-		if err == nil {
-			t.Fatalf("expected error")
+		if err != nil {
+			t.Fatalf("expected NO error, got (%v)", err)
 		}
-		if err.Error() != expectedErr.Error() {
-			t.Fatalf("expected (%s) got (%s)", expectedErr, err)
-		}
+		// if err.Error() != expectedErr.Error() {
+		// 	t.Fatalf("expected (%s) got (%s)", expectedErr, err)
+		// }
 		p.running = false
 	}
 

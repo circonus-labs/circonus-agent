@@ -3,7 +3,7 @@
     "_details": [
         {
             "status": "active",
-            "cn": "foo.bar.baz",
+            "cn": "foo1.bar.baz",
             "version": 1,
             "skew": "-0.356",
             "port": null,
@@ -13,7 +13,22 @@
                 "httptrap",
                 "json"
             ],
-            "ipaddress": "127.0.0.1",
+            "ipaddress": "192.168.1.1",
+            "external_port": 1234
+        },
+        {
+            "status": "active",
+            "cn": "foo2.bar.baz",
+            "version": 1,
+            "skew": "-0.356",
+            "port": null,
+            "minimum_version_required": 1,
+            "external_host": null,
+            "modules": [
+                "httptrap",
+                "json"
+            ],
+            "ipaddress": "192.168.1.2",
             "external_port": 1234
         }
     ],

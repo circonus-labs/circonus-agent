@@ -16,16 +16,16 @@ const (
 	ENVPREFIX = "CA"
 )
 
-// vars are manipulated at link time (see goreleaser)
+// defined during build (e.g. goreleaser, see .goreleaser.yml)
 var (
 	// COMMIT of relase in git repo
-	COMMIT = "none"
+	COMMIT = "undef"
 	// DATE of release
-	DATE = "unknown"
+	DATE = "undef"
 	// TAG of release
-	TAG = ""
+	TAG = "none"
 	// VERSION of the release
-	VERSION = "dev"
+	VERSION = "Dev"
 )
 
 // Info contains release information

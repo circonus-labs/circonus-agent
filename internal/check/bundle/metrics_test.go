@@ -3,13 +3,14 @@
 // license that can be found in the LICENSE file.
 //
 
-package check
+package bundle
 
 import (
 	"testing"
 
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/circonus-labs/go-apiclient"
+	"github.com/gojuno/minimock/v3"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -19,8 +20,10 @@ func TestGetFullCheckMetrics(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	client := genMockClient()
-	c := Check{bundle: &apiclient.CheckBundle{CID: ""}, client: client}
+	mc := minimock.NewController(t)
+	client := genMockClient(mc)
+
+	c := Bundle{bundle: &apiclient.CheckBundle{CID: ""}, client: client}
 
 	t.Log("api error")
 	{
@@ -65,8 +68,9 @@ func TestUpdateCheckBundleMetrics(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	client := genMockClient()
-	c := Check{bundle: &apiclient.CheckBundle{CID: ""}, client: client}
+	mc := minimock.NewController(t)
+	client := genMockClient(mc)
+	c := Bundle{bundle: &apiclient.CheckBundle{CID: ""}, client: client}
 
 	t.Log("nil metrics")
 	{
@@ -92,7 +96,11 @@ func TestUpdateCheckBundleMetrics(t *testing.T) {
 	{
 		c.bundle.CID = "/check_bundle/000"
 		metrics := map[string]apiclient.CheckBundleMetric{
-			"foo": {Name: "foo", Type: "n", Status: "active"},
+			"foo": {
+				Name:   "foo",
+				Type:   "n",
+				Status: "active",
+			},
 		}
 		err := c.updateCheckBundleMetrics(&metrics)
 		if err == nil {
@@ -140,7 +148,7 @@ func TestConfigMetric(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	c := Check{logger: log.Logger}
+	c := Bundle{logger: log.Logger}
 	cases := []struct {
 		desc string
 		mn   string

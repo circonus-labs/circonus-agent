@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	"github.com/circonus-labs/go-apiclient"
+	"github.com/gojuno/minimock/v3"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
@@ -20,75 +20,51 @@ func TestBrokerTLSConfig(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	rurl, err := url.Parse("http://127.0.0.1:1234/")
+	mc := minimock.NewController(t)
+	client := genMockClient(mc)
+
+	rurl, err := url.Parse("http://192.168.1.1:1234/")
 	if err != nil {
 		t.Fatalf("parsing test url (%s)", err)
 	}
 
-	t.Log("cid (empty)")
+	t.Log("no broker (empty)")
 	{
 		c := Check{}
-		_, err := c.brokerTLSConfig("", rurl)
+		_, _, err := c.brokerTLSConfig(rurl)
 
 		if err == nil {
 			t.Fatal("expected error")
 		}
-		if err.Error() != "invalid broker cid (empty)" {
-			t.Fatalf("unexpected error (%s)", err)
-		}
-	}
-
-	t.Log("cid (invalid)")
-	{
-		c := Check{}
-		_, err := c.brokerTLSConfig("foo", rurl)
-
-		if err == nil {
-			t.Fatal("expected error")
-		}
-		if err.Error() != "invalid broker cid (foo)" {
-			t.Fatalf("unexpected error (%s)", err)
-		}
-	}
-
-	t.Log("api error")
-	{
-		c := Check{client: genMockClient()}
-		_, err := c.brokerTLSConfig("/broker/000", rurl)
-		viper.Reset()
-
-		if err == nil {
-			t.Fatal("expected error")
-		}
-		if err.Error() != "unable to retrieve broker (/broker/000): forced mock api call error" {
+		if err.Error() != "broker not initialized" {
 			t.Fatalf("unexpected error (%s)", err)
 		}
 	}
 
 	t.Log("host not matched")
 	{
-		badrurl, uerr := url.Parse("http://127.0.0.2:1234/")
+		badrurl, uerr := url.Parse("http://1.2.3.4:1234/")
 		if uerr != nil {
 			t.Fatalf("parsing test url (%s)", uerr)
 		}
 
-		c := Check{client: genMockClient()}
-		_, err := c.brokerTLSConfig("/broker/1234", badrurl)
+		c := Check{client: client, broker: &testBroker}
+		_, _, err := c.brokerTLSConfig(badrurl)
 		viper.Reset()
 
 		if err == nil {
 			t.Fatal("expected error")
 		}
-		if err.Error() != "unable to match reverse URL host (127.0.0.2) to broker" {
+		if err.Error() != "unable to match reverse URL host (1.2.3.4) to broker" {
 			t.Fatalf("unexpected error (%s)", err)
 		}
 	}
 
 	t.Log("bad file cert")
 	{
-		c := Check{client: genMockClient()}
+		c := Check{client: client, broker: &testBroker}
 		viper.Set(config.KeyReverseBrokerCAFile, "testdata/missingca.crt")
-		_, err := c.brokerTLSConfig("/broker/1234", rurl)
+		_, _, err := c.brokerTLSConfig(rurl)
 		viper.Reset()
 
 		if err == nil {
@@ -101,9 +77,9 @@ func TestBrokerTLSConfig(t *testing.T) {
 
 	t.Log("valid w/file cert")
 	{
-		c := Check{client: genMockClient()}
+		c := Check{client: client, broker: &testBroker}
 		viper.Set(config.KeyReverseBrokerCAFile, "testdata/ca.crt")
-		_, err := c.brokerTLSConfig("/broker/1234", rurl)
+		_, _, err := c.brokerTLSConfig(rurl)
 		viper.Reset()
 
 		if err != nil {
@@ -111,57 +87,14 @@ func TestBrokerTLSConfig(t *testing.T) {
 		}
 	}
 
-	t.Log("valid w/api cert (full cid)")
+	t.Log("valid w/api cert")
 	{
-		c := Check{client: genMockClient()}
-		_, err := c.brokerTLSConfig("/broker/1234", rurl)
+		c := Check{client: client, broker: &testBroker}
+		_, _, err := c.brokerTLSConfig(rurl)
 		viper.Reset()
 
 		if err != nil {
 			t.Fatalf("expected NO error got (%s)", err)
-		}
-	}
-
-	t.Log("valid w/api cert (# cid)")
-	{
-		c := Check{client: genMockClient()}
-		_, err := c.brokerTLSConfig("1234", rurl)
-		viper.Reset()
-
-		if err != nil {
-			t.Fatalf("expected NO error got (%s)", err)
-		}
-	}
-}
-
-func TestBrokerSupportsCheckType(t *testing.T) {
-	t.Log("Testing brokerSupportsCheckType")
-
-	zerolog.SetGlobalLevel(zerolog.Disabled)
-
-	details := apiclient.BrokerDetail{Modules: []string{"json", "httptrap"}}
-
-	t.Log("unsupported (foo)")
-	{
-		checkType := "foo"
-		if brokerSupportsCheckType(checkType, &details) {
-			t.Fatal("expected unsupported")
-		}
-	}
-
-	t.Log("supported (json:nad)")
-	{
-		checkType := "json:nad"
-		if !brokerSupportsCheckType(checkType, &details) {
-			t.Fatal("expected supported")
-		}
-	}
-
-	t.Log("supported (httptrap)")
-	{
-		checkType := "httptrap"
-		if !brokerSupportsCheckType(checkType, &details) {
-			t.Fatal("expected supported")
 		}
 	}
 }

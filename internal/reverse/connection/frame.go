@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 //
 
-package reverse
+package connection
 
 import (
 	"crypto/tls"
@@ -38,8 +38,8 @@ func buildFrame(channelID uint16, isCommand bool, payload []byte) []byte {
 // readFrameFromBroker reads a frame(header + payload) from broker
 func (c *Connection) readFrameFromBroker(r io.Reader) (*noitFrame, error) {
 	if conn, ok := r.(*tls.Conn); ok {
-		if err := conn.SetDeadline(time.Now().Add(c.commTimeout)); err != nil {
-			c.logger.Warn().Err(err).Msg("setting conn deadline")
+		if err := conn.SetDeadline(time.Now().Add(CommTimeoutSeconds * time.Second)); err != nil {
+			c.logger.Warn().Err(err).Msg("setting connection deadline")
 		}
 	}
 	hdr, err := readFrameHeader(r)
@@ -47,13 +47,13 @@ func (c *Connection) readFrameFromBroker(r io.Reader) (*noitFrame, error) {
 		return nil, err
 	}
 
-	if hdr.payloadLen > c.maxPayloadLen {
+	if hdr.payloadLen > MaxPayloadLen {
 		return nil, errors.Errorf("received oversized frame (%d len)", hdr.payloadLen) // restart the connection
 	}
 
 	if conn, ok := r.(*tls.Conn); ok {
-		if err := conn.SetDeadline(time.Now().Add(c.commTimeout)); err != nil {
-			c.logger.Warn().Err(err).Msg("setting conn deadline")
+		if err := conn.SetDeadline(time.Now().Add(CommTimeoutSeconds * time.Second)); err != nil {
+			c.logger.Warn().Err(err).Msg("setting connection deadline")
 		}
 	}
 	payload, err := readFramePayload(r, hdr.payloadLen)

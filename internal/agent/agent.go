@@ -19,6 +19,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/reverse"
 	"github.com/circonus-labs/circonus-agent/internal/server"
 	"github.com/circonus-labs/circonus-agent/internal/statsd"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 )
@@ -32,9 +33,10 @@ type Agent struct {
 	check        *check.Check
 	listenServer *server.Server
 	plugins      *plugins.Plugins
-	reverseConn  *reverse.Connection
+	reverseConn  *reverse.Reverse
 	signalCh     chan os.Signal
 	statsdServer *statsd.Server
+	logger       zerolog.Logger
 }
 
 // New returns a new agent instance
@@ -48,6 +50,7 @@ func New() (*Agent, error) {
 		groupCtx:    gctx,
 		groupCancel: cancel,
 		signalCh:    make(chan os.Signal, 10),
+		logger:      log.With().Str("pkg", "agent").Logger(),
 	}
 
 	err = config.Validate()
@@ -87,7 +90,7 @@ func New() (*Agent, error) {
 	if err != nil {
 		return nil, err
 	}
-	a.reverseConn, err = reverse.New(a.groupCtx, a.check, agentAddress)
+	a.reverseConn, err = reverse.New(a.logger, a.check, agentAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -101,10 +104,12 @@ func New() (*Agent, error) {
 func (a *Agent) Start() error {
 	a.group.Go(a.handleSignals)
 	a.group.Go(a.statsdServer.Start)
-	a.group.Go(a.reverseConn.Start)
+	a.group.Go(func() error {
+		return a.reverseConn.Start(a.groupCtx)
+	})
 	a.group.Go(a.listenServer.Start)
 
-	log.Debug().
+	a.logger.Debug().
 		Int("pid", os.Getpid()).
 		Str("name", release.NAME).
 		Str("ver", release.VERSION).Msg("Starting wait")
@@ -117,7 +122,7 @@ func (a *Agent) Stop() {
 	a.stopSignalHandler()
 	a.groupCancel()
 
-	log.Debug().
+	a.logger.Debug().
 		Int("pid", os.Getpid()).
 		Str("name", release.NAME).
 		Str("ver", release.VERSION).Msg("Stopped")

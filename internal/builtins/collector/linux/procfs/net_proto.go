@@ -63,14 +63,13 @@ func NewNetProtoCollector(cfgBaseName, procFSPath string) (collector.Collector, 
 	var opts netProtoOptions
 	err := config.LoadConfigFile(cfgBaseName, &opts)
 	if err != nil {
-		if strings.Contains(err.Error(), "no config found matching") {
-			return &c, nil
+		if !strings.Contains(err.Error(), "no config found matching") {
+			c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
+			return nil, errors.Wrapf(err, "%s config", c.pkgID)
 		}
-		c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-		return nil, errors.Wrapf(err, "%s config", c.pkgID)
+	} else {
+		c.logger.Debug().Str("base", cfgBaseName).Interface("config", opts).Msg("loaded config")
 	}
-
-	c.logger.Debug().Str("base", cfgBaseName).Interface("config", opts).Msg("loaded config")
 
 	if opts.IncludeRegex != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, opts.IncludeRegex))
@@ -272,6 +271,7 @@ const (
 	metricSndbufErrors = "SndbufErrors"
 	metricRcvbufErrors = "RcvbufErrors"
 	metricNoPorts      = "NoPorts"
+	metricIgnoredMulti = "IgnoredMulti"
 	defaultMetricType  = "l"
 )
 
@@ -438,7 +438,9 @@ func (c *NetProto) emitICMPMetric(proto string, metrics *cgm.Metrics, name strin
 	case "OutTimeExcds":
 		// no units
 	case "InTimeExcds":
-	// no units
+		// no units
+	case "InType1":
+		// no units
 
 	//
 	// ICMPv6 specific
@@ -486,6 +488,8 @@ func (c *NetProto) emitICMPMetric(proto string, metrics *cgm.Metrics, name strin
 	case "OutParmProblems":
 		// no units
 	case "OutMLDv2Reports":
+		// no units
+	case "OutType1":
 		// no units
 	case "OutType133":
 		// no units
@@ -591,6 +595,8 @@ func (c *NetProto) emitUDPMetric(proto string, metrics *cgm.Metrics, name string
 		// no units
 	case metricInErrors:
 		// no units
+	case metricIgnoredMulti:
+		// no units
 	default:
 		c.logger.Warn().Str("protocol", proto).Str("metric", name).Msg("unrecognized metric, no units")
 	}
@@ -618,6 +624,8 @@ func (c *NetProto) emitUDPLiteMetric(proto string, metrics *cgm.Metrics, name st
 	case metricNoPorts:
 		// no units
 	case metricInErrors:
+		// no units
+	case metricIgnoredMulti:
 		// no units
 	default:
 		c.logger.Warn().Str("protocol", proto).Str("metric", name).Msg("unrecognized metric, no units")

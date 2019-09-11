@@ -30,7 +30,8 @@ builds:
             - goos: freebsd
               goarch: arm
 
-        ldflags: -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.tag={{.Tag}}
+        #ldflags: -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.tag={{.Tag}}
+        ldflags: -X github.com/circonus-labs/circonus-agent/internal/release.VERSION={{.Version}} -X github.com/circonus-labs/circonus-agent/internal/release.COMMIT={{.Commit}} -X github.com/circonus-labs/circonus-agent/internal/release.DATE={{.Date}} -X github.com/circonus-labs/circonus-agent/internal/release.TAG={{.Tag}}
 
 archives:
     - 

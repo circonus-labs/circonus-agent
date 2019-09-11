@@ -6,184 +6,301 @@
 package check
 
 import (
-	"encoding/json"
-	"fmt"
-	"regexp"
-	"strings"
+	"crypto/tls"
+	"net"
+	"net/url"
+	"sync"
+	"time"
 
+	"github.com/circonus-labs/circonus-agent/internal/check/bundle"
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
-	"github.com/circonus-labs/circonus-agent/internal/release"
+	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/circonus-labs/go-apiclient"
-	apiconf "github.com/circonus-labs/go-apiclient/config"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
 
-// initCheck initializes the check for the agent.
-// 1. fetch a check explicitly provided via CID
-// 2. search for a check matching the current system
-// 3. create a check for the system if --check-create specified
-// if fetched, found, or created - set Check.bundle
-// otherwise, return an error
-func (c *Check) initCheck(cid string, create bool) error {
-	var bundle *apiclient.CheckBundle
+// Check exposes the check bundle management interface
+type Check struct {
+	statusActiveBroker    string
+	brokerMaxResponseTime time.Duration
+	brokerMaxRetries      int
+	checkConfig           *apiclient.Check
+	checkBundle           *bundle.Bundle
+	broker                *apiclient.Broker
+	client                API
+	logger                zerolog.Logger
+	refreshTTL            time.Duration
+	reverse               bool
+	revConfigs            *ReverseConfigs
+	sync.Mutex
+}
 
-	// if explicit cid configured, attempt to fetch check bundle using cid
-	if cid != "" {
-		b, err := c.fetchCheck(cid)
-		if err != nil {
-			return errors.Wrapf(err, "fetching check for cid %s", cid)
-		}
-		bundle = b
-	} else {
-		// if no cid configured, attempt to find check bundle matching this system
-		b, found, err := c.findCheck()
-		if err != nil {
-			if !create || found != 0 {
-				return errors.Wrap(err, "unable to find a check for this system")
-			}
-			c.logger.Info().Msg("no existing check found, creating")
-			// attempt to create if not found and create flag ON
-			b, err = c.createCheck()
-			if err != nil {
-				return errors.Wrap(err, "creating new check for this system")
-			}
-		}
-		bundle = b
+// Meta contains check id meta data
+type Meta struct {
+	BundleID string
+	CheckIDs []string
+}
+
+// ReverseConfig contains the reverse configuration for the check
+type ReverseConfig struct {
+	CN         string
+	BrokerAddr *net.TCPAddr
+	BrokerID   string
+	ReverseURL *url.URL
+	TLSConfig  *tls.Config
+}
+
+type ReverseConfigs map[string]ReverseConfig
+
+const (
+	StatusActive      = "active"
+	PrimaryCheckIndex = 0
+)
+
+type ErrNoOwnerFound struct {
+	Err     string
+	CheckID string
+}
+
+type ErrInvalidOwner struct {
+	Err      string
+	CheckID  string
+	BrokerCN string
+}
+
+type ErrNotActive struct {
+	Err      string
+	CheckID  string
+	BundleID string
+}
+
+func (e *ErrNotActive) Error() string {
+	if e == nil {
+		return "<nil>"
+	}
+	s := e.Err
+	if e.BundleID != "" {
+		s = s + "Bundle: " + e.BundleID + " "
+	}
+	if e.CheckID != "" {
+		s = s + "Check: " + e.CheckID + " "
+	}
+	return s
+}
+
+func (e *ErrNoOwnerFound) Error() string {
+	if e == nil {
+		return "<nil>"
+	}
+	s := e.Err
+	if e.CheckID != "" {
+		s = s + "Check: " + e.CheckID + " "
+	}
+	return s
+}
+
+func (e *ErrInvalidOwner) Error() string {
+	if e == nil {
+		return "<nil>"
+	}
+	s := e.Err
+	if e.CheckID != "" {
+		s = s + "Check: " + e.CheckID + " "
+	}
+	if e.BrokerCN != "" {
+		s = s + "CN: " + e.BrokerCN + " "
+	}
+	return s
+}
+
+// logshim is used to satisfy apiclient Logger interface (avoiding ptr receiver issue)
+type logshim struct {
+	logh zerolog.Logger
+}
+
+func (l logshim) Printf(fmt string, v ...interface{}) {
+	l.logh.Printf(fmt, v...)
+}
+
+// New returns a new check instance
+func New(apiClient API) (*Check, error) {
+	// NOTE: TBD, make broker max retries and response time configurable
+	c := Check{
+		brokerMaxResponseTime: 500 * time.Millisecond,
+		brokerMaxRetries:      5,
+		checkConfig:           nil,
+		checkBundle:           nil,
+		broker:                nil,
+		logger:                log.With().Str("pkg", "check").Logger(),
+		refreshTTL:            time.Duration(0),
+		reverse:               false,
+		statusActiveBroker:    StatusActive,
 	}
 
-	if bundle == nil {
-		return errors.New("invalid Check object state, bundle is nil")
+	isCreate := viper.GetBool(config.KeyCheckCreate)
+	isManaged := viper.GetBool(config.KeyCheckEnableNewMetrics)
+	isReverse := viper.GetBool(config.KeyReverse)
+	cid := viper.GetString(config.KeyCheckBundleID)
+	needCheck := false
+
+	if isReverse || isManaged || (isCreate && cid == "") {
+		needCheck = true
 	}
 
-	c.bundle = bundle
+	if !needCheck {
+		c.logger.Info().Msg("check management disabled")
+		return &c, nil // if we don't need a check, return a NOP object
+	}
+
+	if apiClient == nil {
+		// create an API client
+		cfg := &apiclient.Config{
+			Debug:    viper.GetBool(config.KeyDebugAPI),
+			Log:      logshim{logh: c.logger.With().Str("pkg", "circ.api").Logger()},
+			TokenApp: viper.GetString(config.KeyAPITokenApp),
+			TokenKey: viper.GetString(config.KeyAPITokenKey),
+			URL:      viper.GetString(config.KeyAPIURL),
+		}
+		client, err := apiclient.New(cfg)
+		if err != nil {
+			return nil, errors.Wrap(err, "creating circonus api client")
+		}
+		apiClient = client
+	}
+
+	c.client = apiClient
+
+	b, err := bundle.New(c.client)
+	if err != nil {
+		return nil, err
+	}
+
+	c.checkBundle = b
+
+	if err := c.FetchCheckConfig(); err != nil {
+		return nil, err
+	}
+
+	if err := c.FetchBrokerConfig(); err != nil {
+		return nil, err
+	}
+
+	if isReverse {
+		err := c.setReverseConfigs()
+		if err != nil {
+			return nil, errors.Wrap(err, "setting up reverse configuration")
+		}
+		c.reverse = true
+	}
+
+	return &c, nil
+}
+
+// CheckMeta returns check bundle id and check ids
+func (c *Check) CheckMeta() (*Meta, error) {
+	c.Lock()
+	defer c.Unlock()
+
+	if c.checkBundle == nil {
+		return nil, errors.New("check bundle uninitialized")
+	}
+
+	checkInfo, err := c.checkBundle.Info()
+	if err != nil {
+		return nil, errors.Wrap(err, "getting meta data")
+	}
+
+	return &Meta{
+		BundleID: checkInfo.CID,
+		CheckIDs: checkInfo.Checks,
+	}, nil
+}
+
+// CheckPeriod returns check bundle period (intetrval between when broker should make request)
+func (c *Check) CheckPeriod() (uint, error) {
+	c.Lock()
+	defer c.Unlock()
+
+	if c.checkBundle == nil {
+		return 0, errors.New("check bundle uninitialized")
+	}
+
+	return c.checkBundle.Period()
+}
+
+// GetReverseConfigs returns the reverse connection configuration(s) to use for the check
+func (c *Check) GetReverseConfigs() (*ReverseConfigs, error) {
+	c.Lock()
+	defer c.Unlock()
+
+	if c.revConfigs == nil {
+		return nil, errors.New("invalid reverse configuration")
+	}
+
+	return c.revConfigs, nil
+}
+
+// FetchCheckConfig re-loads the check using the API
+func (c *Check) FetchCheckConfig() error {
+	c.Lock()
+	defer c.Unlock()
+
+	if c.checkBundle == nil {
+		return errors.New("check bundle uninitialized")
+	}
+
+	checkCID, err := c.checkBundle.CheckCID(PrimaryCheckIndex)
+	if err != nil {
+		return err
+	}
+
+	check, err := c.client.FetchCheck(apiclient.CIDType(&checkCID))
+	if err != nil {
+		return errors.Wrapf(err, "unable to fetch check (%s)", checkCID)
+	}
+
+	if !check.Active {
+		return &ErrNotActive{
+			Err:      "check is not active",
+			BundleID: check.CheckBundleCID,
+			CheckID:  check.CID,
+		}
+	}
+
+	c.checkConfig = check
+	c.logger.Debug().Interface("config", c.checkConfig).Msg("using check config")
 
 	return nil
 }
 
-func (c *Check) fetchCheck(cid string) (*apiclient.CheckBundle, error) {
-	if cid == "" {
-		return nil, errors.New("invalid cid (empty)")
+// FetchBrokerConfig re-loads the broker using the API
+func (c *Check) FetchBrokerConfig() error {
+	c.Lock()
+	defer c.Unlock()
+
+	if c.checkConfig == nil {
+		return errors.New("check uninitialized")
 	}
 
-	if ok, _ := regexp.MatchString(`^[0-9]+$`, cid); ok {
-		cid = "/check_bundle/" + cid
-	}
-
-	if ok, _ := regexp.MatchString(`^/check_bundle/[0-9]+$`, cid); !ok {
-		return nil, errors.Errorf("invalid cid (%s)", cid)
-	}
-
-	bundle, err := c.client.FetchCheckBundle(apiclient.CIDType(&cid))
+	broker, err := c.client.FetchBroker(apiclient.CIDType(&c.checkConfig.BrokerCID))
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to retrieve check bundle (%s)", cid)
+		return errors.Wrapf(err, "unable to fetch broker (%s)", c.checkConfig.BrokerCID)
 	}
 
-	if bundle.Status != "active" {
-		return nil, errors.Errorf("check bundle (%s) is not active", bundle.CID)
-	}
+	c.broker = broker
+	c.logger.Debug().Interface("config", c.broker).Msg("using broker config")
 
-	return bundle, nil
+	return nil
 }
 
-func (c *Check) findCheck() (*apiclient.CheckBundle, int, error) {
-	target := viper.GetString(config.KeyCheckTarget)
-	if target == "" {
-		return nil, -1, errors.New("invalid check target (empty)")
+// EnableNewMetrics updates the check bundle enabling any new metrics
+func (c *Check) EnableNewMetrics(m *cgm.Metrics) error {
+	if c.checkBundle == nil {
+		return nil // noop -- errors.New("check bundle uninitialized")
 	}
 
-	criteria := apiclient.SearchQueryType(fmt.Sprintf(`(active:1)(type:"json:nad")(target:"%s")`, target))
-	bundles, err := c.client.SearchCheckBundles(&criteria, nil)
-	if err != nil {
-		return nil, -1, errors.Wrap(err, "searching for check bundle")
-	}
-
-	found := len(*bundles)
-
-	if found == 0 {
-		return nil, found, errors.Errorf("no check bundles matched criteria (%s)", string(criteria))
-	}
-
-	if found > 1 {
-		return nil, found, errors.Errorf("more than one (%d) check bundle matched criteria (%s)", len(*bundles), string(criteria))
-	}
-
-	return &(*bundles)[0], found, nil
-}
-
-func (c *Check) createCheck() (*apiclient.CheckBundle, error) {
-
-	// parse the first listen address to use as the required
-	// URL in the check config
-	var targetAddr string
-	{
-		serverList := viper.GetStringSlice(config.KeyListen)
-		if len(serverList) == 0 {
-			serverList = []string{defaults.Listen}
-		}
-		if serverList[0][0:1] == ":" {
-			serverList[0] = "localhost" + serverList[0]
-		}
-		ta, err := config.ParseListen(serverList[0])
-		if err != nil {
-			c.logger.Error().Err(err).Str("addr", serverList[0]).Msg("resolving address")
-			return nil, errors.Wrap(err, "parsing listen address")
-		}
-		targetAddr = ta.String()
-	}
-
-	target := viper.GetString(config.KeyCheckTarget)
-	if target == "" {
-		return nil, errors.New("invalid check target (empty)")
-	}
-
-	cfg := apiclient.NewCheckBundle()
-	cfg.Target = target
-	cfg.DisplayName = viper.GetString(config.KeyCheckTitle)
-	if cfg.DisplayName == "" {
-		cfg.DisplayName = cfg.Target + " /agent"
-	}
-	note := fmt.Sprintf("created by %s %s", release.NAME, release.VERSION)
-	cfg.Notes = &note
-	cfg.Type = "json:nad"
-	cfg.Config = apiclient.CheckBundleConfig{apiconf.URL: "http://" + targetAddr + "/"}
-
-	cfg.Metrics = []apiclient.CheckBundleMetric{}
-	cfg.MetricFilters = defaults.CheckMetricFilters
-	if viper.GetString(config.KeyCheckMetricFilters) != "" {
-		var filters [][]string
-		if err := json.Unmarshal([]byte(viper.GetString(config.KeyCheckMetricFilters)), &filters); err != nil {
-			return nil, errors.Wrap(err, "parsing check metric filters")
-		}
-		cfg.MetricFilters = filters
-	}
-
-	tags := viper.GetString(config.KeyCheckTags)
-	if tags != "" {
-		cfg.Tags = strings.Split(tags, ",")
-	}
-
-	brokerCID := viper.GetString(config.KeyCheckBroker)
-	if brokerCID == "" || strings.ToLower(brokerCID) == "select" {
-		broker, err := c.selectBroker("json:nad")
-		if err != nil {
-			return nil, errors.Wrap(err, "selecting broker to create check")
-		}
-
-		brokerCID = broker.CID
-	}
-
-	if ok, _ := regexp.MatchString(`^[0-9]+$`, brokerCID); ok {
-		brokerCID = "/broker/" + brokerCID
-	}
-
-	cfg.Brokers = []string{brokerCID}
-
-	bundle, err := c.client.CreateCheckBundle(cfg)
-	if err != nil {
-		return nil, errors.Wrap(err, "creating check bundle")
-	}
-
-	return bundle, nil
+	return c.checkBundle.EnableNewMetrics(m)
 }
