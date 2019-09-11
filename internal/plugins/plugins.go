@@ -239,8 +239,6 @@ func (p *Plugins) Run(pluginName string) error {
 
 	_ = appstats.SetString("plugins.last_run_end", time.Now().String())
 	_ = appstats.SetString("plugins.last_run_duration", time.Since(start).String())
-	// appstats.MapSet("plugins", "last_run_end", time.Now())
-	// appstats.MapSet("plugins", "last_run_duration", time.Since(start))
 
 	p.Lock()
 	p.running = false
@@ -260,7 +258,7 @@ func (p *Plugins) IsValid(pluginName string) bool {
 	defer p.RUnlock()
 
 	for pluginID := range p.active {
-		// specific plugin       plugin with instances
+		// specific plugin           plugin with instances
 		if pluginID == pluginName || strings.HasPrefix(pluginID, pluginName+"`") {
 			return true
 		}
