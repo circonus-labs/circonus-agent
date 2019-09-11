@@ -63,14 +63,13 @@ func NewNetIFCollector(cfgBaseName, procFSPath string) (collector.Collector, err
 	var opts netIFOptions
 	err := config.LoadConfigFile(cfgBaseName, &opts)
 	if err != nil {
-		if strings.Contains(err.Error(), "no config found matching") {
-			return &c, nil
+		if !strings.Contains(err.Error(), "no config found matching") {
+			c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
+			return nil, errors.Wrapf(err, "%s config", c.pkgID)
 		}
-		c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-		return nil, errors.Wrapf(err, "%s config", c.pkgID)
+	} else {
+		c.logger.Debug().Str("base", cfgBaseName).Interface("config", opts).Msg("loaded config")
 	}
-
-	c.logger.Debug().Str("base", cfgBaseName).Interface("config", opts).Msg("loaded config")
 
 	if opts.IncludeRegex != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, opts.IncludeRegex))
