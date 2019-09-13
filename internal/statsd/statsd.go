@@ -32,7 +32,7 @@ type Server struct {
 	debugCGM              bool
 	group                 *errgroup.Group
 	groupCtx              context.Context
-	address               *net.UDPAddr
+	udpAddress            *net.UDPAddr
 	hostMetrics           *cgm.CirconusMetrics
 	hostMetricsmu         sync.Mutex
 	groupMetrics          *cgm.CirconusMetrics
@@ -51,7 +51,7 @@ type Server struct {
 	apiApp                string
 	apiURL                string
 	apiCAFile             string
-	listener              *net.UDPConn
+	udpListener           *net.UDPConn
 	packetCh              chan []byte
 	baseTags              []string
 }
@@ -109,14 +109,6 @@ func New(ctx context.Context) (*Server, error) {
 		"collector:statsd",
 	}...)
 
-	port := viper.GetString(config.KeyStatsdPort)
-	address := net.JoinHostPort("localhost", port)
-	addr, err := net.ResolveUDPAddr("udp", address)
-	if err != nil {
-		return nil, errors.Wrapf(err, "resolving address '%s'", address)
-	}
-
-	s.address = addr
 	// standard statsd metric format supported (with addition of tags):
 	// name:value|type[|@rate][|#tag_list]
 	// where tag_list is comma separated list of <tag_category:tag_value> pairs
@@ -133,23 +125,32 @@ func New(ctx context.Context) (*Server, error) {
 		}
 	}
 
-	l, err := net.ListenUDP("udp", s.address)
-	if err != nil {
-		return nil, err
+	port := viper.GetString(config.KeyStatsdPort)
+	address := net.JoinHostPort("localhost", port)
+	// UDP listening address
+	{
+		addr, err := net.ResolveUDPAddr("udp", address)
+		if err != nil {
+			return nil, errors.Wrapf(err, "resolving address '%s'", address)
+		}
+		s.udpAddress = addr
 	}
-	s.listener = l
 
 	return &s, nil
 }
 
-// Start the StatsD listener
+// Start the StatsD service
 func (s *Server) Start() error {
 	if s.disabled {
 		s.logger.Info().Msg("disabled, not starting listener")
 		return nil
 	}
 
-	s.group.Go(s.reader)
+	if err := s.startUDP(); err != nil {
+		return errors.Wrap(err, "starting udp listener")
+	}
+
+	s.group.Go(s.udpReader)
 	s.group.Go(s.processor)
 
 	go func() {
@@ -184,6 +185,19 @@ func (s *Server) Flush() *cgm.Metrics {
 	}
 
 	return s.hostMetrics.FlushMetrics()
+}
+
+// startUDP the StatsD UDP listener
+func (s *Server) startUDP() error {
+	// start UDP listener
+	{
+		l, err := net.ListenUDP("udp", s.udpAddress)
+		if err != nil {
+			return err
+		}
+		s.udpListener = l
+	}
+	return nil
 }
 
 // logshim is used to satisfy apiclient Logger interface (avoiding ptr receiver issue)
@@ -266,11 +280,11 @@ func (s *Server) initGroupMetrics() error {
 	return nil
 }
 
-// reader reads packets from the statsd listener, adds packets recevied to the queue
-func (s *Server) reader() error {
+// udpReader reads packets from the statsd udp listener, adds packets recevied to the queue
+func (s *Server) udpReader() error {
 	for {
 		buff := make([]byte, maxPacketSize)
-		n, err := s.listener.Read(buff)
+		n, err := s.udpListener.Read(buff)
 		if s.shutdown() {
 			return nil
 		}
@@ -289,10 +303,12 @@ func (s *Server) reader() error {
 
 // processor reads the packet queue and processes each packet
 func (s *Server) processor() error {
-	defer s.listener.Close()
 	for {
 		select {
 		case <-s.groupCtx.Done():
+			if s.udpListener != nil {
+				s.udpListener.Close()
+			}
 			return nil
 		case pkt := <-s.packetCh:
 			s.processPacket(pkt)
@@ -355,7 +371,7 @@ func validateStatsdOptions() error {
 
 	ok, err := config.IsValidCheckID(groupCID)
 	if err != nil {
-		return errors.Wrap(err, "StatsD Group Check ID")
+		return errors.Wrap(err, "validating StatsD Group Check ID")
 	}
 	if !ok {
 		return errors.Errorf("invalid StatsD Group Check ID (%s)", groupCID)
@@ -363,11 +379,11 @@ func validateStatsdOptions() error {
 
 	groupPrefix := viper.GetString(config.KeyStatsdGroupPrefix)
 	if hostPrefix == "" && groupPrefix == "" {
-		return errors.New("StatsD host/group prefix mismatch (both empty)")
+		return errors.New("invalid StatsD host/group prefix (both empty)")
 	}
 
 	if hostPrefix == groupPrefix {
-		return errors.New("StatsD host/group prefix mismatch (same)")
+		return errors.New("invalid StatsD host/group prefix (same)")
 	}
 
 	counterOp := viper.GetString(config.KeyStatsdGroupCounters)
