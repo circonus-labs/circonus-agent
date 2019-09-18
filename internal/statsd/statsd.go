@@ -6,6 +6,7 @@
 package statsd
 
 import (
+	"bufio"
 	"context"
 	"crypto/x509"
 	"io/ioutil"
@@ -13,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/release"
@@ -29,10 +31,13 @@ import (
 // Server defines a statsd server
 type Server struct {
 	disabled              bool
+	enableUDPListener     bool // NOTE: defaults to TRUE; uses !disabled (not really a separate option)
+	enableTCPListener     bool // NOTE: defaults to FALSE
 	debugCGM              bool
 	group                 *errgroup.Group
 	groupCtx              context.Context
 	udpAddress            *net.UDPAddr
+	tcpAddress            *net.TCPAddr
 	hostMetrics           *cgm.CirconusMetrics
 	hostMetricsmu         sync.Mutex
 	groupMetrics          *cgm.CirconusMetrics
@@ -52,8 +57,11 @@ type Server struct {
 	apiURL                string
 	apiCAFile             string
 	udpListener           *net.UDPConn
-	packetCh              chan []byte
+	tcpListener           *net.TCPListener
+	tcpMaxConnections     uint
+	tcpConnections        map[string]*net.TCPConn
 	baseTags              []string
+	sync.Mutex
 }
 
 const (
@@ -84,25 +92,29 @@ func New(ctx context.Context) (*Server, error) {
 	g, gctx := errgroup.WithContext(ctx)
 
 	s = Server{
-		group:          g,
-		groupCtx:       gctx,
-		disabled:       viper.GetBool(config.KeyStatsdDisabled),
-		logger:         log.With().Str("pkg", "statsd").Logger(),
-		hostPrefix:     viper.GetString(config.KeyStatsdHostPrefix),
-		hostCategory:   viper.GetString(config.KeyStatsdHostCategory),
-		groupCID:       viper.GetString(config.KeyStatsdGroupCID),
-		groupPrefix:    viper.GetString(config.KeyStatsdGroupPrefix),
-		groupCounterOp: viper.GetString(config.KeyStatsdGroupCounters),
-		groupGaugeOp:   viper.GetString(config.KeyStatsdGroupGauges),
-		groupSetOp:     viper.GetString(config.KeyStatsdGroupSets),
-		debugCGM:       viper.GetBool(config.KeyDebugCGM),
-		apiKey:         viper.GetString(config.KeyAPITokenKey),
-		apiApp:         viper.GetString(config.KeyAPITokenApp),
-		apiURL:         viper.GetString(config.KeyAPIURL),
-		apiCAFile:      viper.GetString(config.KeyAPICAFile),
-		packetCh:       make(chan []byte, packetQueueSize),
-		baseTags:       tags.GetBaseTags(),
+		group:             g,
+		groupCtx:          gctx,
+		disabled:          viper.GetBool(config.KeyStatsdDisabled),
+		logger:            log.With().Str("pkg", "statsd").Logger(),
+		hostPrefix:        viper.GetString(config.KeyStatsdHostPrefix),
+		hostCategory:      viper.GetString(config.KeyStatsdHostCategory),
+		groupCID:          viper.GetString(config.KeyStatsdGroupCID),
+		groupPrefix:       viper.GetString(config.KeyStatsdGroupPrefix),
+		groupCounterOp:    viper.GetString(config.KeyStatsdGroupCounters),
+		groupGaugeOp:      viper.GetString(config.KeyStatsdGroupGauges),
+		groupSetOp:        viper.GetString(config.KeyStatsdGroupSets),
+		debugCGM:          viper.GetBool(config.KeyDebugCGM),
+		apiKey:            viper.GetString(config.KeyAPITokenKey),
+		apiApp:            viper.GetString(config.KeyAPITokenApp),
+		apiURL:            viper.GetString(config.KeyAPIURL),
+		apiCAFile:         viper.GetString(config.KeyAPICAFile),
+		baseTags:          tags.GetBaseTags(),
+		tcpConnections:    map[string]*net.TCPConn{},
+		tcpMaxConnections: viper.GetUint(config.KeyStatsdMaxTCPConns),
 	}
+
+	s.enableUDPListener = !s.disabled
+	s.enableTCPListener = viper.GetBool(config.KeyStatsdEnableTCP)
 
 	s.baseTags = append(s.baseTags, []string{
 		"source:" + release.NAME,
@@ -128,12 +140,20 @@ func New(ctx context.Context) (*Server, error) {
 	port := viper.GetString(config.KeyStatsdPort)
 	address := net.JoinHostPort("localhost", port)
 	// UDP listening address
-	{
+	if s.enableUDPListener {
 		addr, err := net.ResolveUDPAddr("udp", address)
 		if err != nil {
-			return nil, errors.Wrapf(err, "resolving address '%s'", address)
+			return nil, errors.Wrapf(err, "resolving UDP address '%s'", address)
 		}
 		s.udpAddress = addr
+	}
+	// TCP listening address
+	if s.enableTCPListener {
+		addr, err := net.ResolveTCPAddr("tcp", address)
+		if err != nil {
+			return nil, errors.Wrapf(err, "resolving TCP address '%s'", address)
+		}
+		s.tcpAddress = addr
 	}
 
 	return &s, nil
@@ -147,14 +167,37 @@ func (s *Server) Start() error {
 	}
 
 	if err := s.startUDP(); err != nil {
-		return errors.Wrap(err, "starting udp listener")
+		return errors.Wrap(err, "starting UDP listener")
+	}
+	if err := s.startTCP(); err != nil {
+		return errors.Wrap(err, "starting TCP listener")
 	}
 
-	s.group.Go(s.udpReader)
-	s.group.Go(s.processor)
+	packetCh := make(chan []byte, packetQueueSize)
+
+	if s.enableUDPListener && s.udpListener != nil {
+		s.group.Go(func() error {
+			s.logger.Debug().Msg("starting udp listener")
+			return s.udpReader(packetCh)
+		})
+	}
+	if s.enableTCPListener && s.tcpListener != nil {
+		s.group.Go(func() error {
+			s.logger.Debug().Msg("starting tcp listener")
+			return s.tcpHandler(packetCh)
+		})
+	}
+	s.group.Go(func() error {
+		s.logger.Debug().Msg("starting packet processor")
+
+		return s.processor(packetCh)
+	})
 
 	go func() {
+		s.logger.Debug().Msg("waiting for group")
+
 		_ = s.group.Wait()
+		close(packetCh)
 		// only try to flush group metrics since they go
 		// directly to a broker. there is no point in trying
 		// to flush host metrics as the 'server' portion of
@@ -189,14 +232,33 @@ func (s *Server) Flush() *cgm.Metrics {
 
 // startUDP the StatsD UDP listener
 func (s *Server) startUDP() error {
-	// start UDP listener
-	{
-		l, err := net.ListenUDP("udp", s.udpAddress)
-		if err != nil {
-			return err
-		}
-		s.udpListener = l
+	if !s.enableUDPListener {
+		return nil
 	}
+	if s.udpAddress == nil {
+		return nil
+	}
+	l, err := net.ListenUDP("udp", s.udpAddress)
+	if err != nil {
+		return errors.Wrap(err, "starting statsd udp listener")
+	}
+	s.udpListener = l
+	return nil
+}
+
+// startTCP the StatsD TCP listener
+func (s *Server) startTCP() error {
+	if !s.enableTCPListener {
+		return nil
+	}
+	if s.tcpAddress == nil {
+		return nil
+	}
+	l, err := net.ListenTCP("tcp", s.tcpAddress)
+	if err != nil {
+		return errors.Wrap(err, "starting statsd tcp listener")
+	}
+	s.tcpListener = l
 	return nil
 }
 
@@ -281,43 +343,147 @@ func (s *Server) initGroupMetrics() error {
 }
 
 // udpReader reads packets from the statsd udp listener, adds packets recevied to the queue
-func (s *Server) udpReader() error {
+func (s *Server) udpReader(packetCh chan<- []byte) error {
 	for {
-		buff := make([]byte, maxPacketSize)
-		n, err := s.udpListener.Read(buff)
-		if s.shutdown() {
+		if s.done() {
 			return nil
 		}
+		buff := make([]byte, maxPacketSize)
+		n, err := s.udpListener.Read(buff)
 		if err != nil {
-			s.logger.Error().Err(err).Msg("reader")
-			return errors.Wrap(err, "reader")
+			s.logger.Warn().Err(err).Msg("udp reader")
+			continue
 		}
 		if n > 0 {
 			_ = appstats.IncrementInt("statsd_packets_total")
 			pkt := make([]byte, n)
 			copy(pkt, buff[:n])
-			s.packetCh <- pkt
+			packetCh <- pkt
 		}
 	}
 }
 
+// tcpHandler reads packets from the statsd tcp listener, adds packets recevied to the queue
+func (s *Server) tcpHandler(packetCh chan<- []byte) error {
+	for {
+		if s.done() {
+			return nil
+		}
+		conn, err := s.tcpListener.AcceptTCP()
+		if err != nil {
+			s.logger.Warn().Err(err).Msg("accepting tcp connection")
+			continue
+		}
+		s.Lock()
+		if uint(len(s.tcpConnections)) > s.tcpMaxConnections {
+			s.tcpRefuseConnection(conn)
+			s.Unlock()
+			continue
+		}
+		s.Unlock()
+		s.tcpAddConnection(conn)
+		go func(conn *net.TCPConn) {
+			if err := conn.SetDeadline(time.Now().Add(10 * time.Second)); err != nil {
+				s.logger.Warn().Err(err).Msg("setting statsd tcp connection deadline")
+			}
+			if err := s.tcpReader(conn, packetCh); err != nil {
+				s.logger.Warn().Err(err).Msg("handling tcp connection")
+			}
+		}(conn)
+	}
+}
+
+// tcpReader reads packets from the statsd tcp listener, adds packets recevied to the queue
+func (s *Server) tcpReader(conn *net.TCPConn, packetCh chan<- []byte) error {
+	addr := conn.RemoteAddr().String()
+	defer func() {
+		s.logger.Debug().Str("remote", addr).Msg("closing statsd tcp connection")
+		conn.Close()
+		s.tcpRemoveConnection(addr)
+	}()
+
+	for {
+		if s.done() {
+			return nil
+		}
+		scanner := bufio.NewScanner(conn)
+		for scanner.Scan() {
+			_ = appstats.IncrementInt("statsd_packets_total")
+			packetCh <- scanner.Bytes()
+		}
+		if s.done() {
+			return nil
+		}
+		if err := scanner.Err(); err != nil {
+			s.logger.Debug().Err(err).Str("remote", addr).Msg("statsd tcp conn scanner error")
+
+			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
+				s.logger.Debug().Err(nerr).Str("remote", addr).Msg("resetting deadline")
+				if derr := conn.SetDeadline(time.Now().Add(10 * time.Second)); derr != nil {
+					return derr
+				}
+				continue
+			}
+
+			return err
+		}
+	}
+}
+
+// tcpRefuseConnection refuses a tcp client connection and logs the event
+func (s *Server) tcpRefuseConnection(conn *net.TCPConn) {
+	conn.Close()
+	s.logger.Warn().Str("remote", conn.RemoteAddr().String()).Msg("max tcp client connections reached, refusing new connection attempt")
+}
+
+// tcpAddConnection tracks tcp client connections
+func (s *Server) tcpAddConnection(conn *net.TCPConn) {
+	s.Lock()
+	s.tcpConnections[conn.RemoteAddr().String()] = conn
+	s.Unlock()
+}
+
+// tcpRemoveConnection removes a tracked tcp client connection from tracking list
+func (s *Server) tcpRemoveConnection(id string) {
+	s.Lock()
+	delete(s.tcpConnections, id)
+	s.Unlock()
+}
+
 // processor reads the packet queue and processes each packet
-func (s *Server) processor() error {
+func (s *Server) processor(packetCh <-chan []byte) error {
 	for {
 		select {
 		case <-s.groupCtx.Done():
 			if s.udpListener != nil {
+				s.logger.Debug().Msg("closing udp listener")
 				s.udpListener.Close()
 			}
+			if s.tcpListener != nil {
+				s.Lock()
+				s.logger.Debug().Msg("closing tcp listener")
+				s.tcpListener.Close()
+				if len(s.tcpConnections) > 0 {
+					s.logger.Debug().Msg("closing tcp connections")
+					var connList []*net.TCPConn
+					for _, conn := range s.tcpConnections {
+						connList = append(connList, conn)
+					}
+					for _, conn := range connList {
+						conn.Close()
+					}
+				}
+				s.Unlock()
+			}
 			return nil
-		case pkt := <-s.packetCh:
+		case pkt := <-packetCh:
 			s.processPacket(pkt)
 		}
 	}
 }
 
-// shutdown checks whether tomb is dying
-func (s *Server) shutdown() bool {
+// done checks whether context is done
+func (s *Server) done() bool {
 	select {
 	case <-s.groupCtx.Done():
 		return true

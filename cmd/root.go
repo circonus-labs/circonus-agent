@@ -796,6 +796,42 @@ func init() {
 		viper.SetDefault(key, defaults.StatsdGroupSets)
 	}
 
+	{
+		const (
+			key         = config.KeyStatsdEnableTCP
+			longOpt     = "statsd-enable-tcp"
+			envVar      = release.ENVPREFIX + "_STATSD_ENABLE_TCP"
+			description = "Enable StatsD TCP listener"
+		)
+
+		RootCmd.Flags().Bool(longOpt, defaults.StatsdEnableTCP, desc(description, envVar))
+		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
+			bindFlagError(longOpt, err)
+		}
+		if err := viper.BindEnv(key, envVar); err != nil {
+			bindEnvError(envVar, err)
+		}
+		viper.SetDefault(key, defaults.StatsdEnableTCP)
+	}
+
+	{
+		const (
+			key         = config.KeyStatsdMaxTCPConns
+			longOpt     = "statsd-max-tcp-connections"
+			envVar      = release.ENVPREFIX + "_STATSD_MAX_TCP_CONNS"
+			description = "StatsD maximum TCP connections"
+		)
+
+		RootCmd.Flags().Uint(longOpt, defaults.StatsdMaxTCPConns, desc(description, envVar))
+		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
+			bindFlagError(longOpt, err)
+		}
+		if err := viper.BindEnv(key, envVar); err != nil {
+			bindEnvError(envVar, err)
+		}
+		viper.SetDefault(key, defaults.StatsdMaxTCPConns)
+	}
+
 	// Miscellenous
 
 	{

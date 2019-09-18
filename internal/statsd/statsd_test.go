@@ -97,7 +97,7 @@ func TestStart(t *testing.T) {
 		viper.Reset()
 	}
 
-	t.Log("Enabled w/Stop")
+	t.Log("Enabled w/context cancel")
 	{
 		viper.Set(config.KeyStatsdDisabled, false)
 		viper.Set(config.KeyStatsdPort, "65125")
@@ -110,36 +110,11 @@ func TestStart(t *testing.T) {
 		if s == nil {
 			t.Fatal("expected not nil")
 		}
-		time.AfterFunc(1*time.Second, func() {
+		time.AfterFunc(2*time.Second, func() {
 			cancel()
 		})
 
 		if err := s.Start(); err != nil {
-			t.Fatalf("unexpected error (%s)", err)
-		}
-		viper.Reset()
-	}
-
-	t.Log("Enabled w/direct server close")
-	{
-		viper.Set(config.KeyStatsdDisabled, false)
-		viper.Set(config.KeyStatsdPort, "65125")
-		viper.Set(config.KeyStatsdHostCategory, defaults.StatsdHostCategory)
-		s, err := New(context.Background())
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if s == nil {
-			t.Fatal("expected not nil")
-		}
-		time.AfterFunc(1*time.Second, func() {
-			s.udpListener.Close()
-		})
-		err = s.Start()
-		if err == nil {
-			t.Fatal("expected error")
-		}
-		if err.Error() != "reader: read udp 127.0.0.1:65125: use of closed network connection" {
 			t.Fatalf("unexpected error (%s)", err)
 		}
 		viper.Reset()
