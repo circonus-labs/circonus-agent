@@ -101,6 +101,8 @@ func (p *plugin) parsePluginOutput(output []string) error {
 	// note: tags is a comma separated list of key:value pairs (e.g. foo:bar,cat:dog)
 	metricTypes := regexp.MustCompile("^[iIlLnOs]$")
 	for _, line := range output {
+		tagList := p.baseTagList()
+
 		delimCount := strings.Count(line, fieldDelimiter)
 		if delimCount == 0 {
 			p.logger.Error().
@@ -138,7 +140,7 @@ func (p *plugin) parsePluginOutput(output []string) error {
 
 		// only received a name and type (intentionally null value)
 		if len(fields) == 2 {
-			metrics[tags.MetricNameWithStreamTags(metricName, tags.FromList(p.baseTags))] = cgm.Metric{
+			metrics[tags.MetricNameWithStreamTags(metricName, tags.FromList(tagList))] = cgm.Metric{
 				Type:  metricType,
 				Value: nullMetricValue,
 			}
@@ -148,12 +150,10 @@ func (p *plugin) parsePluginOutput(output []string) error {
 		metricValue := fields[2]
 
 		// add stream tags to metric name
-		metricTags := []string{}
 		if len(fields) == 4 {
-			metricTags = strings.Split(fields[3], tags.Separator)
+			metricTags := strings.Split(fields[3], tags.Separator)
+			tagList = append(tagList, metricTags...)
 		}
-		tagList := p.baseTagList()
-		tagList = append(tagList, metricTags...)
 		metricName = tags.MetricNameWithStreamTags(metricName, tags.FromList(tagList))
 
 		// intentionally null value, explicit syntax

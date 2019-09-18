@@ -74,6 +74,12 @@ const (
 	// StatsdGroupSets defines how group counter metrics will be handled (average or sum)
 	StatsdGroupSets = "sum"
 
+	// StatsdEnableTCP defines if the statsd tcp listener is enabled
+	StatsdEnableTCP = false
+
+	// StatsdMaxTCPConns defines the max statsd tcp client connections
+	StatsdMaxTCPConns = uint(250)
+
 	// MetricNameSeparator defines character used to delimit metric name parts
 	MetricNameSeparator = "`"
 

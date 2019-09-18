@@ -1,3 +1,9 @@
+# v1.0.0-beta.1
+
+* fix: output all parsed plugin metrics with streamtags, include any tags from `_tags` attribute of emitted json
+* fix: output tags `io_latency` in `_tags` attribute rather than in metric name (so they can be combined with agent tags to create stream tagged metric name)
+* add: statsd tcp listner (optional, off by default)
+
 # v1.0.0-alpha.5
 
 * add: clustered broker support (initial)

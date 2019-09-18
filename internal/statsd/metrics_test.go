@@ -44,7 +44,6 @@ func TestProcessPacket(t *testing.T) {
 		s.processPacket([]byte("test"))
 	}
 
-	s.listener.Close()
 	viper.Reset()
 }
 
@@ -85,7 +84,6 @@ func TestGetMetricDest(t *testing.T) {
 			}
 		}
 
-		s.listener.Close()
 		viper.Reset()
 	}
 
@@ -124,7 +122,6 @@ func TestGetMetricDest(t *testing.T) {
 			}
 		}
 
-		s.listener.Close()
 		viper.Reset()
 	}
 
@@ -162,7 +159,6 @@ func TestGetMetricDest(t *testing.T) {
 			}
 		}
 
-		s.listener.Close()
 		viper.Reset()
 	}
 
@@ -200,7 +196,6 @@ func TestGetMetricDest(t *testing.T) {
 			}
 		}
 
-		s.listener.Close()
 		viper.Reset()
 	}
 }
@@ -290,6 +285,4 @@ func TestParseMetric(t *testing.T) {
 			}
 		}
 	}
-
-	s.listener.Close()
 }

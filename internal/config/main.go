@@ -216,6 +216,12 @@ const (
 	// KeyStatsdPort port for statsd listener (note, address will always be 'localhost')
 	KeyStatsdPort = "statsd.port"
 
+	// KeyStatsdEnableTCP enables statsd tcp listener
+	KeyStatsdEnableTCP = "statsd.enable_tcp"
+
+	// KeyStatsdMaxTCPConns set max statsd tcp connections
+	KeyStatsdMaxTCPConns = "statsd.max_tcp_connections"
+
 	// KeyCollectors defines the builtin collectors to enable
 	KeyCollectors = "collectors"
 
