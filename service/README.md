@@ -4,6 +4,8 @@
 
 ### Basic installation
 
+Edit the `circonus-agent.service` file, replace `@@SBIN@@` with the path into which the agent was installed. (e.g. the default would be `/opt/circonus/agent/sbin`)
+
 ```
 # cp circonus-agent.service /usr/lib/systemd/system/circonus-agent.service
 # systemctl enable circonus-agent
