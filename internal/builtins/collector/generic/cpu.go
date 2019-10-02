@@ -7,6 +7,7 @@ package generic
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -109,10 +110,15 @@ func (c *CPU) Collect() error {
 		metricType := "n"
 		tagUnitsPercent := tags.Tag{Category: "units", Value: "percent"}
 		if !c.reportAllCPUs && len(pcts) == 1 {
-			tagList := tags.Tags{tagUnitsPercent}
-			_ = c.addMetric(&metrics, metricName, metricType, pcts[0], tagList)
+			if !math.IsNaN(pcts[0]) {
+				tagList := tags.Tags{tagUnitsPercent}
+				_ = c.addMetric(&metrics, metricName, metricType, pcts[0], tagList)
+			}
 		} else {
 			for idx, pct := range pcts {
+				if math.IsNaN(pct) {
+					continue
+				}
 				tagList := tags.Tags{
 					tags.Tag{Category: "cpu", Value: fmt.Sprintf("%d", idx)},
 				}
@@ -132,16 +138,36 @@ func (c *CPU) Collect() error {
 	tagUnitsCentiseconds := tags.Tag{Category: "units", Value: "centiseconds"} // aka jiffies
 	if !c.reportAllCPUs && len(ts) == 1 {
 		tagList := tags.Tags{tagUnitsCentiseconds}
-		_ = c.addMetric(&metrics, "cpu_user", "n", ts[0].User, tagList)
-		_ = c.addMetric(&metrics, "cpu_system", "n", ts[0].System, tagList)
-		_ = c.addMetric(&metrics, "cpu_idle", "n", ts[0].Idle, tagList)
-		_ = c.addMetric(&metrics, "cpu_nice", "n", ts[0].Nice, tagList)
-		_ = c.addMetric(&metrics, "cpu_iowait", "n", ts[0].Iowait, tagList)
-		_ = c.addMetric(&metrics, "cpu_irq", "n", ts[0].Irq, tagList)
-		_ = c.addMetric(&metrics, "cpu_soft_irq", "n", ts[0].Softirq, tagList)
-		_ = c.addMetric(&metrics, "cpu_steal", "n", ts[0].Steal, tagList)
-		_ = c.addMetric(&metrics, "cpu_guest", "n", ts[0].Guest, tagList)
-		_ = c.addMetric(&metrics, "cpu_guest_nice", "n", ts[0].GuestNice, tagList)
+		if !math.IsNaN(ts[0].User) {
+			_ = c.addMetric(&metrics, "cpu_user", "n", ts[0].User, tagList)
+		}
+		if !math.IsNaN(ts[0].System) {
+			_ = c.addMetric(&metrics, "cpu_system", "n", ts[0].System, tagList)
+		}
+		if !math.IsNaN(ts[0].Idle) {
+			_ = c.addMetric(&metrics, "cpu_idle", "n", ts[0].Idle, tagList)
+		}
+		if !math.IsNaN(ts[0].Nice) {
+			_ = c.addMetric(&metrics, "cpu_nice", "n", ts[0].Nice, tagList)
+		}
+		if !math.IsNaN(ts[0].Iowait) {
+			_ = c.addMetric(&metrics, "cpu_iowait", "n", ts[0].Iowait, tagList)
+		}
+		if !math.IsNaN(ts[0].Irq) {
+			_ = c.addMetric(&metrics, "cpu_irq", "n", ts[0].Irq, tagList)
+		}
+		if !math.IsNaN(ts[0].Softirq) {
+			_ = c.addMetric(&metrics, "cpu_soft_irq", "n", ts[0].Softirq, tagList)
+		}
+		if !math.IsNaN(ts[0].Steal) {
+			_ = c.addMetric(&metrics, "cpu_steal", "n", ts[0].Steal, tagList)
+		}
+		if !math.IsNaN(ts[0].Guest) {
+			_ = c.addMetric(&metrics, "cpu_guest", "n", ts[0].Guest, tagList)
+		}
+		if !math.IsNaN(ts[0].GuestNice) {
+			_ = c.addMetric(&metrics, "cpu_guest_nice", "n", ts[0].GuestNice, tagList)
+		}
 		// _ = c.addMetric(&metrics, "cpu_stolen", "n", ts[0].Stolen, tagList)
 	} else {
 		for idx, v := range ts {
@@ -149,16 +175,36 @@ func (c *CPU) Collect() error {
 				tags.Tag{Category: "cpu", Value: fmt.Sprintf("%d", idx)},
 			}
 			tagList = append(tagList, tagUnitsCentiseconds)
-			_ = c.addMetric(&metrics, "cpu_user", "n", v.User, tagList)
-			_ = c.addMetric(&metrics, "cpu_system", "n", v.System, tagList)
-			_ = c.addMetric(&metrics, "cpu_idle", "n", v.Idle, tagList)
-			_ = c.addMetric(&metrics, "cpu_nice", "n", v.Nice, tagList)
-			_ = c.addMetric(&metrics, "cpu_iowait", "n", v.Iowait, tagList)
-			_ = c.addMetric(&metrics, "cpu_irq", "n", v.Irq, tagList)
-			_ = c.addMetric(&metrics, "cpu_soft_irq", "n", v.Softirq, tagList)
-			_ = c.addMetric(&metrics, "cpu_steal", "n", v.Steal, tagList)
-			_ = c.addMetric(&metrics, "cpu_guest", "n", v.Guest, tagList)
-			_ = c.addMetric(&metrics, "cpu_guest_nice", "n", v.GuestNice, tagList)
+			if !math.IsNaN(v.User) {
+				_ = c.addMetric(&metrics, "cpu_user", "n", v.User, tagList)
+			}
+			if !math.IsNaN(v.System) {
+				_ = c.addMetric(&metrics, "cpu_system", "n", v.System, tagList)
+			}
+			if !math.IsNaN(v.Idle) {
+				_ = c.addMetric(&metrics, "cpu_idle", "n", v.Idle, tagList)
+			}
+			if !math.IsNaN(v.Nice) {
+				_ = c.addMetric(&metrics, "cpu_nice", "n", v.Nice, tagList)
+			}
+			if !math.IsNaN(v.Iowait) {
+				_ = c.addMetric(&metrics, "cpu_iowait", "n", v.Iowait, tagList)
+			}
+			if !math.IsNaN(v.Irq) {
+				_ = c.addMetric(&metrics, "cpu_irq", "n", v.Irq, tagList)
+			}
+			if !math.IsNaN(v.Softirq) {
+				_ = c.addMetric(&metrics, "cpu_soft_irq", "n", v.Softirq, tagList)
+			}
+			if !math.IsNaN(v.Steal) {
+				_ = c.addMetric(&metrics, "cpu_steal", "n", v.Steal, tagList)
+			}
+			if !math.IsNaN(v.Guest) {
+				_ = c.addMetric(&metrics, "cpu_guest", "n", v.Guest, tagList)
+			}
+			if !math.IsNaN(v.GuestNice) {
+				_ = c.addMetric(&metrics, "cpu_guest_nice", "n", v.GuestNice, tagList)
+			}
 			// _ = c.addMetric(&metrics, "cpu_stolen", "n", v.Stolen, tagList)
 		}
 	}

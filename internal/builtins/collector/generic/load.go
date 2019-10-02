@@ -6,6 +6,7 @@
 package generic
 
 import (
+	"math"
 	"strings"
 	"time"
 
@@ -94,9 +95,15 @@ func (c *Load) Collect() error {
 		c.logger.Warn().Err(err).Msg("collecting load metrics")
 	} else {
 		tagList := tags.Tags{tagUnitsProcesses}
-		_ = c.addMetric(&metrics, "load_1min", "n", loadavg.Load1, tagList)
-		_ = c.addMetric(&metrics, "load_5min", "n", loadavg.Load5, tagList)
-		_ = c.addMetric(&metrics, "load_15min", "n", loadavg.Load15, tagList)
+		if !math.IsNaN(loadavg.Load1) {
+			_ = c.addMetric(&metrics, "load_1min", "n", loadavg.Load1, tagList)
+		}
+		if !math.IsNaN(loadavg.Load5) {
+			_ = c.addMetric(&metrics, "load_5min", "n", loadavg.Load5, tagList)
+		}
+		if !math.IsNaN(loadavg.Load15) {
+			_ = c.addMetric(&metrics, "load_15min", "n", loadavg.Load15, tagList)
+		}
 	}
 
 	misc, err := load.Misc()

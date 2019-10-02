@@ -7,6 +7,7 @@ package generic
 
 import (
 	"fmt"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -183,8 +184,12 @@ func (c *FS) Collect() error {
 		{ // units:percent
 			tagList := tags.Tags{tags.Tag{Category: "units", Value: "percent"}}
 			tagList = append(tagList, fsTags...)
-			_ = c.addMetric(&metrics, "used", "n", usage.UsedPercent, tagList)
-			_ = c.addMetric(&metrics, "inodes_used", "n", usage.InodesUsedPercent, tagList)
+			if !math.IsNaN(usage.UsedPercent) {
+				_ = c.addMetric(&metrics, "used", "n", usage.UsedPercent, tagList)
+			}
+			if !math.IsNaN(usage.InodesUsedPercent) {
+				_ = c.addMetric(&metrics, "inodes_used", "n", usage.InodesUsedPercent, tagList)
+			}
 		}
 
 		{ // units:inodes

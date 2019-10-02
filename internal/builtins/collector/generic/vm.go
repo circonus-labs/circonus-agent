@@ -7,6 +7,7 @@ package generic
 
 import (
 	"context"
+	"math"
 	"runtime"
 	"strings"
 	"time"
@@ -117,7 +118,9 @@ func (c *VM) Collect() error {
 		}
 		{ // units:percent
 			tagList := tags.Tags{tagUnitsPercent}
-			_ = c.addMetric(&metrics, "swap_used", "n", swap.UsedPercent, tagList)
+			if !math.IsNaN(swap.UsedPercent) {
+				_ = c.addMetric(&metrics, "swap_used", "n", swap.UsedPercent, tagList)
+			}
 		}
 	}
 
@@ -137,7 +140,9 @@ func (c *VM) Collect() error {
 	}
 	{ // units:percent
 		tagList := tags.Tags{tagUnitsPercent}
-		_ = c.addMetric(&metrics, "memory_used", "n", vm.UsedPercent, tagList)
+		if !math.IsNaN(vm.UsedPercent) {
+			_ = c.addMetric(&metrics, "memory_used", "n", vm.UsedPercent, tagList)
+		}
 	}
 
 	if strings.Contains(runtime.GOOS, "bsd") || runtime.GOOS == "darwin" {
