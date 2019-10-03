@@ -1,13 +1,5 @@
 module github.com/circonus-labs/circonus-agent
 
-// NOTE: github.com/shirou/gopsutil does semver incorrectly (leading zeros
-//       on patch level to represent month) the semver spec specifically
-//       states NO LEADING ZEROS (https://semver.org/#spec-item-2).
-//       To work around this, go get github.com/shirou/gopsutil@<commit id>
-//       for release. e.g. for release v2.19.04 the releases page indicates
-//       it was commit id fa98459, so use the following command:
-//            `go get github.com/shirou/gopsutil@fa98459`
-
 require (
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d
 	github.com/alecthomas/units v0.0.0-20190910110746-680d30ca3117
@@ -25,7 +17,7 @@ require (
 	github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4
 	github.com/prometheus/common v0.6.0
 	github.com/rs/zerolog v1.15.0
-	github.com/shirou/gopsutil v0.0.0-20190427031343-fa9845945e5b
+	github.com/shirou/gopsutil v2.19.9+incompatible
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
