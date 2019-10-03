@@ -17,8 +17,11 @@ for dist in $distros; do
     sleep 5
 done
 
-set +e # these can fail, e.g. building a single package
-echo "copying packages to cosi-examples/server for provisioning"
-for ext in rpm deb tgz; do
-    cp -v package/publish/circonus-agent-*.$ext ../cosi-examples/server/provision/roles/server/files/packages/.
-done
+if [[ -n "$CA_BUILDS_DEST" ]]; then
+    [[ ! -d $CA_BUILDS_DEST ]] && { echo "invalid build destination (${CA_BUILDS_DEST}), directory does not exist"; exit 1; }
+    set +e # these can fail, e.g. building a single package
+    echo "copying packages to cosi-examples/server for provisioning"
+    for ext in rpm deb tgz; do
+        cp -v package/publish/circonus-agent-*.$ext ${CA_BUILDS_DEST}/.
+    done
+fi

@@ -16,7 +16,7 @@ Vagrant.configure('2') do |config|
     config.vm.define 'c7', autostart: false do |c7|
         c7.vm.box = 'maier/centos-7.4.1708-x86_64'
         c7.vm.provider 'virtualbox' do |vb|
-            vb.name = 'c7_circonus-agent'
+            vb.name = 'c7_circonus-agent_build'
             vb.cpus = 2
         end
         c7.vm.synced_folder '.', agent_src_path, owner: 'vagrant', group: 'vagrant'
@@ -29,7 +29,7 @@ Vagrant.configure('2') do |config|
     config.vm.define 'c6', autostart: false do |c6|
         c6.vm.box = 'maier/centos-6.8-x86_64'
         c6.vm.provider 'virtualbox' do |vb|
-            vb.name = 'c6_circonus-agent'
+            vb.name = 'c6_circonus-agent_build'
             vb.cpus = 2
         end
         c6.vm.synced_folder '.', agent_src_path, owner: 'vagrant', group: 'vagrant'
@@ -42,7 +42,7 @@ Vagrant.configure('2') do |config|
     config.vm.define 'u18', autostart: false do |u18|
         u18.vm.box = 'maier/ubuntu-18.04-x86_64'
         u18.vm.provider 'virtualbox' do |vb|
-            vb.name = 'u18_circonus-agent'
+            vb.name = 'u18_circonus-agent_build'
             vb.cpus = 2
             vb.customize ['modifyvm', :id, '--uartmode1', 'disconnected']
         end
@@ -56,7 +56,7 @@ Vagrant.configure('2') do |config|
     config.vm.define 'u16', autostart: false do |u16|
         u16.vm.box = 'maier/ubuntu-16.04-x86_64'
         u16.vm.provider 'virtualbox' do |vb|
-            vb.name = 'u16_circonus-agent'
+            vb.name = 'u16_circonus-agent_build'
             vb.cpus = 2
             vb.customize ['modifyvm', :id, '--uartmode1', 'disconnected']
         end
@@ -64,42 +64,42 @@ Vagrant.configure('2') do |config|
         u16.vm.network 'private_network', ip: '192.168.100.243'
         u16.vm.provision 'shell', path: 'vprov/u16.sh', args: [go_url_base, go_ver]
     end
-    #
-    # ubuntu14 builder
-    #
-    config.vm.define 'u14', autostart: false do |u14|
-        u14.vm.box = 'maier/ubuntu-14.04-x86_64'
-        u14.vm.provider 'virtualbox' do |vb|
-            vb.name = 'u14_circonus-agent'
-            vb.cpus = 2
-            vb.customize ['modifyvm', :id, '--uartmode1', 'disconnected']
-        end
-        u14.vm.synced_folder '.', agent_src_path, owner: 'vagrant', group: 'vagrant'
-        u14.vm.network 'private_network', ip: '192.168.100.244'
-        u14.vm.provision 'shell', path: 'vprov/u14.sh', args: [go_url_base, go_ver]
-    end
+    # #
+    # # ubuntu14 builder EOL
+    # #
+    # config.vm.define 'u14', autostart: false do |u14|
+    #     u14.vm.box = 'maier/ubuntu-14.04-x86_64'
+    #     u14.vm.provider 'virtualbox' do |vb|
+    #         vb.name = 'u14_circonus-agent_build'
+    #         vb.cpus = 2
+    #         vb.customize ['modifyvm', :id, '--uartmode1', 'disconnected']
+    #     end
+    #     u14.vm.synced_folder '.', agent_src_path, owner: 'vagrant', group: 'vagrant'
+    #     u14.vm.network 'private_network', ip: '192.168.100.244'
+    #     u14.vm.provision 'shell', path: 'vprov/u14.sh', args: [go_url_base, go_ver]
+    # end
 
-    #
-    # OmniOS r15
-    #
-    config.vm.define 'o15', autostart: false do |o15|
-        o15.vm.box = 'maier/omnios-r151014-x86_64'
-        o15.vm.provider 'virtualbox' do |vb|
-            vb.name = 'o15_circonus-agent'
-            vb.cpus = 2
-        end
-        o15.vm.synced_folder '.', agent_src_path, owner: 'vagrant', group: 'vagrant'
-        o15.vm.network 'private_network', ip: '192.168.100.245'
-        o15.vm.provision 'shell', inline: <<-SHELL
-            echo "Installing needed packages (e.g. git, go, etc.)"
-            pkg set-publisher -g http://updates.circonus.net/omnios/r151014/ circonus
-            pkg install -q developer/gcc48
-            [[ $(grep -c "PATH" /root/.bashrc) -eq 0  ]] && {
-                echo '[[ -f ~/.bashrc ]] && source ~/.bashrc' >> /root/.profile
-                echo 'export PATH="$PATH:$(ls -d /opt/gcc*)/bin"' >> /root/.bashrc
-            }
-        SHELL
-    end
+    # #
+    # # OmniOS r15 EOL
+    # #
+    # config.vm.define 'o15', autostart: false do |o15|
+    #     o15.vm.box = 'maier/omnios-r151014-x86_64'
+    #     o15.vm.provider 'virtualbox' do |vb|
+    #         vb.name = 'o15_circonus-agent_build'
+    #         vb.cpus = 2
+    #     end
+    #     o15.vm.synced_folder '.', agent_src_path, owner: 'vagrant', group: 'vagrant'
+    #     o15.vm.network 'private_network', ip: '192.168.100.245'
+    #     o15.vm.provision 'shell', inline: <<-SHELL
+    #         echo "Installing needed packages (e.g. git, go, etc.)"
+    #         pkg set-publisher -g http://updates.circonus.net/omnios/r151014/ circonus
+    #         pkg install -q developer/gcc48
+    #         [[ $(grep -c "PATH" /root/.bashrc) -eq 0  ]] && {
+    #             echo '[[ -f ~/.bashrc ]] && source ~/.bashrc' >> /root/.profile
+    #             echo 'export PATH="$PATH:$(ls -d /opt/gcc*)/bin"' >> /root/.bashrc
+    #         }
+    #     SHELL
+    # end
 
     #
     # FreeBSD 11 builder
@@ -109,14 +109,20 @@ Vagrant.configure('2') do |config|
         fb11.vm.box = 'freebsd/FreeBSD-11.2-RELEASE'
         # fb11.vm.box = 'freebsd/FreeBSD-11.0-RELEASE-p1'
         # fb11.vm.box = 'freebsd/FreeBSD-11.1-RELEASE'
-        fb11.vm.synced_folder '.', '/vagrant', id: 'vagrant-root', disabled: true
-        fb11.vm.synced_folder '.', agent_src_path, type: 'nfs'
+        #fb11.vm.synced_folder '.', '/vagrant', id: 'vagrant-root', disabled: true
+        #fb11.vm.synced_folder '.', agent_src_path, type: 'nfs'
+        # NOTE: for shared folders to work virtualbox guest additions have to be installed
+        # and enabled - which requires several commands after the 'pkg install' as well as
+        # a reboot in order to load the kernel driver. due to this, the vm should be brought 
+        # up, vbga installed and configured, then halted ... then proceed with builds -- 
+        # pita, would be nice if the virtualbox freebsd box was created WITH the guest additions
+        fb11.vm.synced_folder '.', agent_src_path, id: 'vagrant-root'
         # mac not set in base box, just needs to be set to something to avoid vagrant errors
         fb11.vm.base_mac = ''
         # fb11.ssh.shell = 'test -x /usr/local/bin/bash && /usr/local/bin/bash -l || sh'
         fb11.ssh.shell = 'sh'
         fb11.vm.provider 'virtualbox' do |vb|
-            vb.name = 'fb11_circonus-agent'
+            vb.name = 'fb11_circonus-agent_build'
             vb.customize ['modifyvm', :id, '--memory', '2048']
             vb.customize ['modifyvm', :id, '--cpus', '2']
             vb.customize ['modifyvm', :id, '--hwvirtex', 'on']
