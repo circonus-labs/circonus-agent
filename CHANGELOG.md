@@ -1,4 +1,4 @@
-# v1.0.1-beta.2
+# v1.0.0-beta.2
 
 * fix: gofmt io_latency plugin
 * add: build plugins script
@@ -11,6 +11,7 @@
 * fix: lint, remove old `id`, replaced with streamtag `collector:promrecv`
 * fix: generic builtins, skip NaN floats (causes json error)
 * upd: dependencies
+* add: smf manifest
 
 # v1.0.0-beta.1
 
