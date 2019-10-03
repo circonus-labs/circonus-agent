@@ -56,7 +56,7 @@ func dumpHistAndClear() {
 				val := make(map[string]interface{})
 				val["_type"] = "h"
 				val["_value"] = ss
-				val["_tags"] = []string{"device:"+dev,"units:seconds"}
+				val["_tags"] = []string{"device:" + dev, "units:seconds"}
 				tmp[typ] = val
 			}
 		}

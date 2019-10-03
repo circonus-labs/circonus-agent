@@ -311,8 +311,6 @@ install_protocol_observer() {
     #
     # NOTE: protocol_observer is a tool in the wirelatency repository
     #
-    # the following line is for go 1.11 modules (outside of GOPATH)
-    [[ -f go.mod ]] || { echo "module github.com/circonus-labs/wirelatency" > go.mod; rm_go_mod="y"; }
     pushd protocol_observer >/dev/null
     echo "-building protocol_observer (${dest_bin})"
     $GO build -o $dest_bin
@@ -322,9 +320,6 @@ install_protocol_observer() {
         $CP $CP_ARGS README.md $dest_doc
     }
     popd >/dev/null
-    # the following line is for go 1.11 modules (outside of GOPATH)
-    # prevent 'git pull' failing due to dirty local repo
-    [[ -f go.mod && "$rm_go_mod" == "y" ]] && rm go.mod
     popd >/dev/null
 }
 
@@ -427,6 +422,13 @@ install_service() {
 make_package() {
     local stripped_ver=${agent_version#v}
 
+    #
+    # deb/rpm treat version numbers differently
+    # semver compliant pre-release versions fail to build or parse differently than intended
+    # to circumvent the build/parse issues the dash will be replaced with a tilde (until 
+    # the semver standard is updated with a course of action)
+    #
+
     echo
     echo "Creating circonus-agent package"
     echo
@@ -440,6 +442,7 @@ make_package() {
     case $os_name in
         el*)
             echo "making RPM for $os_name"
+            stripped_ver="${stripped_ver/-/~}"
             $SED -e "s#@@RPMVER@@#${stripped_ver}#" rhel/circonus-agent.spec.in > rhel/circonus-agent.spec
             $RPMBUILD -bb rhel/circonus-agent.spec
             $CP $CP_ARGS ~/rpmbuild/RPMS/*/circonus-agent-${stripped_ver}-1.*.${os_arch}.rpm $dir_publish

@@ -28,13 +28,11 @@ import (
 )
 
 var (
-	id            string
 	baseTags      []string
 	nameCleanerRx *regexp.Regexp
 	metricsmu     sync.Mutex
 	metrics       *cgm.CirconusMetrics
-	// parseRx             *regexp.Regexp
-	logger = log.With().Str("pkg", "promrecv").Logger()
+	logger        = log.With().Str("pkg", "promrecv").Logger()
 )
 
 // logshim is used to satisfy apiclient Logger interface (avoiding ptr receiver issue)
@@ -70,7 +68,6 @@ func initCGM() error {
 	metrics = hm
 
 	// inintialize any options for the receiver
-	id = "prom"                                      // metric name (group) prefix to be used
 	nameCleanerRx = regexp.MustCompile("[\r\n\"'`]") // used to strip unwanted characters
 
 	baseTags = tags.GetBaseTags()

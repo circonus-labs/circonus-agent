@@ -1,3 +1,18 @@
+# v1.0.0-beta.2
+
+* fix: gofmt io_latency plugin
+* add: build plugins script
+* add: build linting script
+* add: `go mod tidy`, linting and plugin building before release
+* add: `illumos` target to goreleaser builds.goos
+* add: example metric filter using tags
+* fix: lint, duplicate toml (one should be yaml)
+* fix: lint, use `fmt.Println` vs `fmt.Printf` in test
+* fix: lint, remove old `id`, replaced with streamtag `collector:promrecv`
+* fix: generic builtins, skip NaN floats (causes json error)
+* upd: dependencies
+* add: smf manifest
+
 # v1.0.0-beta.1
 
 * fix: output all parsed plugin metrics with streamtags, include any tags from `_tags` attribute of emitted json

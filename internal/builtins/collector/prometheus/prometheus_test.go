@@ -139,7 +139,7 @@ func TestCollect(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, promData)
+		fmt.Fprintln(w, promData)
 	}))
 	defer ts.Close()
 
@@ -214,7 +214,7 @@ func TestCollectTimeout(t *testing.T) {
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(1 * time.Second)
-		fmt.Fprintf(w, promData)
+		fmt.Fprintln(w, promData)
 	}))
 	defer ts.Close()
 

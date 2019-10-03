@@ -257,6 +257,7 @@ const (
 	//  `"metric_filters": "[[\"deny\",\"^$\",\"\"],[\"allow\",\"^.+$\",\"\"]]"`
 	// YAML configuration file:
 	//  `metric_filters: '[["deny","^$",""],["allow","^.+$",""]]'`
+	//  `metric_filters: '[["deny","^$",""],["deny","^.+$","tags","and(env:dev)",""],["allow","^.+$",""]]'`
 	// TOML configuration file:
 	//  `metric_filters = '''[["deny","$^",""],["allow","^.+$",""]]'''`
 	KeyCheckMetricFilters = "check.metric_filters"
