@@ -499,7 +499,12 @@ make_package() {
 dir_current=$(pwd)
 install_agent
 install_plugins
-install_protocol_observer
+# removing inclusion of protocol_observer temporarily 
+# so it stops blocking package builds due to protocol
+# changes and changes to gopacket preventing compiling.
+# to re-enable inclusion, uncomment the following line
+# and remove this comment.
+#install_protocol_observer
 install_logwatch
 install_service
 make_package

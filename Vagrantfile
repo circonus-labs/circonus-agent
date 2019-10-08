@@ -5,7 +5,7 @@
 # defines VMs for developing/testing Circonus Agent
 #
 
-go_ver = '1.13'
+go_ver = `go version`.chomp.split(' ')[2]
 go_url_base = 'https://dl.google.com/go'
 agent_src_path = '/home/vagrant/godev/src/github.com/circonus-labs/circonus-agent'
 
@@ -107,19 +107,9 @@ Vagrant.configure('2') do |config|
     config.vm.define 'fb11', autostart: false do |fb11|
         fb11.vm.guest = :freebsd
         fb11.vm.box = 'freebsd/FreeBSD-11.2-RELEASE'
-        # fb11.vm.box = 'freebsd/FreeBSD-11.0-RELEASE-p1'
-        # fb11.vm.box = 'freebsd/FreeBSD-11.1-RELEASE'
-        #fb11.vm.synced_folder '.', '/vagrant', id: 'vagrant-root', disabled: true
-        #fb11.vm.synced_folder '.', agent_src_path, type: 'nfs'
-        # NOTE: for shared folders to work virtualbox guest additions have to be installed
-        # and enabled - which requires several commands after the 'pkg install' as well as
-        # a reboot in order to load the kernel driver. due to this, the vm should be brought 
-        # up, vbga installed and configured, then halted ... then proceed with builds -- 
-        # pita, would be nice if the virtualbox freebsd box was created WITH the guest additions
         fb11.vm.synced_folder '.', agent_src_path, id: 'vagrant-root'
         # mac not set in base box, just needs to be set to something to avoid vagrant errors
         fb11.vm.base_mac = ''
-        # fb11.ssh.shell = 'test -x /usr/local/bin/bash && /usr/local/bin/bash -l || sh'
         fb11.ssh.shell = 'sh'
         fb11.vm.provider 'virtualbox' do |vb|
             vb.name = 'fb11_circonus-agent_build'

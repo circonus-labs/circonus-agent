@@ -5,9 +5,11 @@ set -e
 distros="c7 c6 u18 u16 fb11"
 [[ -n "$1" ]] && distros="${@:1}"
 
+src_dir="~/godev/src/github.com/circonus-labs/circonus-agent/package"
+
 for dist in $distros; do
-    cmd="cd ~/godev/src/github.com/circonus-labs/circonus-agent/package && ./build.sh"
-    [[ $dist == "fb11" ]] && { tmp="/usr/local/bin/bash -l -c '${cmd}'"; cmd=$tmp; }
+    cmd="cd $src_dir && ./build.sh"
+    [[ $dist == "fb11" ]] && { tmp="/usr/local/bin/bash -l -c 'cd $src_dir && cp build.sh ~/. && ~/build.sh'"; cmd=$tmp; }
     vagrant up $dist
     vagrant ssh $dist --command="${cmd}"
     vagrant halt $dist
