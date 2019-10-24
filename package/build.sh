@@ -410,6 +410,11 @@ install_service() {
             $SED -e "${sed_script}" ../service/circonus-agent.init-ubuntu > $dir_install/etc/init.d/circonus-agent
             chmod 755 $dir_install/etc/init.d/circonus-agent
             ;;
+        freebsd\.*)
+            $MKDIR -p $dir_install/etc/rc.d
+            $SED -e "$sed_script" ../service/circonus-agent.rc-freebsd > $dir_install/etc/rc.d/circonus-agent
+            chmod 755 $dir_install/etc/rc.d/circonus-agent
+            ;;
         *)
             echo "no pre-built service configuration available for $os_name"
             ;;
