@@ -48,20 +48,25 @@ type diskOptions struct {
 }
 
 type dstats struct {
-	id              string
-	readsCompleted  uint64
-	readsMerged     uint64
-	sectorsRead     uint64
-	bytesRead       uint64
-	readms          uint64
-	writesCompleted uint64
-	writesMerged    uint64
-	sectorsWritten  uint64
-	bytesWritten    uint64
-	writems         uint64
-	currIO          uint64
-	ioms            uint64
-	iomsWeighted    uint64
+	id                string
+	readsCompleted    uint64
+	readsMerged       uint64
+	sectorsRead       uint64
+	bytesRead         uint64
+	readms            uint64
+	writesCompleted   uint64
+	writesMerged      uint64
+	sectorsWritten    uint64
+	bytesWritten      uint64
+	writems           uint64
+	currIO            uint64
+	ioms              uint64
+	iomsWeighted      uint64
+	haveKernel418     bool
+	discardsCompleted uint64
+	discardsMerged    uint64
+	sectorsDiscarded  uint64
+	discardms         uint64
 }
 
 // NewDiskCollector creates new procfs disk collector
@@ -176,21 +181,28 @@ func (c *Disk) Collect() error {
 	for _, line := range lines {
 		fields := strings.Fields(line)
 
-		//  1 major                ignore
-		//  2 minor                ignore
-		//  3 device_name          apply include/exclude filters
-		//  4 reads_completed      rd_completed
-		//  5 reads_merged         rd_merged
-		//  6 sectors_read         rd_sectors
-		//  7 read_ms              rd_ms
-		//  8 writes_completed     wr_completed
-		//  9 writes_merged        wr_merged
-		// 10 sectors_written      wr_sectors
-		// 11 write_ms             wr_ms
-		// 12 io_running           io_in_progress
-		// 13 io_running_ms        io_ms
-		// 14 weighted_io_ms       io_ms_weighted
-		if len(fields) != 14 {
+		//  0 major                ignore
+		//  1 minor                ignore
+		//  2 device_name          apply include/exclude filters
+		// https://github.com/torvalds/linux/blob/master/Documentation/admin-guide/iostats.rst
+		// NOTE: in the doc, field 1 is 4 here, reads completed
+		//  3 reads_completed      rd_completed
+		//  4 reads_merged         rd_merged
+		//  5 sectors_read         rd_sectors
+		//  6 read_ms              rd_ms
+		//  7 writes_completed     wr_completed
+		//  8 writes_merged        wr_merged
+		//  9 sectors_written      wr_sectors
+		// 10 write_ms             wr_ms
+		// 11 io_running           io_in_progress
+		// 12 io_running_ms        io_ms
+		// 13 weighted_io_ms       io_ms_weighted
+		// Kernel 4.18+ adds:
+		// 14 - discards completed successfully
+		// 15 - discards merged
+		// 16 - sectors discarded
+		// 17 - time spent discarding (milliseconds)
+		if len(fields) < 13 {
 			continue
 		}
 
@@ -226,6 +238,9 @@ func (c *Disk) Collect() error {
 						devStats.writems += ds.writems
 						devStats.currIO += ds.currIO
 						devStats.ioms += ds.ioms
+						if devStats.haveKernel418 {
+							devStats.discardms += ds.discardms
+						}
 					}
 				}
 			}
@@ -243,6 +258,10 @@ func (c *Disk) Collect() error {
 			_ = c.addMetric(&metrics, "", "writes", metricType, devStats.writesCompleted, tagList)
 			_ = c.addMetric(&metrics, "", "merged_writes", metricType, devStats.writesMerged, tagList)
 			_ = c.addMetric(&metrics, "", "iops_in_progress", metricType, devStats.currIO, tagList)
+			if devStats.haveKernel418 {
+				_ = c.addMetric(&metrics, "", "discards", metricType, devStats.discardsCompleted, tagList)
+				_ = c.addMetric(&metrics, "", "merged_discards", metricType, devStats.discardsMerged, tagList)
+			}
 		}
 
 		{
@@ -250,6 +269,9 @@ func (c *Disk) Collect() error {
 			tagList = append(tagList, diskTags...)
 			_ = c.addMetric(&metrics, "", "reads", metricType, devStats.sectorsRead, tagList)
 			_ = c.addMetric(&metrics, "", "writes", metricType, devStats.sectorsWritten, tagList)
+			if devStats.haveKernel418 {
+				_ = c.addMetric(&metrics, "", "sectors_discarded", metricType, devStats.sectorsDiscarded, tagList)
+			}
 		}
 
 		{
@@ -266,21 +288,10 @@ func (c *Disk) Collect() error {
 			_ = c.addMetric(&metrics, "", "write_time", metricType, devStats.writems, tagList)
 			_ = c.addMetric(&metrics, "", "io_time", metricType, devStats.ioms, tagList)
 			_ = c.addMetric(&metrics, "", "weighted_io_time", metricType, devStats.iomsWeighted, tagList)
+			if devStats.haveKernel418 {
+				_ = c.addMetric(&metrics, "", "discard_time", metricType, devStats.discardms, tagList)
+			}
 		}
-
-		// c.addMetric(&metrics, pfx+devID, "rd_completed", metricType, devStats.readsCompleted)  // reads, operations
-		// c.addMetric(&metrics, pfx+devID, "rd_merged", metricType, devStats.readsMerged)        // merged_reads, operations
-		// c.addMetric(&metrics, pfx+devID, "rd_sectors", metricType, devStats.sectorsRead)       // reads, sectors
-		// c.addMetric(&metrics, pfx+devID, "rd_bytes", metricType, devStats.bytesRead)           // reads, bytes
-		// c.addMetric(&metrics, pfx+devID, "rd_ms", metricType, devStats.readms)                 // read_time, milliseconds
-		// c.addMetric(&metrics, pfx+devID, "wr_completed", metricType, devStats.writesCompleted) // writes, operations
-		// c.addMetric(&metrics, pfx+devID, "wr_merged", metricType, devStats.writesMerged)       // merged_writes, operations
-		// c.addMetric(&metrics, pfx+devID, "wr_sectors", metricType, devStats.sectorsWritten)    // writes, sectors
-		// c.addMetric(&metrics, pfx+devID, "wr_bytes", metricType, devStats.bytesWritten)        // writes, bytes
-		// c.addMetric(&metrics, pfx+devID, "wr_ms", metricType, devStats.writems)                // write_time, milliseconds
-		// c.addMetric(&metrics, pfx+devID, "io_in_progress", metricType, devStats.currIO)        // iops_in_progress, operations
-		// c.addMetric(&metrics, pfx+devID, "io_ms", metricType, devStats.ioms)                   // io_time, milliseconds
-		// c.addMetric(&metrics, pfx+devID, "io_ms_weighted", metricType, devStats.iomsWeighted)  // weighted_io_time, milliseconds
 	}
 
 	c.setStatus(metrics, nil)
@@ -324,7 +335,8 @@ func (c *Disk) parse(fields []string) (*dstats, error) {
 
 	pe := errors.New("parsing field")
 	d := dstats{
-		id: devName,
+		id:            devName,
+		haveKernel418: len(fields) > 13,
 	}
 
 	if v, err := strconv.ParseUint(fields[3], 10, 64); err == nil {
@@ -404,6 +416,33 @@ func (c *Disk) parse(fields []string) (*dstats, error) {
 	} else {
 		c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field weighted IO ms")
 		return nil, pe
+	}
+
+	if d.haveKernel418 {
+		if v, err := strconv.ParseUint(fields[14], 10, 64); err == nil {
+			d.discardsCompleted = v
+		} else {
+			c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field discards completed")
+			return nil, pe
+		}
+		if v, err := strconv.ParseUint(fields[15], 10, 64); err == nil {
+			d.discardsMerged = v
+		} else {
+			c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field discards merged")
+			return nil, pe
+		}
+		if v, err := strconv.ParseUint(fields[16], 10, 64); err == nil {
+			d.sectorsDiscarded = v
+		} else {
+			c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field sectors discarded")
+			return nil, pe
+		}
+		if v, err := strconv.ParseUint(fields[17], 10, 64); err == nil {
+			d.discardms = v
+		} else {
+			c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field discard ms")
+			return nil, pe
+		}
 	}
 
 	return &d, nil
