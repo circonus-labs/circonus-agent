@@ -39,7 +39,9 @@ func (c *Connection) sendMetricData(r io.Writer, channelID uint16, data *[]byte,
 			Msg("metric payload frame")
 
 		if conn, ok := r.(*tls.Conn); ok {
-			conn.SetDeadline(time.Now().Add(c.commTimeout))
+			if err := conn.SetDeadline(time.Now().Add(c.commTimeout)); err != nil {
+				c.logger.Warn().Err(err).Msg("setting connection deadline")
+			}
 		}
 
 		sent, err := r.Write(frame)
@@ -77,7 +79,9 @@ func (c *Connection) fetchMetricData(request *[]byte, channelID uint16) (*[]byte
 	// with graph/dashboard _play_, metrics will go
 	// back to broker as fast as possible, gated by
 	// plugin execution speed
-	conn.SetDeadline(time.Now().Add(c.metricTimeout))
+	if err := conn.SetDeadline(time.Now().Add(c.metricTimeout)); err != nil {
+		c.logger.Warn().Err(err).Msg("setting connection deadline")
+	}
 
 	numBytes, err := conn.Write(*request)
 	if err != nil {

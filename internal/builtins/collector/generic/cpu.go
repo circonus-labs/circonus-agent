@@ -33,7 +33,7 @@ type cpuOptions struct {
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
 	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
 	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
+	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" yaml:"metrics_default_status"`
 	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 
 	// collector specific
@@ -43,9 +43,9 @@ type cpuOptions struct {
 // NewCPUCollector creates new psutils cpu collector
 func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
 	c := CPU{}
-	c.id = CPU_NAME
-	c.pkgID = PKG_NAME + "." + c.id
-	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
+	c.id = cpuName
+	c.pkgID = pkgName + "." + c.id
+	c.logger = log.With().Str("pkg", pkgName).Str("id", c.id).Logger()
 	c.metricStatus = map[string]bool{}
 	c.metricDefaultActive = true
 	c.reportAllCPUs = false
@@ -131,10 +131,10 @@ func (c *CPU) Collect() error {
 		c.logger.Warn().Err(err).Msg("collecting metrics, cpu%")
 	} else {
 		if !c.reportAllCPUs && len(pcts) == 1 {
-			c.addMetric(&metrics, c.id, "used_pct", "n", pcts[0])
+			_ = c.addMetric(&metrics, c.id, "used_pct", "n", pcts[0])
 		} else {
 			for idx, pct := range pcts {
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "used_pct"), "n", pct)
+				_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "used_pct"), "n", pct)
 			}
 		}
 	}
@@ -144,30 +144,30 @@ func (c *CPU) Collect() error {
 		c.logger.Warn().Err(err).Msg("collecting metrics, cpu times")
 	} else {
 		if !c.reportAllCPUs && len(ts) == 1 {
-			c.addMetric(&metrics, c.id, "user", "n", ts[0].User)
-			c.addMetric(&metrics, c.id, "system", "n", ts[0].System)
-			c.addMetric(&metrics, c.id, "idle", "n", ts[0].Idle)
-			c.addMetric(&metrics, c.id, "nice", "n", ts[0].Nice)
-			c.addMetric(&metrics, c.id, "iowait", "n", ts[0].Iowait)
-			c.addMetric(&metrics, c.id, "irq", "n", ts[0].Irq)
-			c.addMetric(&metrics, c.id, "soft_irq", "n", ts[0].Softirq)
-			c.addMetric(&metrics, c.id, "steal", "n", ts[0].Steal)
-			c.addMetric(&metrics, c.id, "guest", "n", ts[0].Guest)
-			c.addMetric(&metrics, c.id, "guest_nice", "n", ts[0].GuestNice)
-			c.addMetric(&metrics, c.id, "stolen", "n", ts[0].Stolen)
+			_ = c.addMetric(&metrics, c.id, "user", "n", ts[0].User)
+			_ = c.addMetric(&metrics, c.id, "system", "n", ts[0].System)
+			_ = c.addMetric(&metrics, c.id, "idle", "n", ts[0].Idle)
+			_ = c.addMetric(&metrics, c.id, "nice", "n", ts[0].Nice)
+			_ = c.addMetric(&metrics, c.id, "iowait", "n", ts[0].Iowait)
+			_ = c.addMetric(&metrics, c.id, "irq", "n", ts[0].Irq)
+			_ = c.addMetric(&metrics, c.id, "soft_irq", "n", ts[0].Softirq)
+			_ = c.addMetric(&metrics, c.id, "steal", "n", ts[0].Steal)
+			_ = c.addMetric(&metrics, c.id, "guest", "n", ts[0].Guest)
+			_ = c.addMetric(&metrics, c.id, "guest_nice", "n", ts[0].GuestNice)
+			_ = c.addMetric(&metrics, c.id, "stolen", "n", ts[0].Stolen)
 		} else {
 			for idx, v := range ts {
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "user"), "n", v.User)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "system"), "n", v.System)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "idle"), "n", v.Idle)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "nice"), "n", v.Nice)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "iowait"), "n", v.Iowait)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "irq"), "n", v.Irq)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "soft_irq"), "n", v.Softirq)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "steal"), "n", v.Steal)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "guest"), "n", v.Guest)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "guest_nice"), "n", v.GuestNice)
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "stolen"), "n", v.Stolen)
+				_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "user"), "n", v.User)
+				_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "system"), "n", v.System)
+				_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "idle"), "n", v.Idle)
+				_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "nice"), "n", v.Nice)
+				_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "iowait"), "n", v.Iowait)
+				_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "irq"), "n", v.Irq)
+				_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "soft_irq"), "n", v.Softirq)
+				_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "steal"), "n", v.Steal)
+				_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "guest"), "n", v.Guest)
+				_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "guest_nice"), "n", v.GuestNice)
+				_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%d%s%s", idx, metricNameSeparator, "stolen"), "n", v.Stolen)
 			}
 		}
 	}

@@ -155,20 +155,24 @@ func (c *Check) selectBroker(checkType string) (*apiclient.Broker, error) {
 	for _, broker := range *brokerList {
 		broker := broker
 		dur, ok := c.isValidBroker(&broker, checkType)
-		if ok {
-			if dur > threshold {
-				continue
-			} else if dur == threshold {
-				validBrokers[broker.CID] = broker
-			} else if dur < threshold {
-				validBrokers = make(map[string]apiclient.Broker)
-				haveEnterprise = false
-				threshold = dur
-				validBrokers[broker.CID] = broker
-			}
-			if broker.Type == "enterprise" {
-				haveEnterprise = true
-			}
+		if !ok {
+			continue
+		}
+
+		switch {
+		case dur > threshold:
+			continue
+		case dur == threshold:
+			validBrokers[broker.CID] = broker
+		case dur < threshold:
+			validBrokers = make(map[string]apiclient.Broker)
+			haveEnterprise = false
+			threshold = dur
+			validBrokers[broker.CID] = broker
+		}
+
+		if broker.Type == "enterprise" {
+			haveEnterprise = true
 		}
 	}
 

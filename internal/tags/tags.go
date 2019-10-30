@@ -53,8 +53,8 @@ const (
 	Separator       = ","
 	replacementChar = "_"
 
-	MAX_TAGS            = 256
-	MAX_METRIC_NAME_LEN = 4096
+	MaxTags          = 256
+	MaxMetricNameLen = 4096
 )
 
 var (
@@ -192,8 +192,8 @@ func EncodeMetricStreamTags(tags Tags) string {
 
 	tagList := make([]string, len(tmpTags))
 	for i, tag := range tmpTags {
-		if i >= MAX_TAGS {
-			log.Warn().Int("num", len(tags)).Int("max", MAX_TAGS).Interface("tags", tags).Msg("ignoring tags over max")
+		if i >= MaxTags {
+			log.Warn().Int("num", len(tags)).Int("max", MaxTags).Interface("tags", tags).Msg("ignoring tags over max")
 			break
 		}
 		tagParts := strings.SplitN(tag, ":", 2)
@@ -228,8 +228,8 @@ func EncodeMetricTags(tags Tags) []string {
 
 	uniqueTags := make(map[string]bool)
 	for i, t := range tags {
-		if i >= MAX_TAGS {
-			log.Warn().Int("num", len(tags)).Int("max", MAX_TAGS).Interface("tags", tags).Msg("too many tags, ignoring remainder")
+		if i >= MaxTags {
+			log.Warn().Int("num", len(tags)).Int("max", MaxTags).Interface("tags", tags).Msg("too many tags, ignoring remainder")
 			break
 		}
 		tc := strings.Map(removeSpaces, strings.ToLower(t.Category))

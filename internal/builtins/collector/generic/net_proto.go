@@ -32,7 +32,7 @@ type protoOptions struct {
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
 	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
 	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
+	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" yaml:"metrics_default_status"`
 	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 
 	// collector specific
@@ -42,9 +42,9 @@ type protoOptions struct {
 // NewNetProtoCollector creates new psutils collector
 func NewNetProtoCollector(cfgBaseName string) (collector.Collector, error) {
 	c := Proto{}
-	c.id = PROTO_NAME
-	c.pkgID = PKG_NAME + "." + c.id
-	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
+	c.id = protoName
+	c.pkgID = pkgName + "." + c.id
+	c.logger = log.With().Str("pkg", pkgName).Str("id", c.id).Logger()
 	c.metricStatus = map[string]bool{}
 	c.metricDefaultActive = true
 	c.baseTags = tags.FromList(tags.GetBaseTags())
@@ -129,7 +129,7 @@ func (c *Proto) Collect() error {
 		}
 		for _, counter := range counters {
 			for name, val := range counter.Stats {
-				c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", counter.Protocol, metricNameSeparator, name), "L", val)
+				_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", counter.Protocol, metricNameSeparator, name), "L", val)
 			}
 		}
 	}

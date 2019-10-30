@@ -274,7 +274,12 @@ func (p *plugin) exec() error {
 	//      Problem is some plugins do not exit intentionally - long running.
 	//      There is no way [currently] to know whether a plugin is
 	//      intentionally "long running".
-	p.cmd = exec.CommandContext(p.ctx, p.command)
+	//
+	// G204: Subprocess launched with function call as argument or cmd arguments (gosec)
+	// -- the `command` is built internally, there is no tainted data in the `command`,
+	//    there is no remediation for this warning/error in gosec documentation.
+	//
+	p.cmd = exec.CommandContext(p.ctx, p.command) //nolint:gosec
 	p.cmd.Dir = p.runDir
 	if p.instanceArgs != nil {
 		p.cmd.Args = append(p.cmd.Args, p.instanceArgs...)
@@ -324,7 +329,9 @@ func (p *plugin) exec() error {
 		// blank line, long running plugin signal to parse
 		// what has already been received.
 		if line == "" {
-			p.parsePluginOutput(lines)
+			if err := p.parsePluginOutput(lines); err != nil {
+				plog.Error().Err(err).Str("id", p.id).Msg("parsing output")
+			}
 			lines = []string{}
 			continue
 		}
@@ -345,8 +352,9 @@ func (p *plugin) exec() error {
 
 	// parse lines if there are any in the buffer
 	// or, in case of long running plugin, any left in buffer on exit
-	p.parsePluginOutput(lines)
-
+	if err := p.parsePluginOutput(lines); err != nil {
+		plog.Error().Err(err).Str("id", p.id).Msg("parsing output")
+	}
 	if err := p.cmd.Wait(); err != nil {
 		var stderr string
 		if errOut.Len() > 0 {

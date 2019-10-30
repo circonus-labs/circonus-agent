@@ -64,12 +64,25 @@ in JSON format.`,
 			log.Fatal().Err(err).Msg("initializing")
 		}
 
-		config.StatConfig()
+		if err := config.StatConfig(); err != nil {
+			log.Fatal().Err(err).Msg("initializing internal stats")
+		}
 
 		if err := a.Start(); err != nil {
 			log.Fatal().Err(err).Msg("starting agent")
 		}
 	},
+}
+
+func bindFlagError(flag string, err error) {
+	if err != nil {
+		log.Fatal().Err(err).Str("flag", flag).Msg("binding flag")
+	}
+}
+func bindEnvError(envVar string, err error) {
+	if err != nil {
+		log.Fatal().Err(err).Str("var", envVar).Msg("binding env var")
+	}
 }
 
 func init() {
@@ -109,8 +122,8 @@ func init() {
 		)
 
 		RootCmd.Flags().StringSliceP(longOpt, shortOpt, []string{}, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 	}
 
 	{
@@ -122,8 +135,8 @@ func init() {
 		)
 
 		RootCmd.Flags().StringSlice(longOpt, defaults.Collectors, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaults.Collectors)
 	}
 
@@ -137,8 +150,8 @@ func init() {
 		)
 
 		RootCmd.Flags().StringSliceP(longOpt, shortOpt, []string{}, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 	}
 
 	{
@@ -151,8 +164,8 @@ func init() {
 		)
 
 		RootCmd.Flags().StringP(longOpt, shortOpt, "", desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 	}
 
 	{
@@ -164,8 +177,8 @@ func init() {
 		)
 
 		RootCmd.Flags().StringSlice(longOpt, []string{}, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 	}
 
 	{
@@ -177,8 +190,8 @@ func init() {
 		)
 
 		RootCmd.Flags().String(longOpt, defaults.PluginTTLUnits, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaults.PluginTTLUnits)
 	}
 
@@ -195,8 +208,8 @@ func init() {
 		)
 
 		RootCmd.Flags().BoolP(longOpt, shortOpt, defaults.Reverse, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaults.Reverse)
 	}
 
@@ -210,8 +223,8 @@ func init() {
 		)
 
 		RootCmd.Flags().String(longOpt, defaultValue, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 	}
 
 	{
@@ -224,8 +237,8 @@ func init() {
 		)
 
 		RootCmd.Flags().Int(longOpt, defaultValue, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaultValue)
 	}
 
@@ -243,8 +256,8 @@ func init() {
 		)
 
 		RootCmd.Flags().StringP(longOpt, shortOpt, defaultValue, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 	}
 
 	{
@@ -257,8 +270,8 @@ func init() {
 		)
 
 		RootCmd.Flags().BoolP(longOpt, shortOpt, defaults.CheckCreate, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaults.CheckCreate)
 	}
 
@@ -272,8 +285,8 @@ func init() {
 		)
 
 		RootCmd.Flags().StringP(longOpt, shortOpt, defaults.CheckTarget, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaults.CheckTarget)
 
 	}
@@ -287,8 +300,8 @@ func init() {
 		)
 
 		RootCmd.Flags().String(longOpt, "", desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 	}
 
 	{
@@ -300,8 +313,8 @@ func init() {
 		)
 
 		RootCmd.Flags().String(longOpt, defaults.CheckBroker, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaults.CheckBroker)
 	}
 
@@ -314,8 +327,8 @@ func init() {
 		)
 
 		RootCmd.Flags().String(longOpt, defaults.CheckTags, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaults.CheckTags)
 	}
 
@@ -329,8 +342,8 @@ func init() {
 		)
 
 		RootCmd.Flags().BoolP(longOpt, shortOpt, false, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, false)
 	}
 
@@ -344,8 +357,8 @@ func init() {
 		)
 
 		RootCmd.Flags().String(longOpt, defaultValue, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 	}
 
 	{
@@ -358,8 +371,8 @@ func init() {
 		)
 
 		RootCmd.Flags().BoolP(longOpt, shortOpt, defaults.CheckEnableNewMetrics, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaults.CheckEnableNewMetrics)
 	}
 
@@ -372,8 +385,8 @@ func init() {
 		)
 
 		RootCmd.Flags().String(longOpt, defaults.CheckMetricStatePath, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaults.CheckMetricStatePath)
 	}
 
@@ -386,8 +399,8 @@ func init() {
 		)
 
 		RootCmd.Flags().String(longOpt, defaults.CheckMetricRefreshTTL, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaults.CheckMetricRefreshTTL)
 	}
 
@@ -403,8 +416,8 @@ func init() {
 			description  = "Circonus API Token key"
 		)
 		RootCmd.Flags().String(longOpt, defaultValue, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 	}
 
 	{
@@ -416,8 +429,8 @@ func init() {
 		)
 
 		RootCmd.Flags().String(longOpt, defaults.APIApp, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaults.APIApp)
 	}
 
@@ -430,8 +443,8 @@ func init() {
 		)
 
 		RootCmd.Flags().String(longOpt, defaults.APIURL, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaults.APIURL)
 	}
 
@@ -445,8 +458,8 @@ func init() {
 		)
 
 		RootCmd.Flags().String(longOpt, defaultValue, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 	}
 
 	//
@@ -462,8 +475,8 @@ func init() {
 		)
 
 		RootCmd.Flags().String(longOpt, defaultValue, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 	}
 
 	{
@@ -475,8 +488,8 @@ func init() {
 		)
 
 		RootCmd.Flags().String(longOpt, defaults.SSLCertFile, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaults.SSLCertFile)
 	}
 
@@ -489,8 +502,8 @@ func init() {
 		)
 
 		RootCmd.Flags().String(longOpt, defaults.SSLKeyFile, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaults.SSLKeyFile)
 	}
 
@@ -503,8 +516,8 @@ func init() {
 		)
 
 		RootCmd.Flags().Bool(longOpt, defaults.SSLVerify, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaults.SSLVerify)
 	}
 
@@ -520,8 +533,8 @@ func init() {
 		)
 
 		RootCmd.Flags().Bool(longOpt, defaults.NoStatsd, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaults.NoStatsd)
 	}
 
@@ -534,8 +547,8 @@ func init() {
 		)
 
 		RootCmd.Flags().String(longOpt, defaults.StatsdPort, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaults.StatsdPort)
 	}
 
@@ -548,8 +561,8 @@ func init() {
 		)
 
 		RootCmd.Flags().String(longOpt, defaults.StatsdHostPrefix, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaults.StatsdHostPrefix)
 	}
 
@@ -562,8 +575,8 @@ func init() {
 		)
 
 		RootCmd.Flags().String(longOpt, defaults.StatsdHostCategory, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaults.StatsdHostCategory)
 	}
 
@@ -577,8 +590,8 @@ func init() {
 		)
 
 		RootCmd.Flags().String(longOpt, defaultValue, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 	}
 
 	{
@@ -590,8 +603,8 @@ func init() {
 		)
 
 		RootCmd.Flags().String(longOpt, defaults.StatsdGroupPrefix, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaults.StatsdGroupPrefix)
 	}
 
@@ -604,8 +617,8 @@ func init() {
 		)
 
 		RootCmd.Flags().String(longOpt, defaults.StatsdGroupCounters, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaults.StatsdGroupCounters)
 	}
 
@@ -618,8 +631,8 @@ func init() {
 		)
 
 		RootCmd.Flags().String(longOpt, defaults.StatsdGroupGauges, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaults.StatsdGroupGauges)
 	}
 
@@ -632,8 +645,8 @@ func init() {
 		)
 
 		RootCmd.Flags().String(longOpt, defaults.StatsdGroupSets, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaults.StatsdGroupSets)
 	}
 
@@ -648,8 +661,8 @@ func init() {
 		)
 
 		RootCmd.Flags().Bool(longOpt, defaults.DisableGzip, description)
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaults.DisableGzip)
 	}
 
@@ -663,8 +676,8 @@ func init() {
 		)
 
 		RootCmd.Flags().BoolP(longOpt, shortOpt, defaults.Debug, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaults.Debug)
 	}
 
@@ -678,8 +691,8 @@ func init() {
 		)
 
 		RootCmd.Flags().Bool(longOpt, defaultValue, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaultValue)
 	}
 
@@ -693,8 +706,8 @@ func init() {
 		)
 
 		RootCmd.Flags().Bool(longOpt, defaultValue, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaultValue)
 	}
 
@@ -707,8 +720,8 @@ func init() {
 		)
 
 		RootCmd.Flags().String(longOpt, "", desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 	}
 
 	{
@@ -720,8 +733,8 @@ func init() {
 		)
 
 		RootCmd.Flags().String(longOpt, defaults.LogLevel, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaults.LogLevel)
 	}
 
@@ -734,8 +747,8 @@ func init() {
 		)
 
 		RootCmd.Flags().Bool(longOpt, defaults.LogPretty, desc(description, envVar))
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
-		viper.BindEnv(key, envVar)
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
+		bindEnvError(envVar, viper.BindEnv(key, envVar))
 		viper.SetDefault(key, defaults.LogPretty)
 	}
 
@@ -752,7 +765,7 @@ func init() {
 			description  = "Show version and exit"
 		)
 		RootCmd.Flags().BoolP(longOpt, shortOpt, defaultValue, description)
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
 	}
 
 	{
@@ -763,7 +776,7 @@ func init() {
 		)
 
 		RootCmd.Flags().String(longOpt, "", description)
-		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		bindFlagError(longOpt, viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)))
 	}
 }
 
@@ -788,31 +801,29 @@ func initLogging(cmd *cobra.Command, args []string) error {
 		viper.Set(config.KeyLogLevel, "debug")
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 		log.Debug().Msg("--debug flag, forcing debug log level")
-	} else {
-		if viper.IsSet(config.KeyLogLevel) {
-			level := viper.GetString(config.KeyLogLevel)
+	} else if viper.IsSet(config.KeyLogLevel) {
+		level := viper.GetString(config.KeyLogLevel)
 
-			switch level {
-			case "panic":
-				zerolog.SetGlobalLevel(zerolog.PanicLevel)
-			case "fatal":
-				zerolog.SetGlobalLevel(zerolog.FatalLevel)
-			case "error":
-				zerolog.SetGlobalLevel(zerolog.ErrorLevel)
-			case "warn":
-				zerolog.SetGlobalLevel(zerolog.WarnLevel)
-			case "info":
-				zerolog.SetGlobalLevel(zerolog.InfoLevel)
-			case "debug":
-				zerolog.SetGlobalLevel(zerolog.DebugLevel)
-			case "disabled":
-				zerolog.SetGlobalLevel(zerolog.Disabled)
-			default:
-				return errors.Errorf("Unknown log level (%s)", level)
-			}
-
-			log.Debug().Str("log-level", level).Msg("Logging level")
+		switch level {
+		case "panic":
+			zerolog.SetGlobalLevel(zerolog.PanicLevel)
+		case "fatal":
+			zerolog.SetGlobalLevel(zerolog.FatalLevel)
+		case "error":
+			zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+		case "warn":
+			zerolog.SetGlobalLevel(zerolog.WarnLevel)
+		case "info":
+			zerolog.SetGlobalLevel(zerolog.InfoLevel)
+		case "debug":
+			zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		case "disabled":
+			zerolog.SetGlobalLevel(zerolog.Disabled)
+		default:
+			return errors.Errorf("Unknown log level (%s)", level)
 		}
+
+		log.Debug().Str("log-level", level).Msg("Logging level")
 	}
 
 	return nil

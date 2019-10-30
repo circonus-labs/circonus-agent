@@ -91,7 +91,7 @@ func TestConnect(t *testing.T) {
 				return
 			}
 
-			io.Copy(conn, conn)
+			_, _ = io.Copy(conn, conn)
 			conn.Close()
 		}()
 
@@ -130,7 +130,7 @@ func TestConnect(t *testing.T) {
 			if err != nil {
 				t.Fatalf("expected no error got (%s)", err)
 			}
-			conn.SetDeadline(time.Now().Add(s.commTimeout))
+			_ = conn.SetDeadline(time.Now().Add(s.commTimeout))
 			data := make([]byte, 256)
 			s.logger.Debug().Msg("reading data")
 			dlen, rerr := conn.Read(data)

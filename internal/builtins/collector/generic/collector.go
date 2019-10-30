@@ -6,7 +6,6 @@
 package generic
 
 import (
-	"regexp"
 	"sync"
 	"time"
 
@@ -19,21 +18,21 @@ import (
 
 // gencommon defines psutils metrics common elements
 type gencommon struct {
-	id                  string          // OPT id of the collector (used as metric name prefix)
-	pkgID               string          // package prefix used for logging and errors
-	lastEnd             time.Time       // last collection end time
-	lastError           string          // last collection error
-	lastMetrics         cgm.Metrics     // last metrics collected
-	lastRunDuration     time.Duration   // last collection duration
-	lastStart           time.Time       // last collection start time
-	logger              zerolog.Logger  // collector logging instance
-	metricDefaultActive bool            // OPT default status for metrics NOT explicitly in metricStatus
-	metricNameChar      string          // OPT character(s) used as replacement for metricNameRegex
-	metricNameRegex     *regexp.Regexp  // OPT regex for cleaning names, may be overridden in config
-	metricStatus        map[string]bool // OPT list of metrics and whether they should be collected or not
-	running             bool            // is collector currently running
-	runTTL              time.Duration   // OPT ttl for collectors (default is for every request)
-	baseTags            tags.Tags
+	id                  string         // OPT id of the collector (used as metric name prefix)
+	pkgID               string         // package prefix used for logging and errors
+	lastEnd             time.Time      // last collection end time
+	lastError           string         // last collection error
+	lastMetrics         cgm.Metrics    // last metrics collected
+	lastRunDuration     time.Duration  // last collection duration
+	lastStart           time.Time      // last collection start time
+	logger              zerolog.Logger // collector logging instance
+	metricDefaultActive bool           // OPT default status for metrics NOT explicitly in metricStatus
+	// metricNameChar      string          // OPT character(s) used as replacement for metricNameRegex
+	// metricNameRegex     *regexp.Regexp  // OPT regex for cleaning names, may be overridden in config
+	metricStatus map[string]bool // OPT list of metrics and whether they should be collected or not
+	running      bool            // is collector currently running
+	runTTL       time.Duration   // OPT ttl for collectors (default is for every request)
+	baseTags     tags.Tags
 	sync.Mutex
 }
 
@@ -58,7 +57,20 @@ func (c *gencommon) Flush() cgm.Metrics {
 func (c *gencommon) ID() string {
 	c.Lock()
 	defer c.Unlock()
+	if c.id == "" {
+		return c.pkgID
+	}
 	return c.id
+}
+
+// TTL return run TTL if set
+func (c *gencommon) TTL() string {
+	c.Lock()
+	defer c.Unlock()
+	if c.runTTL == time.Duration(0) {
+		return ""
+	}
+	return c.runTTL.String()
 }
 
 // Inventory returns collector stats for /inventory endpoint

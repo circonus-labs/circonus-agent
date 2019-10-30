@@ -49,11 +49,11 @@ type sslServer struct {
 
 // Server defines the listening servers
 type Server struct {
+	// ctx        context.Context
 	group      *errgroup.Group
 	groupCtx   context.Context
 	builtins   *builtins.Builtins
 	check      *check.Check
-	ctx        context.Context
 	logger     zerolog.Logger
 	plugins    *plugins.Plugins
 	svrHTTP    []*httpServer
@@ -201,22 +201,22 @@ func (s *Server) Start() error {
 	s.group.Go(s.startHTTPS)
 
 	for _, svrHTTP := range s.svrHTTP {
+		svr := svrHTTP
 		s.group.Go(func() error {
-			return s.startHTTP(svrHTTP)
+			return s.startHTTP(svr)
 		})
 	}
 
 	for _, svrSocket := range s.svrSockets {
+		svr := svrSocket
 		s.group.Go(func() error {
-			return s.startSocket(svrSocket)
+			return s.startSocket(svr)
 		})
 	}
 
 	go func() {
-		select {
-		case <-s.groupCtx.Done():
-			s.Stop()
-		}
+		<-s.groupCtx.Done()
+		s.Stop()
 	}()
 
 	return s.group.Wait()

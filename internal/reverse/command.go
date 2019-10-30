@@ -6,7 +6,6 @@
 package reverse
 
 import (
-	"crypto/tls"
 	"fmt"
 	"io"
 	"net"
@@ -15,7 +14,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (c *Connection) newCommandReader(done <-chan interface{}, conn *tls.Conn) <-chan command {
+func (c *Connection) newCommandReader(done <-chan interface{}, conn io.Reader) <-chan command {
 	commandReader := make(chan command)
 	go func() {
 		defer close(commandReader)

@@ -30,16 +30,16 @@ type loadOptions struct {
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
 	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
 	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
+	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" yaml:"metrics_default_status"`
 	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
 // NewLoadCollector creates new psutils collector
 func NewLoadCollector(cfgBaseName string) (collector.Collector, error) {
 	c := Load{}
-	c.id = LOAD_NAME
-    c.pkgID = PKG_NAME + "." + c.id
-	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
+	c.id = loadName
+	c.pkgID = pkgName + "." + c.id
+	c.logger = log.With().Str("pkg", pkgName).Str("id", c.id).Logger()
 	c.metricStatus = map[string]bool{}
 	c.metricDefaultActive = true
 	c.baseTags = tags.FromList(tags.GetBaseTags())
@@ -115,18 +115,18 @@ func (c *Load) Collect() error {
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting load metrics")
 	} else {
-		c.addMetric(&metrics, c.id, "1min", "n", loadavg.Load1)
-		c.addMetric(&metrics, c.id, "5min", "n", loadavg.Load5)
-		c.addMetric(&metrics, c.id, "15min", "n", loadavg.Load15)
+		_ = c.addMetric(&metrics, c.id, "1min", "n", loadavg.Load1)
+		_ = c.addMetric(&metrics, c.id, "5min", "n", loadavg.Load5)
+		_ = c.addMetric(&metrics, c.id, "15min", "n", loadavg.Load15)
 	}
 
 	misc, err := load.Misc()
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting misc load metrics")
 	} else {
-		c.addMetric(&metrics, c.id, "procs_running", "i", misc.ProcsRunning)
-		c.addMetric(&metrics, c.id, "procs_blocked", "i", misc.ProcsBlocked)
-		c.addMetric(&metrics, c.id, "ctxt", "i", misc.Ctxt)
+		_ = c.addMetric(&metrics, c.id, "procs_running", "i", misc.ProcsRunning)
+		_ = c.addMetric(&metrics, c.id, "procs_blocked", "i", misc.ProcsBlocked)
+		_ = c.addMetric(&metrics, c.id, "ctxt", "i", misc.Ctxt)
 	}
 
 	c.setStatus(metrics, nil)

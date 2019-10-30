@@ -244,7 +244,7 @@ func TestCollect(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, promData)
+		fmt.Fprintln(w, promData)
 	}))
 	defer ts.Close()
 
@@ -259,7 +259,7 @@ func TestCollect(t *testing.T) {
 	}
 
 	m := c.Flush()
-	numExpected := 22
+	numExpected := 21
 	if len(m) != numExpected {
 		t.Fatalf("expected %d metrics, got %d", numExpected, len(m))
 	}
@@ -308,7 +308,7 @@ func TestCollectTimeout(t *testing.T) {
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(1 * time.Second)
-		fmt.Fprintf(w, promData)
+		fmt.Fprintln(w, promData)
 	}))
 	defer ts.Close()
 

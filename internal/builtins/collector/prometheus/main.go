@@ -63,7 +63,7 @@ type Prom struct {
 type promOptions struct {
 	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
 	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
+	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" yaml:"metrics_default_status"`
 	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 	IncludeRegex         string   `json:"include_regex" toml:"include_regex" yaml:"include_regex"`
 	ExcludeRegex         string   `json:"exclude_regex" toml:"exclude_regex" yaml:"exclude_regex"`
@@ -271,7 +271,7 @@ func (c *Prom) httpDoRequest(ctx context.Context, req *http.Request, respHandler
 	}
 }
 
-func (c *Prom) parse(id string, data io.ReadCloser, metrics *cgm.Metrics) error {
+func (c *Prom) parse(id string, data io.Reader, metrics *cgm.Metrics) error {
 	var parser expfmt.TextParser
 
 	// formats supported from https://prometheus.io/docs/instrumenting/exposition_formats/
@@ -286,30 +286,36 @@ func (c *Prom) parse(id string, data io.ReadCloser, metrics *cgm.Metrics) error 
 		for _, m := range mf.Metric {
 			metricName := mn
 			tags := c.getLabels(m)
-			if mf.GetType() == dto.MetricType_SUMMARY {
-				c.addMetric(metrics, pfx, metricName+"_count", tags, "n", float64(m.GetSummary().GetSampleCount()))
-				c.addMetric(metrics, pfx, metricName+"_sum", tags, "n", float64(m.GetSummary().GetSampleSum()))
+			switch {
+			case mf.GetType() == dto.MetricType_SUMMARY:
+				_ = c.addMetric(metrics, pfx, metricName+"_count", tags, "n", float64(m.GetSummary().GetSampleCount()))
+				_ = c.addMetric(metrics, pfx, metricName+"_sum", tags, "n", float64(m.GetSummary().GetSampleSum()))
 				for qn, qv := range c.getQuantiles(m) {
-					c.addMetric(metrics, pfx, metricName+"_"+qn, tags, "n", qv)
+					_ = c.addMetric(metrics, pfx, metricName+"_"+qn, tags, "n", qv)
 				}
-			} else if mf.GetType() == dto.MetricType_HISTOGRAM {
-				c.addMetric(metrics, pfx, metricName+"_count", tags, "n", float64(m.GetHistogram().GetSampleCount()))
-				c.addMetric(metrics, pfx, metricName+"_sum", tags, "n", float64(m.GetHistogram().GetSampleSum()))
+			case mf.GetType() == dto.MetricType_HISTOGRAM:
+				_ = c.addMetric(metrics, pfx, metricName+"_count", tags, "n", float64(m.GetHistogram().GetSampleCount()))
+				_ = c.addMetric(metrics, pfx, metricName+"_sum", tags, "n", float64(m.GetHistogram().GetSampleSum()))
 				for bn, bv := range c.getBuckets(m) {
-					c.addMetric(metrics, pfx, metricName+"_"+bn, tags, "n", bv)
+					_ = c.addMetric(metrics, pfx, metricName+"_"+bn, tags, "n", bv)
 				}
-			} else {
-				if m.Gauge != nil {
+			default:
+				switch {
+				case m.Gauge != nil:
 					if m.GetGauge().Value != nil {
-						c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetGauge().Value)
+						_ = c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetGauge().Value)
 					}
-				} else if m.Counter != nil {
+				case m.Counter != nil:
 					if m.GetCounter().Value != nil {
-						c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetCounter().Value)
+						_ = c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetCounter().Value)
 					}
-				} else if m.Untyped != nil {
+				case m.Untyped != nil:
 					if m.GetUntyped().Value != nil {
-						c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetUntyped().Value)
+						if *m.GetUntyped().Value == math.Inf(+1) {
+							c.logger.Warn().Str("metric", metricName).Str("type", mf.GetType().String()).Str("value", (*m).GetUntyped().String()).Msg("cannot coerce +Inf to uint64")
+							continue
+						}
+						_ = c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetUntyped().Value)
 					}
 				}
 			}

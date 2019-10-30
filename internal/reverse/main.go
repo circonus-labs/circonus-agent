@@ -171,10 +171,8 @@ func (c *Connection) Start() error {
 
 	c.group.Go(c.startReverse)
 	go func() {
-		select {
-		case <-c.groupCtx.Done():
-			c.logger.Warn().Msg("sent stop signal, may take a minute for timeout")
-		}
+		<-c.groupCtx.Done()
+		c.logger.Warn().Msg("sent stop signal, may take a minute for timeout")
 	}()
 
 	return c.group.Wait()

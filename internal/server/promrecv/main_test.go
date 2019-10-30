@@ -129,7 +129,7 @@ func TestParse(t *testing.T) {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 		m := metrics.FlushMetrics()
-		numExpected := 22
+		numExpected := 21
 		if len(*m) != numExpected {
 			t.Fatalf("expected %d metrics, got %d", numExpected, len(*m))
 		}

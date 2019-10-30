@@ -31,16 +31,16 @@ type vmOptions struct {
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
 	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
 	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
+	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" yaml:"metrics_default_status"`
 	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
 // NewVMCollector creates new psutils collector
 func NewVMCollector(cfgBaseName string) (collector.Collector, error) {
 	c := VM{}
-	c.id = VM_NAME
-    c.pkgID = PKG_NAME + "." + c.id
-	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
+	c.id = vmName
+	c.pkgID = pkgName + "." + c.id
+	c.logger = log.With().Str("pkg", pkgName).Str("id", c.id).Logger()
 	c.metricStatus = map[string]bool{}
 	c.metricDefaultActive = true
 	c.baseTags = tags.FromList(tags.GetBaseTags())
@@ -116,59 +116,59 @@ func (c *VM) Collect() error {
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting swap memory metrics")
 	} else {
-		c.addMetric(&metrics, c.id, "swap_total", "L", swap.Total)
-		c.addMetric(&metrics, c.id, "swap_used", "L", swap.Used)
-		c.addMetric(&metrics, c.id, "swap_free", "L", swap.Free)
-		c.addMetric(&metrics, c.id, "swap_used_pct", "n", swap.UsedPercent)
-		c.addMetric(&metrics, c.id, "swap_in", "L", swap.Sin)
-		c.addMetric(&metrics, c.id, "swap_out", "L", swap.Sout)
+		_ = c.addMetric(&metrics, c.id, "swap_total", "L", swap.Total)
+		_ = c.addMetric(&metrics, c.id, "swap_used", "L", swap.Used)
+		_ = c.addMetric(&metrics, c.id, "swap_free", "L", swap.Free)
+		_ = c.addMetric(&metrics, c.id, "swap_used_pct", "n", swap.UsedPercent)
+		_ = c.addMetric(&metrics, c.id, "swap_in", "L", swap.Sin)
+		_ = c.addMetric(&metrics, c.id, "swap_out", "L", swap.Sout)
 	}
 
 	vm, err := mem.VirtualMemory()
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting virtual memory metrics")
 	} else {
-		c.addMetric(&metrics, c.id, "total", "L", vm.Total)
-		c.addMetric(&metrics, c.id, "available", "L", vm.Available)
-		c.addMetric(&metrics, c.id, "used", "L", vm.Used)
-		c.addMetric(&metrics, c.id, "used_pct", "n", vm.UsedPercent)
-		c.addMetric(&metrics, c.id, "free", "L", vm.Free)
+		_ = c.addMetric(&metrics, c.id, "total", "L", vm.Total)
+		_ = c.addMetric(&metrics, c.id, "available", "L", vm.Available)
+		_ = c.addMetric(&metrics, c.id, "used", "L", vm.Used)
+		_ = c.addMetric(&metrics, c.id, "used_pct", "n", vm.UsedPercent)
+		_ = c.addMetric(&metrics, c.id, "free", "L", vm.Free)
 		if strings.Contains(runtime.GOOS, "bsd") || runtime.GOOS == "darwin" {
 			// OSX / BSD
-			c.addMetric(&metrics, c.id, "active", "L", vm.Active)
-			c.addMetric(&metrics, c.id, "inactive", "L", vm.Inactive)
-			c.addMetric(&metrics, c.id, "wired", "L", vm.Wired)
+			_ = c.addMetric(&metrics, c.id, "active", "L", vm.Active)
+			_ = c.addMetric(&metrics, c.id, "inactive", "L", vm.Inactive)
+			_ = c.addMetric(&metrics, c.id, "wired", "L", vm.Wired)
 		}
 		if runtime.GOOS == "freebsd" {
 			// FreeBSD
-			c.addMetric(&metrics, c.id, "laundry", "L", vm.Laundry)
+			_ = c.addMetric(&metrics, c.id, "laundry", "L", vm.Laundry)
 		}
 		if runtime.GOOS == "linux" {
 			// Linux
-			c.addMetric(&metrics, c.id, "buffers", "L", vm.Buffers)
-			c.addMetric(&metrics, c.id, "cached", "L", vm.Cached)
-			c.addMetric(&metrics, c.id, "writeback", "L", vm.Writeback)
-			c.addMetric(&metrics, c.id, "dirty", "L", vm.Dirty)
-			c.addMetric(&metrics, c.id, "writeback_tmp", "L", vm.WritebackTmp)
-			c.addMetric(&metrics, c.id, "shared", "L", vm.Shared)
-			c.addMetric(&metrics, c.id, "slab", "L", vm.Slab)
-			c.addMetric(&metrics, c.id, "page_tables", "L", vm.PageTables)
-			c.addMetric(&metrics, c.id, "commit_limit", "L", vm.CommitLimit)
-			c.addMetric(&metrics, c.id, "committed_as", "L", vm.CommittedAS)
-			c.addMetric(&metrics, c.id, "high_total", "L", vm.HighTotal)
-			c.addMetric(&metrics, c.id, "high_free", "L", vm.HighFree)
-			c.addMetric(&metrics, c.id, "low_total", "L", vm.LowTotal)
-			c.addMetric(&metrics, c.id, "low_free", "L", vm.LowFree)
-			c.addMetric(&metrics, c.id, "swapfree", "L", vm.SwapFree)
-			c.addMetric(&metrics, c.id, "swapcached", "L", vm.SwapCached)
-			c.addMetric(&metrics, c.id, "swaptotal", "L", vm.SwapTotal)
-			c.addMetric(&metrics, c.id, "mapped", "L", vm.Mapped)
-			c.addMetric(&metrics, c.id, "vm_alloc_total", "L", vm.VMallocTotal)
-			c.addMetric(&metrics, c.id, "vm_alloc_used", "L", vm.VMallocUsed)
-			c.addMetric(&metrics, c.id, "vm_alloc_chunk", "L", vm.VMallocChunk)
-			c.addMetric(&metrics, c.id, "huge_pages_total", "L", vm.HugePagesTotal)
-			c.addMetric(&metrics, c.id, "huge_pages_free", "L", vm.HugePagesFree)
-			c.addMetric(&metrics, c.id, "huge_page_size", "L", vm.HugePageSize)
+			_ = c.addMetric(&metrics, c.id, "buffers", "L", vm.Buffers)
+			_ = c.addMetric(&metrics, c.id, "cached", "L", vm.Cached)
+			_ = c.addMetric(&metrics, c.id, "writeback", "L", vm.Writeback)
+			_ = c.addMetric(&metrics, c.id, "dirty", "L", vm.Dirty)
+			_ = c.addMetric(&metrics, c.id, "writeback_tmp", "L", vm.WritebackTmp)
+			_ = c.addMetric(&metrics, c.id, "shared", "L", vm.Shared)
+			_ = c.addMetric(&metrics, c.id, "slab", "L", vm.Slab)
+			_ = c.addMetric(&metrics, c.id, "page_tables", "L", vm.PageTables)
+			_ = c.addMetric(&metrics, c.id, "commit_limit", "L", vm.CommitLimit)
+			_ = c.addMetric(&metrics, c.id, "committed_as", "L", vm.CommittedAS)
+			_ = c.addMetric(&metrics, c.id, "high_total", "L", vm.HighTotal)
+			_ = c.addMetric(&metrics, c.id, "high_free", "L", vm.HighFree)
+			_ = c.addMetric(&metrics, c.id, "low_total", "L", vm.LowTotal)
+			_ = c.addMetric(&metrics, c.id, "low_free", "L", vm.LowFree)
+			_ = c.addMetric(&metrics, c.id, "swapfree", "L", vm.SwapFree)
+			_ = c.addMetric(&metrics, c.id, "swapcached", "L", vm.SwapCached)
+			_ = c.addMetric(&metrics, c.id, "swaptotal", "L", vm.SwapTotal)
+			_ = c.addMetric(&metrics, c.id, "mapped", "L", vm.Mapped)
+			_ = c.addMetric(&metrics, c.id, "vm_alloc_total", "L", vm.VMallocTotal)
+			_ = c.addMetric(&metrics, c.id, "vm_alloc_used", "L", vm.VMallocUsed)
+			_ = c.addMetric(&metrics, c.id, "vm_alloc_chunk", "L", vm.VMallocChunk)
+			_ = c.addMetric(&metrics, c.id, "huge_pages_total", "L", vm.HugePagesTotal)
+			_ = c.addMetric(&metrics, c.id, "huge_pages_free", "L", vm.HugePagesFree)
+			_ = c.addMetric(&metrics, c.id, "huge_page_size", "L", vm.HugePageSize)
 		}
 	}
 

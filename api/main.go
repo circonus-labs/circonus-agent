@@ -53,10 +53,7 @@ func New(agentURL string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	pv, err := regexp.Compile("^[a-zA-Z0-9_-`]+$") // e.g. pluginName or pluginName`instanceID
-	if err != nil {
-		return nil, errors.Wrap(err, "plugin name validator")
-	}
+	pv := regexp.MustCompile("^[a-zA-Z0-9_-`]+$") // e.g. pluginName or pluginName`instanceID
 
 	return &Client{agentURL: u, pidVal: pv}, nil
 }

@@ -56,7 +56,7 @@ func initCGM() error {
 
 	cmc := &cgm.Config{
 		Debug: viper.GetBool(config.KeyDebugCGM),
-		Log:   logshim{logh: log.With().Str("pkg", "cgm.receiver").Logger()},
+		Log:   logshim{logh: logger.With().Str("pkg", "cgm.receiver").Logger()},
 	}
 	// put cgm into manual mode (no interval, no api key, invalid submission url)
 	cmc.Interval = "0"                            // disable automatic flush
@@ -76,14 +76,16 @@ func initCGM() error {
 
 // Flush returns current metrics
 func Flush() *cgm.Metrics {
-	initCGM()
+	_ = initCGM()
 
 	return metrics.FlushMetrics()
 }
 
 // Parse handles incoming PUT/POST requests
-func Parse(id string, data io.ReadCloser) error {
-	initCGM()
+func Parse(id string, data io.Reader) error {
+	if err := initCGM(); err != nil {
+		return err
+	}
 
 	var tmp tags.JSONMetrics // cgm.Metrics
 	if err := json.NewDecoder(data).Decode(&tmp); err != nil {
@@ -139,7 +141,7 @@ func Parse(id string, data io.ReadCloser) error {
 		case "s":
 			metrics.SetTextWithTags(metricName, metricTags, fmt.Sprintf("%v", metric.Value))
 		default:
-			log.Warn().Str("metric", metricName).Str("type", metric.Type).Str("pkg", "receiver").Msg("unsupported metric type")
+			logger.Warn().Str("metric", metricName).Str("type", metric.Type).Msg("unsupported metric type")
 		}
 	}
 
@@ -157,15 +159,13 @@ func parseInt32(metricName string, metric tags.JSONMetric) *int32 {
 			v2 := int32(v)
 			return &v2
 		}
-		log.Error().
-			Str("pkg", "receiver").
+		logger.Error().
 			Str("metric", metricName).
 			Interface("value", metric).
 			Err(err).
 			Msg("parsing")
 	default:
-		log.Error().
-			Str("pkg", "receiver").
+		logger.Error().
 			Str("metric", metricName).
 			Interface("value", metric).
 			Str("type", fmt.Sprintf("%T", t)).
@@ -185,15 +185,13 @@ func parseUint32(metricName string, metric tags.JSONMetric) *uint32 {
 			v2 := uint32(v)
 			return &v2
 		}
-		log.Error().
-			Str("pkg", "receiver").
+		logger.Error().
 			Str("metric", metricName).
 			Interface("value", metric).
 			Err(err).
 			Msg("parsing")
 	default:
-		log.Error().
-			Str("pkg", "receiver").
+		logger.Error().
 			Str("metric", metricName).
 			Interface("value", metric).
 			Str("type", fmt.Sprintf("%T", t)).
@@ -213,15 +211,13 @@ func parseInt64(metricName string, metric tags.JSONMetric) *int64 {
 			v2 := int64(v)
 			return &v2
 		}
-		log.Error().
-			Str("pkg", "receiver").
+		logger.Error().
 			Str("metric", metricName).
 			Interface("value", metric).
 			Err(err).
 			Msg("parsing")
 	default:
-		log.Error().
-			Str("pkg", "receiver").
+		logger.Error().
 			Str("metric", metricName).
 			Interface("value", metric).
 			Str("type", fmt.Sprintf("%T", t)).
@@ -241,15 +237,13 @@ func parseUint64(metricName string, metric tags.JSONMetric) *uint64 {
 			v2 := uint64(v)
 			return &v2
 		}
-		log.Error().
-			Str("pkg", "receiver").
+		logger.Error().
 			Str("metric", metricName).
 			Interface("value", metric).
 			Err(err).
 			Msg("parsing")
 	default:
-		log.Error().
-			Str("pkg", "receiver").
+		logger.Error().
 			Str("metric", metricName).
 			Interface("value", metric).
 			Str("type", fmt.Sprintf("%T", t)).
@@ -271,15 +265,13 @@ func parseFloat(metricName string, metric tags.JSONMetric) (*float64, bool) {
 			v2 := float64(v)
 			return &v2, false
 		}
-		log.Error().
-			Str("pkg", "receiver").
+		logger.Error().
 			Str("metric", metricName).
 			Interface("value", metric).
 			Err(err).
 			Msg("parsing")
 	default:
-		log.Error().
-			Str("pkg", "receiver").
+		logger.Error().
 			Str("metric", metricName).
 			Interface("value", metric).
 			Str("type", fmt.Sprintf("%T", t)).
@@ -307,8 +299,7 @@ func parseHistogram(metricName string, metric tags.JSONMetric) *[]histSample {
 				if !strings.Contains(sv, "H[") {
 					v2, err := strconv.ParseFloat(sv, 64)
 					if err != nil {
-						log.Error().
-							Str("pkg", "receiver").
+						logger.Error().
 							Str("metric", metricName).
 							Interface("value", v).
 							Int("position", idx).
@@ -337,8 +328,7 @@ func parseHistogram(metricName string, metric tags.JSONMetric) *[]histSample {
 					}
 				}
 				if bucket == "" || count == "" {
-					log.Error().
-						Str("pkg", "receiver").
+					logger.Error().
 						Str("metric", metricName).
 						Str("sample", sv).
 						Int("position", idx).
@@ -347,8 +337,7 @@ func parseHistogram(metricName string, metric tags.JSONMetric) *[]histSample {
 				}
 				b, err := strconv.ParseFloat(bucket, 64)
 				if err != nil {
-					log.Error().
-						Str("pkg", "receiver").
+					logger.Error().
 						Str("metric", metricName).
 						Str("sample", sv).
 						Int("position", idx).
@@ -358,8 +347,7 @@ func parseHistogram(metricName string, metric tags.JSONMetric) *[]histSample {
 				}
 				c, err := strconv.ParseInt(count, 10, 64)
 				if err != nil {
-					log.Error().
-						Str("pkg", "receiver").
+					logger.Error().
 						Str("metric", metricName).
 						Str("sample", sv).
 						Int("position", idx).
@@ -369,8 +357,7 @@ func parseHistogram(metricName string, metric tags.JSONMetric) *[]histSample {
 				}
 				ret = append(ret, histSample{bucket: true, value: b, count: c})
 			default:
-				log.Error().
-					Str("pkg", "receiver").
+				logger.Error().
 					Str("metric", metricName).
 					Interface("value", v).
 					Int("position", idx).
@@ -383,8 +370,7 @@ func parseHistogram(metricName string, metric tags.JSONMetric) *[]histSample {
 		}
 		return &ret
 	default:
-		log.Error().
-			Str("pkg", "receiver").
+		logger.Error().
 			Str("metric", metricName).
 			Interface("value", metric).
 			Str("type", fmt.Sprintf("%T", t)).

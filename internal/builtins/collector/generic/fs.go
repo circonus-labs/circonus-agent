@@ -36,7 +36,7 @@ type fsOptions struct {
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
 	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
 	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
+	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" yaml:"metrics_default_status"`
 	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 
 	// collector specific
@@ -49,9 +49,9 @@ type fsOptions struct {
 // NewFSCollector creates new psutils disk collector
 func NewFSCollector(cfgBaseName string) (collector.Collector, error) {
 	c := FS{}
-	c.id = FS_NAME
-    c.pkgID = PKG_NAME + "." + c.id
-	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
+	c.id = fsName
+	c.pkgID = pkgName + "." + c.id
+	c.logger = log.With().Str("pkg", pkgName).Str("id", c.id).Logger()
 	c.metricStatus = map[string]bool{}
 	c.metricDefaultActive = true
 	c.baseTags = tags.FromList(tags.GetBaseTags())
@@ -186,14 +186,14 @@ func (c *FS) Collect() error {
 				continue
 			}
 
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", partition.Mountpoint, metricNameSeparator, "total"), "L", usage.Total)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", partition.Mountpoint, metricNameSeparator, "free"), "L", usage.Free)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", partition.Mountpoint, metricNameSeparator, "used"), "L", usage.Used)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", partition.Mountpoint, metricNameSeparator, "used_pct"), "n", usage.UsedPercent)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", partition.Mountpoint, metricNameSeparator, "inodes_total"), "L", usage.InodesTotal)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", partition.Mountpoint, metricNameSeparator, "inodes_used"), "L", usage.InodesUsed)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", partition.Mountpoint, metricNameSeparator, "inodes_free"), "L", usage.InodesFree)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", partition.Mountpoint, metricNameSeparator, "inodes_used_pct"), "n", usage.InodesUsedPercent)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", partition.Mountpoint, metricNameSeparator, "total"), "L", usage.Total)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", partition.Mountpoint, metricNameSeparator, "free"), "L", usage.Free)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", partition.Mountpoint, metricNameSeparator, "used"), "L", usage.Used)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", partition.Mountpoint, metricNameSeparator, "used_pct"), "n", usage.UsedPercent)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", partition.Mountpoint, metricNameSeparator, "inodes_total"), "L", usage.InodesTotal)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", partition.Mountpoint, metricNameSeparator, "inodes_used"), "L", usage.InodesUsed)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", partition.Mountpoint, metricNameSeparator, "inodes_free"), "L", usage.InodesFree)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", partition.Mountpoint, metricNameSeparator, "inodes_used_pct"), "n", usage.InodesUsedPercent)
 		}
 	}
 

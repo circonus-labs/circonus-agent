@@ -52,15 +52,15 @@ func (c *Connection) startReverse() error {
 					c.logger.Warn().Err(result.err).Int("timeouts", c.commTimeouts).Msg("resetting connection")
 					close(done)
 					break
-				} else if result.fatal {
+				}
+				if result.fatal {
 					c.logger.Error().Err(result.err).Interface("result", result).Msg("fatal error, exiting")
 					conn.Close()
 					close(done)
 					return result.err
-				} else {
-					c.logger.Error().Err(result.err).Interface("result", result).Msg("unhandled error state...")
-					continue
 				}
+				c.logger.Error().Err(result.err).Interface("result", result).Msg("unhandled error state...")
+				continue
 			}
 
 			// send metrics to broker
@@ -147,7 +147,9 @@ func (c *Connection) connect() (*tls.Conn, *connError) {
 	}
 	c.logger.Info().Str("host", revHost).Msg("connected")
 
-	conn.SetDeadline(time.Now().Add(c.commTimeout))
+	if err := conn.SetDeadline(time.Now().Add(c.commTimeout)); err != nil {
+		c.logger.Warn().Err(err).Msg("setting connection deadline")
+	}
 	introReq := "REVERSE " + c.revConfig.ReverseURL.Path
 	if c.revConfig.ReverseURL.Fragment != "" {
 		introReq += "#" + c.revConfig.ReverseURL.Fragment // reverse secret is placed here when reverse url is parsed

@@ -123,10 +123,9 @@ func TestInventory(t *testing.T) {
 	time.Sleep(200 * time.Millisecond) // let plugins initialize
 
 	t.Logf("GET /inventory -> %d", http.StatusOK)
-	req := httptest.NewRequest("GET", "/inventory", nil)
 	w := httptest.NewRecorder()
 
-	s.inventory(w, req)
+	s.inventory(w)
 
 	resp := w.Result()
 
@@ -408,10 +407,9 @@ func TestPromOutput(t *testing.T) {
 
 	t.Logf("GET /prom -> %d (w/o metrics)", http.StatusNoContent)
 	{
-		req := httptest.NewRequest("GET", "/prom", nil)
 		w := httptest.NewRecorder()
 
-		s.promOutput(w, req)
+		s.promOutput(w)
 
 		resp := w.Result()
 
@@ -426,10 +424,9 @@ func TestPromOutput(t *testing.T) {
 		lastMetrics.metrics = &cgm.Metrics{
 			"gtest`mtest": cgm.Metric{Type: "i", Value: 1},
 		}
-		req := httptest.NewRequest("GET", "/prom", nil)
 		w := httptest.NewRecorder()
 
-		s.promOutput(w, req)
+		s.promOutput(w)
 
 		resp := w.Result()
 

@@ -33,7 +33,7 @@ type ifOptions struct {
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
 	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
 	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
+	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" yaml:"metrics_default_status"`
 	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 
 	// collector specific
@@ -44,9 +44,9 @@ type ifOptions struct {
 // NewNetIFCollector creates new psutils collector
 func NewNetIFCollector(cfgBaseName string) (collector.Collector, error) {
 	c := IF{}
-	c.id = IF_NAME
-    c.pkgID = PKG_NAME + "." + c.id
-	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
+	c.id = ifName
+	c.pkgID = pkgName + "." + c.id
+	c.logger = log.With().Str("pkg", pkgName).Str("id", c.id).Logger()
 	c.metricStatus = map[string]bool{}
 	c.metricDefaultActive = true
 	c.baseTags = tags.FromList(tags.GetBaseTags())
@@ -146,16 +146,16 @@ func (c *IF) Collect() error {
 				c.logger.Debug().Str("iface", iface.Name).Msg("excluded iface name, skipping")
 				continue
 			}
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "sent_bytes"), "L", iface.BytesSent)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "recv_bytes"), "L", iface.BytesRecv)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "sent_pkts"), "L", iface.PacketsSent)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "recv_pkts"), "L", iface.PacketsRecv)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "in_errors"), "L", iface.Errin)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "out_errors"), "L", iface.Errout)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "in_drops"), "L", iface.Dropin)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "out_drops"), "L", iface.Dropout)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "in_fifo"), "L", iface.Fifoin)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "out_fifo"), "L", iface.Fifoout)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "sent_bytes"), "L", iface.BytesSent)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "recv_bytes"), "L", iface.BytesRecv)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "sent_pkts"), "L", iface.PacketsSent)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "recv_pkts"), "L", iface.PacketsRecv)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "in_errors"), "L", iface.Errin)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "out_errors"), "L", iface.Errout)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "in_drops"), "L", iface.Dropin)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "out_drops"), "L", iface.Dropout)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "in_fifo"), "L", iface.Fifoin)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", iface.Name, metricNameSeparator, "out_fifo"), "L", iface.Fifoout)
 		}
 	}
 

@@ -18,7 +18,7 @@ func TestGet(t *testing.T) {
 		p := r.URL.Path
 		switch p {
 		case "/valid":
-			w.Write([]byte(`valid`))
+			_, _ = w.Write([]byte(`valid`))
 		default:
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		}

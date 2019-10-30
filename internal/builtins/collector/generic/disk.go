@@ -32,7 +32,7 @@ type DiskOptions struct {
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
 	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
 	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
+	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" yaml:"metrics_default_status"`
 	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 
 	// collector specific
@@ -42,9 +42,9 @@ type DiskOptions struct {
 // NewDiskCollector creates new psutils disk collector
 func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 	c := Disk{}
-	c.id = DISK_NAME
-	c.pkgID = PKG_NAME + "." + c.id
-	c.logger = log.With().Str("pkg", PKG_NAME).Str("id", c.id).Logger()
+	c.id = diskName
+	c.pkgID = pkgName + "." + c.id
+	c.logger = log.With().Str("pkg", pkgName).Str("id", c.id).Logger()
 	c.metricStatus = map[string]bool{}
 	c.metricDefaultActive = true
 	c.ioDevices = []string{}
@@ -126,17 +126,17 @@ func (c *Disk) Collect() error {
 		c.logger.Warn().Err(err).Msg("collecting disk io counter metrics")
 	} else {
 		for device, counters := range ios {
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "read_count"), "L", counters.ReadCount)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "merged_read_count"), "L", counters.MergedReadCount)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "write_count"), "L", counters.WriteCount)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "merged_write_count"), "L", counters.MergedWriteCount)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "read_bytes"), "L", counters.ReadBytes)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "write_bytes"), "L", counters.WriteBytes)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "read_time"), "L", counters.ReadTime)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "write_time"), "L", counters.WriteTime)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "iops_in_progress"), "L", counters.IopsInProgress)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "io_time"), "L", counters.IoTime)
-			c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "weighted_io"), "L", counters.WeightedIO)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "read_count"), "L", counters.ReadCount)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "merged_read_count"), "L", counters.MergedReadCount)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "write_count"), "L", counters.WriteCount)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "merged_write_count"), "L", counters.MergedWriteCount)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "read_bytes"), "L", counters.ReadBytes)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "write_bytes"), "L", counters.WriteBytes)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "read_time"), "L", counters.ReadTime)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "write_time"), "L", counters.WriteTime)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "iops_in_progress"), "L", counters.IopsInProgress)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "io_time"), "L", counters.IoTime)
+			_ = c.addMetric(&metrics, c.id, fmt.Sprintf("%s%s%s", device, metricNameSeparator, "weighted_io"), "L", counters.WeightedIO)
 		}
 	}
 

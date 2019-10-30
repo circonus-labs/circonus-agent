@@ -29,7 +29,7 @@ func (b *Builtins) configure() error {
 			return err
 		}
 		for _, c := range collectors {
-			appstats.IncrementInt("builtins.total")
+			_ = appstats.IncrementInt("builtins.total")
 			b.logger.Info().Str("id", c.ID()).Msg("enabled procfs builtin")
 			b.collectors[c.ID()] = c
 		}
@@ -49,7 +49,7 @@ func (b *Builtins) configure() error {
 		}
 		for _, c := range collectors {
 			if _, exists := b.collectors[c.ID()]; !exists {
-				appstats.IncrementInt("builtins.total")
+				_ = appstats.IncrementInt("builtins.total")
 				b.logger.Info().Str("id", c.ID()).Msg("enabled generic builtin")
 				b.collectors[c.ID()] = c
 			}
@@ -60,7 +60,7 @@ func (b *Builtins) configure() error {
 	if err != nil {
 		b.logger.Warn().Err(err).Msg("prom collector, disabling")
 	} else {
-		appstats.IncrementInt("builtins.total")
+		_ = appstats.IncrementInt("builtins.total")
 		b.collectors[prom.ID()] = prom
 	}
 
