@@ -44,4 +44,8 @@ fi
 chown vagrant:vagrant ~vagrant/godev ~vagrant/.bashrc
 
 echo "provisioning complete"
+
+echo "Checking for (and installing) kernel upgrade..."
+DEBIAN_FRONTEND=noninteractive apt -yq install linux-generic-hwe-18.04
+[[ $? -eq 0 ]] && echo "New kernel may have been installed, use: vagrant reload u18"
 # DONE

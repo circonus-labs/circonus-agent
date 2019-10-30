@@ -358,7 +358,7 @@ func (s *Server) write(w http.ResponseWriter, r *http.Request) {
 		// the agent can run in is for PULL, where it would have
 		// no direct knowledge of what check bundle/check is pulling
 		w.Header().Set("X-Circonus-Check-Bundle-ID", meta.BundleID)
-		w.Header().Set("X-Circonus-Check-ID", strings.Join(meta.CheckIDs, ","))
+		w.Header().Set("X-Circonus-Check-ID", meta.CheckID)
 	}
 
 	w.WriteHeader(http.StatusNoContent)
@@ -375,9 +375,9 @@ func (s *Server) promReceiver(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if meta, _ := s.check.CheckMeta(); meta != nil {
-		w.Header().Set("X-Circonus-Check-Bundle-ID", meta.BundleID)
-		w.Header().Set("X-Circonus-Check-ID", strings.Join(meta.CheckIDs, ","))
+	if cm, _ := s.check.CheckMeta(); cm != nil {
+		w.Header().Set("X-Circonus-Check-Bundle-ID", cm.BundleID)
+		w.Header().Set("X-Circonus-Check-ID", cm.CheckID)
 	}
 	w.WriteHeader(http.StatusNoContent)
 }

@@ -207,6 +207,7 @@ func (cb *Bundle) Period() (uint, error) {
 type Info struct {
 	CID    string
 	Checks []string
+	UUIDs  []string
 }
 
 // Info returns information about the check bundle (the check bundle cid and list of check cids)
@@ -218,6 +219,7 @@ func (cb *Bundle) Info() (*Info, error) {
 		return &Info{
 			CID:    cb.bundle.CID,
 			Checks: cb.bundle.Checks,
+			UUIDs:  cb.bundle.CheckUUIDs,
 		}, nil
 	}
 

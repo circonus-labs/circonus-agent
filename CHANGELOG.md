@@ -1,3 +1,15 @@
+# v1.0.0-beta.4
+
+* add: support new metrics in kernel 4.18+ `diskstats` -- discards completed, discards merged, sectors discarded, discard ms
+* add: `check_cid` and `check_uuid` to reverse log lines
+* add: freebsd rc script
+
+# v1.0.0-beta.3
+
+* upd: support building packages for pre-releases
+* upd: package builders
+* upd: disable inclusion of `protocol_observer` binary in agent package builds
+
 # v1.0.0-beta.2
 
 * fix: gofmt io_latency plugin
@@ -119,19 +131,19 @@
 * upd: add logging shims to satisfy go-apiclient and circonus-gometrics/v3 Logger interfaces
 * upd: api mocks for CGM's `SearchCheckBundles` method signature fix/update
 * add: `--debug-api` option for specifically debugging API (only) use
-    * Note: `--debug-cgm` still controls CGM's use of its own API instance (statsd group check specifically)
+  * Note: `--debug-cgm` still controls CGM's use of its own API instance (statsd group check specifically)
 * doc: reformat alpha release changes in this file
 
 # v0.18.0-alpha.3
 
 * upd: all collectors use prefixes for collector names and config files:
-    * procfs: e.g. collectors list `procfs/cpu`, config file `procfs_cpu_collector.(json|yaml|toml)`
-    * wmi: e.g. collectors list `wmi/disk`, config file `wmi_disk_collector.(json|yaml|toml)`
-    * generic: e.g. collectors list `generic/vm`, config file `generic_vm_collector.(json|yaml|toml)`
+  * procfs: e.g. collectors list `procfs/cpu`, config file `procfs_cpu_collector.(json|yaml|toml)`
+  * wmi: e.g. collectors list `wmi/disk`, config file `wmi_disk_collector.(json|yaml|toml)`
+  * generic: e.g. collectors list `generic/vm`, config file `generic_vm_collector.(json|yaml|toml)`
 * upd: use stdout vs stderr for logging
 * upd: all builtins use prefixes `procfs/`, `wmi/`, `generic/`
 * add: psutils as a _generic_ system metrics builtin
-    * metrics for: cpu, disk, fs, load, net interfaces, net protocols, virtual memory
+  * metrics for: cpu, disk, fs, load, net interfaces, net protocols, virtual memory
 * usage:
   * use only generic collectors: `--collectors="generic/cpu,generic/disk,generic/fs,generic/load,generic/if,generic/proto,generic/vm"`
   * use only generic fs collector, procfs for remainder: `--collectors="procfs/cpu,procfs/diskstats,generic/fs,procfs/loadavg,procfs/if,procfs/vm"`
@@ -143,11 +155,11 @@
 # v0.18.0-alpha.2
 
 * add: `--plugin-list` (`plugin_list` config file) option
-    * `plugin-list` and `plugin-dir` are mutually exclusive, use one **or** the other
-    * `plugin-list` is an _explicit_ list of commands to run as plugins
-    * If neither is supplied use default `plugin-dir` (`/opt/circonus/agent/plugins`)
-    * If `plugin-list` is supplied **only** those plugins will be run; any plugins in the `plugin-dir` will be ignored
-    * If both `plugin-dir` and `plugin-list` are supplied, agent will exit with a mis-configuration error
+  * `plugin-list` and `plugin-dir` are mutually exclusive, use one **or** the other
+  * `plugin-list` is an _explicit_ list of commands to run as plugins
+  * If neither is supplied use default `plugin-dir` (`/opt/circonus/agent/plugins`)
+  * If `plugin-list` is supplied **only** those plugins will be run; any plugins in the `plugin-dir` will be ignored
+  * If both `plugin-dir` and `plugin-list` are supplied, agent will exit with a mis-configuration error
 
 # v0.18.0-alpha.1
 
@@ -421,9 +433,9 @@ Socket example:
 
 ```sh
 # start agent with the additional setting
-$ /opt/circonus/agent/sbin/circonus-agentd ... --listen-socket=/tmp/test.sock
+/opt/circonus/agent/sbin/circonus-agentd ... --listen-socket=/tmp/test.sock
 
-$ curl --unix-socket /tmp/test.sock \
+curl --unix-socket /tmp/test.sock \
     -H 'Content-Type: application/json' \
     -d '{"test":{"_type":"i","_value":1}}' \
     http:/circonus-agent/write/socktest

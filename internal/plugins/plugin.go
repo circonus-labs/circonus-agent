@@ -287,7 +287,12 @@ func (p *plugin) exec() error {
 	//      Problem is some plugins do not exit intentionally - long running.
 	//      There is no way [currently] to know whether a plugin is
 	//      intentionally "long running".
-	p.cmd = exec.CommandContext(p.ctx, p.command)
+	//
+	// G204: Subprocess launched with function call as argument or cmd arguments (gosec)
+	// -- the `command` is built internally, there is no tainted data in the `command`,
+	//    there is no remediation for this warning/error in gosec documentation.
+	//
+	p.cmd = exec.CommandContext(p.ctx, p.command) //nolint:gosec
 	p.cmd.Dir = p.runDir
 	if p.instanceArgs != nil {
 		p.cmd.Args = append(p.cmd.Args, p.instanceArgs...)
