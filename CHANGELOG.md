@@ -1,3 +1,11 @@
+* add: freebsd rc script
+
+# v1.0.0-beta.3
+
+* upd: support building packages for pre-releases
+* upd: package builders
+* upd: disable inclusion of `protocol_observer` binary in agent package builds
+
 # v1.0.0-beta.2
 
 * fix: gofmt io_latency plugin
@@ -421,9 +429,9 @@ Socket example:
 
 ```sh
 # start agent with the additional setting
-$ /opt/circonus/agent/sbin/circonus-agentd ... --listen-socket=/tmp/test.sock
+/opt/circonus/agent/sbin/circonus-agentd ... --listen-socket=/tmp/test.sock
 
-$ curl --unix-socket /tmp/test.sock \
+curl --unix-socket /tmp/test.sock \
     -H 'Content-Type: application/json' \
     -d '{"test":{"_type":"i","_value":1}}' \
     http:/circonus-agent/write/socktest
