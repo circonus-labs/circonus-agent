@@ -1,3 +1,4 @@
+* add: `check_cid` and `check_uuid` to reverse log lines
 * add: freebsd rc script
 
 # v1.0.0-beta.3
