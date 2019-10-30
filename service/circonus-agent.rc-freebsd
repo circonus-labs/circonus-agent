@@ -1,0 +1,30 @@
+#!/bin/sh
+
+# PROVIDE: circonus_agent
+# REQUIRE: networking
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name=circonus_agent
+rcvar="${name}_enable"
+piddir="/var/run/circonus_agent"
+pidfile="${piddir}/${name}.pid"
+circonus_agent_user="nobody"
+circonus_agent_cmd="@@SBIN@@/circonus-agentd"
+command="/usr/sbin/daemon"
+command_args="-P ${pidfile} -r -f ${circonus_agent_cmd}"
+
+start_precmd="circonus_agent_prestart"
+
+circonus_agent_prestart() {
+    if [ ! -d $piddir ]; then
+        mkdir -p $piddir
+        chown $circonus_agent_user $piddir
+    fi
+}
+
+load_rc_config $name
+: ${circonus_agent_enable:=no}
+
+run_rc_command "$1"
