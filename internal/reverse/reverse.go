@@ -50,7 +50,16 @@ func New(parentLogger zerolog.Logger, chk *check.Check, agentAddress string) (*R
 	}
 	r.configs = cfgs
 
-	r.logger = parentLogger.With().Str("pkg", "reverse").Str("cid", viper.GetString(config.KeyCheckBundleID)).Logger()
+	cm, err := chk.CheckMeta()
+	if err != nil {
+		return nil, errors.Wrap(err, "setting up reverse")
+	}
+	r.logger = parentLogger.With().
+		Str("pkg", "reverse").
+		Str("bundle_cid", cm.BundleID).
+		Str("check_cid", cm.CheckID).
+		Str("check_uuid", cm.CheckUUID).
+		Logger()
 
 	return r, nil
 }

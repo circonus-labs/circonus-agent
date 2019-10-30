@@ -40,8 +40,9 @@ type Check struct {
 
 // Meta contains check id meta data
 type Meta struct {
-	BundleID string
-	CheckIDs []string
+	BundleID  string
+	CheckUUID string
+	CheckID   string
 }
 
 // ReverseConfig contains the reverse configuration for the check
@@ -199,23 +200,19 @@ func New(apiClient API) (*Check, error) {
 	return &c, nil
 }
 
-// CheckMeta returns check bundle id and check ids
+// CheckMeta returns check id, check bundle id, and check uuid
 func (c *Check) CheckMeta() (*Meta, error) {
 	c.Lock()
 	defer c.Unlock()
 
-	if c.checkBundle == nil {
-		return nil, errors.New("check bundle uninitialized")
-	}
-
-	checkInfo, err := c.checkBundle.Info()
-	if err != nil {
-		return nil, errors.Wrap(err, "getting meta data")
+	if c.checkConfig == nil {
+		return nil, errors.New("check uninitialized")
 	}
 
 	return &Meta{
-		BundleID: checkInfo.CID,
-		CheckIDs: checkInfo.Checks,
+		BundleID:  c.checkConfig.CheckBundleCID,
+		CheckID:   c.checkConfig.CID,
+		CheckUUID: c.checkConfig.CheckUUID,
 	}, nil
 }
 
