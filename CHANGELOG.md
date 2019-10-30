@@ -1,3 +1,7 @@
+# v1.0.0-beta.5
+
+* fix: regression test failure from diskstats update
+
 # v1.0.0-beta.4
 
 * add: support new metrics in kernel 4.18+ `diskstats` -- discards completed, discards merged, sectors discarded, discard ms
