@@ -40,7 +40,8 @@ Vagrant.configure('2') do |config|
     # ubuntu18 builder
     #
     config.vm.define 'u18', autostart: false do |u18|
-        u18.vm.box = 'maier/ubuntu-18.04-x86_64'
+        #u18.vm.box = 'maier/ubuntu-18.04-x86_64'
+        u18.vm.box = 'ubuntu/bionic64'
         u18.vm.provider 'virtualbox' do |vb|
             vb.name = 'u18_circonus-agent_build'
             vb.cpus = 2
