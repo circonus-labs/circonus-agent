@@ -1,3 +1,4 @@
+* add: support new metrics in kernel 4.18+ `diskstats` -- discards completed, discards merged, sectors discarded, discard ms
 * add: `check_cid` and `check_uuid` to reverse log lines
 * add: freebsd rc script
 
