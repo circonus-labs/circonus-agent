@@ -415,6 +415,11 @@ install_service() {
             $SED -e "${sed_script}" ../service/circonus-agent.init-ubuntu > $dir_install/etc/init.d/circonus-agent
             chmod 755 $dir_install/etc/init.d/circonus-agent
             ;;
+        freebsd\.*)
+            $MKDIR -p $dir_install/etc/rc.d
+            $SED -e "$sed_script" ../service/circonus-agent.rc-freebsd > $dir_install/etc/rc.d/circonus-agent
+            chmod 755 $dir_install/etc/rc.d/circonus-agent
+            ;;
         *)
             echo "no pre-built service configuration available for $os_name"
             ;;
@@ -496,7 +501,12 @@ make_package() {
 dir_current=$(pwd)
 install_agent
 install_plugins
-install_protocol_observer
+# removing inclusion of protocol_observer temporarily 
+# so it stops blocking package builds due to protocol
+# changes and changes to gopacket preventing compiling.
+# to re-enable inclusion, uncomment the following line
+# and remove this comment.
+#install_protocol_observer
 install_logwatch
 install_service
 make_package
