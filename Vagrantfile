@@ -90,7 +90,7 @@ Vagrant.configure('2') do |config|
     #         vb.cpus = 2
     #     end
     #     o15.vm.synced_folder '.', agent_src_path, owner: 'vagrant', group: 'vagrant'
-    #     o15.vm.network 'private_network', ip: '192.168.100.245'
+    #     # o15.vm.network 'private_network', ip: '192.168.100.245'
     #     o15.vm.provision 'shell', inline: <<-SHELL
     #         echo "Installing needed packages (e.g. git, go, etc.)"
     #         pkg set-publisher -g http://updates.circonus.net/omnios/r151014/ circonus
