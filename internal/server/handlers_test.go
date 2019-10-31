@@ -84,6 +84,7 @@ func TestRun(t *testing.T) {
 		s.run(w, req)
 
 		resp := w.Result()
+		resp.Body.Close()
 
 		if resp.StatusCode != runReq.code {
 			t.Fatalf("expected %d, got %d", runReq.code, resp.StatusCode)
@@ -129,6 +130,7 @@ func TestInventory(t *testing.T) {
 	s.inventory(w)
 
 	resp := w.Result()
+	resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected %d, got %d", http.StatusOK, resp.StatusCode)
@@ -161,6 +163,7 @@ func TestWrite(t *testing.T) {
 		s.write(w, req)
 
 		resp := w.Result()
+		resp.Body.Close()
 
 		if resp.StatusCode != http.StatusNotFound {
 			t.Fatalf("expected %d, got %d", http.StatusNotFound, resp.StatusCode)
@@ -175,6 +178,7 @@ func TestWrite(t *testing.T) {
 		s.write(w, req)
 
 		resp := w.Result()
+		resp.Body.Close()
 
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Fatalf("expected %d, got %d", http.StatusBadRequest, resp.StatusCode)
@@ -191,6 +195,7 @@ func TestWrite(t *testing.T) {
 		s.write(w, req)
 
 		resp := w.Result()
+		resp.Body.Close()
 
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Fatalf("expected %d, got %d", http.StatusBadRequest, resp.StatusCode)
@@ -207,6 +212,7 @@ func TestWrite(t *testing.T) {
 		s.write(w, req)
 
 		resp := w.Result()
+		resp.Body.Close()
 
 		if resp.StatusCode != http.StatusNoContent {
 			t.Fatalf("expected %d, got %d", http.StatusNoContent, resp.StatusCode)
@@ -288,6 +294,7 @@ func TestPromReceiver(t *testing.T) {
 		s.promReceiver(w, req)
 
 		resp := w.Result()
+		resp.Body.Close()
 
 		if resp.StatusCode != http.StatusNoContent {
 			t.Fatalf("expected %d, got %d", http.StatusNoContent, resp.StatusCode)
@@ -321,6 +328,8 @@ func TestSocketHandler(t *testing.T) {
 		w := httptest.NewRecorder()
 		s.socketHandler(w, req)
 		resp := w.Result()
+		resp.Body.Close()
+
 		if resp.StatusCode != http.StatusNotFound {
 			t.Fatalf("expected %d, got %d", http.StatusNotFound, resp.StatusCode)
 		}
@@ -332,6 +341,8 @@ func TestSocketHandler(t *testing.T) {
 		w := httptest.NewRecorder()
 		s.socketHandler(w, req)
 		resp := w.Result()
+		resp.Body.Close()
+
 		if resp.StatusCode != http.StatusMethodNotAllowed {
 			t.Fatalf("expected %d, got %d", http.StatusMethodNotAllowed, resp.StatusCode)
 		}
@@ -345,6 +356,7 @@ func TestSocketHandler(t *testing.T) {
 		s.socketHandler(w, req)
 
 		resp := w.Result()
+		resp.Body.Close()
 
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Fatalf("expected %d, got %d", http.StatusBadRequest, resp.StatusCode)
@@ -361,6 +373,7 @@ func TestSocketHandler(t *testing.T) {
 		s.socketHandler(w, req)
 
 		resp := w.Result()
+		resp.Body.Close()
 
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Fatalf("expected %d, got %d", http.StatusBadRequest, resp.StatusCode)
@@ -377,6 +390,7 @@ func TestSocketHandler(t *testing.T) {
 		s.socketHandler(w, req)
 
 		resp := w.Result()
+		resp.Body.Close()
 
 		if resp.StatusCode != http.StatusNoContent {
 			t.Fatalf("expected %d, got %d", http.StatusNoContent, resp.StatusCode)
@@ -414,6 +428,7 @@ func TestPromOutput(t *testing.T) {
 		s.promOutput(w)
 
 		resp := w.Result()
+		resp.Body.Close()
 
 		if resp.StatusCode != http.StatusNoContent {
 			t.Fatalf("expected %d, got %d", http.StatusNoContent, resp.StatusCode)
@@ -434,14 +449,17 @@ func TestPromOutput(t *testing.T) {
 		resp := w.Result()
 
 		if resp.StatusCode != http.StatusOK {
+			resp.Body.Close()
 			t.Fatalf("expected %d, got %d", http.StatusOK, resp.StatusCode)
 		}
 
 		expect := "gtest`mtest 1"
 		body, _ := ioutil.ReadAll(resp.Body)
 		if !strings.Contains(string(body), expect) {
+			resp.Body.Close()
 			t.Fatalf("expected (%s) got (%s)", expect, string(body))
 		}
+		resp.Body.Close()
 	}
 
 	cancel()

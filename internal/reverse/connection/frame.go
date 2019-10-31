@@ -52,7 +52,7 @@ func (c *Connection) readFrameFromBroker(r io.Reader) (*noitFrame, error) {
 	}
 
 	if conn, ok := r.(*tls.Conn); ok {
-		if err := conn.SetDeadline(time.Now().Add(CommTimeoutSeconds * time.Second)); err != nil {
+		if err = conn.SetDeadline(time.Now().Add(CommTimeoutSeconds * time.Second)); err != nil {
 			c.logger.Warn().Err(err).Msg("setting connection deadline")
 		}
 	}

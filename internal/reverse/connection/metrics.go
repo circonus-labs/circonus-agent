@@ -79,7 +79,7 @@ func (c *Connection) fetchMetricData(request *[]byte, channelID uint16) (*[]byte
 	// with graph/dashboard _play_, metrics will go
 	// back to broker as fast as possible, gated by
 	// plugin execution speed
-	if err := conn.SetDeadline(time.Now().Add(MetricTimeoutSeconds * time.Second)); err != nil {
+	if err = conn.SetDeadline(time.Now().Add(MetricTimeoutSeconds * time.Second)); err != nil {
 		c.logger.Warn().Err(err).Msg("setting connection deadline")
 	}
 
