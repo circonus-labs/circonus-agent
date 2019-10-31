@@ -204,28 +204,6 @@ func (cb *Bundle) Period() (uint, error) {
 	return 0, ErrUninitialized
 }
 
-type Info struct {
-	CID    string
-	Checks []string
-	UUIDs  []string
-}
-
-// Info returns information about the check bundle (the check bundle cid and list of check cids)
-func (cb *Bundle) Info() (*Info, error) {
-	cb.Lock()
-	defer cb.Unlock()
-
-	if cb.bundle != nil {
-		return &Info{
-			CID:    cb.bundle.CID,
-			Checks: cb.bundle.Checks,
-			UUIDs:  cb.bundle.CheckUUIDs,
-		}, nil
-	}
-
-	return nil, ErrUninitialized
-}
-
 // Refresh re-loads the check bundle using the API (sets metric states if check bundle is managed)
 func (cb *Bundle) Refresh() error {
 	cb.Lock()
