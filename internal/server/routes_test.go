@@ -52,6 +52,7 @@ func TestRouter(t *testing.T) {
 			w := httptest.NewRecorder()
 			s.router(w, req)
 			resp := w.Result()
+			resp.Body.Close()
 			if resp.StatusCode != http.StatusMethodNotAllowed {
 				t.Fatalf("expected %d, got %d", http.StatusMethodNotAllowed, resp.StatusCode)
 			}
@@ -99,6 +100,7 @@ func TestRouter(t *testing.T) {
 			w := httptest.NewRecorder()
 			s.router(w, req)
 			resp := w.Result()
+			resp.Body.Close()
 			if resp.StatusCode != http.StatusNotFound {
 				t.Fatalf("expected %d, got %d", http.StatusNotFound, resp.StatusCode)
 			}
@@ -153,6 +155,7 @@ func TestRouter(t *testing.T) {
 			w := httptest.NewRecorder()
 			s.router(w, req)
 			resp := w.Result()
+			resp.Body.Close()
 			if resp.StatusCode != reqtest.code {
 				t.Fatalf("expected %d, got %d", reqtest.code, resp.StatusCode)
 			}
@@ -191,6 +194,7 @@ func TestRouter(t *testing.T) {
 		w := httptest.NewRecorder()
 		s.router(w, req)
 		resp := w.Result()
+		resp.Body.Close()
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Fatalf("expected %d, got %d", http.StatusBadRequest, resp.StatusCode)
 		}
@@ -217,6 +221,7 @@ func TestRouter(t *testing.T) {
 		w := httptest.NewRecorder()
 		s.router(w, req)
 		resp := w.Result()
+		resp.Body.Close()
 		if resp.StatusCode != http.StatusNoContent {
 			t.Fatalf("expected %d, got %d", http.StatusNoContent, resp.StatusCode)
 		}
@@ -242,6 +247,7 @@ func TestRouter(t *testing.T) {
 		w := httptest.NewRecorder()
 		s.router(w, req)
 		resp := w.Result()
+		resp.Body.Close()
 		if resp.StatusCode != http.StatusNoContent {
 			t.Fatalf("expected %d, got %d", http.StatusNoContent, resp.StatusCode)
 		}

@@ -130,37 +130,37 @@ func New(client API) (*Bundle, error) {
 		return &cb, nil
 	}
 
-	//
-	// NOTE: for metric management only
-	//       metric management is DEPRECATED - this is for backwards compatibility
-	//       and will be removed at some point in the future. all checks will be
-	//       using metric filters going forward.
-	//
-	cb.stateFile = filepath.Join(cb.statePath, "metrics.json")
+	{
+		//
+		// NOTE: for metric management only
+		//       metric management is DEPRECATED - this is for backwards compatibility
+		//       and will be removed at some point in the future. all checks will be
+		//       using metric filters going forward.
+		//
+		cb.stateFile = filepath.Join(cb.statePath, "metrics.json")
 
-	if ok, err := cb.verifyStatePath(); ok {
-		ms, err := cb.loadState()
-		if err != nil {
+		if ok, err := cb.verifyStatePath(); !ok {
+			if err != nil {
+				cb.logger.Error().Err(err).Msg("verify state path")
+			}
+			cb.logger.Warn().Str("state_path", cb.statePath).Msg("encountered state path issue(s), disabling check-enable-new-metrics")
+			viper.Set(config.KeyCheckEnableNewMetrics, false)
+			cb.manage = false
+			return &cb, nil
+		}
+
+		if ms, err := cb.loadState(); err != nil {
 			cb.logger.Error().Err(err).Msg("unable to load existing metric states, all metrics considered existing")
 		} else {
 			cb.metricStates = ms
 			cb.logger.Debug().Interface("metric_states", len(*cb.metricStates)).Msg("loaded metric states")
 		}
-	} else {
-		if err != nil {
-			cb.logger.Error().Err(err).Msg("verify state path")
-		}
-		cb.logger.Warn().Str("state_path", cb.statePath).Msg("encountered state path issue(s), disabling check-enable-new-metrics")
-		viper.Set(config.KeyCheckEnableNewMetrics, false)
-		cb.manage = false
-		return &cb, nil
-	}
 
-	err := cb.setMetricStates(&cb.bundle.Metrics)
-	if err != nil {
-		return nil, errors.Wrap(err, "setting metric states")
+		if err := cb.setMetricStates(&cb.bundle.Metrics); err != nil {
+			return nil, errors.Wrap(err, "setting metric states")
+		}
+		cb.bundle.Metrics = []apiclient.CheckBundleMetric{} // save a little memory (or a lot depending on how many metrics are being managed...)
 	}
-	cb.bundle.Metrics = []apiclient.CheckBundleMetric{} // save a little memory (or a lot depending on how many metrics are being managed...)
 
 	// check metrics refresh ttl
 	ttl, err := time.ParseDuration(viper.GetString(config.KeyCheckMetricRefreshTTL))
@@ -202,28 +202,6 @@ func (cb *Bundle) Period() (uint, error) {
 	}
 
 	return 0, ErrUninitialized
-}
-
-type Info struct {
-	CID    string
-	Checks []string
-	UUIDs  []string
-}
-
-// Info returns information about the check bundle (the check bundle cid and list of check cids)
-func (cb *Bundle) Info() (*Info, error) {
-	cb.Lock()
-	defer cb.Unlock()
-
-	if cb.bundle != nil {
-		return &Info{
-			CID:    cb.bundle.CID,
-			Checks: cb.bundle.Checks,
-			UUIDs:  cb.bundle.CheckUUIDs,
-		}, nil
-	}
-
-	return nil, ErrUninitialized
 }
 
 // Refresh re-loads the check bundle using the API (sets metric states if check bundle is managed)

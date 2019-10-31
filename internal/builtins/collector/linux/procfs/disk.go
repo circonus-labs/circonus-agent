@@ -202,7 +202,7 @@ func (c *Disk) Collect() error {
 		// 15 - discards merged
 		// 16 - sectors discarded
 		// 17 - time spent discarding (milliseconds)
-		if len(fields) < 13 {
+		if len(fields) < 14 {
 			continue
 		}
 
@@ -336,7 +336,7 @@ func (c *Disk) parse(fields []string) (*dstats, error) {
 	pe := errors.New("parsing field")
 	d := dstats{
 		id:            devName,
-		haveKernel418: len(fields) > 13,
+		haveKernel418: len(fields) > 14,
 	}
 
 	if v, err := strconv.ParseUint(fields[3], 10, 64); err == nil {

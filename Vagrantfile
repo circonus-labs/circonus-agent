@@ -108,7 +108,9 @@ Vagrant.configure('2') do |config|
     config.vm.define 'fb11', autostart: false do |fb11|
         fb11.vm.guest = :freebsd
         fb11.vm.box = 'freebsd/FreeBSD-11.2-RELEASE'
-        fb11.vm.synced_folder '.', agent_src_path, id: 'vagrant-root'
+        # doesn't work correctly, consistently... fb11.vm.synced_folder '.', agent_src_path, id: 'vagrant-root'
+        fb11.vm.synced_folder '.', '/vagrant', id: 'vagrant-root', disabled: true
+        fb11.vm.synced_folder '.', agent_src_path, type: 'nfs'
         # mac not set in base box, just needs to be set to something to avoid vagrant errors
         fb11.vm.base_mac = ''
         fb11.ssh.shell = 'sh'
@@ -128,5 +130,14 @@ Vagrant.configure('2') do |config|
             chsh -s /usr/local/bin/bash vagrant
         SHELL
         fb11.vm.provision 'shell', path: 'vprov/fb11.sh', args: [go_url_base, go_ver]
+        fb11.trigger.after(:halt) do |trigger|
+            trigger.info = "Purging NFSD exports"
+            trigger.ruby do |_env, _machine|
+                etc_exports = Pathname.new("/etc/exports")
+                if etc_exports.exist? && etc_exports.size > 0
+                    system(%q{sudo cp /dev/null /etc/exports && sudo nfsd restart})
+                end
+            end
+        end
     end
 end

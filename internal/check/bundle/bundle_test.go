@@ -321,37 +321,6 @@ func TestBundle_Period(t *testing.T) {
 	}
 }
 
-func TestBundle_Info(t *testing.T) {
-	type fields struct {
-		bundle *apiclient.CheckBundle
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		want    *Info
-		wantErr bool
-	}{
-		{"nil bundle", fields{}, nil, true},
-		{"valid bundle", fields{bundle: &testCheckBundle}, &Info{CID: "/check_bundle/1234", Checks: []string{"/check/1234"}}, false},
-	}
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			cb := &Bundle{
-				bundle: tt.fields.bundle,
-			}
-			got, err := cb.Info()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Bundle.Info() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Bundle.Info() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestBundle_Refresh(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 	viper.Set(config.KeyCheckBundleID, "/check_bundle/1234")

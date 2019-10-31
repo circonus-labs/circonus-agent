@@ -60,15 +60,6 @@ type promOptions struct {
 	URLs   []URLDef `json:"urls" toml:"urls" yaml:"urls"`
 }
 
-// const (
-// 	regexPat = `^(?:%s)$` // fmt pattern used compile include/exclude regular expressions
-// )
-
-// var (
-// 	defaultExcludeRegex = regexp.MustCompile(fmt.Sprintf(regexPat, ""))
-// 	defaultIncludeRegex = regexp.MustCompile(fmt.Sprintf(regexPat, ".+"))
-// )
-
 // New creates new prom collector
 func New(cfgBaseName string) (collector.Collector, error) {
 	c := Prom{
@@ -192,24 +183,24 @@ func (c *Prom) fetchPromMetrics(u URLDef, metrics *cgm.Metrics) error {
 	req = req.WithContext(ctx)
 	defer cancel()
 
-	err = c.httpDoRequest(ctx, req, func(resp *http.Response, err error) error {
-		if err != nil {
-			return err
-		}
-		defer resp.Body.Close()
-		// validate response headers
-
-		return c.parse(u.ID, resp.Body, metrics)
-	})
-
-	return err
-}
-
-func (c *Prom) httpDoRequest(ctx context.Context, req *http.Request, respHandler func(*http.Response, error) error) error {
-	client := &http.Client{Transport: &http.Transport{DisableCompression: false, DisableKeepAlives: true, MaxIdleConnsPerHost: 1}}
 	ec := make(chan error, 1)
 
-	go func() { ec <- respHandler(client.Do(req)) }()
+	go func() {
+		client := &http.Client{
+			Transport: &http.Transport{
+				DisableCompression:  false,
+				DisableKeepAlives:   true,
+				MaxIdleConnsPerHost: 1,
+			},
+		}
+		resp, err := client.Do(req)
+		if err != nil {
+			ec <- err
+			return
+		}
+		defer resp.Body.Close()
+		ec <- c.parse(u.ID, resp.Body, metrics)
+	}()
 
 	select {
 	case <-ctx.Done():
