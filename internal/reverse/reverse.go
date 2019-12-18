@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 //
 
+// Package reverse handles reverse connections to brokers
 package reverse
 
 import (
@@ -94,21 +95,11 @@ func (r *Reverse) Start(ctx context.Context) error {
 
 		if refreshCheck {
 			r.logger.Debug().Msg("refreshing check")
-			if err := r.chk.FetchCheckConfig(); err != nil {
-				if cberr, ok := errors.Cause(err).(*check.ErrNotActive); ok {
-					r.logger.Error().Err(cberr).Msg("exiting reverse")
-					cancel()
-					return err
-				}
-				r.logger.Error().Err(err).Msg("refreshing check")
-				continue
-			}
-			if err := r.chk.FetchBrokerConfig(); err != nil {
-				r.logger.Error().Err(err).Msg("exiting reverse")
+			if err := r.chk.RefreshReverseConfig(); err != nil {
+				r.logger.Error().Err(err).Msg("refreshing reverse configuration")
 				cancel()
 				return err
 			}
-
 			cfgs, err := r.chk.GetReverseConfigs()
 			if err != nil {
 				cancel()

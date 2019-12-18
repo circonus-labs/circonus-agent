@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 //
 
+// Package check handles check and broker management
 package check
 
 import (
@@ -228,13 +229,31 @@ func (c *Check) CheckPeriod() (uint, error) {
 	return c.checkBundle.Period()
 }
 
+// RefreshReverseConfig refreshes the check, broker and broker tls configurations
+func (c *Check) RefreshReverseConfig() error {
+	if err := c.FetchCheckConfig(); err != nil {
+		return err
+	}
+	if err := c.FetchBrokerConfig(); err != nil {
+		return err
+	}
+	if err := c.setReverseConfigs(); err != nil {
+		return err
+	}
+	return nil
+}
+
 // GetReverseConfigs returns the reverse connection configuration(s) to use for the check
 func (c *Check) GetReverseConfigs() (*ReverseConfigs, error) {
 	c.Lock()
 	defer c.Unlock()
 
+	if !c.reverse {
+		return nil, errors.New("agent not in reverse mode")
+	}
+
 	if c.revConfigs == nil {
-		return nil, errors.New("invalid reverse configuration")
+		return nil, errors.New("invalid reverse config (nil)")
 	}
 
 	return c.revConfigs, nil
