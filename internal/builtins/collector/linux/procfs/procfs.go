@@ -5,6 +5,7 @@
 
 // +build linux
 
+// Package procfs builtin linux-specific collector for /proc filesystem (replaces old nad shell plugins)
 package procfs
 
 import (
