@@ -27,13 +27,12 @@ builds:
 
         goarch:
             - amd64
+            - arm64
             - arm
 
         ignore:
             -
                 goarch: 386
-            - goos: darwin
-              goarch: arm
             - goos: freebsd
               goarch: arm
 
@@ -42,6 +41,38 @@ builds:
             - -X github.com/circonus-labs/circonus-agent/internal/release.COMMIT={{.ShortCommit}} 
             - -X github.com/circonus-labs/circonus-agent/internal/release.DATE={{.Date}} 
             - -X github.com/circonus-labs/circonus-agent/internal/release.TAG={{.Tag}}
+
+dockers:
+    -
+        goos: linux
+        goarch: amd64
+        goarm: ''
+        binaries:
+            - sbin/circonus-agentd
+        image_templates:
+            - "circonuslabs/{{.ProjectName}}:{{.Tag}}"
+            - "circonuslabs/{{.ProjectName}}:latest"
+        skip_push: false
+        dockerfile: docker/x86_64/Dockerfile
+        build_flag_templates:
+            - "--label=org.label-schema.schema-version=1.0"
+            - "--label=org.label-schema.version={{.Version}}"
+            - "--label=org.label-schema.name={{.ProjectName}}"
+    -
+        goos: linux
+        goarch: arm64
+        goarm: ''
+        binaries:
+            - sbin/circonus-agentd
+        image_templates:
+            - "circonuslabs/{{.ProjectName}}-arm64:{{.Tag}}"
+            - "circonuslabs/{{.ProjectName}}-arm64:latest"
+        skip_push: false
+        dockerfile: docker/arm64/Dockerfile
+        build_flag_templates:
+            - "--label=org.label-schema.schema-version=1.0"
+            - "--label=org.label-schema.version={{.Version}}"
+            - "--label=org.label-schema.name={{.ProjectName}}"
 
 archives:
     - 
