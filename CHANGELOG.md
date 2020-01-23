@@ -1,3 +1,15 @@
+# v1.0.0-beta.7
+
+* add: docker images
+* add: linux_arm64 build
+* upd: dependencies
+* add: command line options and environment vars for builtin collector paths:
+  * `--host-proc`, `HOST_PROC` = `/proc`
+  * `--host-sys`, `HOST_SYS` = `/sys`
+  * `--host-etc`, `HOST_ETC` = `/etc`
+  * `--host-var`, `HOST_VAR` = `/var`
+  * `--host-run`, `HOST_RUN` = `/run`
+
 # v1.0.0-beta.6
 
 * fix: pull broker CA cert from API for TLS config when refreshing check/broker
