@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 //
 
+// Package cmd defines the CLI for the agent
 package cmd
 
 import (
@@ -144,6 +145,101 @@ func init() {
 
 		}
 		viper.SetDefault(key, defaults.Collectors)
+	}
+
+	{
+		const (
+			key          = config.KeyHostProc
+			longOpt      = "host-proc"
+			envVar       = "HOST_PROC"
+			defaultValue = defaults.HostProc
+			description  = "Host /proc directory"
+		)
+
+		RootCmd.Flags().String(longOpt, "", desc(description, envVar))
+		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
+			bindFlagError(longOpt, err)
+		}
+		if err := viper.BindEnv(key, envVar); err != nil {
+			bindEnvError(envVar, err)
+		}
+		viper.SetDefault(key, defaultValue)
+	}
+
+	{
+		const (
+			key          = config.KeyHostSys
+			longOpt      = "host-sys"
+			envVar       = "HOST_SYS"
+			defaultValue = defaults.HostSys
+			description  = "Host /sys directory"
+		)
+
+		RootCmd.Flags().String(longOpt, "", desc(description, envVar))
+		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
+			bindFlagError(longOpt, err)
+		}
+		if err := viper.BindEnv(key, envVar); err != nil {
+			bindEnvError(envVar, err)
+		}
+		viper.SetDefault(key, defaultValue)
+	}
+
+	{
+		const (
+			key          = config.KeyHostEtc
+			longOpt      = "host-etc"
+			envVar       = "HOST_ETC"
+			defaultValue = defaults.HostEtc
+			description  = "Host /etc directory"
+		)
+
+		RootCmd.Flags().String(longOpt, "", desc(description, envVar))
+		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
+			bindFlagError(longOpt, err)
+		}
+		if err := viper.BindEnv(key, envVar); err != nil {
+			bindEnvError(envVar, err)
+		}
+		viper.SetDefault(key, defaultValue)
+	}
+
+	{
+		const (
+			key          = config.KeyHostVar
+			longOpt      = "host-var"
+			envVar       = "HOST_VAR"
+			defaultValue = defaults.HostVar
+			description  = "Host /var directory"
+		)
+
+		RootCmd.Flags().String(longOpt, "", desc(description, envVar))
+		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
+			bindFlagError(longOpt, err)
+		}
+		if err := viper.BindEnv(key, envVar); err != nil {
+			bindEnvError(envVar, err)
+		}
+		viper.SetDefault(key, defaultValue)
+	}
+
+	{
+		const (
+			key          = config.KeyHostRun
+			longOpt      = "host-run"
+			envVar       = "HOST_RUN"
+			defaultValue = defaults.HostRun
+			description  = "Host /run directory"
+		)
+
+		RootCmd.Flags().String(longOpt, "", desc(description, envVar))
+		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
+			bindFlagError(longOpt, err)
+		}
+		if err := viper.BindEnv(key, envVar); err != nil {
+			bindEnvError(envVar, err)
+		}
+		viper.SetDefault(key, defaultValue)
 	}
 
 	{

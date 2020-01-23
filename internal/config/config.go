@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 //
 
+// Package config defines options
 package config
 
 import (
@@ -110,6 +111,11 @@ type Config struct {
 	Reverse          Reverse  `json:"reverse" yaml:"reverse" toml:"reverse"`
 	SSL              SSL      `json:"ssl" yaml:"ssl" toml:"ssl"`
 	StatsD           StatsD   `json:"statsd" yaml:"statsd" toml:"statsd"`
+	HostProc         string   `mapstructure:"host_proc" json:"host_proc" toml:"host_proc" yaml:"host_proc"`
+	HostSys          string   `mapstructure:"host_sys" json:"host_sys" toml:"host_sys" yaml:"host_sys"`
+	HostEtc          string   `mapstructure:"host_etc" json:"host_etc" toml:"host_etc" yaml:"host_etc"`
+	HostVar          string   `mapstructure:"host_var" json:"host_var" toml:"host_var" yaml:"host_var"`
+	HostRun          string   `mapstructure:"host_run" json:"host_run" toml:"host_run" yaml:"host_run"`
 }
 
 //
@@ -224,6 +230,16 @@ const (
 
 	// KeyCollectors defines the builtin collectors to enable
 	KeyCollectors = "collectors"
+	// KeyHostProc defines path builtins will use
+	KeyHostProc = "host_proc"
+	// KeyHostSys defines path builtins will use, if needed
+	KeyHostSys = "host_sys"
+	// KeyHostEtc defines path builtins will use, if needed
+	KeyHostEtc = "host_etc"
+	// KeyHostVar defines path builtins will use, if needed
+	KeyHostVar = "host_var"
+	// KeyHostRun defines path builtins will use, if needed
+	KeyHostRun = "host_run"
 
 	// KeyDisableGzip disables gzip on http responses
 	KeyDisableGzip = "server.disable_gzip"

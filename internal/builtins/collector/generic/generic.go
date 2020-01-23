@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 //
 
+// Package generic provides more cross-platform support for collecting basic system metrics
 package generic
 
 import (

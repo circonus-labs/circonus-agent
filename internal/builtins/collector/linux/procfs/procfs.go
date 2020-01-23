@@ -24,7 +24,6 @@ import (
 const (
 	CollectorPrefix  = "procfs/"
 	PackageName      = "builtins.linux.procfs"
-	ProcFSPath       = "/proc"
 	NameCPU          = "cpu"
 	NameDisk         = "disk"
 	NameNetInterface = "if"
@@ -49,6 +48,11 @@ func New() ([]collector.Collector, error) {
 	}
 
 	l := log.With().Str("pkg", "builtins.procfs").Logger()
+
+	ProcFSPath := viper.GetString(config.KeyHostProc)
+	if ProcFSPath == "" {
+		ProcFSPath = defaults.HostProc
+	}
 
 	enbledCollectors := viper.GetStringSlice(config.KeyCollectors)
 	if len(enbledCollectors) == 0 {
