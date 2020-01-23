@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 //
 
+// Package defaults defines default settings for options
 package defaults
 
 import (
@@ -15,6 +16,12 @@ import (
 )
 
 const (
+	HostProc = "/proc"
+	HostSys  = "/sys"
+	HostEtc  = "/etc"
+	HostVar  = "/var"
+	HostRun  = "/run"
+
 	// ListenPort is the default agent tcp listening port
 	ListenPort = 2609
 

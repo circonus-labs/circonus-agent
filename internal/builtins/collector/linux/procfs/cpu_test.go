@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
+	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/rs/zerolog"
 )
 
@@ -24,7 +25,7 @@ func TestNewCPUCollector(t *testing.T) {
 
 	t.Log("no config")
 	{
-		_, err := NewCPUCollector("", ProcFSPath)
+		_, err := NewCPUCollector("", defaults.HostProc)
 		if runtime.GOOS == "linux" {
 			if err != nil {
 				t.Fatalf("expected NO error, got (%s)", err)
@@ -38,7 +39,7 @@ func TestNewCPUCollector(t *testing.T) {
 
 	t.Log("config (missing)")
 	{
-		_, err := NewCPUCollector(filepath.Join("testdata", "missing"), ProcFSPath)
+		_, err := NewCPUCollector(filepath.Join("testdata", "missing"), defaults.HostProc)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -46,7 +47,7 @@ func TestNewCPUCollector(t *testing.T) {
 
 	t.Log("config (bad syntax)")
 	{
-		_, err := NewCPUCollector(filepath.Join("testdata", "bad_syntax"), ProcFSPath)
+		_, err := NewCPUCollector(filepath.Join("testdata", "bad_syntax"), defaults.HostProc)
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -54,7 +55,7 @@ func TestNewCPUCollector(t *testing.T) {
 
 	t.Log("config (config no settings)")
 	{
-		c, err := NewCPUCollector(filepath.Join("testdata", "config_no_settings"), ProcFSPath)
+		c, err := NewCPUCollector(filepath.Join("testdata", "config_no_settings"), defaults.HostProc)
 		if runtime.GOOS == "linux" {
 			if err != nil {
 				t.Fatalf("expected NO error, got (%s)", err)
@@ -74,7 +75,7 @@ func TestNewCPUCollector(t *testing.T) {
 
 	t.Log("config (id setting)")
 	{
-		c, err := NewCPUCollector(filepath.Join("testdata", "config_id_setting"), ProcFSPath)
+		c, err := NewCPUCollector(filepath.Join("testdata", "config_id_setting"), defaults.HostProc)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -85,7 +86,7 @@ func TestNewCPUCollector(t *testing.T) {
 
 	t.Log("config (procfs path setting)")
 	{
-		c, err := NewCPUCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), ProcFSPath)
+		c, err := NewCPUCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), defaults.HostProc)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -97,7 +98,7 @@ func TestNewCPUCollector(t *testing.T) {
 
 	t.Log("config (procfs path setting invalid)")
 	{
-		_, err := NewCPUCollector(filepath.Join("testdata", "config_procfs_path_invalid_setting"), ProcFSPath)
+		_, err := NewCPUCollector(filepath.Join("testdata", "config_procfs_path_invalid_setting"), defaults.HostProc)
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -105,7 +106,7 @@ func TestNewCPUCollector(t *testing.T) {
 
 	t.Log("config (clock_hz setting)")
 	{
-		c, err := NewCPUCollector(filepath.Join("testdata", "config_clock_hz_valid_setting"), ProcFSPath)
+		c, err := NewCPUCollector(filepath.Join("testdata", "config_clock_hz_valid_setting"), defaults.HostProc)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -117,7 +118,7 @@ func TestNewCPUCollector(t *testing.T) {
 
 	t.Log("config (clock_hz setting invalid)")
 	{
-		_, err := NewCPUCollector(filepath.Join("testdata", "config_clock_hz_invalid_setting"), ProcFSPath)
+		_, err := NewCPUCollector(filepath.Join("testdata", "config_clock_hz_invalid_setting"), defaults.HostProc)
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -125,7 +126,7 @@ func TestNewCPUCollector(t *testing.T) {
 
 	t.Log("config (report all cpus setting true)")
 	{
-		c, err := NewCPUCollector(filepath.Join("testdata", "config_report_all_cpus_true_setting"), ProcFSPath)
+		c, err := NewCPUCollector(filepath.Join("testdata", "config_report_all_cpus_true_setting"), defaults.HostProc)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -136,7 +137,7 @@ func TestNewCPUCollector(t *testing.T) {
 
 	t.Log("config (report all cpus setting false)")
 	{
-		c, err := NewCPUCollector(filepath.Join("testdata", "config_report_all_cpus_false_setting"), ProcFSPath)
+		c, err := NewCPUCollector(filepath.Join("testdata", "config_report_all_cpus_false_setting"), defaults.HostProc)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -147,7 +148,7 @@ func TestNewCPUCollector(t *testing.T) {
 
 	t.Log("config (report all cpus setting invalid)")
 	{
-		_, err := NewCPUCollector(filepath.Join("testdata", "config_report_all_cpus_invalid_setting"), ProcFSPath)
+		_, err := NewCPUCollector(filepath.Join("testdata", "config_report_all_cpus_invalid_setting"), defaults.HostProc)
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -155,7 +156,7 @@ func TestNewCPUCollector(t *testing.T) {
 
 	t.Log("config (run ttl 5m)")
 	{
-		c, err := NewCPUCollector(filepath.Join("testdata", "config_run_ttl_valid_setting"), ProcFSPath)
+		c, err := NewCPUCollector(filepath.Join("testdata", "config_run_ttl_valid_setting"), defaults.HostProc)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -166,7 +167,7 @@ func TestNewCPUCollector(t *testing.T) {
 
 	t.Log("config (run ttl invalid)")
 	{
-		_, err := NewCPUCollector(filepath.Join("testdata", "config_run_ttl_invalid_setting"), ProcFSPath)
+		_, err := NewCPUCollector(filepath.Join("testdata", "config_run_ttl_invalid_setting"), defaults.HostProc)
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -178,7 +179,7 @@ func TestCPUFlush(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	c, err := NewCPUCollector(filepath.Join("testdata", "config_file_valid_setting"), ProcFSPath)
+	c, err := NewCPUCollector(filepath.Join("testdata", "config_file_valid_setting"), defaults.HostProc)
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
@@ -199,7 +200,7 @@ func TestCPUCollect(t *testing.T) {
 
 	t.Log("already running")
 	{
-		c, err := NewCPUCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), ProcFSPath)
+		c, err := NewCPUCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), defaults.HostProc)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -217,7 +218,7 @@ func TestCPUCollect(t *testing.T) {
 
 	t.Log("ttl not expired")
 	{
-		c, err := NewCPUCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), ProcFSPath)
+		c, err := NewCPUCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), defaults.HostProc)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -236,7 +237,7 @@ func TestCPUCollect(t *testing.T) {
 
 	t.Log("good")
 	{
-		c, err := NewCPUCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), ProcFSPath)
+		c, err := NewCPUCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), defaults.HostProc)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}

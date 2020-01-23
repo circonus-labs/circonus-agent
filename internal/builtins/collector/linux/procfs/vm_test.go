@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
+	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/rs/zerolog"
 )
 
@@ -24,7 +25,7 @@ func TestNewVMCollector(t *testing.T) {
 
 	t.Log("no config")
 	{
-		_, err := NewVMCollector("", ProcFSPath)
+		_, err := NewVMCollector("", defaults.HostProc)
 		if runtime.GOOS == "linux" {
 			if err != nil {
 				t.Fatalf("expected NO error, got (%s)", err)
@@ -38,7 +39,7 @@ func TestNewVMCollector(t *testing.T) {
 
 	t.Log("config (missing)")
 	{
-		_, err := NewVMCollector(filepath.Join("testdata", "missing"), ProcFSPath)
+		_, err := NewVMCollector(filepath.Join("testdata", "missing"), defaults.HostProc)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -46,7 +47,7 @@ func TestNewVMCollector(t *testing.T) {
 
 	t.Log("config (bad syntax)")
 	{
-		_, err := NewVMCollector(filepath.Join("testdata", "bad_syntax"), ProcFSPath)
+		_, err := NewVMCollector(filepath.Join("testdata", "bad_syntax"), defaults.HostProc)
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -54,7 +55,7 @@ func TestNewVMCollector(t *testing.T) {
 
 	t.Log("config (config no settings)")
 	{
-		c, err := NewVMCollector(filepath.Join("testdata", "config_no_settings"), ProcFSPath)
+		c, err := NewVMCollector(filepath.Join("testdata", "config_no_settings"), defaults.HostProc)
 		if runtime.GOOS == "linux" {
 			if err != nil {
 				t.Fatalf("expected NO error, got (%s)", err)
@@ -74,7 +75,7 @@ func TestNewVMCollector(t *testing.T) {
 
 	t.Log("config (id setting)")
 	{
-		c, err := NewVMCollector(filepath.Join("testdata", "config_id_setting"), ProcFSPath)
+		c, err := NewVMCollector(filepath.Join("testdata", "config_id_setting"), defaults.HostProc)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -85,7 +86,7 @@ func TestNewVMCollector(t *testing.T) {
 
 	t.Log("config (procfs path setting)")
 	{
-		c, err := NewVMCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), ProcFSPath)
+		c, err := NewVMCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), defaults.HostProc)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -97,7 +98,7 @@ func TestNewVMCollector(t *testing.T) {
 
 	t.Log("config (procfs path setting invalid)")
 	{
-		_, err := NewVMCollector(filepath.Join("testdata", "config_procfs_path_invalid_setting"), ProcFSPath)
+		_, err := NewVMCollector(filepath.Join("testdata", "config_procfs_path_invalid_setting"), defaults.HostProc)
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -105,7 +106,7 @@ func TestNewVMCollector(t *testing.T) {
 
 	t.Log("config (run ttl 5m)")
 	{
-		c, err := NewVMCollector(filepath.Join("testdata", "config_run_ttl_valid_setting"), ProcFSPath)
+		c, err := NewVMCollector(filepath.Join("testdata", "config_run_ttl_valid_setting"), defaults.HostProc)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -116,7 +117,7 @@ func TestNewVMCollector(t *testing.T) {
 
 	t.Log("config (run ttl invalid)")
 	{
-		_, err := NewVMCollector(filepath.Join("testdata", "config_run_ttl_invalid_setting"), ProcFSPath)
+		_, err := NewVMCollector(filepath.Join("testdata", "config_run_ttl_invalid_setting"), defaults.HostProc)
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -128,7 +129,7 @@ func TestVMFlush(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	c, err := NewVMCollector(filepath.Join("testdata", "config_file_valid_setting"), ProcFSPath)
+	c, err := NewVMCollector(filepath.Join("testdata", "config_file_valid_setting"), defaults.HostProc)
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
@@ -149,7 +150,7 @@ func TestVMCollect(t *testing.T) {
 
 	t.Log("already running")
 	{
-		c, err := NewVMCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), ProcFSPath)
+		c, err := NewVMCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), defaults.HostProc)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -167,7 +168,7 @@ func TestVMCollect(t *testing.T) {
 
 	t.Log("ttl not expired")
 	{
-		c, err := NewVMCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), ProcFSPath)
+		c, err := NewVMCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), defaults.HostProc)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -186,7 +187,7 @@ func TestVMCollect(t *testing.T) {
 
 	t.Log("good")
 	{
-		c, err := NewVMCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), ProcFSPath)
+		c, err := NewVMCollector(filepath.Join("testdata", "config_procfs_path_valid_setting"), defaults.HostProc)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
