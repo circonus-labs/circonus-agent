@@ -94,7 +94,7 @@ archives:
         - README.md
         - CHANGELOG.md
         - etc/README.md
-        - service/circonus-agent.service
+        - service/*
         - state/README.md
         - plugins/**/*
 
