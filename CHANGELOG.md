@@ -1,3 +1,12 @@
+# v1.0.0-beta.9
+
+* add: zpool plugin
+* add: include all service configurations in releases
+
+# v1.0.0-beta.8
+
+* add: EXPOSE to Dockerfile(s) for default listening ports
+
 # v1.0.0-beta.7
 
 * add: docker images
