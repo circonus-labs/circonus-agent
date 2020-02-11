@@ -12,11 +12,21 @@ changes may cause metrics to go missing.
 
 The plugin has been tested on the following platforms, but should work on any
 system running [OpenZFS](http://open-zfs.org/wiki/Main_Page):
-* CentOS/RHEL 7 (ZoL 0.7.x)
+* CentOS/RHEL 7 (ZoL 0.7, 0.8)
 * FreeBSD 12.1
 * SmartOS (various platform images from 2018-2019)
-* Ubuntu 18.04 LTS (ZoL 0.7.x)
-* Ubuntu 16.04 LTS (ZoL 0.6.x)
+* Ubuntu 18.04 LTS (ZoL 0.7)
+* Ubuntu 16.04 LTS (ZoL 0.6)
+
+## Permissions on /dev/zfs
+
+The agent usually runs as an unprivileged user. With ZFSonLinux prior to 0.7,
+the permissions on the `/dev/zfs` device were restricted to root. In order for
+the plugin to be able to run the `zpool` command as an unprivileged user, a
+[workaround](https://github.com/zfsonlinux/zfs/issues/362#issuecomment-1987600)
+must be used to set the necessary permissions on the device.
+
+This is not an issue for ZFSonLinux 0.7.0 or later.
 
 ## A Note on Pool Sizes
 
