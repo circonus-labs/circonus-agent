@@ -152,7 +152,8 @@ func (s *Server) parseMetric(metric string) error {
 		if sampleRate > 0 {
 			v = uint64(float64(v) * (1 / sampleRate))
 		}
-		dest.IncrementByValueWithTags(metricName, metricTags, v)
+		dest.RecordCountForValueWithTags(metricName, append(metricTags, cgm.Tag{Category: "statsd_type", Value: "count"}), 0, int64(v))
+		//dest.IncrementByValueWithTags(metricName, metricTags, v)
 	case "g": // gauge
 		switch {
 		case strings.Contains(metricValue, "."):
@@ -188,8 +189,11 @@ func (s *Server) parseMetric(metric string) error {
 	case "s": // set
 		// in the case of sets, the value is the unique "thing" to be tracked
 		// counters are used to track individual "things"
-		metricTags = append(metricTags, cgm.Tag{Category: "set_id", Value: metricValue})
-		dest.IncrementWithTags(metricName, metricTags)
+		dest.RecordCountForValueWithTags(metricName,
+			append(metricTags, cgm.Tags{
+				cgm.Tag{Category: "set_id", Value: metricValue},
+				cgm.Tag{Category: "statsd_type", Value: "count"}}...), 0, 1)
+		//dest.IncrementWithTags(metricName, append(metricTags, cgm.Tags{cgm.Tag{Category: "set_id", Value: metricValue}))
 	case "t": // text (circonus)
 		dest.SetTextWithTags(metricName, metricTags, metricValue)
 	default:
