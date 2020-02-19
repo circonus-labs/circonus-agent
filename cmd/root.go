@@ -1058,6 +1058,64 @@ func init() {
 		viper.SetDefault(key, defaults.LogPretty)
 	}
 
+	//
+	// Clustering options
+	//
+	{
+		const (
+			key          = config.KeyClusterEnabled
+			longOpt      = "cluster-enable"
+			envVar       = release.ENVPREFIX + "_CLUSTER_ENABLE"
+			description  = "Enable cluster awareness mode"
+			defaultValue = defaults.ClusterEnabled
+		)
+
+		RootCmd.Flags().Bool(longOpt, defaultValue, desc(description, envVar))
+		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
+			bindFlagError(longOpt, err)
+		}
+		if err := viper.BindEnv(key, envVar); err != nil {
+			bindEnvError(envVar, err)
+		}
+		viper.SetDefault(key, defaultValue)
+	}
+	{
+		const (
+			key          = config.KeyClusterEnableBuiltins
+			longOpt      = "cluster-enable-builtins"
+			envVar       = release.ENVPREFIX + "_CLUSTER_ENABLE_BUILTINS"
+			description  = "Enable builtins in cluster awareness mode"
+			defaultValue = defaults.ClusterEnableBuiltins
+		)
+
+		RootCmd.Flags().Bool(longOpt, defaultValue, desc(description, envVar))
+		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
+			bindFlagError(longOpt, err)
+		}
+		if err := viper.BindEnv(key, envVar); err != nil {
+			bindEnvError(envVar, err)
+		}
+		viper.SetDefault(key, defaultValue)
+	}
+	{
+		const (
+			key          = config.KeyClusterStatsdHistogramGauges
+			longOpt      = "cluster-statsd-histogram-gauges"
+			envVar       = release.ENVPREFIX + "_CLUSTER_STATSD_HISTOGRAM_GAUGES"
+			description  = "Represent StatsD gauges as histograms in cluster awareness mode"
+			defaultValue = defaults.ClusterStatsdHistogramGauges
+		)
+
+		RootCmd.Flags().Bool(longOpt, defaultValue, desc(description, envVar))
+		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
+			bindFlagError(longOpt, err)
+		}
+		if err := viper.BindEnv(key, envVar); err != nil {
+			bindEnvError(envVar, err)
+		}
+		viper.SetDefault(key, defaultValue)
+	}
+
 	// RootCmd.Flags().Bool("watch", defaults.Watch, "Watch plugins, reload on change")
 	// viper.SetDefault("watch", defaults.Watch)
 	// viper.BindPFlag("watch", RootCmd.Flags().Lookup("watch"))
