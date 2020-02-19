@@ -10,10 +10,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/maier/go-appstats"
 	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 )
 
 // processPacket parses a packet for metrics
@@ -152,28 +154,42 @@ func (s *Server) parseMetric(metric string) error {
 		if sampleRate > 0 {
 			v = uint64(float64(v) * (1 / sampleRate))
 		}
-		dest.RecordCountForValueWithTags(metricName, append(metricTags, cgm.Tag{Category: "statsd_type", Value: "count"}), 0, int64(v))
-		//dest.IncrementByValueWithTags(metricName, metricTags, v)
+		if viper.GetBool(config.KeyClusterEnabled) {
+			metricTags = append(metricTags, cgm.Tag{Category: "statsd_type", Value: "count"})
+			dest.RecordCountForValueWithTags(metricName, metricTags, 0, int64(v))
+		} else {
+			dest.IncrementByValueWithTags(metricName, metricTags, v)
+		}
 	case "g": // gauge
+		var val interface{}
 		switch {
 		case strings.Contains(metricValue, "."):
 			v, err := strconv.ParseFloat(metricValue, 64)
 			if err != nil {
 				return errors.Wrap(err, "invalid gauge value")
 			}
-			dest.GaugeWithTags(metricName, metricTags, v)
+			val = v
+			// dest.GaugeWithTags(metricName, metricTags, v)
 		case strings.Contains(metricValue, "-"):
 			v, err := strconv.ParseInt(metricValue, 10, 64)
 			if err != nil {
 				return errors.Wrap(err, "invalid gauge value")
 			}
-			dest.GaugeWithTags(metricName, metricTags, v)
+			val = v
+			// dest.GaugeWithTags(metricName, metricTags, v)
 		default:
 			v, err := strconv.ParseUint(metricValue, 10, 64)
 			if err != nil {
 				return errors.Wrap(err, "invalid gauge value")
 			}
-			dest.GaugeWithTags(metricName, metricTags, v)
+			val = v
+			// dest.GaugeWithTags(metricName, metricTags, v)
+		}
+		if viper.GetBool(config.KeyClusterEnabled) && viper.GetBool(config.KeyClusterStatsdHistogramGauges) {
+			dest.RemoveHistogramWithTags(metricName, metricTags)
+			dest.SetHistogramValueWithTags(metricName, metricTags, val.(float64))
+		} else {
+			dest.GaugeWithTags(metricName, metricTags, val)
 		}
 	case "h": // histogram (circonus)
 		fallthrough
@@ -189,11 +205,13 @@ func (s *Server) parseMetric(metric string) error {
 	case "s": // set
 		// in the case of sets, the value is the unique "thing" to be tracked
 		// counters are used to track individual "things"
-		dest.RecordCountForValueWithTags(metricName,
-			append(metricTags, cgm.Tags{
-				cgm.Tag{Category: "set_id", Value: metricValue},
-				cgm.Tag{Category: "statsd_type", Value: "count"}}...), 0, 1)
-		//dest.IncrementWithTags(metricName, append(metricTags, cgm.Tags{cgm.Tag{Category: "set_id", Value: metricValue}))
+		metricTags = append(metricTags, cgm.Tag{Category: "set_id", Value: metricValue})
+		if viper.GetBool(config.KeyClusterEnabled) {
+			metricTags = append(metricTags, cgm.Tag{Category: "statsd_type", Value: "count"})
+			dest.RecordCountForValueWithTags(metricName, metricTags, 0, 1)
+		} else {
+			dest.IncrementWithTags(metricName, metricTags)
+		}
 	case "t": // text (circonus)
 		dest.SetTextWithTags(metricName, metricTags, metricValue)
 	default:
