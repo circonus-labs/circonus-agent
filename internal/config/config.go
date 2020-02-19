@@ -293,6 +293,16 @@ const (
 	// KeyCheckMetricStreamtags specifies whether to use stream tags (if stream tags are enabled, check tags are added to all metrics by default)
 	KeyCheckMetricStreamtags = "check.metric_streamtags"
 
+	// Cluster mode
+	KeyCluster = "cluster"
+	// Cluster mode enabled
+	KeyClusterEnabled = "cluster.enabled"
+	// Cluster mode enable builtins (host filesystems must be mounted in container and corresponding
+	// `HOST_*`` environment variables must be set)
+	KeyClusterEnableBuiltins = "cluster.enable_builtins"
+	// Cluster mode represent statsd gauges as histogram samples, so that _one_ sample will be collected for each node
+	KeyClusterStatsdHistogramGauges = "cluster.statsd_histogram_gauges"
+
 	cosiName = "cosi"
 )
 

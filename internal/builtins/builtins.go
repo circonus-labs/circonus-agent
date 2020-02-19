@@ -11,11 +11,13 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
+	"github.com/circonus-labs/circonus-agent/internal/config"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	appstats "github.com/maier/go-appstats"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/viper"
 )
 
 // Builtins defines the internal metric collector manager
@@ -34,6 +36,11 @@ func New() (*Builtins, error) {
 	}
 
 	b.logger.Info().Msg("configuring builtins")
+
+	if viper.GetBool(config.KeyClusterEnabled) && !viper.GetBool(config.KeyClusterEnableBuiltins) {
+		b.logger.Info().Msg("cluster mode - builtins disabled")
+		return &b, nil
+	}
 
 	err := b.configure()
 	if err != nil {

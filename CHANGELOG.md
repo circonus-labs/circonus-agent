@@ -1,3 +1,16 @@
+# v1.0.0-beta.9
+
+* add: cluster mode statsd gauges as histogram capability (so each node is represented with _one_ sample)
+* add: cluster mode statsd counters and sets as histograms with `statsd_type:count` tag
+* add: cluster mode enable/disable builtins
+* add: cluster mode configuration options
+* add: zpool plugin
+* add: include all service configurations in releases
+
+# v1.0.0-beta.8
+
+* add: EXPOSE to Dockerfile(s) for default listening ports
+
 # v1.0.0-beta.7
 
 * add: docker images

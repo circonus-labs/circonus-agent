@@ -114,6 +114,14 @@ const (
 
 	// CheckTags to use if creating a check (comma separated list)
 	CheckTags = ""
+
+	// Cluster mode enabled
+	ClusterEnabled = false
+	// Cluster mode enable builtins (host filesystems must be mounted in container and corresponding
+	// `HOST_*`` environment variables must be set)
+	ClusterEnableBuiltins = false
+	// Cluster mode represent statsd gauges as histogram samples, so that _one_ sample will be collected for each node
+	ClusterStatsdHistogramGauges = false
 )
 
 var (
