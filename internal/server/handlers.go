@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/server/promrecv"
 	"github.com/circonus-labs/circonus-agent/internal/server/receiver"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
@@ -203,6 +204,7 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 			metrics[m] = v
 		}
 	}
+	metrics["circonus_agent"] = cgm.Metric{Value: release.NAME + "_" + release.VERSION, Type: "s"}
 	s.logger.Debug().Int("num_metrics", len(metrics)).Msg("aggregated")
 
 	lastMetricsmu.Lock()
