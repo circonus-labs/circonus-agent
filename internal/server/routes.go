@@ -7,6 +7,7 @@ package server
 
 import (
 	"expvar"
+	"fmt"
 	"net/http"
 
 	"github.com/maier/go-appstats"
@@ -20,6 +21,9 @@ func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		switch {
+		case r.URL.Path == "/health", r.URL.Path == "/health/":
+			w.WriteHeader(http.StatusOK)
+			_, _ = fmt.Fprintln(w, "Alive")
 		case pluginPathRx.MatchString(r.URL.Path): // run plugin(s)
 			// s.logger.Debug().Msg("calling run")
 			s.run(w, r)
