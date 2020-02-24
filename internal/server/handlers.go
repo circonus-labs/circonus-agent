@@ -23,6 +23,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/server/promrecv"
 	"github.com/circonus-labs/circonus-agent/internal/server/receiver"
+	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	appstats "github.com/maier/go-appstats"
 	"github.com/spf13/viper"
@@ -204,7 +205,15 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 			metrics[m] = v
 		}
 	}
-	metrics["circonus_agent"] = cgm.Metric{Value: release.NAME + "_" + release.VERSION, Type: "s"}
+	{
+		mtags := tags.GetBaseTags()
+		if viper.GetBool(config.KeyClusterEnabled) {
+			if n := viper.GetString(config.KeyCheckTarget); n != "" {
+				mtags = append(mtags, "node:"+n)
+			}
+		}
+		metrics[tags.MetricNameWithStreamTags("circonus_agent", tags.FromList(mtags))] = cgm.Metric{Value: release.NAME + "_" + release.VERSION, Type: "s"}
+	}
 	s.logger.Debug().Int("num_metrics", len(metrics)).Msg("aggregated")
 
 	lastMetricsmu.Lock()
