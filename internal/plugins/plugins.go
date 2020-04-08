@@ -168,12 +168,12 @@ func (p *Plugins) Stop() error {
 func (p *Plugins) Run(pluginName string) error {
 	p.Lock()
 
-	if p.running {
-		msg := "plugin run already in progress"
-		p.logger.Info().Msg(msg)
-		p.Unlock()
-		return errors.Errorf(msg)
-	}
+	// if p.running {
+	// 	msg := "plugin run already in progress"
+	// 	p.logger.Info().Msg(msg)
+	// 	p.Unlock()
+	// 	return errors.Errorf(msg)
+	// }
 
 	if len(p.active) == 0 {
 		p.logger.Debug().Msg("no active plugins, skipping run")
@@ -192,9 +192,8 @@ func (p *Plugins) Run(pluginName string) error {
 
 	start := time.Now()
 	_ = appstats.SetString("plugins.last_run_start", start.String())
-	// appstats.MapSet("plugins", "last_run_start", start)
 
-	p.running = true
+	// p.running = true
 	p.Unlock()
 
 	var wg sync.WaitGroup
@@ -240,10 +239,10 @@ func (p *Plugins) Run(pluginName string) error {
 	_ = appstats.SetString("plugins.last_run_end", time.Now().String())
 	_ = appstats.SetString("plugins.last_run_duration", time.Since(start).String())
 
-	p.Lock()
-	p.running = false
-	p.logger.Debug().Str("duration", time.Since(start).String()).Msg("all plugins done")
-	p.Unlock()
+	// p.Lock()
+	// p.running = false
+	// p.Unlock()
+	p.logger.Debug().Str("duration", time.Since(start).String()).Msg("plugin run done")
 
 	return nil
 }
