@@ -8,6 +8,7 @@
 package wmi
 
 import (
+	"context"
 	"regexp"
 	"strings"
 	"time"
@@ -122,7 +123,7 @@ func NewCacheCollector(cfgBaseName string) (collector.Collector, error) {
 }
 
 // Collect metrics from the wmi resource
-func (c *Cache) Collect() error {
+func (c *Cache) Collect(ctx context.Context) error {
 	metrics := cgm.Metrics{}
 
 	c.Lock()

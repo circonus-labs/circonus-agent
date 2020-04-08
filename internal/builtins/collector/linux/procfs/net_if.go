@@ -8,6 +8,7 @@
 package procfs
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -112,7 +113,7 @@ func NewNetIFCollector(cfgBaseName, procFSPath string) (collector.Collector, err
 }
 
 // Collect metrics from the procfs resource
-func (c *NetIF) Collect() error {
+func (c *NetIF) Collect(ctx context.Context) error {
 	metrics := cgm.Metrics{}
 
 	c.Lock()

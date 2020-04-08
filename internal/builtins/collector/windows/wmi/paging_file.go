@@ -8,6 +8,7 @@
 package wmi
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -120,7 +121,7 @@ func NewPagingFileCollector(cfgBaseName string) (collector.Collector, error) {
 }
 
 // Collect metrics from the wmi resource
-func (c *PagingFile) Collect() error {
+func (c *PagingFile) Collect(ctx context.Context) error {
 	metrics := cgm.Metrics{}
 
 	c.Lock()

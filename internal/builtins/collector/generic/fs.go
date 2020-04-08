@@ -6,6 +6,7 @@
 package generic
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"regexp"
@@ -115,7 +116,7 @@ func NewFSCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector.
 }
 
 // Collect disk fs metrics
-func (c *FS) Collect() error {
+func (c *FS) Collect(ctx context.Context) error {
 	c.Lock()
 	if c.runTTL > time.Duration(0) {
 		if time.Since(c.lastEnd) < c.runTTL {

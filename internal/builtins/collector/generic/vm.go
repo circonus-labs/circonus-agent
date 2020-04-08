@@ -69,7 +69,7 @@ func NewVMCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector.
 }
 
 // Collect memory metrics
-func (c *VM) Collect() error {
+func (c *VM) Collect(ctx context.Context) error {
 	c.Lock()
 	if c.runTTL > time.Duration(0) {
 		if time.Since(c.lastEnd) < c.runTTL {

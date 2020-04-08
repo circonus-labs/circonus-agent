@@ -8,6 +8,7 @@
 package wmi
 
 import (
+	"context"
 	"regexp"
 	"strconv"
 	"strings"
@@ -138,7 +139,7 @@ func NewNetTCPCollector(cfgBaseName string) (collector.Collector, error) {
 }
 
 // Collect metrics from the wmi resource
-func (c *NetTCP) Collect() error {
+func (c *NetTCP) Collect(ctx context.Context) error {
 	metrics := cgm.Metrics{}
 
 	c.Lock()

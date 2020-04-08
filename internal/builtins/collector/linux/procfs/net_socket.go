@@ -8,6 +8,7 @@
 package procfs
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -112,7 +113,7 @@ func NewNetSocketCollector(cfgBaseName, procFSPath string) (collector.Collector,
 }
 
 // Collect metrics from the procfs resource
-func (c *NetSocket) Collect() error {
+func (c *NetSocket) Collect(ctx context.Context) error {
 	metrics := cgm.Metrics{}
 
 	c.Lock()

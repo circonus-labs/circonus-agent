@@ -8,6 +8,7 @@
 package wmi
 
 import (
+	"context"
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
@@ -27,7 +28,7 @@ import (
 // collector implementation requires it.
 
 // Collect metrics
-func (c *wmicommon) Collect() error {
+func (c *wmicommon) Collect(ctx context.Context) error {
 	c.Lock()
 	defer c.Unlock()
 	return collector.ErrNotImplemented

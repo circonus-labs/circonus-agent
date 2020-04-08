@@ -8,6 +8,7 @@
 package procfs
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -149,7 +150,7 @@ func NewDiskCollector(cfgBaseName, procFSPath string) (collector.Collector, erro
 }
 
 // Collect metrics from the procfs resource
-func (c *Disk) Collect() error {
+func (c *Disk) Collect(ctx context.Context) error {
 	metrics := cgm.Metrics{}
 
 	c.Lock()

@@ -8,6 +8,7 @@
 package procfs
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -116,7 +117,7 @@ func NewCPUCollector(cfgBaseName, procFSPath string) (collector.Collector, error
 }
 
 // Collect metrics from the procfs resource
-func (c *CPU) Collect() error {
+func (c *CPU) Collect(ctx context.Context) error {
 	metrics := cgm.Metrics{}
 
 	c.Lock()

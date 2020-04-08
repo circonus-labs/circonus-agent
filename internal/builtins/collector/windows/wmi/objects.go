@@ -8,6 +8,7 @@
 package wmi
 
 import (
+	"context"
 	"regexp"
 	"strings"
 	"time"
@@ -98,7 +99,7 @@ func NewObjectsCollector(cfgBaseName string) (collector.Collector, error) {
 }
 
 // Collect metrics from the wmi resource
-func (c *Objects) Collect() error {
+func (c *Objects) Collect(ctx context.Context) error {
 	metrics := cgm.Metrics{}
 
 	c.Lock()

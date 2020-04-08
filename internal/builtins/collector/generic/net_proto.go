@@ -6,6 +6,7 @@
 package generic
 
 import (
+	"context"
 	"runtime"
 	"strings"
 	"time"
@@ -75,7 +76,7 @@ func NewNetProtoCollector(cfgBaseName string, parentLogger zerolog.Logger) (coll
 }
 
 // Collect metrics
-func (c *Proto) Collect() error {
+func (c *Proto) Collect(ctx context.Context) error {
 	c.Lock()
 	if c.runTTL > time.Duration(0) {
 		if time.Since(c.lastEnd) < c.runTTL {

@@ -6,6 +6,7 @@
 package prometheus
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -149,7 +150,7 @@ func TestCollect(t *testing.T) {
 	}
 	c.(*Prom).urls = []URLDef{{ID: "foo", URL: ts.URL}}
 
-	if err := c.Collect(); err != nil {
+	if err := c.Collect(context.Background()); err != nil {
 		t.Fatalf("expected no error, got (%s)", err)
 	}
 
@@ -224,7 +225,7 @@ func TestCollectTimeout(t *testing.T) {
 	}
 	c.(*Prom).urls = []URLDef{{ID: "foo", URL: ts.URL, uttl: 10 * time.Millisecond}}
 
-	if err := c.Collect(); err != nil {
+	if err := c.Collect(context.Background()); err != nil {
 		t.Fatalf("expected no error, got (%s)", err)
 	}
 

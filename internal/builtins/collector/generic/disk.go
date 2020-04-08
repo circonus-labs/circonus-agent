@@ -6,6 +6,7 @@
 package generic
 
 import (
+	"context"
 	"strings"
 	"time"
 
@@ -75,7 +76,7 @@ func NewDiskCollector(cfgBaseName string, parentLogger zerolog.Logger) (collecto
 }
 
 // Collect disk device metrics
-func (c *Disk) Collect() error {
+func (c *Disk) Collect(ctx context.Context) error {
 	c.Lock()
 	if c.runTTL > time.Duration(0) {
 		if time.Since(c.lastEnd) < c.runTTL {

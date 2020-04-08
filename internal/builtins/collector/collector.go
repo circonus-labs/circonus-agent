@@ -6,6 +6,7 @@
 package collector
 
 import (
+	"context"
 	"errors"
 
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
@@ -14,7 +15,7 @@ import (
 
 // Collector defines the interface for builtin metric collectors
 type Collector interface {
-	Collect() error
+	Collect(context.Context) error
 	Flush() cgm.Metrics
 	ID() string
 	Inventory() InventoryStats

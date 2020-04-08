@@ -6,6 +6,7 @@
 package generic
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"strconv"
@@ -82,7 +83,7 @@ func NewCPUCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector
 }
 
 // Collect cpu metrics
-func (c *CPU) Collect() error {
+func (c *CPU) Collect(ctx context.Context) error {
 	c.Lock()
 	if c.runTTL > time.Duration(0) {
 		if time.Since(c.lastEnd) < c.runTTL {

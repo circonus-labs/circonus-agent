@@ -8,6 +8,7 @@
 package wmi
 
 import (
+	"context"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -123,7 +124,7 @@ func NewProcessorCollector(cfgBaseName string) (collector.Collector, error) {
 }
 
 // Collect metrics from the wmi resource
-func (c *Processor) Collect() error {
+func (c *Processor) Collect(ctx context.Context) error {
 	metrics := cgm.Metrics{}
 
 	c.Lock()

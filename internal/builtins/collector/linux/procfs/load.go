@@ -8,6 +8,7 @@
 package procfs
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -93,7 +94,7 @@ func NewLoadCollector(cfgBaseName, procFSPath string) (collector.Collector, erro
 }
 
 // Collect metrics from the procfs resource
-func (c *Load) Collect() error {
+func (c *Load) Collect(ctx context.Context) error {
 	metrics := cgm.Metrics{}
 
 	c.Lock()

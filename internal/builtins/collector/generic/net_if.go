@@ -6,6 +6,7 @@
 package generic
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -93,7 +94,7 @@ func NewNetIFCollector(cfgBaseName string, parentLogger zerolog.Logger) (collect
 }
 
 // Collect metrics
-func (c *IF) Collect() error {
+func (c *IF) Collect(ctx context.Context) error {
 	c.Lock()
 	if c.runTTL > time.Duration(0) {
 		if time.Since(c.lastEnd) < c.runTTL {

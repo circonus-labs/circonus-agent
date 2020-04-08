@@ -7,6 +7,7 @@
 package builtins
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -51,7 +52,7 @@ func New() (*Builtins, error) {
 }
 
 // Run triggers internal collectors to gather metrics
-func (b *Builtins) Run(id string) error {
+func (b *Builtins) Run(ctx context.Context, id string) error {
 	b.Lock()
 
 	if len(b.collectors) == 0 {
@@ -81,7 +82,7 @@ func (b *Builtins) Run(id string) error {
 			clog := c.Logger()
 			clog.Debug().Msg("collecting")
 			go func(id string, c collector.Collector) {
-				err := c.Collect()
+				err := c.Collect(ctx)
 				if err != nil {
 					clog.Error().Err(err).Msg(id)
 				}
@@ -96,7 +97,7 @@ func (b *Builtins) Run(id string) error {
 			clog := c.Logger()
 			clog.Debug().Msg("collecting")
 			go func(id string, c collector.Collector) {
-				err := c.Collect()
+				err := c.Collect(ctx)
 				if err != nil {
 					clog.Error().Err(err).Msg(id)
 				}

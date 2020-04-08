@@ -6,6 +6,7 @@
 package generic
 
 import (
+	"context"
 	"math"
 	"strings"
 	"time"
@@ -68,7 +69,7 @@ func NewLoadCollector(cfgBaseName string, parentLogger zerolog.Logger) (collecto
 }
 
 // Collect load metrics
-func (c *Load) Collect() error {
+func (c *Load) Collect(ctx context.Context) error {
 	c.Lock()
 	if c.runTTL > time.Duration(0) {
 		if time.Since(c.lastEnd) < c.runTTL {

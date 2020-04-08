@@ -8,6 +8,7 @@
 package wmi
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"testing"
@@ -187,7 +188,7 @@ func TestPagingFileCollect(t *testing.T) {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
 
-	if err := c.Collect(); err != nil {
+	if err := c.Collect(context.Background()); err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
 
