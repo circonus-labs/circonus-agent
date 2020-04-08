@@ -103,7 +103,7 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 			conduitID := "builtins"
 			numMetrics := 0
 			s.logger.Debug().Str("conduit_id", conduitID).Msg("start")
-			if err := s.builtins.Run(id); err != nil {
+			if err := s.builtins.Run(s.groupCtx, id); err != nil {
 				s.logger.Error().Err(err).Str("id", id).Msg("running builtin")
 			}
 			builtinMetrics := s.builtins.Flush(id)
