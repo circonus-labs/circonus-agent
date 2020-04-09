@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
+	"github.com/circonus-labs/circonus-agent/internal/builtins/collector/prometheus"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	appstats "github.com/maier/go-appstats"
@@ -46,6 +47,16 @@ func New() (*Builtins, error) {
 	err := b.configure()
 	if err != nil {
 		return nil, errors.Wrap(err, "configuring builtins")
+	}
+
+	// prom applies to all platforms
+	prom, err := prometheus.New("")
+	if err != nil {
+		b.logger.Warn().Err(err).Msg("prom collector, disabling")
+	} else {
+		b.logger.Info().Str("id", "prom").Msg("enabled builtin")
+		b.collectors[prom.ID()] = prom
+		_ = appstats.IncrementInt("builtins.total")
 	}
 
 	return &b, nil
