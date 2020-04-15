@@ -262,12 +262,12 @@ func init() {
 
 	{
 		const (
-			key         = config.KeyPluginDir
-			longOpt     = "plugin-dir"
-			shortOpt    = "p"
-			envVar      = release.ENVPREFIX + "_PLUGIN_DIR"
-			description = "Plugin directory"
+			key      = config.KeyPluginDir
+			longOpt  = "plugin-dir"
+			shortOpt = "p"
+			envVar   = release.ENVPREFIX + "_PLUGIN_DIR"
 		)
+		description := "Plugin directory (" + defaults.PluginPath + ")"
 
 		RootCmd.Flags().StringP(longOpt, shortOpt, "", desc(description, envVar))
 		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
