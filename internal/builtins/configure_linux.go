@@ -8,13 +8,15 @@
 package builtins
 
 import (
+	"context"
+
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector/generic"
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector/linux/procfs"
 	appstats "github.com/maier/go-appstats"
 	"github.com/rs/zerolog/log"
 )
 
-func (b *Builtins) configure() error {
+func (b *Builtins) configure(ctx context.Context) error {
 	l := log.With().Str("pkg", "builtins").Logger()
 
 	{

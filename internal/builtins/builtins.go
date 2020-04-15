@@ -31,7 +31,7 @@ type Builtins struct {
 }
 
 // New creates a new builtins manager
-func New() (*Builtins, error) {
+func New(ctx context.Context) (*Builtins, error) {
 	b := Builtins{
 		collectors: make(map[string]collector.Collector),
 		logger:     log.With().Str("pkg", "builtins").Logger(),
@@ -44,7 +44,7 @@ func New() (*Builtins, error) {
 		return &b, nil
 	}
 
-	err := b.configure()
+	err := b.configure(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "configuring builtins")
 	}

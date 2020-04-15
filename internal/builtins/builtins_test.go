@@ -70,7 +70,7 @@ func TestNew(t *testing.T) {
 	t.Log("Testing New")
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	b, err := New()
+	b, err := New(context.Background())
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
@@ -85,7 +85,7 @@ func TestRun(t *testing.T) {
 
 	t.Log("all (no collectors)")
 	{
-		b, err := New()
+		b, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -101,7 +101,7 @@ func TestRun(t *testing.T) {
 
 	t.Log("w/id (no collectors)")
 	{
-		b, err := New()
+		b, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -117,7 +117,7 @@ func TestRun(t *testing.T) {
 
 	t.Log("all (already running)")
 	{
-		b, err := New()
+		b, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -136,7 +136,7 @@ func TestRun(t *testing.T) {
 
 	t.Log("w/id (unknown)")
 	{
-		b, err := New()
+		b, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -154,7 +154,7 @@ func TestRun(t *testing.T) {
 
 	t.Log("all (valid)")
 	{
-		b, err := New()
+		b, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -172,7 +172,7 @@ func TestRun(t *testing.T) {
 
 	t.Log("w/id (valid)")
 	{
-		b, err := New()
+		b, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -195,7 +195,7 @@ func TestIsBuiltIn(t *testing.T) {
 
 	t.Log("w/o id")
 	{
-		b, err := New()
+		b, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -210,7 +210,7 @@ func TestIsBuiltIn(t *testing.T) {
 
 	t.Log("w/id (not found)")
 	{
-		b, err := New()
+		b, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -225,7 +225,7 @@ func TestIsBuiltIn(t *testing.T) {
 
 	t.Log("w/id (valid)")
 	{
-		b, err := New()
+		b, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -246,7 +246,7 @@ func TestFlush(t *testing.T) {
 
 	t.Log("w/o id")
 	{
-		b, err := New()
+		b, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -265,7 +265,7 @@ func TestFlush(t *testing.T) {
 
 	t.Log("w/id (not found)")
 	{
-		b, err := New()
+		b, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -284,7 +284,7 @@ func TestFlush(t *testing.T) {
 
 	t.Log("w/id (valid)")
 	{
-		b, err := New()
+		b, err := New(context.Background())
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}

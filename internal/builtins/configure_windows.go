@@ -8,6 +8,8 @@
 package builtins
 
 import (
+	"context"
+
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector/generic"
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector/windows/nvidia"
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector/windows/wmi"
@@ -15,7 +17,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (b *Builtins) configure() error {
+func (b *Builtins) configure(ctx context.Context) error {
 	l := log.With().Str("pkg", "builtins").Logger()
 
 	{
@@ -40,6 +42,10 @@ func (b *Builtins) configure() error {
 			return err
 		}
 		for _, c := range collectors {
+			// kick off any long running processes
+			if err := c.Collect(ctx); err != nil {
+				b.logger.Warn().Err(err).Str("id", c.ID()).Msg("skipping nvidia builtin")
+			}
 			b.logger.Info().Str("id", c.ID()).Msg("enabled nvidia builtin")
 			b.collectors[c.ID()] = c
 			_ = appstats.IncrementInt("builtins.total")
