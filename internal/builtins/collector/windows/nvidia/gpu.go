@@ -13,7 +13,9 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -77,7 +79,7 @@ func NewGPUCollector(cfgBaseName string) (collector.Collector, error) {
 	c.common.baseTags = tags.FromList(tags.GetBaseTags())
 	c.common.running = false
 
-	c.exePath = `"C:\Program Files\NVIDIA Corporation\NVSMI>nvidia-smi.exe`
+	c.exePath = filepath.Join("C:", string(os.PathSeparator), "Program Files", "NVIDIA Corporation", "NVSMI", "nvidia-smi.exe")
 	c.interval = 100 * time.Millisecond
 	c.metricList = []gpuMetric{
 		{
@@ -209,52 +211,6 @@ func NewGPUCollector(cfgBaseName string) (collector.Collector, error) {
 		},
 	}
 
-	if cfgBaseName == "" {
-		return &c, nil
-	}
-
-	var cfg gpuOptions
-	if err := config.LoadConfigFile(cfgBaseName, &cfg); err != nil {
-		if strings.Contains(err.Error(), "no config found matching") {
-			return &c, nil
-		}
-		c.logger.Debug().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-		return nil, errors.Wrapf(err, "%s config", c.pkgID)
-	}
-
-	c.logger.Debug().Interface("config", cfg).Msg("loaded config")
-
-	if cfg.ID != "" {
-		c.id = cfg.ID
-	}
-
-	if cfg.ExePath != "" {
-		c.exePath = cfg.ExePath
-	}
-
-	if cfg.Interval != "" {
-		d, err := time.ParseDuration(cfg.Interval)
-		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing interval", cfg.Interval)
-		}
-		c.interval = d
-	}
-
-	if len(cfg.Metrics) != 0 {
-		c.metricList = cfg.Metrics
-	}
-
-	gpuQueryArgs := make([]string, len(c.metricList))
-	for i, a := range c.metricList {
-		gpuQueryArgs[i] = a.ArgName
-	}
-
-	c.exeArgs = []string{
-		"--format=csv,nounits,noheader",
-		fmt.Sprintf("--loop-ms=%d", c.interval.Milliseconds()),
-		fmt.Sprintf("--query-gpu=%s", strings.Join(gpuQueryArgs, ",")),
-	}
-
 	cmc := &cgm.Config{
 		Debug: viper.GetBool(config.KeyDebugCGM),
 		Log:   logshim{logh: c.logger.With().Str("pkg", "cgm.nvidia").Logger()},
@@ -269,6 +225,57 @@ func NewGPUCollector(cfgBaseName string) (collector.Collector, error) {
 	}
 
 	c.common.metrics = hm
+
+	if cfgBaseName == "" {
+		return &c, nil
+	}
+
+	haveCfg := true
+	var cfg gpuOptions
+	if err := config.LoadConfigFile(cfgBaseName, &cfg); err != nil {
+		if strings.Contains(err.Error(), "no config found matching") {
+			haveCfg = false
+			// return &c, nil
+		} else {
+			c.logger.Debug().Err(err).Str("file", cfgBaseName).Msg("loading config file")
+			return nil, errors.Wrapf(err, "%s config", c.pkgID)
+		}
+	}
+
+	if haveCfg {
+		c.logger.Debug().Interface("config", cfg).Msg("loaded config")
+
+		if cfg.ID != "" {
+			c.id = cfg.ID
+		}
+
+		if cfg.ExePath != "" {
+			c.exePath = cfg.ExePath
+		}
+
+		if cfg.Interval != "" {
+			d, err := time.ParseDuration(cfg.Interval)
+			if err != nil {
+				return nil, errors.Wrapf(err, "%s parsing interval", cfg.Interval)
+			}
+			c.interval = d
+		}
+
+		if len(cfg.Metrics) != 0 {
+			c.metricList = cfg.Metrics
+		}
+	}
+
+	gpuQueryArgs := make([]string, len(c.metricList))
+	for i, a := range c.metricList {
+		gpuQueryArgs[i] = a.ArgName
+	}
+
+	c.exeArgs = []string{
+		"--format=csv,nounits,noheader",
+		fmt.Sprintf("--loop-ms=%d", c.interval.Milliseconds()),
+		fmt.Sprintf("--query-gpu=%s", strings.Join(gpuQueryArgs, ",")),
+	}
 
 	c.tagMetadata(cfg.Metadata)
 
@@ -298,10 +305,9 @@ func (gpu *GPU) Collect(ctx context.Context) error {
 		gpu.running = true
 		gpu.Unlock()
 
-		cmd := exec.CommandContext(ctx, gpu.exePath) //nolint:gosec
-		if len(gpu.exeArgs) != 0 {
-			cmd.Args = append(cmd.Args, gpu.exeArgs...)
-		}
+		cmd := exec.CommandContext(ctx, gpu.exePath, gpu.exeArgs...) //nolint:gosec
+
+		gpu.logger.Debug().Strs("cmd", cmd.Args).Msg("starting")
 
 		var errOut bytes.Buffer
 		cmd.Stderr = &errOut
@@ -405,12 +411,13 @@ func (gpu *GPU) parseOutput(line string) error {
 			if metricName == "" {
 				metricName = metric.ArgName
 			}
-			if strings.HasPrefix(metric.MetricType, "t") && record[i] == "Not Available" {
-				gpu.logger.Warn().Str("name", metricName).Str("value", record[i]).Msg("ignoring")
+			origValue := strings.TrimSpace(record[i])
+			if string(metric.MetricType[:1]) != "t" && origValue == "Not Available" {
+				// gpu.logger.Warn().Str("name", metricName).Str("value", origValue).Msg("ignoring")
 				continue
 			}
-			if strings.HasPrefix(metric.MetricType, "t") && record[i] == "N/A" {
-				gpu.logger.Warn().Str("name", metricName).Str("value", record[i]).Msg("ignoring")
+			if string(metric.MetricType[:1]) != "t" && origValue == "N/A" {
+				// gpu.logger.Warn().Str("name", metricName).Str("value", origValue).Msg("ignoring")
 				continue
 			}
 			metricType := metric.MetricType
@@ -418,9 +425,9 @@ func (gpu *GPU) parseOutput(line string) error {
 			vmatch := metric.MatchValue
 			switch metricType {
 			case "h":
-				v, err := strconv.ParseFloat(record[i], 64)
+				v, err := strconv.ParseFloat(origValue, 64)
 				if err != nil {
-					gpu.logger.Warn().Err(err).Str("name", metricName).Str("val", record[i]).Msg("float64 conversion error")
+					gpu.logger.Warn().Err(err).Str("name", metricName).Str("val", origValue).Msg("float64 conversion error")
 					continue
 				}
 				var tagList cgm.Tags
@@ -431,19 +438,21 @@ func (gpu *GPU) parseOutput(line string) error {
 				gpu.metrics.RecordValueWithTags(metricName, tagList, v)
 			case "th1":
 				val := float64(0)
-				if record[i] == vmatch.(string) {
-					val = 1
+				if origValue == vmatch.(string) {
+					// gpu.logger.Info().Str("metric", metricName).Msg("matched")
+					val = 1.0
 				}
 				var tagList cgm.Tags
 				tagList = append(tagList, gpu.baseTags...)
 				if units != "" {
 					tagList = append(tagList, cgm.Tag{Category: "units", Value: units})
 				}
+				// gpu.logger.Info().Str("metric", metricName).Str("orig", origValue).Float64("stat", val).Msg("th1")
 				gpu.metrics.RecordValueWithTags(metricName, tagList, val)
 			case "th2":
 				val := float64(-1)
 				for j, v := range vmatch.([]string) {
-					if record[i] == v {
+					if origValue == v {
 						val = float64(j)
 						break
 					}
@@ -453,6 +462,7 @@ func (gpu *GPU) parseOutput(line string) error {
 				if units != "" {
 					tagList = append(tagList, cgm.Tag{Category: "units", Value: units})
 				}
+				// gpu.logger.Info().Str("metric", metricName).Str("orig", origValue).Float64("stat", val).Msg("th2")
 				gpu.metrics.RecordValueWithTags(metricName, tagList, val)
 			default:
 				gpu.logger.Warn().Str("type", metricType).Str("name", metricName).Msg("unknown metric type")

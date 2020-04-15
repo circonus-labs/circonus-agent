@@ -79,7 +79,7 @@ func TestRun(t *testing.T) {
 		t.Fatalf("new err %s", nerr)
 	}
 
-	b, err := builtins.New()
+	b, err := builtins.New(context.Background())
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
@@ -138,7 +138,7 @@ func TestFlush(t *testing.T) {
 		t.Fatalf("new err %s", nerr)
 	}
 
-	b, err := builtins.New()
+	b, err := builtins.New(context.Background())
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
@@ -209,7 +209,7 @@ func TestIsValid(t *testing.T) {
 		t.Fatalf("new err %s", nerr)
 	}
 
-	b, err := builtins.New()
+	b, err := builtins.New(context.Background())
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
@@ -257,7 +257,7 @@ func TestIsInternal(t *testing.T) {
 		t.Fatalf("new err %s", nerr)
 	}
 
-	b, err := builtins.New()
+	b, err := builtins.New(context.Background())
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
@@ -313,7 +313,7 @@ func TestInventory(t *testing.T) {
 		t.Fatalf("new err %s", nerr)
 	}
 
-	b, err := builtins.New()
+	b, err := builtins.New(context.Background())
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
