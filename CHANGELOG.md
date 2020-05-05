@@ -1,3 +1,7 @@
+# v1.0.0
+
+* add: nvidia gpu metrics builtin for windows platform
+
 # v1.0.0-beta.9
 
 * add: cluster mode statsd gauges as histogram capability (so each node is represented with _one_ sample)
