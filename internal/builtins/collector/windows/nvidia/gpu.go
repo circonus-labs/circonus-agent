@@ -33,10 +33,11 @@ import (
 // GPU metrics from the Windows Management Interface (wmi)
 type GPU struct {
 	common
-	exePath    string
-	exeArgs    []string
-	interval   time.Duration
-	metricList []gpuMetric
+	exePath      string
+	exeArgs      []string
+	interval     time.Duration
+	metricList   []gpuMetric
+	metadataList []gpuMeta
 }
 
 // gpuOptions defines what elements can be overridden in a config file
@@ -80,7 +81,18 @@ func NewGPUCollector(cfgBaseName string) (collector.Collector, error) {
 	c.common.running = false
 
 	c.exePath = filepath.Join("C:", string(os.PathSeparator), "Program Files", "NVIDIA Corporation", "NVSMI", "nvidia-smi.exe")
-	c.interval = 100 * time.Millisecond
+	c.interval = 500 * time.Millisecond
+	c.metadataList = []gpuMeta{
+		{
+			ArgName: "driver_version",
+		},
+		{
+			ArgName: "name",
+		},
+		{
+			ArgName: "uuid",
+		},
+	}
 	c.metricList = []gpuMetric{
 		{
 			ArgName:    "fan.speed",
@@ -264,6 +276,9 @@ func NewGPUCollector(cfgBaseName string) (collector.Collector, error) {
 		if len(cfg.Metrics) != 0 {
 			c.metricList = cfg.Metrics
 		}
+		if len(cfg.Metadata) != 0 {
+			c.metadataList = cfg.Metadata
+		}
 	}
 
 	gpuQueryArgs := make([]string, len(c.metricList))
@@ -277,7 +292,9 @@ func NewGPUCollector(cfgBaseName string) (collector.Collector, error) {
 		fmt.Sprintf("--query-gpu=%s", strings.Join(gpuQueryArgs, ",")),
 	}
 
-	c.tagMetadata(cfg.Metadata)
+	if err := c.tagMetadata(); err != nil {
+		return nil, err
+	}
 
 	// collect metadata, this is a one and done run of the tool
 	// add to c.baseTags
@@ -285,11 +302,50 @@ func NewGPUCollector(cfgBaseName string) (collector.Collector, error) {
 	return &c, nil
 }
 
-func (gpu *GPU) tagMetadata(metadataList []gpuMeta) {
-	if len(metadataList) == 0 {
-		return
+func (gpu *GPU) tagMetadata() error {
+	if len(gpu.metadataList) == 0 {
+		return nil
 	}
-	// collect metadata and add to c.baseTags
+	tagNames := make([]string, len(gpu.metadataList))
+	metadata := make([]string, len(gpu.metadataList))
+	for i, a := range gpu.metadataList {
+		metadata[i] = a.ArgName
+		tagNames[i] = a.TagName
+		if tagNames[i] == "" {
+			tagNames[i] = a.ArgName
+		}
+	}
+	cmdArgs := []string{
+		"--format=csv,nounits,noheader",
+		fmt.Sprintf("--query-gpu=%s", strings.Join(metadata, ",")),
+	}
+
+	out, err := exec.Command(gpu.exePath, cmdArgs...).Output() //nolint:gosec
+	if err != nil {
+		return errors.Wrap(err, "getting gpu metadata")
+	}
+
+	r := csv.NewReader(bytes.NewBuffer(out))
+	records, err := r.ReadAll()
+	if err != nil {
+		return errors.Wrap(err, "parsing gpu metadata")
+	}
+
+	if len(records) != 1 {
+		return errors.Errorf("invalid metadata %v", records)
+	}
+	if len(records[0]) != len(tagNames) {
+		return errors.Errorf("metadata mismatch expected %d, got %d", len(tagNames), len(records))
+	}
+
+	tagList := make([]tags.Tag, len(tagNames))
+	for i, tagName := range tagNames {
+		tagList[i] = tags.Tag{Category: tagName, Value: records[0][i]}
+	}
+
+	gpu.baseTags = tagList
+
+	return nil
 }
 
 // Collect starts the background process if it is not running
