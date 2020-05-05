@@ -40,7 +40,7 @@ func TestScan(t *testing.T) {
 		if nerr != nil {
 			t.Fatalf("expected NO error, got (%s)", nerr)
 		}
-		b, berr := builtins.New()
+		b, berr := builtins.New(context.Background())
 		if berr != nil {
 			t.Fatalf("expected NO error, got (%s)", berr)
 		}
@@ -60,7 +60,7 @@ func TestScan(t *testing.T) {
 		if nerr != nil {
 			t.Fatalf("expected NO error, got (%s)", nerr)
 		}
-		b, berr := builtins.New()
+		b, berr := builtins.New(context.Background())
 		if berr != nil {
 			t.Fatalf("expected NO error, got (%s)", berr)
 		}
@@ -85,7 +85,7 @@ func TestScanPluginDirectory(t *testing.T) {
 		id: "purge_inactive",
 	}
 
-	b, berr := builtins.New()
+	b, berr := builtins.New(context.Background())
 	if berr != nil {
 		t.Fatalf("expected NO error, got (%s)", berr)
 	}

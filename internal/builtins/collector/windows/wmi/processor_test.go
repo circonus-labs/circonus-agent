@@ -8,6 +8,7 @@
 package wmi
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 	"time"
@@ -176,7 +177,7 @@ func TestProcessorCollect(t *testing.T) {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
 
-	if err := c.Collect(); err != nil {
+	if err := c.Collect(context.Background()); err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}
 

@@ -5,18 +5,14 @@
 
 // +build windows
 
-package wmi
+package nvidia
 
 import (
 	"context"
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
-	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
-	"github.com/circonus-labs/circonus-agent/internal/release"
-	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 )
 
@@ -28,31 +24,32 @@ import (
 // collector implementation requires it.
 
 // Collect metrics
-func (c *wmicommon) Collect(ctx context.Context) error {
+func (c *common) Collect(ctx context.Context) error {
 	c.Lock()
 	defer c.Unlock()
 	return collector.ErrNotImplemented
 }
 
 // Flush returns last metrics collected
-func (c *wmicommon) Flush() cgm.Metrics {
+func (c *common) Flush() cgm.Metrics {
 	c.Lock()
 	defer c.Unlock()
+	metrics := c.metrics.FlushMetrics()
 	if c.lastMetrics == nil {
-		c.lastMetrics = cgm.Metrics{}
+		c.lastMetrics = *metrics
 	}
-	return c.lastMetrics
+	return *metrics
 }
 
 // ID returns id of collector
-func (c *wmicommon) ID() string {
+func (c *common) ID() string {
 	c.Lock()
 	defer c.Unlock()
 	return c.id
 }
 
 // Inventory returns collector stats for /inventory endpoint
-func (c *wmicommon) Inventory() collector.InventoryStats {
+func (c *common) Inventory() collector.InventoryStats {
 	c.Lock()
 	defer c.Unlock()
 	return collector.InventoryStats{
@@ -65,17 +62,18 @@ func (c *wmicommon) Inventory() collector.InventoryStats {
 }
 
 // Logger returns collector's instance of logger
-func (c *wmicommon) Logger() zerolog.Logger {
+func (c *common) Logger() zerolog.Logger {
 	return c.logger
 }
 
+/*
 // cleanName is used to clean the metric name
-func (c *wmicommon) cleanName(name string) string {
+func (c *common) cleanName(name string) string {
 	return c.metricNameRegex.ReplaceAllString(name, c.metricNameChar)
 }
 
 // addMetric to internal buffer if metric is active
-func (c *wmicommon) addMetric(metrics *cgm.Metrics, pfx, mname, mtype string, mval interface{}, mtags cgm.Tags) error {
+func (c *common) addMetric(metrics *cgm.Metrics, pfx, mname, mtype string, mval interface{}, mtags cgm.Tags) error {
 	if metrics == nil {
 		return errors.New("invalid metric submission")
 	}
@@ -107,7 +105,7 @@ func (c *wmicommon) addMetric(metrics *cgm.Metrics, pfx, mname, mtype string, mv
 }
 
 // setStatus is used in Collect to set the collector status
-func (c *wmicommon) setStatus(metrics cgm.Metrics, err error) {
+func (c *common) setStatus(metrics cgm.Metrics, err error) {
 	c.Lock()
 	if err == nil {
 		c.lastError = ""
@@ -125,3 +123,4 @@ func (c *wmicommon) setStatus(metrics cgm.Metrics, err error) {
 	c.running = false
 	c.Unlock()
 }
+*/

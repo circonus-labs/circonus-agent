@@ -75,7 +75,7 @@ func initialize() error {
 // New creates new WMI collector
 func New() ([]collector.Collector, error) {
 	none := []collector.Collector{}
-	l := log.With().Str("pkg", "builtins.wmi").Logger()
+	l := log.With().Str("pkg", pkgName).Logger()
 
 	if runtime.GOOS != "windows" {
 		l.Warn().Msg("not windows, skipping wmi")

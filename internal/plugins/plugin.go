@@ -260,7 +260,6 @@ func (p *plugin) exec() error {
 	//       do not block access to plugin meta data and metrics
 	p.Lock()
 
-	p.currStart = time.Now()
 	plog := p.logger
 
 	//plog.Debug().Msg("running")
@@ -282,6 +281,7 @@ func (p *plugin) exec() error {
 	}
 
 	plog.Debug().Msg("start")
+	p.currStart = time.Now()
 	p.running = true
 	// TBD: timeouts, create a new deadline context
 	//      Problem is some plugins do not exit intentionally - long running.

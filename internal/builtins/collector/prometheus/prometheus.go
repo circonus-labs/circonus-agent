@@ -131,7 +131,7 @@ func New(cfgBaseName string) (collector.Collector, error) {
 }
 
 // Collect returns collector metrics
-func (c *Prom) Collect() error {
+func (c *Prom) Collect(ctx context.Context) error {
 	metrics := cgm.Metrics{}
 	c.Lock()
 

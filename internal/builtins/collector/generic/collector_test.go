@@ -6,6 +6,7 @@
 package generic
 
 import (
+	"context"
 	"errors"
 	"reflect"
 	"testing"
@@ -22,7 +23,7 @@ func TestCollect(t *testing.T) {
 		id: "test",
 	}
 
-	err := c.Collect()
+	err := c.Collect(context.Background())
 	if err == nil {
 		t.Fatal("expected error")
 	}

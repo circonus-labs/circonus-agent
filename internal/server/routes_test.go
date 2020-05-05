@@ -65,7 +65,7 @@ func TestRouter(t *testing.T) {
 		viper.Reset()
 		viper.Set(config.KeyListen, ":2609")
 		viper.Set(config.KeyPluginDir, "testdata/")
-		b, berr := builtins.New()
+		b, berr := builtins.New(context.Background())
 		if berr != nil {
 			t.Fatalf("expected no error, got (%s)", berr)
 		}
@@ -114,7 +114,7 @@ func TestRouter(t *testing.T) {
 		viper.Set(config.KeyListen, ":2609")
 		viper.Set(config.KeyStatsdDisabled, true)
 		viper.Set(config.KeyPluginDir, "testdata/")
-		b, berr := builtins.New()
+		b, berr := builtins.New(context.Background())
 		if berr != nil {
 			t.Fatalf("expected no error, got (%s)", berr)
 		}
@@ -171,7 +171,7 @@ func TestRouter(t *testing.T) {
 		viper.Set(config.KeyListen, ":2609")
 		viper.Set(config.KeyStatsdDisabled, true)
 		viper.Set(config.KeyPluginDir, "testdata/")
-		b, berr := builtins.New()
+		b, berr := builtins.New(context.Background())
 		if berr != nil {
 			t.Fatalf("expected no error, got (%s)", berr)
 		}

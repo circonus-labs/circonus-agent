@@ -6,6 +6,7 @@
 package generic
 
 import (
+	"context"
 	"path/filepath"
 	"runtime"
 	"testing"
@@ -126,7 +127,7 @@ func TestProtoCollect(t *testing.T) {
 
 		c.(*Proto).running = true
 
-		if err := c.Collect(); err != nil {
+		if err := c.Collect(context.Background()); err != nil {
 			if err.Error() != collector.ErrAlreadyRunning.Error() {
 				t.Fatalf("expected (%s) got (%s)", collector.ErrAlreadyRunning, err)
 			}
@@ -145,7 +146,7 @@ func TestProtoCollect(t *testing.T) {
 		c.(*Proto).runTTL = 60 * time.Second
 		c.(*Proto).lastEnd = time.Now()
 
-		if err := c.Collect(); err != nil {
+		if err := c.Collect(context.Background()); err != nil {
 			if err.Error() != collector.ErrTTLNotExpired.Error() {
 				t.Fatalf("expected (%s) got (%s)", collector.ErrTTLNotExpired, err)
 			}
@@ -161,7 +162,7 @@ func TestProtoCollect(t *testing.T) {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 
-		if err := c.Collect(); err != nil {
+		if err := c.Collect(context.Background()); err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 

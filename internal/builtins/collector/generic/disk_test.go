@@ -6,6 +6,7 @@
 package generic
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 	"time"
@@ -125,7 +126,7 @@ func TestDiskCollect(t *testing.T) {
 
 		c.(*Disk).running = true
 
-		if err := c.Collect(); err != nil {
+		if err := c.Collect(context.Background()); err != nil {
 			if err.Error() != collector.ErrAlreadyRunning.Error() {
 				t.Fatalf("expected (%s) got (%s)", collector.ErrAlreadyRunning, err)
 			}
@@ -144,7 +145,7 @@ func TestDiskCollect(t *testing.T) {
 		c.(*Disk).runTTL = 60 * time.Second
 		c.(*Disk).lastEnd = time.Now()
 
-		if err := c.Collect(); err != nil {
+		if err := c.Collect(context.Background()); err != nil {
 			if err.Error() != collector.ErrTTLNotExpired.Error() {
 				t.Fatalf("expected (%s) got (%s)", collector.ErrTTLNotExpired, err)
 			}
@@ -160,7 +161,7 @@ func TestDiskCollect(t *testing.T) {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 
-		if err := c.Collect(); err != nil {
+		if err := c.Collect(context.Background()); err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 

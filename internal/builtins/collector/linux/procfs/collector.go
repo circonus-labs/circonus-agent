@@ -9,6 +9,7 @@ package procfs
 
 import (
 	"bufio"
+	"context"
 	"os"
 	"path/filepath"
 	"sync"
@@ -64,7 +65,7 @@ func newCommon(id, procFSPath, procFile string, baseTags cgm.Tags) common {
 }
 
 // Collect returns collector metrics
-func (c *common) Collect() error {
+func (c *common) Collect(ctx context.Context) error {
 	c.Lock()
 	defer c.Unlock()
 	return collector.ErrNotImplemented

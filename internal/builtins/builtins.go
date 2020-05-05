@@ -7,10 +7,12 @@
 package builtins
 
 import (
+	"context"
 	"sync"
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
+	"github.com/circonus-labs/circonus-agent/internal/builtins/collector/prometheus"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	appstats "github.com/maier/go-appstats"
@@ -29,7 +31,7 @@ type Builtins struct {
 }
 
 // New creates a new builtins manager
-func New() (*Builtins, error) {
+func New(ctx context.Context) (*Builtins, error) {
 	b := Builtins{
 		collectors: make(map[string]collector.Collector),
 		logger:     log.With().Str("pkg", "builtins").Logger(),
@@ -42,16 +44,26 @@ func New() (*Builtins, error) {
 		return &b, nil
 	}
 
-	err := b.configure()
+	err := b.configure(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "configuring builtins")
+	}
+
+	// prom applies to all platforms
+	prom, err := prometheus.New("")
+	if err != nil {
+		b.logger.Warn().Err(err).Msg("prom collector, disabling")
+	} else {
+		b.logger.Info().Str("id", "prom").Msg("enabled builtin")
+		b.collectors[prom.ID()] = prom
+		_ = appstats.IncrementInt("builtins.total")
 	}
 
 	return &b, nil
 }
 
 // Run triggers internal collectors to gather metrics
-func (b *Builtins) Run(id string) error {
+func (b *Builtins) Run(ctx context.Context, id string) error {
 	b.Lock()
 
 	if len(b.collectors) == 0 {
@@ -81,7 +93,7 @@ func (b *Builtins) Run(id string) error {
 			clog := c.Logger()
 			clog.Debug().Msg("collecting")
 			go func(id string, c collector.Collector) {
-				err := c.Collect()
+				err := c.Collect(ctx)
 				if err != nil {
 					clog.Error().Err(err).Msg(id)
 				}
@@ -96,7 +108,7 @@ func (b *Builtins) Run(id string) error {
 			clog := c.Logger()
 			clog.Debug().Msg("collecting")
 			go func(id string, c collector.Collector) {
-				err := c.Collect()
+				err := c.Collect(ctx)
 				if err != nil {
 					clog.Error().Err(err).Msg(id)
 				}

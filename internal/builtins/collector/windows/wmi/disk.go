@@ -8,6 +8,7 @@
 package wmi
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -219,7 +220,7 @@ func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 }
 
 // Collect metrics from the wmi resource
-func (c *Disk) Collect() error {
+func (c *Disk) Collect(ctx context.Context) error {
 	metrics := cgm.Metrics{}
 
 	c.Lock()

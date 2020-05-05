@@ -82,13 +82,21 @@ bundle_id = "cosi" # use cosi system check bundle
 enabled = true
 ```
 
-## Manual, stand-alone
+## Manual, stand-alone (non-windows)
 
 1. `mkdir -p /opt/circonus/agent`
 1. Download [latest release](../../releases/latest) from repository
 1. Extract archive into `/opt/circonus/agent`
 1. Create a [config](https://github.com/circonus-labs/circonus-agent/blob/master/etc/README.md#main-configuration) (see minimal example below) or use command line parameters
 1. Optionally, modify and install a [service configuration](service/)
+
+## Manual, stand-alone (windows)
+
+1. Create a directory (e.g. `md C:\agent`)
+1. Download [latest release](../../releases/latest) from repository
+1. Unzip archive into directory created in step 1
+1. Create a [config](https://github.com/circonus-labs/circonus-agent/blob/master/etc/README.md#main-configuration) (see minimal example below) or use command line parameters
+1. Optionally, create a service (for example, [using PowerShell](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.management/new-service?view=powershell-7&viewFallbackFrom=powershell-3.0)) 
 
 ## Docker
 

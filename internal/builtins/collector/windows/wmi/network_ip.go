@@ -8,6 +8,7 @@
 package wmi
 
 import (
+	"context"
 	"regexp"
 	"strconv"
 	"strings"
@@ -154,7 +155,7 @@ func NewNetIPCollector(cfgBaseName string) (collector.Collector, error) {
 }
 
 // Collect metrics from the wmi resource
-func (c *NetIP) Collect() error {
+func (c *NetIP) Collect(ctx context.Context) error {
 	metrics := cgm.Metrics{}
 
 	c.Lock()

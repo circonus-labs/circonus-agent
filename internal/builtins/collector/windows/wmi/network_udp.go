@@ -8,6 +8,7 @@
 package wmi
 
 import (
+	"context"
 	"regexp"
 	"strconv"
 	"strings"
@@ -130,7 +131,7 @@ func NewNetUDPCollector(cfgBaseName string) (collector.Collector, error) {
 }
 
 // Collect metrics from the wmi resource
-func (c *NetUDP) Collect() error {
+func (c *NetUDP) Collect(ctx context.Context) error {
 	metrics := cgm.Metrics{}
 
 	c.Lock()

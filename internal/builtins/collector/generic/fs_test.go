@@ -6,6 +6,7 @@
 package generic
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 	"time"
@@ -193,7 +194,7 @@ func TestFSCollect(t *testing.T) {
 
 		c.(*FS).running = true
 
-		if err := c.Collect(); err != nil {
+		if err := c.Collect(context.Background()); err != nil {
 			if err.Error() != collector.ErrAlreadyRunning.Error() {
 				t.Fatalf("expected (%s) got (%s)", collector.ErrAlreadyRunning, err)
 			}
@@ -212,7 +213,7 @@ func TestFSCollect(t *testing.T) {
 		c.(*FS).runTTL = 60 * time.Second
 		c.(*FS).lastEnd = time.Now()
 
-		if err := c.Collect(); err != nil {
+		if err := c.Collect(context.Background()); err != nil {
 			if err.Error() != collector.ErrTTLNotExpired.Error() {
 				t.Fatalf("expected (%s) got (%s)", collector.ErrTTLNotExpired, err)
 			}
@@ -228,7 +229,7 @@ func TestFSCollect(t *testing.T) {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 
-		if err := c.Collect(); err != nil {
+		if err := c.Collect(context.Background()); err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 

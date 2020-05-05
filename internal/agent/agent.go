@@ -63,7 +63,7 @@ func New() (*Agent, error) {
 		return nil, err
 	}
 
-	a.builtins, err = builtins.New()
+	a.builtins, err = builtins.New(a.groupCtx)
 	if err != nil {
 		return nil, err
 	}

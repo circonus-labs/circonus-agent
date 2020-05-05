@@ -20,8 +20,10 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/server/promrecv"
 	"github.com/circonus-labs/circonus-agent/internal/server/receiver"
+	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	appstats "github.com/maier/go-appstats"
 	"github.com/spf13/viper"
@@ -101,7 +103,7 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 			conduitID := "builtins"
 			numMetrics := 0
 			s.logger.Debug().Str("conduit_id", conduitID).Msg("start")
-			if err := s.builtins.Run(id); err != nil {
+			if err := s.builtins.Run(s.groupCtx, id); err != nil {
 				s.logger.Error().Err(err).Str("id", id).Msg("running builtin")
 			}
 			builtinMetrics := s.builtins.Flush(id)
@@ -202,6 +204,15 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 		for m, v := range *cm.metrics {
 			metrics[m] = v
 		}
+	}
+	{
+		mtags := tags.GetBaseTags()
+		if viper.GetBool(config.KeyClusterEnabled) {
+			if n := viper.GetString(config.KeyCheckTarget); n != "" {
+				mtags = append(mtags, "node:"+n)
+			}
+		}
+		metrics[tags.MetricNameWithStreamTags("circonus_agent", tags.FromList(mtags))] = cgm.Metric{Value: release.NAME + "_" + release.VERSION, Type: "s"}
 	}
 	s.logger.Debug().Int("num_metrics", len(metrics)).Msg("aggregated")
 

@@ -53,7 +53,7 @@ dockers:
             - "circonuslabs/{{.ProjectName}}:{{.Tag}}"
             - "circonuslabs/{{.ProjectName}}:latest"
         skip_push: false
-        dockerfile: docker/x86_64/Dockerfile
+        dockerfile: clusters/docker/x86_64/Dockerfile
         build_flag_templates:
             - "--label=org.label-schema.schema-version=1.0"
             - "--label=org.label-schema.version={{.Version}}"
@@ -68,7 +68,7 @@ dockers:
             - "circonuslabs/{{.ProjectName}}-arm64:{{.Tag}}"
             - "circonuslabs/{{.ProjectName}}-arm64:latest"
         skip_push: false
-        dockerfile: docker/arm64/Dockerfile
+        dockerfile: clusters/docker/arm64/Dockerfile
         build_flag_templates:
             - "--label=org.label-schema.schema-version=1.0"
             - "--label=org.label-schema.version={{.Version}}"

@@ -8,6 +8,7 @@
 package procfs
 
 import (
+	"context"
 	"path/filepath"
 	"runtime"
 	"testing"
@@ -157,7 +158,7 @@ func TestVMCollect(t *testing.T) {
 
 		c.(*VM).running = true
 
-		if err := c.Collect(); err != nil {
+		if err := c.Collect(context.Background()); err != nil {
 			if err.Error() != collector.ErrAlreadyRunning.Error() {
 				t.Fatalf("expected (%s) got (%s)", collector.ErrAlreadyRunning, err)
 			}
@@ -176,7 +177,7 @@ func TestVMCollect(t *testing.T) {
 		c.(*VM).runTTL = 60 * time.Second
 		c.(*VM).lastEnd = time.Now()
 
-		if err := c.Collect(); err != nil {
+		if err := c.Collect(context.Background()); err != nil {
 			if err.Error() != collector.ErrTTLNotExpired.Error() {
 				t.Fatalf("expected (%s) got (%s)", collector.ErrTTLNotExpired, err)
 			}
@@ -192,7 +193,7 @@ func TestVMCollect(t *testing.T) {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 
-		if err := c.Collect(); err != nil {
+		if err := c.Collect(context.Background()); err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 
