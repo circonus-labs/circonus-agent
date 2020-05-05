@@ -2,7 +2,7 @@
 
 Place plugins, and plugin specific configuration files, into this directory.
 
-Alternatively, use the `--plugin-dir` command line argument to use an existing directory (e.g. NAD's `etc/node-agent.d` plugin directory).
+Alternatively, use the `--plugin-dir` (this is the default path, `plugins`) command line argument to use an existing directory (e.g. NAD's `etc/node-agent.d` plugin directory).
 
 ## Plugins
 
