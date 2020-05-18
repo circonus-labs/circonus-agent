@@ -132,6 +132,11 @@ Flags:
       --debug-cgm                         [ENV: CA_DEBUG_CGM] Enable CGM debug messages
       --debug-dump-metrics string         [ENV: CA_DEBUG_DUMP_METRICS] Directory to dump sent metrics
   -h, --help                              help for circonus-agent
+      --host-etc string                   [ENV: HOST_ETC] Host /etc directory
+      --host-proc string                  [ENV: HOST_PROC] Host /proc directory
+      --host-run string                   [ENV: HOST_RUN] Host /run directory
+      --host-sys string                   [ENV: HOST_SYS] Host /sys directory
+      --host-var string                   [ENV: HOST_VAR] Host /var directory
   -l, --listen strings                    [ENV: CA_LISTEN] Listen spec e.g. :2609, [::1], [::1]:2609, 127.0.0.1, 127.0.0.1:2609, foo.bar.baz, foo.bar.baz:2609 (default ":2609")
   -L, --listen-socket strings             [ENV: CA_LISTEN_SOCKET] Unix socket to create
       --log-level string                  [ENV: CA_LOG_LEVEL] Log level [(panic|fatal|error|warn|info|debug|disabled)] (default "info")
@@ -149,6 +154,7 @@ Flags:
       --ssl-key-file string               [ENV: CA_SSL_KEY_FILE] SSL Key file (default "/opt/circonus/agent/etc/circonus-agent.key")
       --ssl-listen string                 [ENV: CA_SSL_LISTEN] SSL listen address and port [IP]:[PORT] - setting enables SSL
       --ssl-verify                        [ENV: CA_SSL_VERIFY] Enable SSL verification (default true)
+      --statsd-addr string                [ENV: CA_STATSD_ADDR] StatsD address to listen on (default "localhost")
       --statsd-group-cid string           [ENV: CA_STATSD_GROUP_CID] StatsD group check bundle ID
       --statsd-group-counters string      [ENV: CA_STATSD_GROUP_COUNTERS] StatsD group metric counter handling (average|sum) (default "sum")
       --statsd-group-gauges string        [ENV: CA_STATSD_GROUP_GAUGES] StatsD group gauge operator (default "average")
