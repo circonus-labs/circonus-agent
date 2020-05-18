@@ -756,7 +756,7 @@ func init() {
 			description = "StatsD address to listen on"
 		)
 
-		RootCmd.Flags().String(longOpt, defaults.StatsdPort, desc(description, envVar))
+		RootCmd.Flags().String(longOpt, defaults.StatsdAddr, desc(description, envVar))
 		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
 			bindFlagError(longOpt, err)
 		}
