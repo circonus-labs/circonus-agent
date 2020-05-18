@@ -15,7 +15,8 @@ builds:
         env:
             - CGO_ENABLED=0
 
-        flags: -tags dev
+        flags: 
+            #- -a
 
         goos:
             - linux
