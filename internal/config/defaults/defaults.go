@@ -58,7 +58,10 @@ const (
 	// ReverseMaxConnRetry - how many times to retry persistently failing broker connection
 	ReverseMaxConnRetry = -1
 
-	// StatsdPort to listen, NOTE address is always localhost
+	// StatsdAddr to listen on
+	StatsdAddr = "localhost"
+
+	// StatsdPort to listen
 	StatsdPort = "8125"
 
 	// StatsdHostPrefix defines that metrics received through StatsD inteface

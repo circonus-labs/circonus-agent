@@ -750,10 +750,28 @@ func init() {
 
 	{
 		const (
+			key         = config.KeyStatsdAddr
+			longOpt     = "statsd-addr"
+			envVar      = release.ENVPREFIX + "_STATSD_ADDR"
+			description = "StatsD address to listen on"
+		)
+
+		RootCmd.Flags().String(longOpt, defaults.StatsdPort, desc(description, envVar))
+		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
+			bindFlagError(longOpt, err)
+		}
+		if err := viper.BindEnv(key, envVar); err != nil {
+			bindEnvError(envVar, err)
+		}
+		viper.SetDefault(key, defaults.StatsdAddr)
+	}
+
+	{
+		const (
 			key         = config.KeyStatsdPort
 			longOpt     = "statsd-port"
 			envVar      = release.ENVPREFIX + "_STATSD_PORT"
-			description = "StatsD port"
+			description = "StatsD port to listen on"
 		)
 
 		RootCmd.Flags().String(longOpt, defaults.StatsdPort, desc(description, envVar))
