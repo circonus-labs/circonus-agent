@@ -144,7 +144,7 @@ func New(ctx context.Context) (*Server, error) {
 	}
 	port := viper.GetString(config.KeyStatsdPort)
 	if port == "" {
-		port = defaults.KeyStatsdPort
+		port = defaults.StatsdPort
 	}
 	address := net.JoinHostPort(addr, port)
 	// UDP listening address
