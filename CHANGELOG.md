@@ -1,3 +1,8 @@
+# v1.0.1
+
+* add: `--statsd-addr`, `CA_STATSD_ADDR` to explicitly specify an address that statsd should listen to (e.g. `--statsd-addr=0.0.0.0` for docker containers, so the port can be properly exposed).
+* fix: procfs.disk use `HOST_SYS` if provided
+
 # v1.0.0
 
 * add: nvidia gpu metrics builtin for windows platform

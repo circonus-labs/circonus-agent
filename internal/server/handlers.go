@@ -296,7 +296,7 @@ func (s *Server) encodeResponse(m *cgm.Metrics, w http.ResponseWriter, r *http.R
 	dumpDir := viper.GetString(config.KeyDebugDumpMetrics)
 	if dumpDir != "" {
 		dumpFile := filepath.Join(dumpDir, "metrics_"+time.Now().Format("20060102_150405")+".json")
-		if err := ioutil.WriteFile(dumpFile, jsonData, 0644); err != nil {
+		if err := ioutil.WriteFile(dumpFile, jsonData, 0644); err != nil { //nolint:gosec
 			s.logger.Error().
 				Err(err).
 				Str("file", dumpFile).

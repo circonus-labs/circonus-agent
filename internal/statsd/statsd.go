@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
@@ -137,8 +138,15 @@ func New(ctx context.Context) (*Server, error) {
 		}
 	}
 
+	addr := viper.GetString(config.KeyStatsdAddr)
+	if addr == "" {
+		addr = defaults.StatsdAddr
+	}
 	port := viper.GetString(config.KeyStatsdPort)
-	address := net.JoinHostPort("localhost", port)
+	if port == "" {
+		port = defaults.StatsdPort
+	}
+	address := net.JoinHostPort(addr, port)
 	// UDP listening address
 	if s.enableUDPListener {
 		addr, err := net.ResolveUDPAddr("udp", address)

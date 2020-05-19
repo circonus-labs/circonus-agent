@@ -21,9 +21,11 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 )
 
 // Disk metrics from the Linux ProcFS
@@ -304,7 +306,11 @@ func (c *Disk) getSectorSize(dev string) uint64 {
 		return sz
 	}
 
-	fn := path.Join(string(os.PathSeparator), "sys", "block", dev, "queue", "physical_block_size")
+	sysFSPath := viper.GetString(config.KeyHostSys)
+	if sysFSPath == "" {
+		sysFSPath = defaults.HostSys
+	}
+	fn := path.Join(string(os.PathSeparator), sysFSPath, "block", dev, "queue", "physical_block_size")
 
 	c.logger.Debug().Str("fn", fn).Msg("checking for sector size")
 

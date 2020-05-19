@@ -90,6 +90,7 @@ type StatsD struct {
 	Disabled bool        `json:"disabled" yaml:"disabled" toml:"disabled"`
 	Group    StatsDGroup `json:"group" yaml:"group" toml:"group"`
 	Host     StatsDHost  `json:"host" yaml:"host" toml:"host"`
+	Addr     string      `join:"addr" yaml:"addr" toml:"addr"`
 	Port     string      `json:"port" yaml:"port" toml:"port"`
 }
 
@@ -219,7 +220,10 @@ const (
 	// KeyStatsdHostPrefix metrics prefixed with this string are considered "host" metrics
 	KeyStatsdHostPrefix = "statsd.host.metric_prefix"
 
-	// KeyStatsdPort port for statsd listener (note, address will always be 'localhost')
+	// KeyStatsdAddr address for statsd listener (default address will always be 'localhost')
+	KeyStatsdAddr = "statsd.addr"
+
+	// KeyStatsdPort port for statsd listener
 	KeyStatsdPort = "statsd.port"
 
 	// KeyStatsdEnableTCP enables statsd tcp listener
