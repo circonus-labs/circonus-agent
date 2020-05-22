@@ -85,10 +85,10 @@ func (e *ErrNotActive) Error() string {
 	}
 	s := e.Err
 	if e.BundleID != "" {
-		s = s + "Bundle: " + e.BundleID + " "
+		s = s + " Bundle: " + e.BundleID
 	}
 	if e.CheckID != "" {
-		s = s + "Check: " + e.CheckID + " "
+		s = s + " Check: " + e.CheckID
 	}
 	return s
 }
@@ -99,7 +99,7 @@ func (e *ErrNoOwnerFound) Error() string {
 	}
 	s := e.Err
 	if e.CheckID != "" {
-		s = s + "Check: " + e.CheckID + " "
+		s = s + " Check: " + e.CheckID
 	}
 	return s
 }
@@ -110,10 +110,10 @@ func (e *ErrInvalidOwner) Error() string {
 	}
 	s := e.Err
 	if e.CheckID != "" {
-		s = s + "Check: " + e.CheckID + " "
+		s = s + " Check: " + e.CheckID
 	}
 	if e.BrokerCN != "" {
-		s = s + "CN: " + e.BrokerCN + " "
+		s = s + " CN: " + e.BrokerCN
 	}
 	return s
 }

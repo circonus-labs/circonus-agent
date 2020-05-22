@@ -1,3 +1,7 @@
+# v1.0.2
+
+* fix: clustered broker selection, elide port from cn on identified owner
+
 # v1.0.1
 
 * add: `--statsd-addr`, `CA_STATSD_ADDR` to explicitly specify an address that statsd should listen to (e.g. `--statsd-addr=0.0.0.0` for docker containers, so the port can be properly exposed).
