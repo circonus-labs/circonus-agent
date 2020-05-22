@@ -56,6 +56,7 @@ func (c *Check) setReverseConfigs() error {
 			BrokerAddr: brokerAddr,
 			TLSConfig:  tlsConfig,
 		}
+
 		c.logger.Debug().
 			Str("CN", cn).
 			Str("reverse_url", reverseURL.String()).
@@ -75,8 +76,6 @@ func (c *Check) FindPrimaryBrokerInstance(cfgs *ReverseConfigs) (string, error) 
 	c.Lock()
 	defer c.Unlock()
 
-	primaryCN := ""
-
 	// there is only one reverse url, broker is not clustered
 	if len(*cfgs) == 1 {
 		c.logger.Debug().Msg("non-clustered broker identified")
@@ -85,6 +84,7 @@ func (c *Check) FindPrimaryBrokerInstance(cfgs *ReverseConfigs) (string, error) 
 		}
 	}
 
+	primaryCN := ""
 	c.logger.Debug().Msg("clustered broker identified, determining which owns check")
 	// clustered brokers, need to identify which broker is the primary for the check
 	for name, cfg := range *cfgs {
@@ -148,10 +148,13 @@ func (c *Check) FindPrimaryBrokerInstance(cfgs *ReverseConfigs) (string, error) 
 				c.logger.Warn().Err(err).Str("location", location).Msg("unable to parse location")
 				continue
 			}
-			primaryCN = pu.Host
+			primaryCN = pu.Hostname() // host w/o port...
 			c.logger.Debug().Str("cn", primaryCN).Msg("using owner from location header")
 		default:
 			// try next reverse url host (e.g. if there was an error connecting to this one)
+		}
+		if primaryCN != "" {
+			break
 		}
 	}
 
