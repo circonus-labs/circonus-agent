@@ -96,7 +96,7 @@ archives:
         - CHANGELOG.md
         - etc/README.md
         - service/*
-        - state/README.md
+        - cache/README.md
         - plugins/**/*
 
 release:
