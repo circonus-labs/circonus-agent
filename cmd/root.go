@@ -525,43 +525,6 @@ func init() {
 
 	{
 		const (
-			key         = config.KeyCheckEnableNewMetrics
-			longOpt     = "check-enable-new-metrics"
-			shortOpt    = "E"
-			envVar      = release.ENVPREFIX + "_CHECK_ENABLE_NEW_METRICS"
-			description = "DEPRECATED: see --check-metric-filters - Automatically enable all new metrics"
-		)
-
-		RootCmd.Flags().BoolP(longOpt, shortOpt, defaults.CheckEnableNewMetrics, desc(description, envVar))
-		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
-			bindFlagError(longOpt, err)
-		}
-		if err := viper.BindEnv(key, envVar); err != nil {
-			bindEnvError(envVar, err)
-		}
-		viper.SetDefault(key, defaults.CheckEnableNewMetrics)
-	}
-
-	{
-		const (
-			key         = config.KeyCheckMetricStateDir
-			longOpt     = "check-metric-state-dir"
-			envVar      = release.ENVPREFIX + "_CHECK_METRIC_STATE_DIR"
-			description = "DEPRECATED: see --check-metric-filters - Metric state directory for enable new metrics (must be writeable by user running agent)"
-		)
-
-		RootCmd.Flags().String(longOpt, defaults.CheckMetricStatePath, desc(description, envVar))
-		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
-			bindFlagError(longOpt, err)
-		}
-		if err := viper.BindEnv(key, envVar); err != nil {
-			bindEnvError(envVar, err)
-		}
-		viper.SetDefault(key, defaults.CheckMetricStatePath)
-	}
-
-	{
-		const (
 			key         = config.KeyCheckMetricRefreshTTL
 			longOpt     = "check-metric-refresh-ttl"
 			envVar      = release.ENVPREFIX + "_CHECK_METRIC_REFRESH_TTL"
@@ -1134,10 +1097,6 @@ func init() {
 		viper.SetDefault(key, defaultValue)
 	}
 
-	// RootCmd.Flags().Bool("watch", defaults.Watch, "Watch plugins, reload on change")
-	// viper.SetDefault("watch", defaults.Watch)
-	// viper.BindPFlag("watch", RootCmd.Flags().Lookup("watch"))
-
 	{
 		const (
 			key          = config.KeyShowVersion
@@ -1163,6 +1122,50 @@ func init() {
 		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
 			bindFlagError(longOpt, err)
 		}
+	}
+
+	//
+	// Hidden, deprecated flags so old configs don't break - the flags are just ignored
+	//
+	{
+		const (
+			key         = config.KeyCheckEnableNewMetrics
+			longOpt     = "check-enable-new-metrics"
+			shortOpt    = "E"
+			envVar      = release.ENVPREFIX + "_CHECK_ENABLE_NEW_METRICS"
+			description = "DEPRECATED: see --check-metric-filters - Automatically enable all new metrics"
+		)
+
+		RootCmd.Flags().BoolP(longOpt, shortOpt, defaults.CheckEnableNewMetrics, desc(description, envVar))
+		flag := RootCmd.Flags().Lookup(longOpt)
+		flag.Hidden = true
+		if err := viper.BindPFlag(key, flag); err != nil {
+			bindFlagError(longOpt, err)
+		}
+		if err := viper.BindEnv(key, envVar); err != nil {
+			bindEnvError(envVar, err)
+		}
+		viper.SetDefault(key, defaults.CheckEnableNewMetrics)
+	}
+
+	{
+		const (
+			key         = config.KeyCheckMetricStateDir
+			longOpt     = "check-metric-state-dir"
+			envVar      = release.ENVPREFIX + "_CHECK_METRIC_STATE_DIR"
+			description = "DEPRECATED: see --check-metric-filters - Metric state directory for enable new metrics (must be writeable by user running agent)"
+		)
+
+		RootCmd.Flags().String(longOpt, defaults.CheckMetricStatePath, desc(description, envVar))
+		flag := RootCmd.Flags().Lookup(longOpt)
+		flag.Hidden = true
+		if err := viper.BindPFlag(key, flag); err != nil {
+			bindFlagError(longOpt, err)
+		}
+		if err := viper.BindEnv(key, envVar); err != nil {
+			bindEnvError(envVar, err)
+		}
+		viper.SetDefault(key, defaults.CheckMetricStatePath)
 	}
 }
 
