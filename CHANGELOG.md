@@ -1,3 +1,7 @@
+# v1.0.3
+
+* add: cache dir to RPM for circkpkg plugin
+
 # v1.0.2
 
 * fix: clustered broker selection, elide port from cn on identified owner

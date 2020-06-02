@@ -79,6 +79,5 @@ exit 0
 %{app_dir}/README.md
 %{app_dir}/sbin
 %{app_dir}/service
-# NOTE: will be obsolete when allow/deny list support released
-%attr(0755, nobody, nobody) %{app_dir}/state
+%attr(0755, nobody, nobody) %{app_dir}/cache
 %{_prefix}/logwatch
