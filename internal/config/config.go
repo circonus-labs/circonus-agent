@@ -45,14 +45,15 @@ type Check struct {
 	Broker           string `json:"broker" yaml:"broker" toml:"broker"`
 	BundleID         string `mapstructure:"bundle_id" json:"bundle_id" yaml:"bundle_id" toml:"bundle_id"`
 	Create           bool   `mapstructure:"create" json:"create" yaml:"create" toml:"create"`
-	EnableNewMetrics bool   `mapstructure:"enable_new_metrics" json:"enable_new_metrics" yaml:"enable_new_metrics" toml:"enable_new_metrics"`
 	MetricFilters    string `mapstructure:"metric_filters" json:"metric_filters" yaml:"metric_filters" toml:"metric_filters"` // needs to be json embedded in a string because rules are positional
-	MetricStateDir   string `mapstructure:"metric_state_dir" json:"metric_state_dir" yaml:"metric_state_dir" toml:"metric_state_dir"`
 	MetricRefreshTTL string `mapstructure:"metric_refresh_ttl" json:"metric_refresh_ttl" yaml:"metric_refresh_ttl" toml:"metric_refresh_ttl"`
 	MetricStreamtags bool   `mapstructure:"metric_streamtags" json:"metric_streamtags" yaml:"metric_streamtags" toml:"metric_streamtags"`
 	Tags             string `json:"tags" yaml:"tags" toml:"tags"`
 	Target           string `mapstructure:"target" json:"target" yaml:"target" toml:"target"`
 	Title            string `json:"title" yaml:"title" toml:"title"`
+	// hide deprecated config settings
+	EnableNewMetrics bool   `json:"-" yaml:"-" toml:"-"`
+	MetricStateDir   string `json:"-" yaml:"-" toml:"-"`
 }
 
 // Reverse defines the running config.reverse structure
