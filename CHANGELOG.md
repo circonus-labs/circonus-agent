@@ -1,3 +1,7 @@
+# v1.0.5
+
+* fix: pin `x/sys` to fix `cannot use type []byte as type []int8` issue for freeebsd
+
 # v1.0.4
 
 * upd: hide deprecated settings in config file (`--show-config`)
