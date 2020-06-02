@@ -1,3 +1,10 @@
+# v1.0.4
+
+* upd: hide deprecated settings in config file (`--show-config`)
+* upd: hide deprecated command line parameters
+* upd: dependencies
+* upd: replace deprecated state dir with new cache dir (release build & packaging)
+
 # v1.0.3
 
 * add: cache dir to RPM for circkpkg plugin
