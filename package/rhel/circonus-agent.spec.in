@@ -1,5 +1,5 @@
 #
-# circonus-agent RPM spec for RHEL 6/7
+# circonus-agent RPM spec for RHEL 6/7/8
 #
 
 %define		rversion	@@RPMVER@@
@@ -7,9 +7,18 @@
 %define		_prefix		/opt/circonus
 %define     app_dir     %{_prefix}/agent
 
+%if 0%{?el8}
 # perl is *optional* not required
 # rpmbuild autoreq will include it by default because of scripts with perl shebang
+%define __requires_exclude perl
+# TODO: fix shebangs (e.g. python) to work from el6->el8 (on el8 mangle ERRORS 
+#       about using python2 or python3 instead of bare python)
+%undefine __brp_mangle_shebangs 
+%endif
+
 %if 0%{?el7}
+# perl is *optional* not required
+# rpmbuild autoreq will include it by default because of scripts with perl shebang
 %define __requires_exclude perl
 %endif
 %if 0%{?el6}
@@ -66,6 +75,9 @@ exit 0
 
 %files
 %defattr(-, root, root, 755)
+%if 0%{?el8}
+%attr(0644, root, root) /lib/systemd/system/circonus-agent.service
+%endif
 %if 0%{?el7}
 %attr(0644, root, root) /lib/systemd/system/circonus-agent.service
 %endif

@@ -114,14 +114,14 @@ case $os_type in
         if [[ -f /etc/redhat-release ]]; then
             install_target="install-rhel"
             relver=$(sed -e 's/.*release \(.\).*/\1/' /etc/redhat-release)
-            [[ $relver =~ ^(6|7)$ ]] || { echo "unsupported RHEL release ($relver)"; exit 1; }
+            [[ $relver =~ ^(6|7|8)$ ]] || { echo "unsupported RHEL release ($relver)"; exit 1; }
             os_name="el${relver}"
             [[ -z "$(type -P $RPMBUILD)" ]] && { echo "unable to find '${RPMBUILD}' command in [$PATH]"; exit 1; }
             [[ -d ~/rpmbuild/RPMS ]] || { echo "~/rpmbuild/RPMS not found, is rpm building setup?"; exit 1; }
         elif [[ -f /etc/lsb-release ]]; then
             install_target="install-ubuntu"
             source /etc/lsb-release
-            [[ $DISTRIB_RELEASE =~ ^(14.04|16.04|18.04)$ ]] || { echo "unsupported Ubuntu release ($DISTRIB_RELEASE)"; exit 1; }
+            [[ $DISTRIB_RELEASE =~ ^(16|18|20)\.04$ ]] || { echo "unsupported Ubuntu release ($DISTRIB_RELEASE)"; exit 1; }
             os_name="ubuntu.${DISTRIB_RELEASE}"
             [[ -z "$(type -P $FPM)" ]] && { echo "unable to find '${FPM}' command in [$PATH]"; exit 1; }
         else
@@ -393,6 +393,10 @@ install_service() {
 
     # NOTE: just copy the file, let packaging handle perms
     case $os_name in
+        el8)
+            $MKDIR -p $dir_install/lib/systemd/system
+            $SED -e "${sed_script}" ../service/circonus-agent.service > $dir_install/lib/systemd/system/circonus-agent.service
+            ;;
         el7)
             $MKDIR -p $dir_install/lib/systemd/system
             $SED -e "${sed_script}" ../service/circonus-agent.service > $dir_install/lib/systemd/system/circonus-agent.service
@@ -400,6 +404,10 @@ install_service() {
         el6)
             $MKDIR -p $dir_install/etc/init.d
             $SED -e "${sed_script}" ../service/circonus-agent.init-rhel > $dir_install/etc/init.d/circonus-agent
+            ;;
+        ubuntu\.20*)
+            $MKDIR -p $dir_install/lib/systemd/system
+            $SED -e "${sed_script}" ../service/circonus-agent.service > $dir_install/lib/systemd/system/circonus-agent.service
             ;;
         ubuntu\.1[68]*)
             $MKDIR -p $dir_install/lib/systemd/system
@@ -412,8 +420,16 @@ install_service() {
             ;;
         freebsd\.*)
             $MKDIR -p $dir_install/etc/rc.d
-            $SED -e "$sed_script" ../service/circonus-agent.rc-freebsd > $dir_install/etc/rc.d/circonus-agent
-            chmod 755 $dir_install/etc/rc.d/circonus-agent
+            if [[ -d ../service ]]; then
+                $SED -e "$sed_script" ../service/circonus-agent.rc-freebsd > $dir_install/etc/rc.d/circonus-agent
+                chmod 755 $dir_install/etc/rc.d/circonus-agent
+            elif [[ -f ../service ]]; then
+                $SED -e "$sed_script" ../service > $dir_install/etc/rc.d/circonus-agent
+                chmod 755 $dir_install/etc/rc.d/circonus-agent
+            else
+                echo "unable to install service ${PWD}../service is not a file or directory"
+                exit 1
+            fi
             ;;
         *)
             echo "no pre-built service configuration available for $os_name"
