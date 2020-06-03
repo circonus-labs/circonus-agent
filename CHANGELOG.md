@@ -2,7 +2,7 @@
 
 * fix: pin `x/sys` to fix `cannot use type []byte as type []int8` issue for freeebsd
 
-# v1.0.4
+# v1.0.4 _unreleased_
 
 * upd: hide deprecated settings in config file (`--show-config`)
 * upd: hide deprecated command line parameters

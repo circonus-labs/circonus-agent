@@ -65,3 +65,7 @@ package/rhel/circonus-agent.spec
 # wip dirs
 internal/check-orig
 internal/reverse-orig
+
+# build detritus
+.envrc
+console.log

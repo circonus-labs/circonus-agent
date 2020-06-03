@@ -38,14 +38,16 @@ Features of the COSI installed circonus-agent on Linux systems:
 
 Operating Systems (x86_64 and/or amd64) supported by cosi:
 
+* RHEL8 (CentOS, RedHat)
 * RHEL7 (CentOS, RedHat, Oracle)
 * RHEL6 (CentOS, RedHat, amzn)
+* Ubuntu20
 * Ubuntu18
 * Ubuntu16
 * Debian9
 * Debian8
-* FreeBSD 12
-* FreeBSD 11
+* FreeBSD 12 (build 12.1-STABLE)
+* FreeBSD 11 (build 11.3-STABLE)
 
 Please continue to use the original cosi(w/NAD) for OmniOS and Raspian - cosi v2 support for these is TBD. Note: after installing NAD a binary circonus-agent can be used as a drop-in replacement (configure circonus-agent _plugins directory_ to be NAD plugins directory -- javascript plugins will not function). Binaries for OmniOS (`solaris_x86_64` or `illumos_x86_64`) and Raspian (`linux_arm` or `linux_arm64`) are available in the [circonus-agent repository](https://github.com/circonus-labs/circonus-agent/releases/latest).
 
