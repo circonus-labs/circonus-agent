@@ -91,14 +91,13 @@ Vagrant.configure('2') do |config|
         u18.vm.synced_folder '.', agent_src_path, owner: 'vagrant', group: 'vagrant'
         u18.vm.network 'private_network', ip: '192.168.100.200'
         u18.vm.provision 'shell', path: 'vprov/u18.sh', args: [go_url_base, go_ver]
-        u18.vbguest.auto_update = false
+        u18.vbguest.auto_update = true
     end
     #
     # ubuntu16 builder
     #
     config.vm.define 'u16', autostart: false do |u16|
         u16.vm.box = 'ubuntu/xenial64'
-        # u16.vm.box = 'maier/ubuntu-16.04-x86_64'
         u16.vm.provider 'virtualbox' do |vb|
             vb.name = 'u16_circonus-agent_build'
             vb.memory = '2048'
@@ -109,6 +108,22 @@ Vagrant.configure('2') do |config|
         u16.vm.network 'private_network', ip: '192.168.100.200'
         u16.vm.provision 'shell', path: 'vprov/u16.sh', args: [go_url_base, go_ver]
         u16.vbguest.auto_update = true
+    end
+    #
+    # ubuntu14 builder
+    #
+    config.vm.define 'u14', autostart: false do |u14|
+        u14.vm.box = 'ubuntu/trusty64'
+        u14.vm.provider 'virtualbox' do |vb|
+            vb.name = 'u14_circonus-agent_build'
+            vb.memory = '2048'
+            vb.cpus = 2
+            vb.customize [ "modifyvm", :id, "--uartmode1", "file", File.join(Dir.pwd, "./console.log")]
+        end
+        u14.vm.synced_folder '.', agent_src_path, owner: 'vagrant', group: 'vagrant'
+        u14.vm.network 'private_network', ip: '192.168.100.200'
+        u14.vm.provision 'shell', path: 'vprov/u14.sh', args: [go_url_base, go_ver]
+        u14.vbguest.auto_update = true
     end
 
     #
