@@ -8,9 +8,10 @@
 %define     app_dir     %{_prefix}/agent
 
 %if 0%{?el8}
-# perl is *optional* not required
-# rpmbuild autoreq will include it by default because of scripts with perl shebang
+# perl and python are *optional*, not required
+# rpmbuild autoreq will include by default because of scripts with perl|python shebang
 %define __requires_exclude perl
+%define __requires_exclude python
 # TODO: fix shebangs (e.g. python) to work from el6->el8 (on el8 mangle ERRORS 
 #       about using python2 or python3 instead of bare python)
 %undefine __brp_mangle_shebangs 
