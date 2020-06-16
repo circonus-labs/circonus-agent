@@ -1,6 +1,7 @@
 # v1.0.6
 
 * fix: `cpu_used` calculate average over collection interval (not aggregate)
+* fix: increase max comm read timeouts to 6 (when waiting for command in reverse)
 
 # v1.0.5
 
