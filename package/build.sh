@@ -121,7 +121,7 @@ case $os_type in
         elif [[ -f /etc/lsb-release ]]; then
             install_target="install-ubuntu"
             source /etc/lsb-release
-            [[ $DISTRIB_RELEASE =~ ^(16|18|20)\.04$ ]] || { echo "unsupported Ubuntu release ($DISTRIB_RELEASE)"; exit 1; }
+            [[ $DISTRIB_RELEASE =~ ^(14|16|18|20)\.04$ ]] || { echo "unsupported Ubuntu release ($DISTRIB_RELEASE)"; exit 1; }
             os_name="ubuntu.${DISTRIB_RELEASE}"
             [[ -z "$(type -P $FPM)" ]] && { echo "unable to find '${FPM}' command in [$PATH]"; exit 1; }
         else

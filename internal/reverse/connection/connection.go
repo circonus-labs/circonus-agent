@@ -101,7 +101,7 @@ const (
 	MaxDelaySeconds      = 60    // maximum amount of delay between attempts
 	MaxRequests          = -1    // max requests from broker before resetting connection, -1 = unlimited
 	MaxPayloadLen        = 65529 // max unsigned short - 6 (for header)
-	MaxCommTimeouts      = 5     // multiply by commTimeout, ensure >(broker polling interval) otherwise conn reset loop
+	MaxCommTimeouts      = 6     // multiply by commTimeout, ensure >(broker polling interval) otherwise conn reset loop
 	MinDelayStep         = 1     // minimum seconds to add on retry
 	MaxDelayStep         = 20    // maximum seconds to add on retry
 	ConfigRetryLimit     = 5     // if failed attempts > limit, force check reconfig (see if broker configuration changed)
