@@ -1,5 +1,6 @@
 # v1.0.6
 
+* add: `collector:cpu` - `num_cpu`, `processes`, `procs_runnable`, and `procs_blocked` for USE dashboard
 * fix: `cpu_used` calculate average over collection interval (not aggregate)
 * fix: increase max comm read timeouts to 6 (when waiting for command in reverse)
 
