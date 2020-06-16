@@ -26,9 +26,10 @@ import (
 // CPU metrics from the Linux ProcFS
 type CPU struct {
 	common
-	numCPU        float64 // number of cpus
-	clockNorm     float64 // cpu clock normalized to 100Hz tick rate
-	reportAllCPUs bool    // OPT report all cpus (vs just total) may be overridden in config file
+	numCPU        float64               // number of cpus
+	clockNorm     float64               // cpu clock normalized to 100Hz tick rate
+	reportAllCPUs bool                  // OPT report all cpus (vs just total) may be overridden in config file
+	lastRunValues map[string]lastValues // values from last run
 }
 
 // cpuOptions defines what elements can be overridden in a config file
@@ -43,12 +44,18 @@ type cpuOptions struct {
 	AllCPU  string `json:"report_all_cpus" toml:"report_all_cpus" yaml:"report_all_cpus"`
 }
 
+type lastValues struct {
+	all  float64
+	busy float64
+}
+
 // NewCPUCollector creates new procfs cpu collector
 func NewCPUCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
 	procFile := "stat"
 
 	c := CPU{
-		common: newCommon(NameCPU, procFSPath, procFile, tags.FromList(tags.GetBaseTags())),
+		common:        newCommon(NameCPU, procFSPath, procFile, tags.FromList(tags.GetBaseTags())),
+		lastRunValues: make(map[string]lastValues),
 	}
 
 	c.numCPU = float64(runtime.NumCPU())
@@ -200,7 +207,6 @@ func (c *CPU) parseCPU(fields []string) (string, *cgm.Metrics, error) {
 
 	metricType := "n" // resmon double
 
-	all := float64(0)
 	busy := float64(0)
 
 	userNormal, err := strconv.ParseFloat(fields[1], 64)
@@ -274,11 +280,7 @@ func (c *CPU) parseCPU(fields []string) (string, *cgm.Metrics, error) {
 		busy += guestNice
 	}
 
-	all = busy + idleNormal
-	used := (busy / all) * 100
-
 	metrics := cgm.Metrics{
-		"cpu_used":       cgm.Metric{Type: metricType, Value: used},
 		"cpu_user":       cgm.Metric{Type: metricType, Value: (userNormal / numCPU) / c.clockNorm},
 		"cpu_system":     cgm.Metric{Type: metricType, Value: (sys / numCPU) / c.clockNorm},
 		"cpu_idle":       cgm.Metric{Type: metricType, Value: (idleNormal / numCPU) / c.clockNorm},
@@ -289,28 +291,14 @@ func (c *CPU) parseCPU(fields []string) (string, *cgm.Metrics, error) {
 		"cpu_steal":      cgm.Metric{Type: metricType, Value: (steal / numCPU) / c.clockNorm},
 		"cpu_guest":      cgm.Metric{Type: metricType, Value: (guest / numCPU) / c.clockNorm},
 		"cpu_guest_nice": cgm.Metric{Type: metricType, Value: (guestNice / numCPU) / c.clockNorm},
-		// -- unused
-		// "cpu_user":              cgm.Metric{Type: metricType, Value: ((userNormal + userNice) / numCPU) / c.clockNorm},
-		// "cpu_kernel":            cgm.Metric{Type: metricType, Value: ((sys + guest + guestNice) / numCPU) / c.clockNorm},
-		// "cpu_idle":              cgm.Metric{Type: metricType, Value: ((idleNormal + steal) / numCPU) / c.clockNorm},
-		// "cpu_irq_hard": cgm.Metric{Type: metricType, Value: (irq / numCPU) / c.clockNorm},
-		// --- original below
-		// "cpu_used":              cgm.Metric{Type: metricType, Value: used},
-		// "cpu_user":              cgm.Metric{Type: metricType, Value: ((userNormal + userNice) / numCPU) / c.clockNorm},
-		// "cpu_user_normal":       cgm.Metric{Type: metricType, Value: (userNormal / numCPU) / c.clockNorm},
-		// "cpu_user_nice":         cgm.Metric{Type: metricType, Value: (userNice / numCPU) / c.clockNorm},
-		// "cpu_kernel":            cgm.Metric{Type: metricType, Value: ((sys + guest + guestNice) / numCPU) / c.clockNorm},
-		// "cpu_kernel_sys":        cgm.Metric{Type: metricType, Value: (sys / numCPU) / c.clockNorm},
-		// "cpu_kernel_guest":      cgm.Metric{Type: metricType, Value: (guest / numCPU) / c.clockNorm},
-		// "cpu_kernel_guest_nice": cgm.Metric{Type: metricType, Value: (guestNice / numCPU) / c.clockNorm},
-		// "cpu_idle":              cgm.Metric{Type: metricType, Value: ((idleNormal + steal) / numCPU) / c.clockNorm},
-		// "cpu_idle_normal":       cgm.Metric{Type: metricType, Value: (idleNormal / numCPU) / c.clockNorm},
-		// "cpu_idle_steal":        cgm.Metric{Type: metricType, Value: (steal / numCPU) / c.clockNorm},
-		// "cpu_wait_io":           cgm.Metric{Type: metricType, Value: (waitIO / numCPU) / c.clockNorm},
-		// "cpu_irq":               cgm.Metric{Type: metricType, Value: ((irq + softIRQ) / numCPU) / c.clockNorm},
-		// "cpu_irq_soft":          cgm.Metric{Type: metricType, Value: (softIRQ / numCPU) / c.clockNorm},
-		// "cpu_irq_hard":          cgm.Metric{Type: metricType, Value: (irq / numCPU) / c.clockNorm},
 	}
+
+	all := float64(busy + idleNormal)
+	if lrv, ok := c.lastRunValues[fields[0]]; ok {
+		used := ((busy - lrv.busy) / (all - lrv.all)) * 100
+		metrics["cpu_used"] = cgm.Metric{Type: metricType, Value: used}
+	}
+	c.lastRunValues[fields[0]] = lastValues{all: all, busy: busy}
 
 	return cpuID, &metrics, nil
 }
