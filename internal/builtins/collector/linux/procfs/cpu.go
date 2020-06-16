@@ -155,8 +155,34 @@ func (c *CPU) Collect(ctx context.Context) error {
 		return errors.Wrap(err, c.pkgID)
 	}
 
+	_ = c.addMetric(&metrics, "", "num_cpu", "I", runtime.NumCPU(), tags.Tags{})
+
 	for _, line := range lines {
 		fields := strings.Fields(line)
+
+		switch fields[0] {
+		case "processes":
+			v, err := strconv.ParseInt(fields[1], 10, 64)
+			if err == nil {
+				_ = c.addMetric(&metrics, "", "processes", "I", v, tags.Tags{})
+			} else {
+				c.logger.Warn().Err(err).Str("line", line).Str("value", fields[1]).Msg("parsing int")
+			}
+		case "procs_running":
+			v, err := strconv.ParseInt(fields[1], 10, 64)
+			if err == nil {
+				_ = c.addMetric(&metrics, "", "procs_runnable", "I", v, tags.Tags{})
+			} else {
+				c.logger.Warn().Err(err).Str("line", line).Str("value", fields[1]).Msg("parsing int")
+			}
+		case "procs_blocked":
+			v, err := strconv.ParseInt(fields[1], 10, 64)
+			if err == nil {
+				_ = c.addMetric(&metrics, "", "procs_blocked", "I", v, tags.Tags{})
+			} else {
+				c.logger.Warn().Err(err).Str("line", line).Str("value", fields[1]).Msg("parsing int")
+			}
+		}
 
 		if !strings.HasPrefix(fields[0], c.id) {
 			continue
