@@ -323,6 +323,9 @@ func (c *CPU) parseCPU(fields []string) (string, *cgm.Metrics, error) {
 	if lrv, ok := c.lastRunValues[fields[0]]; ok {
 		used := ((busy - lrv.busy) / (all - lrv.all)) * 100
 		metrics["cpu_used"] = cgm.Metric{Type: metricType, Value: used}
+	} else {
+		used := (busy / all) * 100
+		metrics["cpu_used"] = cgm.Metric{Type: metricType, Value: used}
 	}
 	c.lastRunValues[fields[0]] = lastValues{all: all, busy: busy}
 

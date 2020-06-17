@@ -9,6 +9,7 @@
 package procfs
 
 import (
+	"context"
 	"fmt"
 	"path"
 	"regexp"
@@ -41,7 +42,7 @@ var (
 )
 
 // New creates new ProcFS collector
-func New() ([]collector.Collector, error) {
+func New(ctx context.Context) ([]collector.Collector, error) {
 	none := []collector.Collector{}
 
 	if runtime.GOOS != "linux" {
@@ -76,6 +77,9 @@ func New() ([]collector.Collector, error) {
 				l.Error().Str("name", name).Err(err).Msg(initErrMsg)
 				continue
 			}
+			// prime the cpu counters for cpu_used
+			_ = c.Collect(ctx)
+			_ = c.Flush()
 			collectors = append(collectors, c)
 
 		case NameDisk, "diskstats": // cover old, deprecated name
