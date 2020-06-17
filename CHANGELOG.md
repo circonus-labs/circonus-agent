@@ -1,3 +1,8 @@
+# v1.0.7
+
+* upd: when multiple bundles returned from API, identify the one created by agent (vs. created by NAD/cosi)
+* upd: pre-seed procfs/cpu for `cpu_used`
+
 # v1.0.6
 
 * add: `collector:cpu` - `num_cpu`, `processes`, `procs_runnable`, and `procs_blocked` for USE dashboard

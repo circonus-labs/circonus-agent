@@ -8,6 +8,7 @@
 package procfs
 
 import (
+	"context"
 	"testing"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
@@ -22,7 +23,7 @@ func TestNew(t *testing.T) {
 		"procfs/disk",
 	})
 
-	c, err := New()
+	c, err := New(context.Background())
 	if err != nil {
 		t.Fatalf("expected NO error, got (%s)", err)
 	}

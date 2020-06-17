@@ -25,7 +25,7 @@ func (b *Builtins) configure(ctx context.Context) error {
 		//       builtins are used by cosi visuals. these are _direct_ replacements
 		//       for the original NAD plugins of the same name
 		l.Debug().Msg("calling procfs.New")
-		collectors, err := procfs.New()
+		collectors, err := procfs.New(ctx)
 		if err != nil {
 			return err
 		}

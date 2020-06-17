@@ -16,11 +16,15 @@ The circonus-agent is intended to be a drop-in replacement for NAD. There is, ho
 
 # Releases
 
-[Releases](https://github.com/circonus-labs/circonus-agent/releases) provide pre-built binaries for Linux (arm and x86_64), FreeBSD (x86_64), Solaris (x86_64), and Windows (x86_64).
+* Binary only [releases](https://github.com/circonus-labs/circonus-agent/releases) provide pre-built binaries for Linux (arm and x86_64), FreeBSD (x86_64), Solaris (x86_64), and Windows (x86_64).
+* RPM and DEB [packages](https://setup.circonus.com/packages/) for manual installations with plugins included
+* Docker [images](https://hub.docker.com/r/circonuslabs/circonus-agent/tags)
 
 # Install
 
 ## Automated via [cosi](https://github.com/circonus-labs/cosi-tool)
+
+> Note: installs v0 release of the circonus-agent, not the v1 release
 
 ```sh
 curl -sSL https://setup.circonus.com/install | bash \
@@ -87,8 +91,8 @@ enabled = true
 ## Manual, stand-alone (non-windows)
 
 1. `mkdir -p /opt/circonus/agent`
-1. Download [latest release](../../releases/latest) from repository
-1. Extract archive into `/opt/circonus/agent`
+1. Download [latest release](../../releases/latest) from repository or RPM/DEB/TGZ [package](https://setup.circonus.com/packages/)
+1. Extract archive into `/opt/circonus/agent` or manually install os package
 1. Create a [config](https://github.com/circonus-labs/circonus-agent/blob/master/etc/README.md#main-configuration) (see minimal example below) or use command line parameters
 1. Optionally, modify and install a [service configuration](service/)
 
