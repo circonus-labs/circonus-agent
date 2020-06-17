@@ -352,7 +352,21 @@ func (cb *Bundle) findCheckBundle() (*apiclient.CheckBundle, int, error) {
 	}
 
 	if found > 1 {
-		return nil, found, errors.Errorf("more than one (%d) check bundle matched criteria (%s)", len(*bundles), string(criteria))
+		// if more than one bundle, find one created by the circonus-agent
+		// if multiple bundles created by agent, error, otherwise return the one from the agent
+		matched := 0
+		idx := -1
+		for i, b := range *bundles {
+			if b.Notes != nil && strings.Contains(*b.Notes, release.NAME) {
+				idx = i
+				matched++
+			}
+		}
+		if matched == 1 {
+			cb.logger.Warn().Int("found", found).Str("bundle", (*bundles)[idx].CID).Msgf("multiple checks found, using one created by %s", release.NAME)
+			return &(*bundles)[idx], matched, nil
+		}
+		return nil, found, errors.Errorf("more than one (%d) check bundle matched criteria (%s)", found, string(criteria))
 	}
 
 	return &(*bundles)[0], found, nil
