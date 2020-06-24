@@ -1,0 +1,6 @@
+{
+    "metric_filters": [
+        ["deny","^$","empty"],
+        ["allow","^.+$","everything"]
+    ]
+}
