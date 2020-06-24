@@ -1,3 +1,9 @@
+# v1.0.8
+
+* add: `--check-metric-filter-file` external json file with metric filters
+* add: `etc/example_metric_filters.json` as an example of external metric filter file
+* add: `--check-update-metric-filters` force updating the check bundle with configured metric filters at start
+
 # v1.0.7
 
 * upd: when multiple bundles returned from API, identify the one created by agent (vs. created by NAD/cosi)

@@ -522,6 +522,40 @@ func init() {
 			bindEnvError(envVar, err)
 		}
 	}
+	{
+		const (
+			key         = config.KeyCheckMetricFilterFile
+			longOpt     = "check-metric-filter-file"
+			envVar      = release.ENVPREFIX + "_CHECK_METRIC_FILTER_FILE"
+			description = "JSON file with metric filters"
+		)
+		defaultValue := defaults.CheckMetricFilterFile
+
+		RootCmd.Flags().String(longOpt, defaultValue, desc(description, envVar))
+		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
+			bindFlagError(longOpt, err)
+		}
+		if err := viper.BindEnv(key, envVar); err != nil {
+			bindEnvError(envVar, err)
+		}
+	}
+	{
+		const (
+			key         = config.KeyCheckUpdateMetricFilters
+			longOpt     = "check-update-metric-filters"
+			envVar      = release.ENVPREFIX + "_CHECK_UPDATE_METRIC_FILTERS"
+			description = "Update check bundle with configured metric filters when agent starts"
+		)
+		defaultValue := defaults.CheckUpdateMetricFilters
+
+		RootCmd.Flags().Bool(longOpt, defaultValue, desc(description, envVar))
+		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
+			bindFlagError(longOpt, err)
+		}
+		if err := viper.BindEnv(key, envVar); err != nil {
+			bindEnvError(envVar, err)
+		}
+	}
 
 	{
 		const (

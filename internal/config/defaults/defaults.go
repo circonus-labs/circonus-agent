@@ -169,6 +169,11 @@ var (
 
 	// CheckMetricFilters defines default filter to be used with new check creation
 	CheckMetricFilters = [][]string{{"deny", "^$", ""}, {"allow", "^.+$", ""}}
+	// CheckMetricFilterFile defines an external file (json) with metric filter definitions
+	CheckMetricFilterFile = ""
+	// CheckUpdateMetricFilters will overwrite filters on the check every time the agent starts
+	//                          with whatever rules are in the agent configuration (or external metric filters file)
+	CheckUpdateMetricFilters = false
 
 	// SSLCertFile returns the deefault ssl cert file name
 	SSLCertFile = "" // (e.g. /opt/circonus/agent/etc/agent.pem)
@@ -203,6 +208,7 @@ func init() {
 	PluginPath = filepath.Join(BasePath, "plugins")
 	SSLCertFile = filepath.Join(EtcPath, release.NAME+".pem")
 	SSLKeyFile = filepath.Join(EtcPath, release.NAME+".key")
+	CheckMetricFilterFile = filepath.Join(EtcPath, "metric_filters.json")
 
 	CheckTarget, err = os.Hostname()
 	if err != nil {
