@@ -59,7 +59,7 @@ Vagrant.configure('2') do |config|
         el6.vm.synced_folder '.', agent_src_path, owner: 'vagrant', group: 'vagrant'
         el6.vm.network 'private_network', ip: '192.168.100.200'
         el6.vm.provision 'shell', path: 'vprov/el6.sh', args: [go_url_base, go_ver]
-        el6.vbguest.auto_update = true
+        el6.vbguest.auto_update = false
     end
     #
     # ubuntu20 builder
