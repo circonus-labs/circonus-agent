@@ -8,6 +8,8 @@ package bundle
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -298,6 +300,14 @@ func (cb *Bundle) initCheckBundle(cid string, create bool) error {
 		}
 	}
 
+	if viper.GetBool(config.KeyCheckUpdateMetricFilters) {
+		b, err := cb.updateCheckBundleMetricFilters(bundle)
+		if err != nil {
+			return errors.Wrap(err, "updating check bundle metric filters")
+		}
+		bundle = b
+	}
+
 	cb.bundle = bundle
 
 	return nil
@@ -408,13 +418,12 @@ func (cb *Bundle) createCheckBundle() (*apiclient.CheckBundle, error) {
 	cfg.Notes = &note
 	cfg.Type = "json:nad"
 	cfg.Config = apiclient.CheckBundleConfig{apiconf.URL: "http://" + targetAddr + "/"}
-
 	cfg.Metrics = []apiclient.CheckBundleMetric{}
-	cfg.MetricFilters = defaults.CheckMetricFilters
-	if viper.GetString(config.KeyCheckMetricFilters) != "" {
-		var filters [][]string
-		if err := json.Unmarshal([]byte(viper.GetString(config.KeyCheckMetricFilters)), &filters); err != nil {
-			return nil, errors.Wrap(err, "parsing check bundle metric filters")
+
+	{ // get metric filter configuration
+		filters, err := cb.getMetricFilters()
+		if err != nil {
+			return nil, errors.Wrap(err, "getting metric filters")
 		}
 		cfg.MetricFilters = filters
 	}
@@ -450,5 +459,54 @@ func (cb *Bundle) createCheckBundle() (*apiclient.CheckBundle, error) {
 		return nil, errors.Wrap(err, "creating check bundle")
 	}
 
+	return bundle, nil
+}
+
+type MetricFilterFile struct {
+	Filters [][]string `json:"metric_filters"`
+}
+
+func (cb *Bundle) getMetricFilters() ([][]string, error) {
+	mff := viper.GetString(config.KeyCheckMetricFilterFile)
+	if mff != "" {
+		data, err := ioutil.ReadFile(mff)
+		if err != nil {
+			if !os.IsNotExist(err) {
+				return nil, errors.Wrapf(err, "reading %s", mff)
+			}
+		} else {
+			var filters MetricFilterFile
+			if err := json.Unmarshal(data, &filters); err != nil {
+				return nil, errors.Wrap(err, "parsing metric filters")
+			}
+			cb.logger.Debug().Interface("filters", filters).Str("file", mff).Msg("using metric filter file")
+			return filters.Filters, nil
+		}
+	}
+
+	if viper.GetString(config.KeyCheckMetricFilters) != "" {
+		var filters [][]string
+		if err := json.Unmarshal([]byte(viper.GetString(config.KeyCheckMetricFilters)), &filters); err != nil {
+			return nil, errors.Wrap(err, "parsing check bundle metric filters")
+		}
+		cb.logger.Debug().Interface("filters", filters).Msg("using metric filters option")
+		return filters, nil
+	}
+
+	cb.logger.Debug().Interface("filters", defaults.CheckMetricFilters).Msg("using default metric filters")
+	return defaults.CheckMetricFilters, nil
+}
+
+func (cb *Bundle) updateCheckBundleMetricFilters(cfg *apiclient.CheckBundle) (*apiclient.CheckBundle, error) {
+	filters, err := cb.getMetricFilters()
+	if err != nil {
+		return nil, errors.Wrap(err, "getting metric filters")
+	}
+	cfg.MetricFilters = filters
+	cb.logger.Info().Interface("filters", filters).Msg("updating check bundle metric filters")
+	bundle, err := cb.client.UpdateCheckBundle(cfg)
+	if err != nil {
+		return nil, errors.Wrap(err, "updating metric filters")
+	}
 	return bundle, nil
 }
