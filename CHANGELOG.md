@@ -1,3 +1,18 @@
+# v1.0.9
+
+* add: `--check-update|-U` (check.update) force update of **ALL** configurable check bundle attributes:
+  * config.url
+  * target
+  * display name
+  * period
+  * timeout
+  * metric filters
+  * check tags
+  * broker cid if explicit (Meaning, agent will not select a new one for an existing check. It will only update if a broker id/cid is provided in the configuration)
+  * NOTE: check-update takes precedence over check-update-metric-filters
+* add: `--check-period` (check.period) default 60
+* add: `--check-timeout` (check.timeout) default 10
+
 # v1.0.8
 
 * add: `--check-metric-filter-file` external json file with metric filters
