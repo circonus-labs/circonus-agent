@@ -42,19 +42,22 @@ type ReverseCreateCheckOptions struct {
 
 // Check defines the check parameters
 type Check struct {
-	Broker              string `json:"broker" yaml:"broker" toml:"broker"`
-	BundleID            string `mapstructure:"bundle_id" json:"bundle_id" yaml:"bundle_id" toml:"bundle_id"`
-	Create              bool   `mapstructure:"create" json:"create" yaml:"create" toml:"create"`
-	MetricFilters       string `mapstructure:"metric_filters" json:"metric_filters" yaml:"metric_filters" toml:"metric_filters"` // needs to be json embedded in a string because rules are positional
-	MetricFilterFile    string `mapstructure:"metric_filter_file" json:"metric_filter_file" yaml:"metric_filter_file" toml:"metric_filter_file"`
-	UpdateMetricFilters bool   `mapstructure:"update_metric_filters" json:"update_metric_filters" yaml:"update_metric_filters" toml:"update_metric_filters"`
-	MetricRefreshTTL    string `mapstructure:"metric_refresh_ttl" json:"metric_refresh_ttl" yaml:"metric_refresh_ttl" toml:"metric_refresh_ttl"`
-	MetricStreamtags    bool   `mapstructure:"metric_streamtags" json:"metric_streamtags" yaml:"metric_streamtags" toml:"metric_streamtags"`
-	Tags                string `json:"tags" yaml:"tags" toml:"tags"`
-	Target              string `mapstructure:"target" json:"target" yaml:"target" toml:"target"`
-	Title               string `json:"title" yaml:"title" toml:"title"`
+	Broker              string  `json:"broker" yaml:"broker" toml:"broker"`
+	BundleID            string  `mapstructure:"bundle_id" json:"bundle_id" yaml:"bundle_id" toml:"bundle_id"`
+	Create              bool    `mapstructure:"create" json:"create" yaml:"create" toml:"create"`
+	MetricFilterFile    string  `mapstructure:"metric_filter_file" json:"metric_filter_file" yaml:"metric_filter_file" toml:"metric_filter_file"`
+	MetricFilters       string  `mapstructure:"metric_filters" json:"metric_filters" yaml:"metric_filters" toml:"metric_filters"` // needs to be json embedded in a string because rules are positional
+	MetricStreamtags    bool    `mapstructure:"metric_streamtags" json:"metric_streamtags" yaml:"metric_streamtags" toml:"metric_streamtags"`
+	Period              uint    `json:"period" toml:"period" yaml:"period"`
+	Tags                string  `json:"tags" yaml:"tags" toml:"tags"`
+	Target              string  `mapstructure:"target" json:"target" yaml:"target" toml:"target"`
+	Timeout             float64 `json:"timeout" toml:"timeout" yaml:"timeout"`
+	Title               string  `json:"title" yaml:"title" toml:"title"`
+	Update              bool    `json:"update" toml:"update" yaml:"update"`
+	UpdateMetricFilters bool    `mapstructure:"update_metric_filters" json:"update_metric_filters" yaml:"update_metric_filters" toml:"update_metric_filters"`
 	// hide deprecated config settings
 	EnableNewMetrics bool   `json:"-" yaml:"-" toml:"-"`
+	MetricRefreshTTL string `json:"-" yaml:"-" toml:"-"`
 	MetricStateDir   string `json:"-" yaml:"-" toml:"-"`
 }
 
@@ -289,8 +292,17 @@ const (
 	// KeyCheckUpdateMetricFIlters force update of check with configured metric filters on start
 	KeyCheckUpdateMetricFilters = "check.update_metric_filters"
 
+	// KeyCheckPeriod when broker requests metrics
+	KeyCheckPeriod = "check.period"
+
+	// KeyCheckTimeout broker timeout when requesting metrics
+	KeyCheckTimeout = "check.timeout"
+
 	// KeyCheckCreate toggles creating a new check bundle when a check bundle id is not supplied
 	KeyCheckCreate = "check.create"
+
+	// KeyCheckUpdate forces updating all configurable check bundle attributes
+	KeyCheckUpdate = "check.update"
 
 	// KeyCheckBroker a specific broker ID to use when creating a new check bundle
 	KeyCheckBroker = "check.broker"

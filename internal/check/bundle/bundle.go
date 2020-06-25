@@ -300,7 +300,13 @@ func (cb *Bundle) initCheckBundle(cid string, create bool) error {
 		}
 	}
 
-	if viper.GetBool(config.KeyCheckUpdateMetricFilters) {
+	if viper.GetBool(config.KeyCheckUpdate) {
+		b, err := cb.updateCheckBundle(bundle)
+		if err != nil {
+			return errors.Wrap(err, "updating check bundle")
+		}
+		bundle = b
+	} else if viper.GetBool(config.KeyCheckUpdateMetricFilters) {
 		b, err := cb.updateCheckBundleMetricFilters(bundle)
 		if err != nil {
 			return errors.Wrap(err, "updating check bundle metric filters")
@@ -419,6 +425,20 @@ func (cb *Bundle) createCheckBundle() (*apiclient.CheckBundle, error) {
 	cfg.Type = "json:nad"
 	cfg.Config = apiclient.CheckBundleConfig{apiconf.URL: "http://" + targetAddr + "/"}
 	cfg.Metrics = []apiclient.CheckBundleMetric{}
+	{
+		period := viper.GetUint(config.KeyCheckPeriod)
+		if period < 10 || period > 300 {
+			period = defaults.CheckPeriod
+		}
+		cfg.Period = period
+	}
+	{
+		timeout := viper.GetFloat64(config.KeyCheckTimeout)
+		if timeout < 0 || timeout > 300 {
+			timeout = defaults.CheckTimeout
+		}
+		cfg.Timeout = float32(timeout)
+	}
 
 	{ // get metric filter configuration
 		filters, err := cb.getMetricFilters()
@@ -457,6 +477,85 @@ func (cb *Bundle) createCheckBundle() (*apiclient.CheckBundle, error) {
 	bundle, err := cb.client.CreateCheckBundle(cfg)
 	if err != nil {
 		return nil, errors.Wrap(err, "creating check bundle")
+	}
+
+	return bundle, nil
+}
+
+func (cb *Bundle) updateCheckBundle(cfg *apiclient.CheckBundle) (*apiclient.CheckBundle, error) {
+
+	// parse the first listen address to use as the required
+	// URL in the check config
+	var targetAddr string
+	{
+		serverList := viper.GetStringSlice(config.KeyListen)
+		if len(serverList) == 0 {
+			serverList = []string{defaults.Listen}
+		}
+		if serverList[0][0:1] == ":" {
+			serverList[0] = "localhost" + serverList[0]
+		}
+		ta, err := config.ParseListen(serverList[0])
+		if err != nil {
+			cb.logger.Error().Err(err).Str("addr", serverList[0]).Msg("resolving address")
+			return nil, errors.Wrap(err, "parsing listen address")
+		}
+		targetAddr = ta.String()
+	}
+
+	target := viper.GetString(config.KeyCheckTarget)
+	if target == "" {
+		return nil, errors.New("invalid check bundle target (empty)")
+	}
+
+	cfg.Target = target
+	cfg.DisplayName = viper.GetString(config.KeyCheckTitle)
+	if cfg.DisplayName == "" {
+		cfg.DisplayName = cfg.Target + " /agent"
+	}
+	note := fmt.Sprintf("updated by %s %s", release.NAME, release.VERSION)
+	cfg.Notes = &note
+	cfg.Config = apiclient.CheckBundleConfig{apiconf.URL: "http://" + targetAddr + "/"}
+	cfg.Metrics = []apiclient.CheckBundleMetric{}
+	{
+		period := viper.GetUint(config.KeyCheckPeriod)
+		if period < 10 || period > 300 {
+			period = defaults.CheckPeriod
+		}
+		cfg.Period = period
+	}
+	{
+		timeout := viper.GetFloat64(config.KeyCheckTimeout)
+		if timeout < 0 || timeout > 300 {
+			timeout = defaults.CheckTimeout
+		}
+		cfg.Timeout = float32(timeout)
+	}
+
+	{ // get metric filter configuration
+		filters, err := cb.getMetricFilters()
+		if err != nil {
+			return nil, errors.Wrap(err, "getting metric filters")
+		}
+		cfg.MetricFilters = filters
+	}
+
+	tags := viper.GetString(config.KeyCheckTags)
+	if tags != "" {
+		cfg.Tags = strings.Split(tags, ",")
+	}
+
+	brokerCID := viper.GetString(config.KeyCheckBroker)
+	if brokerCID != "" && brokerCID != "select" {
+		if ok, _ := regexp.MatchString(`^[0-9]+$`, brokerCID); ok {
+			brokerCID = "/broker/" + brokerCID
+		}
+		cfg.Brokers = []string{brokerCID}
+	}
+
+	bundle, err := cb.client.UpdateCheckBundle(cfg)
+	if err != nil {
+		return nil, errors.Wrap(err, "updating check bundle")
 	}
 
 	return bundle, nil

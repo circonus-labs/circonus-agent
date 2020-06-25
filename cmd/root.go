@@ -415,6 +415,25 @@ func init() {
 
 	{
 		const (
+			key         = config.KeyCheckUpdate
+			longOpt     = "check-update"
+			shortOpt    = "U"
+			envVar      = release.ENVPREFIX + "_CHECK_UPDATE"
+			description = "Force check bundle update at start (with all configurable check bundle attributes)"
+		)
+
+		RootCmd.Flags().BoolP(longOpt, shortOpt, defaults.CheckCreate, desc(description, envVar))
+		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
+			bindFlagError(longOpt, err)
+		}
+		if err := viper.BindEnv(key, envVar); err != nil {
+			bindEnvError(envVar, err)
+		}
+		viper.SetDefault(key, defaults.CheckCreate)
+	}
+
+	{
+		const (
 			key         = config.KeyCheckTarget
 			longOpt     = "check-target"
 			shortOpt    = "T"
@@ -559,20 +578,37 @@ func init() {
 
 	{
 		const (
-			key         = config.KeyCheckMetricRefreshTTL
-			longOpt     = "check-metric-refresh-ttl"
-			envVar      = release.ENVPREFIX + "_CHECK_METRIC_REFRESH_TTL"
-			description = "Refresh check metrics TTL"
+			key         = config.KeyCheckPeriod
+			longOpt     = "check-period"
+			envVar      = release.ENVPREFIX + "_CHECK_PERIOD"
+			description = "When broker requests metrics [10-300] seconds"
 		)
+		defaultValue := defaults.CheckPeriod
 
-		RootCmd.Flags().String(longOpt, defaults.CheckMetricRefreshTTL, desc(description, envVar))
+		RootCmd.Flags().Uint(longOpt, defaultValue, desc(description, envVar))
 		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
 			bindFlagError(longOpt, err)
 		}
 		if err := viper.BindEnv(key, envVar); err != nil {
 			bindEnvError(envVar, err)
 		}
-		viper.SetDefault(key, defaults.CheckMetricRefreshTTL)
+	}
+	{
+		const (
+			key         = config.KeyCheckTimeout
+			longOpt     = "check-timeout"
+			envVar      = release.ENVPREFIX + "_CHECK_TIMEOUT"
+			description = "Timeout when broker requests metrics [0-300] seconds"
+		)
+		defaultValue := defaults.CheckTimeout
+
+		RootCmd.Flags().Float64(longOpt, defaultValue, desc(description, envVar))
+		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
+			bindFlagError(longOpt, err)
+		}
+		if err := viper.BindEnv(key, envVar); err != nil {
+			bindEnvError(envVar, err)
+		}
 	}
 
 	//
@@ -1201,6 +1237,27 @@ func init() {
 		}
 		viper.SetDefault(key, defaults.CheckMetricStatePath)
 	}
+
+	{
+		const (
+			key         = config.KeyCheckMetricRefreshTTL
+			longOpt     = "check-metric-refresh-ttl"
+			envVar      = release.ENVPREFIX + "_CHECK_METRIC_REFRESH_TTL"
+			description = "Refresh check metrics TTL"
+		)
+
+		RootCmd.Flags().String(longOpt, defaults.CheckMetricRefreshTTL, desc(description, envVar))
+		flag := RootCmd.Flags().Lookup(longOpt)
+		flag.Hidden = true
+		if err := viper.BindPFlag(key, flag); err != nil {
+			bindFlagError(longOpt, err)
+		}
+		if err := viper.BindEnv(key, envVar); err != nil {
+			bindEnvError(envVar, err)
+		}
+		viper.SetDefault(key, defaults.CheckMetricRefreshTTL)
+	}
+
 }
 
 // initLogging initializes zerolog

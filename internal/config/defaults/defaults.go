@@ -175,6 +175,14 @@ var (
 	//                          with whatever rules are in the agent configuration (or external metric filters file)
 	CheckUpdateMetricFilters = false
 
+	// CheckPeriod how often broker requests metrics
+	CheckPeriod = uint(60)
+	// CheckTimeout broker timeout when requesting metrics
+	CheckTimeout = float64(10)
+
+	// CheckUpdate forces updating all configurable check attributes
+	CheckUpdate = false
+
 	// SSLCertFile returns the deefault ssl cert file name
 	SSLCertFile = "" // (e.g. /opt/circonus/agent/etc/agent.pem)
 
