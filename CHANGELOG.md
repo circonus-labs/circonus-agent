@@ -1,3 +1,7 @@
+# v1.0.10
+
+* upd: remove rpm conflict with NAD
+
 # v1.0.9
 
 * add: `--check-update|-U` (check.update) force update of **ALL** configurable check bundle attributes:
