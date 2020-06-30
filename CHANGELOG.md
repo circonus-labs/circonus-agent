@@ -1,3 +1,9 @@
+# v1.0.12
+
+* fix: test for new url parse error format
+* add: tests for bundle searching in multiple bundles found scenarios
+* fix: return matched not found when no bundles created by agent after multiple bundles were found
+
 # v1.0.11
 
 * upd: if multiple checks found matching criteria (active,json:nad,target) and none match the agent, return result such that a check will be created (if create check is enabled) - note, this does present the possiblity of multiple checks being created if the notes are altered in such a way that the agent is not able to determine it created the check

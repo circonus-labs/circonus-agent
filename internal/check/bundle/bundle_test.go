@@ -193,11 +193,10 @@ func TestFindCheck(t *testing.T) {
 		}
 	}
 
-	t.Log("multiple")
+	t.Log("multiple w/2 agent check")
 	{
-		target := "multiple"
+		target := "multiple2"
 		viper.Set(config.KeyCheckTarget, target)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
 
 		_, found, err := c.findCheckBundle()
 		if err == nil {
@@ -207,7 +206,39 @@ func TestFindCheck(t *testing.T) {
 			t.Fatal("expected found == 2")
 		}
 
-		if err.Error() != `more than one (2) check bundle matched criteria ((active:1)(type:"json:nad")(target:"multiple"))` {
+		if err.Error() != `more than one (2) check bundle matched criteria ((active:1)(type:"json:nad")(target:"multiple2")) created by (circonus-agent)` {
+			t.Fatalf("unexpected error return (%s)", err)
+		}
+	}
+
+	t.Log("multiple w/1 agent check")
+	{
+		target := "multiple1"
+		viper.Set(config.KeyCheckTarget, target)
+
+		_, found, err := c.findCheckBundle()
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
+		if found != 1 {
+			t.Fatal("expected found == 1")
+		}
+	}
+
+	t.Log("multiple w/0 agent check")
+	{
+		target := "multiple0"
+		viper.Set(config.KeyCheckTarget, target)
+
+		_, found, err := c.findCheckBundle()
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if found != 0 {
+			t.Fatal("expected found == 0")
+		}
+
+		if err.Error() != `multiple check bundles (2) found matching criteria ((active:1)(type:"json:nad")(target:"multiple0")), none created by (circonus-agent)` {
 			t.Fatalf("unexpected error return (%s)", err)
 		}
 	}

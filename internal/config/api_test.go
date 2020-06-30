@@ -118,7 +118,7 @@ func TestValidateAPIOptions(t *testing.T) {
 		viper.Set(KeyAPITokenKey, "foo")
 		viper.Set(KeyAPITokenApp, "foo")
 		viper.Set(KeyAPIURL, "foo_bar://herp/derp")
-		expectedError := errors.New("Invalid API URL: parse foo_bar://herp/derp: first path segment in URL cannot contain colon")
+		expectedError := errors.New(`Invalid API URL: parse "foo_bar://herp/derp": first path segment in URL cannot contain colon`)
 		err := validateAPIOptions()
 		if err == nil {
 			t.Fatal("Expected error")
