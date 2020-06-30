@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/go-apiclient"
 	"github.com/gojuno/minimock/v3"
 	"github.com/pkg/errors"
@@ -15,17 +16,26 @@ type pkicacert struct {
 }
 
 var (
-	testCheckBundle apiclient.CheckBundle
-	testBroker      apiclient.Broker
-	cacert          pkicacert
+	testCheckBundle      apiclient.CheckBundle
+	testCheckBundleAgent apiclient.CheckBundle
+	testBroker           apiclient.Broker
+	cacert               pkicacert
 )
 
 func init() {
-	if data, err := ioutil.ReadFile("testdata/checkbundle1234.json"); err != nil {
-		panic(err)
-	} else if err := json.Unmarshal(data, &testCheckBundle); err != nil {
-		panic(err)
-
+	{
+		data, err := ioutil.ReadFile("testdata/checkbundle1234.json")
+		if err != nil {
+			panic(err)
+		}
+		if err := json.Unmarshal(data, &testCheckBundle); err != nil {
+			panic(err)
+		}
+		if err := json.Unmarshal(data, &testCheckBundleAgent); err != nil {
+			panic(err)
+		}
+		notes := release.NAME
+		testCheckBundleAgent.Notes = &notes
 	}
 
 	if data, err := ioutil.ReadFile("testdata/broker1234.json"); err != nil {
@@ -151,8 +161,14 @@ func genMockClient(mc *minimock.Controller) *APIMock {
 		if strings.Contains(string(*searchCriteria), `target:"not_found"`) {
 			return &[]apiclient.CheckBundle{}, nil
 		}
-		if strings.Contains(string(*searchCriteria), `target:"multiple"`) {
+		if strings.Contains(string(*searchCriteria), `target:"multiple0"`) {
 			return &[]apiclient.CheckBundle{testCheckBundle, testCheckBundle}, nil
+		}
+		if strings.Contains(string(*searchCriteria), `target:"multiple1"`) {
+			return &[]apiclient.CheckBundle{testCheckBundle, testCheckBundleAgent}, nil
+		}
+		if strings.Contains(string(*searchCriteria), `target:"multiple2"`) {
+			return &[]apiclient.CheckBundle{testCheckBundleAgent, testCheckBundleAgent}, nil
 		}
 		if strings.Contains(string(*searchCriteria), `target:"valid"`) {
 			return &[]apiclient.CheckBundle{testCheckBundle}, nil
