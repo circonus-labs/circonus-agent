@@ -379,14 +379,23 @@ func (cb *Bundle) findCheckBundle() (*apiclient.CheckBundle, int, error) {
 			}
 		}
 		if matched == 0 {
-			cb.logger.Warn().Int("found", found).Int("matched", matched).Str("criteria", string(criteria)).Msgf("found multiple check bundles found, none created by (%s)", release.NAME)
+			cb.logger.Warn().
+				Int("found", found).
+				Int("matched", matched).
+				Str("criteria", string(criteria)).
+				Msgf("multiple check bundles found, none created by (%s)", release.NAME)
 			return nil, matched, errors.Errorf("multiple check bundles (%d) found matching criteria (%s), none created by (%s)", found, string(criteria), release.NAME)
 		}
 		if matched == 1 {
-			cb.logger.Warn().Int("found", found).Str("bundle", (*bundles)[idx].CID).Msgf("multiple check bundles found, using one created by (%s)", release.NAME)
+			cb.logger.Warn().
+				Int("found", found).
+				Int("matched", matched).
+				Str("criteria", string(criteria)).
+				Str("bundle", (*bundles)[idx].CID).
+				Msgf("multiple check bundles found, using one created by (%s)", release.NAME)
 			return &(*bundles)[idx], matched, nil
 		}
-		return nil, found, errors.Errorf("more than one (%d) check bundle matched criteria (%s) created by (%s)", matched, string(criteria), release.NAME)
+		return nil, found, errors.Errorf("multiple check bundles (%d) found matching criteria (%s) created by (%s)", matched, string(criteria), release.NAME)
 	}
 
 	return &(*bundles)[0], found, nil

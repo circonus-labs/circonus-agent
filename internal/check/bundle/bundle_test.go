@@ -206,7 +206,7 @@ func TestFindCheck(t *testing.T) {
 			t.Fatal("expected found == 2")
 		}
 
-		if err.Error() != `more than one (2) check bundle matched criteria ((active:1)(type:"json:nad")(target:"multiple2")) created by (circonus-agent)` {
+		if err.Error() != `multiple check bundles (2) found matching criteria ((active:1)(type:"json:nad")(target:"multiple2")) created by (circonus-agent)` {
 			t.Fatalf("unexpected error return (%s)", err)
 		}
 	}
