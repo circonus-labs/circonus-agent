@@ -378,6 +378,10 @@ func (cb *Bundle) findCheckBundle() (*apiclient.CheckBundle, int, error) {
 				matched++
 			}
 		}
+		if matched == 0 {
+			cb.logger.Warn().Int("found", found).Int("matched", matched).Str("criteria", string(criteria)).Msgf("found multiple checks matching critera, none created by %s", release.NAME)
+			return nil, found, errors.Errorf("multiple checks (%d) found matching criteria (%s), none created by %s", found, string(criteria), release.NAME)
+		}
 		if matched == 1 {
 			cb.logger.Warn().Int("found", found).Str("bundle", (*bundles)[idx].CID).Msgf("multiple checks found, using one created by %s", release.NAME)
 			return &(*bundles)[idx], matched, nil
