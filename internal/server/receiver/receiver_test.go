@@ -46,6 +46,41 @@ func TestFlush(t *testing.T) {
 	}
 }
 
+func TestFlushNoReset(t *testing.T) {
+	t.Log("Testing FlushNoReset")
+
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+
+	t.Log("\tno metrics")
+	{
+		m := FlushNoReset()
+		if len(*m) != 0 {
+			t.Fatalf("expected 0 metrics, got %d", len(*m))
+		}
+	}
+
+	t.Log("\tw/metric(s)")
+	{
+		err := initCGM()
+		if err != nil {
+			t.Fatalf("expected no error, got %s", err)
+		}
+		metrics.SetText("test", "test")
+
+		m := FlushNoReset()
+		if len(*m) != 1 {
+			t.Fatalf("expected 1 metric, got %d", len(*m))
+		}
+		m = FlushNoReset()
+		if len(*m) != 1 {
+			t.Fatalf("expected 1 metric, got %d", len(*m))
+		}
+		// this removes the test metric,
+		// since TestParse expects no metrics, and tests share a metric store
+		_ = Flush()
+	}
+}
+
 func TestParse(t *testing.T) {
 	t.Log("Testing Parse")
 
