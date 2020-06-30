@@ -144,8 +144,8 @@ func TestRouter(t *testing.T) {
 			{"GET", "/inventory/", http.StatusOK},
 			{"GET", "/stats", http.StatusOK},
 			{"GET", "/stats/", http.StatusOK},
-			{"GET", "/prom", http.StatusNoContent},
-			{"GET", "/prom/", http.StatusNoContent},
+			{"GET", "/prom", http.StatusOK},
+			{"GET", "/prom/", http.StatusOK},
 		}
 		// zerolog.SetGlobalLevel(zerolog.DebugLevel)
 
