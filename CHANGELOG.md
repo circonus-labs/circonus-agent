@@ -1,3 +1,7 @@
+# v1.0.11
+
+* upd: if multiple checks found matching criteria (active,json:nad,target) and none match the agent, return result such that a check will be created (if create check is enabled) - note, this does present the possiblity of multiple checks being created if the notes are altered in such a way that the agent is not able to determine it created the check
+
 # v1.0.10
 
 * upd: remove rpm conflict with NAD
