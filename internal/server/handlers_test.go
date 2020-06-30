@@ -420,7 +420,7 @@ func TestPromOutput(t *testing.T) {
 		t.Fatal("expected NOT nil")
 	}
 
-	t.Logf("GET /prom -> %d (w/o metrics)", http.StatusNoContent)
+	t.Logf("GET /prom -> %d (w/o metrics)", http.StatusOK)
 	{
 		_ = httptest.NewRequest("GET", "/prom", nil)
 		w := httptest.NewRecorder()
@@ -430,8 +430,8 @@ func TestPromOutput(t *testing.T) {
 		resp := w.Result()
 		resp.Body.Close()
 
-		if resp.StatusCode != http.StatusNoContent {
-			t.Fatalf("expected %d, got %d", http.StatusNoContent, resp.StatusCode)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected %d, got %d", http.StatusOK, resp.StatusCode)
 		}
 	}
 

@@ -85,6 +85,11 @@ func Flush() *cgm.Metrics {
 	return metrics.FlushMetrics()
 }
 
+func FlushNoReset() *cgm.Metrics {
+	_ = initCGM()
+	return metrics.FlushMetricsNoReset()
+}
+
 // Parse handles incoming PUT/POST requests
 func Parse(id string, data io.Reader) error {
 	if err := initCGM(); err != nil {

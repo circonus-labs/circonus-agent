@@ -145,8 +145,14 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
 			conduitID := "receiver"
 			numMetrics := 0
+			reset := strings.ToLower(r.Header.Get("x-circonus-receiver-reset"))
 			s.logger.Debug().Str("conduit_id", conduitID).Msg("start")
-			receiverMetrics := receiver.Flush()
+			var receiverMetrics *cgm.Metrics
+			if reset == "false" {
+				receiverMetrics = receiver.FlushNoReset()
+			} else {
+				receiverMetrics = receiver.Flush()
+			}
 			if receiverMetrics != nil && len(*receiverMetrics) > 0 {
 				numMetrics = len(*receiverMetrics)
 				conduitCh <- conduit{id: conduitID, metrics: receiverMetrics}
