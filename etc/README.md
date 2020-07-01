@@ -78,6 +78,7 @@ Example usage: `--collectors="procfs/cpu,procfs/disk,procfs/if,procfs/load,procf
     * ID: `procfs/vm`
     * Config file: `procfs_vm_collector.(json|toml|yaml)`
     * Options: _only the common options_
+    * Note: agent v1 difference from NAD `vm.sh` - htop calculations are used for memory to better represent free/used
 * System load
     * ID: `procfs/load`
     * Config file: `procfs_load_collector.(json|toml|yaml)`
