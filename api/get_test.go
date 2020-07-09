@@ -6,6 +6,7 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -45,7 +46,7 @@ func TestGet(t *testing.T) {
 	for _, test := range tests {
 		t.Log("\t", test.name)
 
-		_, err := c.get(test.rpath)
+		_, err := c.get(context.Background(), test.rpath)
 
 		if test.shouldErr {
 			if err == nil {

@@ -6,6 +6,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/pkg/errors"
@@ -13,7 +14,12 @@ import (
 
 // Inventory retrieves the active plugin inventory from the agent
 func (c *Client) Inventory() (*Inventory, error) {
-	data, err := c.get("/inventory/")
+	return c.InventoryWithContext(context.Background())
+}
+
+// InventoryWithContext retrieves the active plugin inventory from the agent
+func (c *Client) InventoryWithContext(ctx context.Context) (*Inventory, error) {
+	data, err := c.get(ctx, "/inventory/")
 	if err != nil {
 		return nil, err
 	}
