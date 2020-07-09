@@ -6,6 +6,7 @@
 package check
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -100,7 +101,7 @@ func TestCheck_FindPrimaryBrokerInstance(t *testing.T) {
 				reverse:               tt.fields.reverse,
 				revConfigs:            tt.fields.revConfigs,
 			}
-			got, err := c.FindPrimaryBrokerInstance(tt.args.cfgs)
+			got, err := c.FindPrimaryBrokerInstance(context.Background(), tt.args.cfgs)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Check.FindPrimaryBrokerInstance() error = %v, wantErr %v", err, tt.wantErr)
 				return
