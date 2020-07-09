@@ -1,10 +1,10 @@
 # Circonus Agent
 
-The circonus-agent is intended to be a drop-in replacement for NAD. There is, however, one specific caveat -- native plugins (.js) do not work. Unless modified to run `node` independently and follow [plugin output guidelines](#output). Additionally, as of v1, the circonus-agent only supports stream tags (if it is _dropped in_ an existing NAD install, the metric names will change). If metric name continuity is required, use the v0 circonus-agent releases.
+Version 1.x of the circonus-agent only supports metrics with stream tags (if it is _dropped in_ an existing NAD install, the metric names will change). If metric name continuity is required, use the v0 circonus-agent releases.
 
 # Features
 
-1. Replacement for NAD, written in go
+1. Replacement for NAD, written in Go - note, v0.x only
 1. Builtin metric [collectors](#builtin-collectors) -- the default Linux builtins emit the common metrics needed for cosi visuals (graphs, worksheets, & dashboards)
 1. [Plugin](#plugins) architecture for local metric collection
 1. Local HTTP [Receiver](#receiver) for POST/PUT metric collection
