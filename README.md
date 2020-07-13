@@ -125,13 +125,22 @@ Flags:
       --api-key string                    [ENV: CA_API_KEY] Circonus API Token key
       --api-url string                    [ENV: CA_API_URL] Circonus API URL (default "https://api.circonus.com/v2/")
       --check-broker string               [ENV: CA_CHECK_BROKER] ID of Broker to use or 'select' for random selection of valid broker, if creating a check bundle (default "select")
-  -C, --check-create                      [ENV: CA_CHECK_CREATE] Create check bundle (for reverse and auto enable new metrics)
-  -I, --check-id string                   [ENV: CA_CHECK_ID] Check Bundle ID or 'cosi' for cosi system check (for reverse)
+  -C, --check-create                      [ENV: CA_CHECK_CREATE] Create check bundle
+  -I, --check-id string                   [ENV: CA_CHECK_ID] Check Bundle ID or 'cosi' for cosi system check (for reverse and auto enable new metrics)
+      --check-metric-filter-file string   [ENV: CA_CHECK_METRIC_FILTER_FILE] JSON file with metric filters (default "/opt/circonus/agent/etc/metric_filters.json")
       --check-metric-filters string       [ENV: CA_CHECK_METRIC_FILTERS] List of filters used to manage which metrics are collected
+  -S, --check-metric-streamtags           [ENV: CA_CHECK_METRIC_STREAMTAGS] Add check tags to metrics as stream tags
+      --check-period uint                 [ENV: CA_CHECK_PERIOD] When broker requests metrics [10-300] seconds (default 60)
       --check-tags string                 [ENV: CA_CHECK_TAGS] Tags [comma separated list] to use, if creating a check bundle
-  -T, --check-target string               [ENV: CA_CHECK_TARGET] Check target host (for creating a new check) (default "cosi-tool-c7")
+  -T, --check-target string               [ENV: CA_CHECK_TARGET] Check target host (for creating a new check) (default "the host's name from OS")
+      --check-timeout float               [ENV: CA_CHECK_TIMEOUT] Timeout when broker requests metrics [0-300] seconds (default 10)
       --check-title string                [ENV: CA_CHECK_TITLE] Title [display name] to use, if creating a check bundle (default "<check-target> /agent")
-      --collectors strings                [ENV: CA_COLLECTORS] List of builtin collectors to enable (default [procfs/cpu,procfs/disk,procfs/if,procfs/load,procfs/vm])
+  -U, --check-update                      [ENV: CA_CHECK_UPDATE] Force check bundle update at start (with all configurable check bundle attributes)
+      --check-update-metric-filters       [ENV: CA_CHECK_UPDATE_METRIC_FILTERS] Update check bundle with configured metric filters when agent starts
+      --cluster-enable                    [ENV: CA_CLUSTER_ENABLE] Enable cluster awareness mode
+      --cluster-enable-builtins           [ENV: CA_CLUSTER_ENABLE_BUILTINS] Enable builtins in cluster awareness mode
+      --cluster-statsd-histogram-gauges   [ENV: CA_CLUSTER_STATSD_HISTOGRAM_GAUGES] Represent StatsD gauges as histograms in cluster awareness mode
+      --collectors strings                [ENV: CA_COLLECTORS] List of builtin collectors to enable (default [generic/cpu,generic/disk,generic/fs,generic/if,generic/load,generic/proto,generic/vm])
   -c, --config string                     config file (default is /opt/circonus/agent/etc/circonus-agent.(json|toml|yaml)
   -d, --debug                             [ENV: CA_DEBUG] Enable debug messages
       --debug-api                         [ENV: CA_DEBUG_API] Enable Circonus API debug messages
@@ -149,7 +158,7 @@ Flags:
       --log-pretty                        [ENV: CA_LOG_PRETTY] Output formatted/colored log lines [ignored on windows]
       --no-gzip                           Disable gzip HTTP responses
       --no-statsd                         [ENV: CA_NO_STATSD] Disable StatsD listener
-  -p, --plugin-dir string                 [ENV: CA_PLUGIN_DIR] Plugin directory
+  -p, --plugin-dir string                 [ENV: CA_PLUGIN_DIR] Plugin directory (/opt/circonus/agent/plugins)
       --plugin-list strings               [ENV: CA_PLUGIN_LIST] List of explicit plugin commands to run
       --plugin-ttl-units string           [ENV: CA_PLUGIN_TTL_UNITS] Default plugin TTL units (default "s")
   -r, --reverse                           [ENV: CA_REVERSE] Enable reverse connection
@@ -161,6 +170,7 @@ Flags:
       --ssl-listen string                 [ENV: CA_SSL_LISTEN] SSL listen address and port [IP]:[PORT] - setting enables SSL
       --ssl-verify                        [ENV: CA_SSL_VERIFY] Enable SSL verification (default true)
       --statsd-addr string                [ENV: CA_STATSD_ADDR] StatsD address to listen on (default "localhost")
+      --statsd-enable-tcp                 [ENV: CA_STATSD_ENABLE_TCP] Enable StatsD TCP listener
       --statsd-group-cid string           [ENV: CA_STATSD_GROUP_CID] StatsD group check bundle ID
       --statsd-group-counters string      [ENV: CA_STATSD_GROUP_COUNTERS] StatsD group metric counter handling (average|sum) (default "sum")
       --statsd-group-gauges string        [ENV: CA_STATSD_GROUP_GAUGES] StatsD group gauge operator (default "average")
@@ -168,7 +178,8 @@ Flags:
       --statsd-group-sets string          [ENV: CA_STATSD_GROPUP_SETS] StatsD group set operator (default "sum")
       --statsd-host-category string       [ENV: CA_STATSD_HOST_CATEGORY] StatsD host metric category (default "statsd")
       --statsd-host-prefix string         [ENV: CA_STATSD_HOST_PREFIX] StatsD host metric prefix
-      --statsd-port string                [ENV: CA_STATSD_PORT] StatsD port (default "8125")
+      --statsd-max-tcp-connections uint   [ENV: CA_STATSD_MAX_TCP_CONNS] StatsD maximum TCP connections (default 250)
+      --statsd-port string                [ENV: CA_STATSD_PORT] StatsD port to listen on (default "8125")
   -V, --version                           Show version and exit
 ```
 
