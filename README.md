@@ -126,13 +126,13 @@ Flags:
       --api-url string                    [ENV: CA_API_URL] Circonus API URL (default "https://api.circonus.com/v2/")
       --check-broker string               [ENV: CA_CHECK_BROKER] ID of Broker to use or 'select' for random selection of valid broker, if creating a check bundle (default "select")
   -C, --check-create                      [ENV: CA_CHECK_CREATE] Create check bundle
-  -I, --check-id string                   [ENV: CA_CHECK_ID] Check Bundle ID or 'cosi' for cosi system check (for reverse and auto enable new metrics)
+  -I, --check-id string                   [ENV: CA_CHECK_ID] Check Bundle ID or 'cosi' for cosi system check
       --check-metric-filter-file string   [ENV: CA_CHECK_METRIC_FILTER_FILE] JSON file with metric filters (default "/opt/circonus/agent/etc/metric_filters.json")
       --check-metric-filters string       [ENV: CA_CHECK_METRIC_FILTERS] List of filters used to manage which metrics are collected
   -S, --check-metric-streamtags           [ENV: CA_CHECK_METRIC_STREAMTAGS] Add check tags to metrics as stream tags
       --check-period uint                 [ENV: CA_CHECK_PERIOD] When broker requests metrics [10-300] seconds (default 60)
       --check-tags string                 [ENV: CA_CHECK_TAGS] Tags [comma separated list] to use, if creating a check bundle
-  -T, --check-target string               [ENV: CA_CHECK_TARGET] Check target host (for creating a new check) (default "the host's name from OS")
+  -T, --check-target string               [ENV: CA_CHECK_TARGET] Check target host (for creating a new check) (default the host's name from OS)
       --check-timeout float               [ENV: CA_CHECK_TIMEOUT] Timeout when broker requests metrics [0-300] seconds (default 10)
       --check-title string                [ENV: CA_CHECK_TITLE] Title [display name] to use, if creating a check bundle (default "<check-target> /agent")
   -U, --check-update                      [ENV: CA_CHECK_UPDATE] Force check bundle update at start (with all configurable check bundle attributes)
@@ -140,7 +140,7 @@ Flags:
       --cluster-enable                    [ENV: CA_CLUSTER_ENABLE] Enable cluster awareness mode
       --cluster-enable-builtins           [ENV: CA_CLUSTER_ENABLE_BUILTINS] Enable builtins in cluster awareness mode
       --cluster-statsd-histogram-gauges   [ENV: CA_CLUSTER_STATSD_HISTOGRAM_GAUGES] Represent StatsD gauges as histograms in cluster awareness mode
-      --collectors strings                [ENV: CA_COLLECTORS] List of builtin collectors to enable (default [generic/cpu,generic/disk,generic/fs,generic/if,generic/load,generic/proto,generic/vm])
+      --collectors strings                [ENV: CA_COLLECTORS] List of builtin collectors to enable (default based on OS)
   -c, --config string                     config file (default is /opt/circonus/agent/etc/circonus-agent.(json|toml|yaml)
   -d, --debug                             [ENV: CA_DEBUG] Enable debug messages
       --debug-api                         [ENV: CA_DEBUG_API] Enable Circonus API debug messages
@@ -163,7 +163,6 @@ Flags:
       --plugin-ttl-units string           [ENV: CA_PLUGIN_TTL_UNITS] Default plugin TTL units (default "s")
   -r, --reverse                           [ENV: CA_REVERSE] Enable reverse connection
       --reverse-broker-ca-file string     [ENV: CA_REVERSE_BROKER_CA_FILE] Broker CA certificate file
-      --reverse-max-conn-retry int        [ENV: CA_REVERSE_MAX_CONN_RETRY] Max attempts to retry persistently failing reverse connection to broker [-1=indefinitely] (default -1)
       --show-config string                Show config (json|toml|yaml) and exit
       --ssl-cert-file string              [ENV: CA_SSL_CERT_FILE] SSL Certificate file (PEM cert and CAs concatenated together) (default "/opt/circonus/agent/etc/circonus-agent.pem")
       --ssl-key-file string               [ENV: CA_SSL_KEY_FILE] SSL Key file (default "/opt/circonus/agent/etc/circonus-agent.key")
