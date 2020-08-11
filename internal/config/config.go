@@ -44,21 +44,20 @@ type ReverseCreateCheckOptions struct {
 type Check struct {
 	Broker              string  `json:"broker" yaml:"broker" toml:"broker"`
 	BundleID            string  `mapstructure:"bundle_id" json:"bundle_id" yaml:"bundle_id" toml:"bundle_id"`
-	Create              bool    `mapstructure:"create" json:"create" yaml:"create" toml:"create"`
 	MetricFilterFile    string  `mapstructure:"metric_filter_file" json:"metric_filter_file" yaml:"metric_filter_file" toml:"metric_filter_file"`
 	MetricFilters       string  `mapstructure:"metric_filters" json:"metric_filters" yaml:"metric_filters" toml:"metric_filters"` // needs to be json embedded in a string because rules are positional
-	MetricStreamtags    bool    `mapstructure:"metric_streamtags" json:"metric_streamtags" yaml:"metric_streamtags" toml:"metric_streamtags"`
-	Period              uint    `json:"period" toml:"period" yaml:"period"`
 	Tags                string  `json:"tags" yaml:"tags" toml:"tags"`
 	Target              string  `mapstructure:"target" json:"target" yaml:"target" toml:"target"`
-	Timeout             float64 `json:"timeout" toml:"timeout" yaml:"timeout"`
 	Title               string  `json:"title" yaml:"title" toml:"title"`
+	MetricRefreshTTL    string  `json:"-" yaml:"-" toml:"-"` // deprecated, hidden
+	MetricStateDir      string  `json:"-" yaml:"-" toml:"-"` // deprecated, hidden
+	Period              uint    `json:"period" toml:"period" yaml:"period"`
+	Timeout             float64 `json:"timeout" toml:"timeout" yaml:"timeout"`
+	Create              bool    `mapstructure:"create" json:"create" yaml:"create" toml:"create"`
+	MetricStreamtags    bool    `mapstructure:"metric_streamtags" json:"metric_streamtags" yaml:"metric_streamtags" toml:"metric_streamtags"`
 	Update              bool    `json:"update" toml:"update" yaml:"update"`
 	UpdateMetricFilters bool    `mapstructure:"update_metric_filters" json:"update_metric_filters" yaml:"update_metric_filters" toml:"update_metric_filters"`
-	// hide deprecated config settings
-	EnableNewMetrics bool   `json:"-" yaml:"-" toml:"-"`
-	MetricRefreshTTL string `json:"-" yaml:"-" toml:"-"`
-	MetricStateDir   string `json:"-" yaml:"-" toml:"-"`
+	EnableNewMetrics    bool    `json:"-" yaml:"-" toml:"-"` // deprecated, hidden
 }
 
 // Reverse defines the running config.reverse structure

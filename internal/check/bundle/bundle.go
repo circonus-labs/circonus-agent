@@ -29,21 +29,21 @@ import (
 
 // Bundle exposes the check bundle management interface
 type Bundle struct {
+	logger                zerolog.Logger
+	lastRefresh           time.Time
 	statusActiveMetric    string
 	statusActiveBroker    string
+	client                API
+	stateFile             string
+	statePath             string
 	brokerMaxResponseTime time.Duration
 	brokerMaxRetries      int
 	bundle                *apiclient.CheckBundle
-	client                API
-	lastRefresh           time.Time
-	logger                zerolog.Logger
-	manage                bool
 	metricStates          *metricStates
-	metricStateUpdate     bool
 	refreshTTL            time.Duration
-	stateFile             string
-	statePath             string
 	sync.Mutex
+	manage            bool
+	metricStateUpdate bool
 }
 
 var ErrUninitialized = errors.New("uninitialized check bundle")
