@@ -23,6 +23,7 @@ builds:
             - darwin
             - windows
             - freebsd
+            - openbsd
             - solaris
             - illumos
 
@@ -33,8 +34,12 @@ builds:
 
         ignore:
             -
-                goarch: 386
+              goarch: 386
             - goos: freebsd
+              goarch: arm
+            - goos: openbsd
+              goarch: arm64
+            - goos: openbsd
               goarch: arm
 
         ldflags: 
@@ -49,7 +54,7 @@ dockers:
         goarch: amd64
         goarm: ''
         binaries:
-            - sbin/circonus-agentd
+            - circonus-agentd
         image_templates:
             - "circonuslabs/{{.ProjectName}}:{{.Tag}}"
             - "circonuslabs/{{.ProjectName}}:latest"
@@ -64,7 +69,7 @@ dockers:
         goarch: arm64
         goarm: ''
         binaries:
-            - sbin/circonus-agentd
+            - circonus-agentd
         image_templates:
             - "circonuslabs/{{.ProjectName}}-arm64:{{.Tag}}"
             - "circonuslabs/{{.ProjectName}}-arm64:latest"
