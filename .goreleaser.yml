@@ -49,7 +49,7 @@ dockers:
         goarch: amd64
         goarm: ''
         binaries:
-            - sbin/circonus-agentd
+            - circonus-agentd
         image_templates:
             - "circonuslabs/{{.ProjectName}}:{{.Tag}}"
             - "circonuslabs/{{.ProjectName}}:latest"
@@ -64,7 +64,7 @@ dockers:
         goarch: arm64
         goarm: ''
         binaries:
-            - sbin/circonus-agentd
+            - circonus-agentd
         image_templates:
             - "circonuslabs/{{.ProjectName}}-arm64:{{.Tag}}"
             - "circonuslabs/{{.ProjectName}}-arm64:latest"
