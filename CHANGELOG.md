@@ -1,3 +1,7 @@
+# v1.0.13
+
+* upd: circonus-agent-plugins
+
 # v1.0.12
 
 * fix: test for new url parse error format
