@@ -14,6 +14,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/check"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
+	"github.com/circonus-labs/circonus-agent/internal/multiagent"
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
 	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/reverse"
@@ -21,6 +22,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/statsd"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/viper"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -34,6 +36,7 @@ type Agent struct {
 	listenServer *server.Server
 	plugins      *plugins.Plugins
 	reverseConn  *reverse.Reverse
+	submitter    *multiagent.Submitter
 	signalCh     chan os.Signal
 	statsdServer *statsd.Server
 	logger       zerolog.Logger
@@ -90,9 +93,19 @@ func New() (*Agent, error) {
 	if err != nil {
 		return nil, err
 	}
-	a.reverseConn, err = reverse.New(a.logger, a.check, agentAddress)
-	if err != nil {
-		return nil, err
+
+	if viper.GetBool(config.KeyReverse) {
+		a.reverseConn, err = reverse.New(a.logger, a.check, agentAddress)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if viper.GetBool(config.KeyMultiAgent) {
+		a.submitter, err = multiagent.New(a.logger, a.check, a.listenServer)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	a.signalNotifySetup()
@@ -104,9 +117,16 @@ func New() (*Agent, error) {
 func (a *Agent) Start() error {
 	a.group.Go(a.handleSignals)
 	a.group.Go(a.statsdServer.Start)
-	a.group.Go(func() error {
-		return a.reverseConn.Start(a.groupCtx)
-	})
+	if viper.GetBool(config.KeyReverse) {
+		a.group.Go(func() error {
+			return a.reverseConn.Start(a.groupCtx)
+		})
+	}
+	if viper.GetBool(config.KeyMultiAgent) {
+		a.group.Go(func() error {
+			return a.submitter.Start(a.groupCtx)
+		})
+	}
 	a.group.Go(a.listenServer.Start)
 
 	a.logger.Debug().
