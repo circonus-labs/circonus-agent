@@ -46,6 +46,18 @@ in JSON format.`,
 		}
 
 		//
+		// multi-agent
+		//
+		// in this mode, do not enable system metric collectors by default
+		// they can be enabled explicitly by the user via --collectors or collectors in config
+		// there is not a lot of point in evaluating these types of metrics across several systems
+		if !viper.IsSet(config.KeyCollectors) {
+			if !viper.GetBool(config.KeyMultiAgent) {
+				viper.Set(config.KeyCollectors, defaults.Collectors)
+			}
+		}
+
+		//
 		// show configuration and exit
 		//
 		if viper.GetString(config.KeyShowConfig) != "" {
@@ -135,7 +147,8 @@ func init() {
 			description = "List of builtin collectors to enable"
 		)
 
-		RootCmd.Flags().StringSlice(longOpt, defaults.Collectors, desc(description, envVar))
+		// RootCmd.Flags().StringSlice(longOpt, defaults.Collectors, desc(description, envVar))
+		RootCmd.Flags().StringSlice(longOpt, []string{}, desc(description, envVar))
 		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
 			bindFlagError(longOpt, err)
 
@@ -144,7 +157,7 @@ func init() {
 			bindEnvError(envVar, err)
 
 		}
-		viper.SetDefault(key, defaults.Collectors)
+		// viper.SetDefault(key, defaults.Collectors)
 	}
 
 	{
@@ -311,6 +324,46 @@ func init() {
 			bindEnvError(envVar, err)
 		}
 		viper.SetDefault(key, defaults.PluginTTLUnits)
+	}
+
+	//
+	// multi-agent mode
+	//
+	{
+		const (
+			key         = config.KeyMultiAgent
+			longOpt     = "multi-agent"
+			shortOpt    = "m"
+			envVar      = release.ENVPREFIX + "_MULTI_AGENT"
+			description = "Enable multi-agent mode"
+		)
+
+		RootCmd.Flags().BoolP(longOpt, shortOpt, defaults.MultiAgent, desc(description, envVar))
+		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
+			bindFlagError(longOpt, err)
+		}
+		if err := viper.BindEnv(key, envVar); err != nil {
+			bindEnvError(envVar, err)
+		}
+		viper.SetDefault(key, defaults.MultiAgent)
+	}
+	{
+		const (
+			key          = config.KeyMultiAgentInterval
+			longOpt      = "multi-agent-interval"
+			defaultValue = defaults.MultiAgentInterval
+			envVar       = release.ENVPREFIX + "_MULTI_AGENT_INTERVAL"
+			description  = "Multi-agent mode interval"
+		)
+
+		RootCmd.Flags().String(longOpt, defaultValue, desc(description, envVar))
+		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
+			bindFlagError(longOpt, err)
+		}
+		if err := viper.BindEnv(key, envVar); err != nil {
+			bindEnvError(envVar, err)
+		}
+		viper.SetDefault(key, defaultValue)
 	}
 
 	//
@@ -1197,66 +1250,66 @@ func init() {
 	//
 	// Hidden, deprecated flags so old configs don't break - the flags are just ignored
 	//
-	{
-		const (
-			key         = config.KeyCheckEnableNewMetrics
-			longOpt     = "check-enable-new-metrics"
-			shortOpt    = "E"
-			envVar      = release.ENVPREFIX + "_CHECK_ENABLE_NEW_METRICS"
-			description = "DEPRECATED: see --check-metric-filters - Automatically enable all new metrics"
-		)
+	// {
+	// 	const (
+	// 		key         = config.KeyCheckEnableNewMetrics
+	// 		longOpt     = "check-enable-new-metrics"
+	// 		shortOpt    = "E"
+	// 		envVar      = release.ENVPREFIX + "_CHECK_ENABLE_NEW_METRICS"
+	// 		description = "DEPRECATED: see --check-metric-filters - Automatically enable all new metrics"
+	// 	)
 
-		RootCmd.Flags().BoolP(longOpt, shortOpt, defaults.CheckEnableNewMetrics, desc(description, envVar))
-		flag := RootCmd.Flags().Lookup(longOpt)
-		flag.Hidden = true
-		if err := viper.BindPFlag(key, flag); err != nil {
-			bindFlagError(longOpt, err)
-		}
-		if err := viper.BindEnv(key, envVar); err != nil {
-			bindEnvError(envVar, err)
-		}
-		viper.SetDefault(key, defaults.CheckEnableNewMetrics)
-	}
+	// 	RootCmd.Flags().BoolP(longOpt, shortOpt, defaults.CheckEnableNewMetrics, desc(description, envVar))
+	// 	flag := RootCmd.Flags().Lookup(longOpt)
+	// 	flag.Hidden = true
+	// 	if err := viper.BindPFlag(key, flag); err != nil {
+	// 		bindFlagError(longOpt, err)
+	// 	}
+	// 	if err := viper.BindEnv(key, envVar); err != nil {
+	// 		bindEnvError(envVar, err)
+	// 	}
+	// 	viper.SetDefault(key, defaults.CheckEnableNewMetrics)
+	// }
 
-	{
-		const (
-			key         = config.KeyCheckMetricStateDir
-			longOpt     = "check-metric-state-dir"
-			envVar      = release.ENVPREFIX + "_CHECK_METRIC_STATE_DIR"
-			description = "DEPRECATED: see --check-metric-filters - Metric state directory for enable new metrics (must be writeable by user running agent)"
-		)
+	// {
+	// 	const (
+	// 		key         = config.KeyCheckMetricStateDir
+	// 		longOpt     = "check-metric-state-dir"
+	// 		envVar      = release.ENVPREFIX + "_CHECK_METRIC_STATE_DIR"
+	// 		description = "DEPRECATED: see --check-metric-filters - Metric state directory for enable new metrics (must be writeable by user running agent)"
+	// 	)
 
-		RootCmd.Flags().String(longOpt, defaults.CheckMetricStatePath, desc(description, envVar))
-		flag := RootCmd.Flags().Lookup(longOpt)
-		flag.Hidden = true
-		if err := viper.BindPFlag(key, flag); err != nil {
-			bindFlagError(longOpt, err)
-		}
-		if err := viper.BindEnv(key, envVar); err != nil {
-			bindEnvError(envVar, err)
-		}
-		viper.SetDefault(key, defaults.CheckMetricStatePath)
-	}
+	// 	RootCmd.Flags().String(longOpt, defaults.CheckMetricStatePath, desc(description, envVar))
+	// 	flag := RootCmd.Flags().Lookup(longOpt)
+	// 	flag.Hidden = true
+	// 	if err := viper.BindPFlag(key, flag); err != nil {
+	// 		bindFlagError(longOpt, err)
+	// 	}
+	// 	if err := viper.BindEnv(key, envVar); err != nil {
+	// 		bindEnvError(envVar, err)
+	// 	}
+	// 	viper.SetDefault(key, defaults.CheckMetricStatePath)
+	// }
 
-	{
-		const (
-			key         = config.KeyCheckMetricRefreshTTL
-			longOpt     = "check-metric-refresh-ttl"
-			envVar      = release.ENVPREFIX + "_CHECK_METRIC_REFRESH_TTL"
-			description = "Refresh check metrics TTL"
-		)
+	// {
+	// 	const (
+	// 		key         = config.KeyCheckMetricRefreshTTL
+	// 		longOpt     = "check-metric-refresh-ttl"
+	// 		envVar      = release.ENVPREFIX + "_CHECK_METRIC_REFRESH_TTL"
+	// 		description = "Refresh check metrics TTL"
+	// 	)
 
-		RootCmd.Flags().String(longOpt, defaults.CheckMetricRefreshTTL, desc(description, envVar))
-		flag := RootCmd.Flags().Lookup(longOpt)
-		flag.Hidden = true
-		if err := viper.BindPFlag(key, flag); err != nil {
-			bindFlagError(longOpt, err)
-		}
-		if err := viper.BindEnv(key, envVar); err != nil {
-			bindEnvError(envVar, err)
-		}
-		viper.SetDefault(key, defaults.CheckMetricRefreshTTL)
-	}
+	// 	RootCmd.Flags().String(longOpt, defaults.CheckMetricRefreshTTL, desc(description, envVar))
+	// 	flag := RootCmd.Flags().Lookup(longOpt)
+	// 	flag.Hidden = true
+	// 	if err := viper.BindPFlag(key, flag); err != nil {
+	// 		bindFlagError(longOpt, err)
+	// 	}
+	// 	if err := viper.BindEnv(key, envVar); err != nil {
+	// 		bindEnvError(envVar, err)
+	// 	}
+	// 	viper.SetDefault(key, defaults.CheckMetricRefreshTTL)
+	// }
 
 }
 
