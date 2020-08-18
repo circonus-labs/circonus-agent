@@ -29,7 +29,6 @@ func TestNew(t *testing.T) {
 		viper.Reset()
 		viper.Set(config.KeyCheckBundleID, "")
 		viper.Set(config.KeyCheckCreate, false)
-		viper.Set(config.KeyCheckEnableNewMetrics, false)
 		viper.Set(config.KeyReverse, false)
 		viper.Set(config.KeyAPITokenKey, "")
 		viper.Set(config.KeyAPITokenApp, "")
