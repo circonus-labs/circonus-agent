@@ -15,6 +15,6 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v1
         with:
-          version: v1.28
+          version: v1.30
           # Optional: golangci-lint command line arguments.
           # args: --issues-exit-code=0
