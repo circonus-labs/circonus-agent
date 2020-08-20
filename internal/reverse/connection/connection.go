@@ -317,7 +317,7 @@ func (c *Connection) getNextDelay(currDelay time.Duration) time.Duration {
 	delay := currDelay
 
 	if delay < maxDelay {
-		drift := rand.Intn(MaxDelayStep-MinDelayStep) + MinDelayStep
+		drift := rand.Intn(MaxDelayStep-MinDelayStep) + MinDelayStep //nolint:gosec
 		delay += time.Duration(drift) * time.Second
 	}
 
