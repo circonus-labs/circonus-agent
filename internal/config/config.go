@@ -42,22 +42,28 @@ type ReverseCreateCheckOptions struct {
 
 // Check defines the check parameters
 type Check struct {
-	Broker              string  `json:"broker" yaml:"broker" toml:"broker"`
-	BundleID            string  `mapstructure:"bundle_id" json:"bundle_id" yaml:"bundle_id" toml:"bundle_id"`
-	MetricFilterFile    string  `mapstructure:"metric_filter_file" json:"metric_filter_file" yaml:"metric_filter_file" toml:"metric_filter_file"`
-	MetricFilters       string  `mapstructure:"metric_filters" json:"metric_filters" yaml:"metric_filters" toml:"metric_filters"` // needs to be json embedded in a string because rules are positional
-	Tags                string  `json:"tags" yaml:"tags" toml:"tags"`
-	Target              string  `mapstructure:"target" json:"target" yaml:"target" toml:"target"`
-	Title               string  `json:"title" yaml:"title" toml:"title"`
-	MetricRefreshTTL    string  `json:"-" yaml:"-" toml:"-"` // deprecated, hidden
-	MetricStateDir      string  `json:"-" yaml:"-" toml:"-"` // deprecated, hidden
+	Broker           string `json:"broker" yaml:"broker" toml:"broker"`
+	BundleID         string `mapstructure:"bundle_id" json:"bundle_id" yaml:"bundle_id" toml:"bundle_id"`
+	MetricFilterFile string `mapstructure:"metric_filter_file" json:"metric_filter_file" yaml:"metric_filter_file" toml:"metric_filter_file"`
+	MetricFilters    string `mapstructure:"metric_filters" json:"metric_filters" yaml:"metric_filters" toml:"metric_filters"` // needs to be json embedded in a string because rules are positional
+	Tags             string `json:"tags" yaml:"tags" toml:"tags"`
+	Target           string `mapstructure:"target" json:"target" yaml:"target" toml:"target"`
+	Title            string `json:"title" yaml:"title" toml:"title"`
+	// MetricRefreshTTL    string  `json:"-" yaml:"-" toml:"-"` // deprecated, hidden
+	// MetricStateDir      string  `json:"-" yaml:"-" toml:"-"` // deprecated, hidden
 	Period              uint    `json:"period" toml:"period" yaml:"period"`
 	Timeout             float64 `json:"timeout" toml:"timeout" yaml:"timeout"`
 	Create              bool    `mapstructure:"create" json:"create" yaml:"create" toml:"create"`
 	MetricStreamtags    bool    `mapstructure:"metric_streamtags" json:"metric_streamtags" yaml:"metric_streamtags" toml:"metric_streamtags"`
 	Update              bool    `json:"update" toml:"update" yaml:"update"`
 	UpdateMetricFilters bool    `mapstructure:"update_metric_filters" json:"update_metric_filters" yaml:"update_metric_filters" toml:"update_metric_filters"`
-	EnableNewMetrics    bool    `json:"-" yaml:"-" toml:"-"` // deprecated, hidden
+	// EnableNewMetrics    bool    `json:"-" yaml:"-" toml:"-"` // deprecated, hidden
+}
+
+// MultiAgent defines the running config.multi_agent structure
+type MultiAgent struct {
+	Enabled  bool   `json:"enabled" toml:"enabled" yaml:"enabled"`
+	Interval string `json:"interval" toml:"interval" yaml:"interal"`
 }
 
 // Reverse defines the running config.reverse structure
@@ -101,27 +107,28 @@ type StatsD struct {
 
 // Config defines the running config structure
 type Config struct {
-	API              API      `json:"api" yaml:"api" toml:"api"`
-	Check            Check    `json:"check" yaml:"check" toml:"check"`
-	Collectors       []string `json:"collectors" yaml:"collectors" toml:"collectors"`
-	Debug            bool     `json:"debug" yaml:"debug" toml:"debug"`
-	DebugCGM         bool     `mapstructure:"debug_cgm" json:"debug_cgm" yaml:"debug_cgm" toml:"debug_cgm"`
-	DebugAPI         bool     `mapstructure:"debug_api" json:"debug_api" yaml:"debug_api" toml:"debug_api"`
-	DebugDumpMetrics string   `mapstructure:"debug_dump_metrics" json:"debug_dump_metrics" yaml:"debug_dump_metrics" toml:"debug_dump_metrics"`
-	Listen           []string `json:"listen" yaml:"listen" toml:"listen"`
-	ListenSocket     []string `mapstructure:"listen_socket" json:"listen_socket" yaml:"listen_socket" toml:"listen_socket"`
-	Log              Log      `json:"log" yaml:"log" toml:"log"`
-	PluginDir        string   `mapstructure:"plugin_dir" json:"plugin_dir" yaml:"plugin_dir" toml:"plugin_dir"`
-	PluginList       []string `mapstructure:"plugin_list" json:"plugin_list" yaml:"plugin_list" toml:"plugin_list"`
-	PluginTTLUnits   string   `mapstructure:"plugin_ttl_units" json:"plugin_ttl_units" yaml:"plugin_ttl_units" toml:"plugin_ttl_units"`
-	Reverse          Reverse  `json:"reverse" yaml:"reverse" toml:"reverse"`
-	SSL              SSL      `json:"ssl" yaml:"ssl" toml:"ssl"`
-	StatsD           StatsD   `json:"statsd" yaml:"statsd" toml:"statsd"`
-	HostProc         string   `mapstructure:"host_proc" json:"host_proc" toml:"host_proc" yaml:"host_proc"`
-	HostSys          string   `mapstructure:"host_sys" json:"host_sys" toml:"host_sys" yaml:"host_sys"`
-	HostEtc          string   `mapstructure:"host_etc" json:"host_etc" toml:"host_etc" yaml:"host_etc"`
-	HostVar          string   `mapstructure:"host_var" json:"host_var" toml:"host_var" yaml:"host_var"`
-	HostRun          string   `mapstructure:"host_run" json:"host_run" toml:"host_run" yaml:"host_run"`
+	API              API        `json:"api" yaml:"api" toml:"api"`
+	Check            Check      `json:"check" yaml:"check" toml:"check"`
+	Collectors       []string   `json:"collectors" yaml:"collectors" toml:"collectors"`
+	Debug            bool       `json:"debug" yaml:"debug" toml:"debug"`
+	DebugCGM         bool       `mapstructure:"debug_cgm" json:"debug_cgm" yaml:"debug_cgm" toml:"debug_cgm"`
+	DebugAPI         bool       `mapstructure:"debug_api" json:"debug_api" yaml:"debug_api" toml:"debug_api"`
+	DebugDumpMetrics string     `mapstructure:"debug_dump_metrics" json:"debug_dump_metrics" yaml:"debug_dump_metrics" toml:"debug_dump_metrics"`
+	Listen           []string   `json:"listen" yaml:"listen" toml:"listen"`
+	ListenSocket     []string   `mapstructure:"listen_socket" json:"listen_socket" yaml:"listen_socket" toml:"listen_socket"`
+	Log              Log        `json:"log" yaml:"log" toml:"log"`
+	PluginDir        string     `mapstructure:"plugin_dir" json:"plugin_dir" yaml:"plugin_dir" toml:"plugin_dir"`
+	PluginList       []string   `mapstructure:"plugin_list" json:"plugin_list" yaml:"plugin_list" toml:"plugin_list"`
+	PluginTTLUnits   string     `mapstructure:"plugin_ttl_units" json:"plugin_ttl_units" yaml:"plugin_ttl_units" toml:"plugin_ttl_units"`
+	Reverse          Reverse    `json:"reverse" yaml:"reverse" toml:"reverse"`
+	MultiAgent       MultiAgent `mapstructure:"multi_agent" json:"multi_agent" toml:"multi_agent" yaml:"multi_agent"`
+	SSL              SSL        `json:"ssl" yaml:"ssl" toml:"ssl"`
+	StatsD           StatsD     `json:"statsd" yaml:"statsd" toml:"statsd"`
+	HostProc         string     `mapstructure:"host_proc" json:"host_proc" toml:"host_proc" yaml:"host_proc"`
+	HostSys          string     `mapstructure:"host_sys" json:"host_sys" toml:"host_sys" yaml:"host_sys"`
+	HostEtc          string     `mapstructure:"host_etc" json:"host_etc" toml:"host_etc" yaml:"host_etc"`
+	HostVar          string     `mapstructure:"host_var" json:"host_var" toml:"host_var" yaml:"host_var"`
+	HostRun          string     `mapstructure:"host_run" json:"host_run" toml:"host_run" yaml:"host_run"`
 }
 
 //
@@ -173,6 +180,12 @@ const (
 
 	// KeyPluginTTLUnits plugin run ttl units
 	KeyPluginTTLUnits = "plugin_ttl_units"
+
+	// KeyMultiAgent indicates whether multiple agents will be sending metrics to a single check (requires enterprise brokers)
+	KeyMultiAgent = "multi_agent.enabled"
+
+	// KeyMultiAgentInterval indicates how frequently metrics should be sent
+	KeyMultiAgentInterval = "multi_agent.interval"
 
 	// KeyReverse indicates whether to use reverse connections
 	KeyReverse = "reverse.enabled"
@@ -261,11 +274,11 @@ const (
 	KeyCheckTarget = "check.target"
 
 	// KeyCheckEnableNewMetrics toggles automatically enabling new metrics
-	KeyCheckEnableNewMetrics = "check.enable_new_metrics"
+	// KeyCheckEnableNewMetrics = "check.enable_new_metrics"
 	// KeyCheckMetricStateDir defines the path where check metric state will be maintained when --check-enable-new-metrics is turned on
-	KeyCheckMetricStateDir = "check.metric_state_dir"
+	// KeyCheckMetricStateDir = "check.metric_state_dir"
 	// KeyCheckMetricRefreshTTL determines how often to refresh check bundle metrics from API when enable new metrics is turned on
-	KeyCheckMetricRefreshTTL = "check.metric_refresh_ttl"
+	// KeyCheckMetricRefreshTTL = "check.metric_refresh_ttl"
 	// KeyMetricFilters sets the filters used to automatically enable metrics on NEW checks.
 	// The format [][]string{[]string{"allow|deny","rule_regex(pcre)","comment"},...}
 	// If no metric filters are provided and enable new metrics is turned on. When creating a
@@ -343,7 +356,14 @@ func Validate() error {
 		}
 	}
 
-	if viper.GetBool(KeyReverse) {
+	isReverse := viper.GetBool(KeyReverse)
+	isMultiAgent := viper.GetBool(KeyMultiAgent)
+
+	if isReverse && isMultiAgent {
+		return errors.New("cannot enable reverse AND multi agent simultaneously")
+	}
+
+	if isReverse {
 		err := validateReverseOptions()
 		if err != nil {
 			return errors.Wrap(err, "reverse config")
