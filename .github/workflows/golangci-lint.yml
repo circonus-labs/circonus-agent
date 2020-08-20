@@ -16,5 +16,4 @@ jobs:
         uses: golangci/golangci-lint-action@v1
         with:
           version: v1.30
-          # Optional: golangci-lint command line arguments.
-          # args: --issues-exit-code=0
+          args: --timeout=5m
