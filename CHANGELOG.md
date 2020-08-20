@@ -28,6 +28,14 @@
 * add: *WithContext to api methods
 * add: golangci-lint action
 
+# v1.0.14
+
+* fix: use manual tls verify workaround for go1.15
+
+# v1.0.13
+
+* upd: circonus-agent-plugins
+
 # v1.0.12
 
 * fix: test for new url parse error format
