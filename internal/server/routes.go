@@ -10,7 +10,9 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/maier/go-appstats"
+	"github.com/spf13/viper"
 )
 
 func (s *Server) router(w http.ResponseWriter, r *http.Request) {
@@ -25,9 +27,11 @@ func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			_, _ = fmt.Fprintln(w, "Alive")
 		case pluginPathRx.MatchString(r.URL.Path): // run plugin(s)
-			// s.logger.Debug().Msg("calling run")
+			if viper.GetBool(config.KeyMultiAgent) {
+				http.Error(w, "not allowed when multi-agent enabled", http.StatusForbidden)
+				return
+			}
 			s.run(w, r)
-			// s.logger.Debug().Msg("run complete")
 		case inventoryPathRx.MatchString(r.URL.Path): // plugin inventory
 			s.inventory(w)
 		case statsPathRx.MatchString(r.URL.Path): // app stats
