@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -29,20 +28,12 @@ import (
 
 // Bundle exposes the check bundle management interface
 type Bundle struct {
-	statusActiveMetric    string
+	logger                zerolog.Logger
 	statusActiveBroker    string
+	client                API
 	brokerMaxResponseTime time.Duration
 	brokerMaxRetries      int
 	bundle                *apiclient.CheckBundle
-	client                API
-	lastRefresh           time.Time
-	logger                zerolog.Logger
-	manage                bool
-	metricStates          *metricStates
-	metricStateUpdate     bool
-	refreshTTL            time.Duration
-	stateFile             string
-	statePath             string
 	sync.Mutex
 }
 
@@ -88,21 +79,15 @@ func New(client API) (*Bundle, error) {
 		brokerMaxRetries:      5,
 		bundle:                nil,
 		logger:                log.With().Str("pkg", "bundle").Logger(),
-		manage:                false,
-		metricStateUpdate:     false,
-		refreshTTL:            time.Duration(0),
-		statePath:             viper.GetString(config.KeyCheckMetricStateDir),
 		statusActiveBroker:    StatusActive,
-		statusActiveMetric:    StatusActive,
 	}
 
 	isCreate := viper.GetBool(config.KeyCheckCreate)
-	isManaged := viper.GetBool(config.KeyCheckEnableNewMetrics)
 	isReverse := viper.GetBool(config.KeyReverse)
 	cid := viper.GetString(config.KeyCheckBundleID)
 	needCheck := false
 
-	if isReverse || isManaged || (isCreate && cid == "") {
+	if isReverse || (isCreate && cid == "") {
 		needCheck = true
 	}
 
@@ -122,62 +107,6 @@ func New(client API) (*Bundle, error) {
 	// the configuration (if one was used)
 	viper.Set(config.KeyCheckBundleID, cb.bundle.CID)
 	cb.logger.Debug().Interface("config", cb.bundle).Msg("using check bundle config")
-
-	if isManaged && len(cb.bundle.MetricFilters) > 0 {
-		cb.logger.Debug().Msg("disabling metric management, check bundle using metric_filters")
-		isManaged = false
-	}
-	if !isManaged {
-		cb.manage = false
-		return &cb, nil
-	}
-
-	{
-		//
-		// NOTE: for metric management only
-		//       metric management is DEPRECATED - this is for backwards compatibility
-		//       and will be removed at some point in the future. all checks will be
-		//       using metric filters going forward.
-		//
-		cb.stateFile = filepath.Join(cb.statePath, "metrics.json")
-
-		if ok, err := cb.verifyStatePath(); !ok {
-			if err != nil {
-				cb.logger.Error().Err(err).Msg("verify state path")
-			}
-			cb.logger.Warn().Str("state_path", cb.statePath).Msg("encountered state path issue(s), disabling check-enable-new-metrics")
-			viper.Set(config.KeyCheckEnableNewMetrics, false)
-			cb.manage = false
-			return &cb, nil
-		}
-
-		if ms, err := cb.loadState(); err != nil {
-			cb.logger.Error().Err(err).Msg("unable to load existing metric states, all metrics considered existing")
-		} else {
-			cb.metricStates = ms
-			cb.logger.Debug().Interface("metric_states", len(*cb.metricStates)).Msg("loaded metric states")
-		}
-
-		if err := cb.setMetricStates(&cb.bundle.Metrics); err != nil {
-			return nil, errors.Wrap(err, "setting metric states")
-		}
-		cb.bundle.Metrics = []apiclient.CheckBundleMetric{} // save a little memory (or a lot depending on how many metrics are being managed...)
-	}
-
-	// check metrics refresh ttl
-	ttl, err := time.ParseDuration(viper.GetString(config.KeyCheckMetricRefreshTTL))
-	if err != nil {
-		return nil, errors.Wrap(err, "parsing check metric refresh TTL")
-	}
-	if ttl == time.Duration(0) {
-		ttl, err = time.ParseDuration(defaults.CheckMetricRefreshTTL)
-		if err != nil {
-			return nil, errors.Wrap(err, "parsing default check metric refresh TTL")
-		}
-	}
-
-	cb.refreshTTL = ttl
-	cb.manage = isManaged
 
 	return &cb, nil
 }
@@ -206,6 +135,29 @@ func (cb *Bundle) Period() (uint, error) {
 	return 0, ErrUninitialized
 }
 
+// SubmissionURL returns the submission url (derived from mtev_reverse)
+func (cb *Bundle) SubmissionURL() (string, error) {
+	if cb.bundle == nil {
+		return "", errors.New("invalid check bundle (nil)")
+	}
+	if len(cb.bundle.ReverseConnectURLs) == 0 {
+		return "", errors.New("invalid check bundle (0 reverse urls)")
+	}
+
+	// submission url from mtev_reverse url, given:
+	//
+	// mtev_reverse://FQDN_OR_IP:PORT/check/UUID
+	// config.reverse:secret_key "sec_string"
+	//
+	// use: https://FQDN_OR_IP:PORT/module/httptrap/UUID/sec_string
+	//
+	mtevReverse := cb.bundle.ReverseConnectURLs[0]
+	mtevSecret := cb.bundle.Config[apiconf.ReverseSecretKey]
+	submissionURL := strings.Replace(strings.Replace(mtevReverse, "mtev_reverse", "https", 1), "check", "module/httptrap", 1)
+	submissionURL += "/" + mtevSecret
+	return submissionURL, nil
+}
+
 // Refresh re-loads the check bundle using the API (sets metric states if check bundle is managed)
 func (cb *Bundle) Refresh() error {
 	cb.Lock()
@@ -223,15 +175,6 @@ func (cb *Bundle) Refresh() error {
 	}
 
 	cb.bundle = b
-
-	if cb.manage {
-		cb.logger.Debug().Msg("setting metric states")
-		err := cb.setMetricStates(&cb.bundle.Metrics)
-		if err != nil {
-			return errors.Wrap(err, "setting metric states")
-		}
-	}
-	cb.bundle.Metrics = []apiclient.CheckBundleMetric{} // save a little memory (or a lot depending on how many metrics are being managed...)
 
 	return nil
 }
@@ -379,14 +322,23 @@ func (cb *Bundle) findCheckBundle() (*apiclient.CheckBundle, int, error) {
 			}
 		}
 		if matched == 0 {
-			cb.logger.Warn().Int("found", found).Int("matched", matched).Str("criteria", string(criteria)).Msgf("found multiple check bundles found, none created by (%s)", release.NAME)
+			cb.logger.Warn().
+				Int("found", found).
+				Int("matched", matched).
+				Str("criteria", string(criteria)).
+				Msgf("multiple check bundles found, none created by (%s)", release.NAME)
 			return nil, matched, errors.Errorf("multiple check bundles (%d) found matching criteria (%s), none created by (%s)", found, string(criteria), release.NAME)
 		}
 		if matched == 1 {
-			cb.logger.Warn().Int("found", found).Str("bundle", (*bundles)[idx].CID).Msgf("multiple check bundles found, using one created by (%s)", release.NAME)
+			cb.logger.Warn().
+				Int("found", found).
+				Int("matched", matched).
+				Str("criteria", string(criteria)).
+				Str("bundle", (*bundles)[idx].CID).
+				Msgf("multiple check bundles found, using one created by (%s)", release.NAME)
 			return &(*bundles)[idx], matched, nil
 		}
-		return nil, found, errors.Errorf("more than one (%d) check bundle matched criteria (%s) created by (%s)", matched, string(criteria), release.NAME)
+		return nil, found, errors.Errorf("multiple check bundles (%d) found matching criteria (%s) created by (%s)", matched, string(criteria), release.NAME)
 	}
 
 	return &(*bundles)[0], found, nil

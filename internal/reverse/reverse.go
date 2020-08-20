@@ -110,7 +110,7 @@ func (r *Reverse) Start(ctx context.Context) error {
 		}
 
 		r.logger.Debug().Msg("find primary broker instance")
-		primaryCN, err := r.chk.FindPrimaryBrokerInstance(r.configs)
+		primaryCN, err := r.chk.FindPrimaryBrokerInstance(rctx, r.configs)
 		if err != nil {
 			if nferr, ok := errors.Cause(err).(*check.ErrNoOwnerFound); ok {
 				r.logger.Warn().Err(nferr).Msg("refreshing check bundle configuration")

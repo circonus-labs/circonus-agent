@@ -6,6 +6,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/pkg/errors"
@@ -16,6 +17,14 @@ import (
 //       agent will act as though any other client (e.g. a broker)
 //       were requesting metrics - it will *run* the plugin(s).
 func (c *Client) Metrics(pluginID string) (*Metrics, error) {
+	return c.MetricsWithContext(context.Background(), pluginID)
+}
+
+// MetricsWithContext retrieves metrics from one or all plugins
+// NOTE: because the API is using the regular agent URL - the
+//       agent will act as though any other client (e.g. a broker)
+//       were requesting metrics - it will *run* the plugin(s).
+func (c *Client) MetricsWithContext(ctx context.Context, pluginID string) (*Metrics, error) {
 	pid := ""
 	if pluginID != "" {
 		if !c.pidVal.MatchString(pluginID) {
@@ -28,7 +37,7 @@ func (c *Client) Metrics(pluginID string) (*Metrics, error) {
 		rpath += "/" + pid
 	}
 
-	data, err := c.get(rpath)
+	data, err := c.get(ctx, rpath)
 	if err != nil {
 		return nil, err
 	}

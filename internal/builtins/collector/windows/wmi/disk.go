@@ -31,78 +31,78 @@ type genericDiskMetrics struct {
 	AvgDiskBytesPerWrite    uint64
 	AvgDiskQueueLength      uint64
 	AvgDiskReadQueueLength  uint64
-	AvgDisksecPerRead       uint32
-	AvgDisksecPerTransfer   uint32
-	AvgDisksecPerWrite      uint32
 	AvgDiskWriteQueueLength uint64
-	CurrentDiskQueueLength  uint32
 	DiskBytesPersec         uint64
 	DiskReadBytesPersec     uint64
-	DiskReadsPersec         uint32
-	DiskTransfersPersec     uint32
 	DiskWriteBytesPersec    uint64
 	DiskWritesPersec        uint64
-	FreeMegabytes           uint32
 	PercentDiskReadTime     uint64
 	PercentDiskTime         uint64
 	PercentDiskWriteTime    uint64
-	PercentFreeSpace        uint32
 	PercentIdleTime         uint64
+	AvgDisksecPerRead       uint32
+	AvgDisksecPerTransfer   uint32
+	AvgDisksecPerWrite      uint32
+	CurrentDiskQueueLength  uint32
+	DiskReadsPersec         uint32
+	DiskTransfersPersec     uint32
+	FreeMegabytes           uint32
+	PercentFreeSpace        uint32
 	SplitIOPerSec           uint32
 }
 
 // Win32_PerfFormattedData_PerfDisk_LogicalDisk defines the metrics to collect
 // https://technet.microsoft.com/en-ca/aa394261(v=vs.71)
 type Win32_PerfFormattedData_PerfDisk_LogicalDisk struct { //nolint: golint
+	Name                    string
 	AvgDiskBytesPerRead     uint64
 	AvgDiskBytesPerTransfer uint64
 	AvgDiskBytesPerWrite    uint64
 	AvgDiskQueueLength      uint64
 	AvgDiskReadQueueLength  uint64
-	AvgDisksecPerRead       uint32
-	AvgDisksecPerTransfer   uint32
-	AvgDisksecPerWrite      uint32
 	AvgDiskWriteQueueLength uint64
-	CurrentDiskQueueLength  uint32
 	DiskBytesPersec         uint64
 	DiskReadBytesPersec     uint64
-	DiskReadsPersec         uint32
-	DiskTransfersPersec     uint32
 	DiskWriteBytesPersec    uint64
 	DiskWritesPersec        uint64
-	FreeMegabytes           uint32
-	Name                    string
 	PercentDiskReadTime     uint64
 	PercentDiskTime         uint64
 	PercentDiskWriteTime    uint64
-	PercentFreeSpace        uint32
 	PercentIdleTime         uint64
+	AvgDisksecPerRead       uint32
+	AvgDisksecPerTransfer   uint32
+	AvgDisksecPerWrite      uint32
+	CurrentDiskQueueLength  uint32
+	DiskReadsPersec         uint32
+	DiskTransfersPersec     uint32
+	FreeMegabytes           uint32
+	PercentFreeSpace        uint32
 	SplitIOPerSec           uint32
 }
 
 // Win32_PerfFormattedData_PerfDisk_PhysicalDisk defines the metrics to collect
 type Win32_PerfFormattedData_PerfDisk_PhysicalDisk struct { //nolint: golint
+	Name                    string
 	AvgDiskBytesPerRead     uint64
 	AvgDiskBytesPerTransfer uint64
 	AvgDiskBytesPerWrite    uint64
 	AvgDiskQueueLength      uint64
 	AvgDiskReadQueueLength  uint64
-	AvgDisksecPerRead       uint32
-	AvgDisksecPerTransfer   uint32
-	AvgDisksecPerWrite      uint32
 	AvgDiskWriteQueueLength uint64
-	CurrentDiskQueueLength  uint32
 	DiskBytesPersec         uint64
 	DiskReadBytesPersec     uint64
-	DiskReadsPersec         uint32
-	DiskTransfersPersec     uint32
 	DiskWriteBytesPersec    uint64
 	DiskWritesPersec        uint64
-	Name                    string
 	PercentDiskReadTime     uint64
 	PercentDiskTime         uint64
 	PercentDiskWriteTime    uint64
 	PercentIdleTime         uint64
+	CurrentDiskQueueLength  uint32
+	AvgDisksecPerRead       uint32
+	AvgDisksecPerTransfer   uint32
+	AvgDisksecPerWrite      uint32
+	DiskReadsPersec         uint32
+	DiskTransfersPersec     uint32
 	SplitIOPerSec           uint32
 }
 

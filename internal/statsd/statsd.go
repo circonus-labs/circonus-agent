@@ -288,6 +288,7 @@ func (s *Server) initHostMetrics() error {
 		Debug: s.debugCGM,
 		Log:   logshim{logh: s.logger.With().Str("pkg", "cgm.statsd-host-check").Logger()},
 	}
+
 	// put cgm into manual mode (no interval, no api key, invalid submission url)
 	cmc.Interval = "0"                            // disable automatic flush
 	cmc.CheckManager.Check.SubmissionURL = "none" // disable check management (create/update)

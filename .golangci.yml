@@ -175,8 +175,9 @@ linters:
   enable:
     - megacheck
     - govet
-  disable:
     - maligned
+  disable:
+    # - maligned
     - prealloc
   disable-all: false
   presets:

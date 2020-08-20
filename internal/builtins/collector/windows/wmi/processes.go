@@ -26,10 +26,8 @@ import (
 // Win32_PerfFormattedData_PerfProc_Process defines the metrics to collect
 // https://technet.microsoft.com/en-ca/aa394277(v=vs.71)
 type Win32_PerfFormattedData_PerfProc_Process struct { //nolint: golint
-	CreatingProcessID       uint32
+	Name                    string
 	ElapsedTime             uint64
-	HandleCount             uint32
-	IDProcess               uint32
 	IODataBytesPersec       uint64
 	IODataOperationsPersec  uint64
 	IOOtherBytesPersec      uint64
@@ -38,23 +36,25 @@ type Win32_PerfFormattedData_PerfProc_Process struct { //nolint: golint
 	IOReadOperationsPersec  uint64
 	IOWriteBytesPersec      uint64
 	IOWriteOperationsPersec uint64
-	Name                    string
-	PageFaultsPersec        uint32
 	PageFileBytes           uint64
 	PageFileBytesPeak       uint64
 	PercentPrivilegedTime   uint64
 	PercentProcessorTime    uint64
 	PercentUserTime         uint64
-	PoolNonpagedBytes       uint32
-	PoolPagedBytes          uint32
-	PriorityBase            uint32
 	PrivateBytes            uint64
-	ThreadCount             uint32
 	VirtualBytes            uint64
 	VirtualBytesPeak        uint64
 	WorkingSet              uint64
 	WorkingSetPeak          uint64
 	WorkingSetPrivate       uint64
+	CreatingProcessID       uint32
+	HandleCount             uint32
+	IDProcess               uint32
+	PageFaultsPersec        uint32
+	PoolNonpagedBytes       uint32
+	PoolPagedBytes          uint32
+	PriorityBase            uint32
+	ThreadCount             uint32
 }
 
 // Processes metrics from the Windows Management Interface (wmi)

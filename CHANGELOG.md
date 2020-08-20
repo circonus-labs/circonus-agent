@@ -1,3 +1,33 @@
+# v1.1.0
+
+* doc: add multi-agent details
+* fix: linit align structs
+* fix: lint for rand
+* add: support tag merging for receiver
+* upd: remove deprecated state mgmt
+* add: force enterprise for multi-agent mode
+* add: verify httptrap is enabled on broker for multi-agent mode
+* add: SubmissionURL method for multi-agent
+* upd: remove old enable new metrics support for managed checks
+* add: VerifyConnection to tls config go1.15
+* add: multi-agent submitter
+* add: multi-agent options
+* upd: default collectors if not set and not multi-agent mode
+* add: multiple agent (single check) support - requires enterprise brokers
+* doc: update defaults for options
+* doc: add new flags
+* doc: update to reflect no longer NAD drop in replacement
+* upd: struct alignment
+* add: enable maligned linter
+* fix: binary names for containers
+* add: openbsd x86_64 target
+* upd: dependencies
+* add: context to reverse primary broker instance check
+* upd: refactor connection handling for reverse when broker closes connection due to simultaneous attempts for same check from multiple agents
+* upd: explicit cases for prometheus metric types
+* add: *WithContext to api methods
+* add: golangci-lint action
+
 # v1.0.14
 
 * fix: use manual tls verify workaround for go1.15

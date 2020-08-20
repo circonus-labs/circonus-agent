@@ -240,24 +240,21 @@ func (c *Prom) parse(id string, data io.Reader, metrics *cgm.Metrics) error {
 				for bn, bv := range c.getBuckets(m) {
 					_ = c.addMetric(metrics, pfx, metricName+"_"+bn, tags, "n", bv)
 				}
-			default:
-				switch {
-				case m.Gauge != nil:
-					if m.GetGauge().Value != nil {
-						_ = c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetGauge().Value)
+			case dto.MetricType_COUNTER:
+				if m.GetCounter().Value != nil {
+					_ = c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetCounter().Value)
+				}
+			case dto.MetricType_GAUGE:
+				if m.GetGauge().Value != nil {
+					_ = c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetGauge().Value)
+				}
+			case dto.MetricType_UNTYPED:
+				if m.GetUntyped().Value != nil {
+					if *m.GetUntyped().Value == math.Inf(+1) {
+						c.logger.Warn().Str("metric", metricName).Str("type", mf.GetType().String()).Str("value", (*m).GetUntyped().String()).Msg("cannot coerce +Inf to uint64")
+						continue
 					}
-				case m.Counter != nil:
-					if m.GetCounter().Value != nil {
-						_ = c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetCounter().Value)
-					}
-				case m.Untyped != nil:
-					if m.GetUntyped().Value != nil {
-						if *m.GetUntyped().Value == math.Inf(+1) {
-							c.logger.Warn().Str("metric", metricName).Str("type", mf.GetType().String()).Str("value", (*m).GetUntyped().String()).Msg("cannot coerce +Inf to uint64")
-							continue
-						}
-						_ = c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetUntyped().Value)
-					}
+					_ = c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetUntyped().Value)
 				}
 			}
 		}

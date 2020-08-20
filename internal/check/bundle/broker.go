@@ -13,8 +13,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/go-apiclient"
 	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 )
 
 // Select a broker for use when creating a check, if a specific broker
@@ -64,6 +66,10 @@ func (cb *Bundle) selectBroker(checkType string, brokerList *[]apiclient.Broker)
 		}
 	}
 
+	if !haveEnterprise && viper.GetBool(config.KeyMultiAgent) {
+		return nil, errors.New("no enterprise brokers satisfy multi-agent requirements")
+	}
+
 	if haveEnterprise { // eliminate non-enterprise brokers from valid brokers
 		for k, v := range validBrokers {
 			if v.Type != "enterprise" {
@@ -81,7 +87,7 @@ func (cb *Bundle) selectBroker(checkType string, brokerList *[]apiclient.Broker)
 	if len(validBrokerKeys) == 1 {
 		selectedBroker = validBrokers[validBrokerKeys[0].String()]
 	} else {
-		selectedBroker = validBrokers[validBrokerKeys[rand.Intn(len(validBrokerKeys))].String()]
+		selectedBroker = validBrokers[validBrokerKeys[rand.Intn(len(validBrokerKeys))].String()] //nolint:gosec
 	}
 
 	cb.logger.Debug().Str("broker", selectedBroker.Name).Msg("selected")
@@ -123,6 +129,17 @@ func (cb *Bundle) isValidBroker(broker *apiclient.Broker, checkType string) (tim
 				Str("type", checkType).
 				Msg("unsupported check type, skipping")
 			continue
+		}
+		// broker must have httptrap for multi-agent to function correctly
+		if viper.GetBool(config.KeyMultiAgent) {
+			if !brokerSupportsCheckType("httptrap", &detail) {
+				cb.logger.Debug().
+					Str("broker", broker.Name).
+					Str("instance", detail.CN).
+					Str("type", "httptrap").
+					Msg("unsupported check type, skipping - required for multi-agent")
+				continue
+			}
 		}
 
 		if detail.ExternalPort != 0 {
@@ -166,7 +183,7 @@ func (cb *Bundle) isValidBroker(broker *apiclient.Broker, checkType string) (tim
 				break
 			}
 
-			delay := time.Duration(rand.Intn(maxDelay-minDelay) + minDelay)
+			delay := time.Duration(rand.Intn(maxDelay-minDelay) + minDelay) //nolint:gosec
 
 			cb.logger.Warn().
 				Err(err).

@@ -1,10 +1,10 @@
 # Circonus Agent
 
-The circonus-agent is intended to be a drop-in replacement for NAD. There is, however, one specific caveat -- native plugins (.js) do not work. Unless modified to run `node` independently and follow [plugin output guidelines](#output). Additionally, as of v1, the circonus-agent only supports stream tags (if it is _dropped in_ an existing NAD install, the metric names will change). If metric name continuity is required, use the v0 circonus-agent releases.
+Version 1.x of the circonus-agent only supports metrics with stream tags (if it is _dropped in_ an existing NAD install, the metric names will change). If metric name continuity is required, use the v0 circonus-agent releases.
 
 # Features
 
-1. Replacement for NAD, written in go
+1. Replacement for NAD, written in Go - note, v0.x only
 1. Builtin metric [collectors](#builtin-collectors) -- the default Linux builtins emit the common metrics needed for cosi visuals (graphs, worksheets, & dashboards)
 1. [Plugin](#plugins) architecture for local metric collection
 1. Local HTTP [Receiver](#receiver) for POST/PUT metric collection
@@ -62,7 +62,6 @@ Please continue to use the original cosi(w/NAD) for OmniOS and Raspian - cosi v2
 1. `mkdir -p /opt/circonus/agent`
 1. Download [latest release](../../releases/latest) from repository (v0 or v1 - see note above)
 1. Extract archive into `/opt/circonus/agent`
-1. If planning to use `--check-enable-new-metrics`, ensure the `state` directory is owned by the user `circonus-agentd` will run as -- note, this is no longer required if a **new** check is created by cosi or the circonus-agent
 1. Create a [config](https://github.com/circonus-labs/circonus-agent/blob/master/etc/README.md#main-configuration) (see minimal example below) or use command line parameters
 1. Copy, edit, and install one of the service configurations in `service/`
 1. Stop NAD (e.g. `systemctl stop nad` or `/etc/init.d/nad stop`)
@@ -102,7 +101,7 @@ enabled = true
 1. Download [latest release](../../releases/latest) from repository
 1. Unzip archive into directory created in step 1
 1. Create a [config](https://github.com/circonus-labs/circonus-agent/blob/master/etc/README.md#main-configuration) (see minimal example below) or use command line parameters
-1. Optionally, create a service (for example, [using PowerShell](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.management/new-service?view=powershell-7&viewFallbackFrom=powershell-3.0)) 
+1. Optionally, create a service (for example, [using PowerShell](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.management/new-service?view=powershell-7&viewFallbackFrom=powershell-3.0))
 
 ## Docker
 
@@ -116,9 +115,6 @@ This is one of _many_ potential methods for collecting metrics from a Docker inf
 
 ```sh
 $ /opt/circonus/agent/sbin/circonus-agentd -h
-```
-
-```text
 Flags:
       --api-app string                    [ENV: CA_API_APP] Circonus API Token app (default "circonus-agent")
       --api-ca-file string                [ENV: CA_API_CA_FILE] Circonus API CA certificate file
@@ -126,13 +122,13 @@ Flags:
       --api-url string                    [ENV: CA_API_URL] Circonus API URL (default "https://api.circonus.com/v2/")
       --check-broker string               [ENV: CA_CHECK_BROKER] ID of Broker to use or 'select' for random selection of valid broker, if creating a check bundle (default "select")
   -C, --check-create                      [ENV: CA_CHECK_CREATE] Create check bundle
-  -I, --check-id string                   [ENV: CA_CHECK_ID] Check Bundle ID or 'cosi' for cosi system check (for reverse and auto enable new metrics)
+  -I, --check-id string                   [ENV: CA_CHECK_ID] Check Bundle ID or 'cosi' for cosi system check
       --check-metric-filter-file string   [ENV: CA_CHECK_METRIC_FILTER_FILE] JSON file with metric filters (default "/opt/circonus/agent/etc/metric_filters.json")
       --check-metric-filters string       [ENV: CA_CHECK_METRIC_FILTERS] List of filters used to manage which metrics are collected
   -S, --check-metric-streamtags           [ENV: CA_CHECK_METRIC_STREAMTAGS] Add check tags to metrics as stream tags
       --check-period uint                 [ENV: CA_CHECK_PERIOD] When broker requests metrics [10-300] seconds (default 60)
       --check-tags string                 [ENV: CA_CHECK_TAGS] Tags [comma separated list] to use, if creating a check bundle
-  -T, --check-target string               [ENV: CA_CHECK_TARGET] Check target host (for creating a new check) (default "the host's name from OS")
+  -T, --check-target string               [ENV: CA_CHECK_TARGET] Check target host (for creating a new check) (default host name from OS)
       --check-timeout float               [ENV: CA_CHECK_TIMEOUT] Timeout when broker requests metrics [0-300] seconds (default 10)
       --check-title string                [ENV: CA_CHECK_TITLE] Title [display name] to use, if creating a check bundle (default "<check-target> /agent")
   -U, --check-update                      [ENV: CA_CHECK_UPDATE] Force check bundle update at start (with all configurable check bundle attributes)
@@ -140,7 +136,7 @@ Flags:
       --cluster-enable                    [ENV: CA_CLUSTER_ENABLE] Enable cluster awareness mode
       --cluster-enable-builtins           [ENV: CA_CLUSTER_ENABLE_BUILTINS] Enable builtins in cluster awareness mode
       --cluster-statsd-histogram-gauges   [ENV: CA_CLUSTER_STATSD_HISTOGRAM_GAUGES] Represent StatsD gauges as histograms in cluster awareness mode
-      --collectors strings                [ENV: CA_COLLECTORS] List of builtin collectors to enable (default [generic/cpu,generic/disk,generic/fs,generic/if,generic/load,generic/proto,generic/vm])
+      --collectors strings                [ENV: CA_COLLECTORS] List of builtin collectors to enable (default based on OS)
   -c, --config string                     config file (default is /opt/circonus/agent/etc/circonus-agent.(json|toml|yaml)
   -d, --debug                             [ENV: CA_DEBUG] Enable debug messages
       --debug-api                         [ENV: CA_DEBUG_API] Enable Circonus API debug messages
@@ -156,6 +152,8 @@ Flags:
   -L, --listen-socket strings             [ENV: CA_LISTEN_SOCKET] Unix socket to create
       --log-level string                  [ENV: CA_LOG_LEVEL] Log level [(panic|fatal|error|warn|info|debug|disabled)] (default "info")
       --log-pretty                        [ENV: CA_LOG_PRETTY] Output formatted/colored log lines [ignored on windows]
+  -m, --multi-agent                       [ENV: CA_MULTI_AGENT] Enable multi-agent mode
+      --multi-agent-interval string       [ENV: CA_MULTI_AGENT_INTERVAL] Multi-agent mode interval (default "60s")
       --no-gzip                           Disable gzip HTTP responses
       --no-statsd                         [ENV: CA_NO_STATSD] Disable StatsD listener
   -p, --plugin-dir string                 [ENV: CA_PLUGIN_DIR] Plugin directory (/opt/circonus/agent/plugins)
@@ -163,7 +161,6 @@ Flags:
       --plugin-ttl-units string           [ENV: CA_PLUGIN_TTL_UNITS] Default plugin TTL units (default "s")
   -r, --reverse                           [ENV: CA_REVERSE] Enable reverse connection
       --reverse-broker-ca-file string     [ENV: CA_REVERSE_BROKER_CA_FILE] Broker CA certificate file
-      --reverse-max-conn-retry int        [ENV: CA_REVERSE_MAX_CONN_RETRY] Max attempts to retry persistently failing reverse connection to broker [-1=indefinitely] (default -1)
       --show-config string                Show config (json|toml|yaml) and exit
       --ssl-cert-file string              [ENV: CA_SSL_CERT_FILE] SSL Certificate file (PEM cert and CAs concatenated together) (default "/opt/circonus/agent/etc/circonus-agent.pem")
       --ssl-key-file string               [ENV: CA_SSL_KEY_FILE] SSL Key file (default "/opt/circonus/agent/etc/circonus-agent.key")
@@ -259,11 +256,38 @@ Syntax: `name:value|type[|@rate][|#tag_list]`
 
 The `/prom` endpoint will accept Prometheus style text formatted metrics sent via HTTP PUT or HTTP POST.
 
+## Multi-agent
+
+In some specific use-cases having multiple agents send to a single check may be desirable. This type of configuration is supported with  Enterprise brokers only. To enable ensure that `multi_agent.enabled` is set to `true` and that every agent uses the same configuration settings for the check. For example, to generate a basic configuration:
+
+```sh
+sbin/circonus-agentd \
+  -m \                                  # enable multi-agent
+  -C \                                  # enable check creation
+  --collectors="" \                     # disable built-in collectors
+  --api-key=... \                       # add your api key
+  --check-target=common_id \            # use a common identifier on each agent instance
+  --check-broker=enterprise_broker_id \ # enterprise broker id
+  --show-config=yaml \                  # format for config
+  >etc/circonus-agent.yaml              # redirect to config file
+```
+
+The above command would set the following options and then redirect the output in `yaml` format to a configuration file the agent could use. Copy the same configuration file to each of the systems desired.
+
+* `-m` set `multi_agent.enabled` to `true`
+* `-C` set `check.create` to `true`
+* `--collectors=""` disable all built-in collectors (to prevent  aggregating metrics such as cpu/memory/disk/etc.)
+* `--api-key=` set `api.key`
+* `--check-target=` set `check.target` use a common identifier for all of the agents, so that only ONE check will be created
+* `--check-broker=` set `check.broker` to the enterprise broker id to use
+* `--show-config=` in preferred format (json|toml|yaml)
+* `>etc/circonus-agent.yaml` redirect to a file
+
 # Manual build
 
 1. Clone repo `git clone https://github.com/circonus-labs/circonus-agent.git`
-  * circonus-agent uses go modules, go1.12+ is required
-  * clone **oustide** of `GOPATH` (or use `GO111MODULE=on`)
+   1. circonus-agent uses go modules, go1.12+ is required
+   1. clone **oustide** of `GOPATH` (or use `GO111MODULE=on`)
 1. Build `go build -o circonus-agentd`
 1. Install `cp circonus-agentd /opt/circonus/agent/sbin`
 

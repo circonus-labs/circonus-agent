@@ -29,9 +29,18 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	conduitBuiltin    = "builtins"
+	conduitPlugin     = "plugins"
+	conduitReceiver   = "receiver"
+	conduitStatsd     = "statsd"
+	conduitPrometheus = "prometheus"
+)
+
 // run handles requests to execute plugins and return metrics emitted
 // handles /, /run, or /run/plugin_name
 func (s *Server) run(w http.ResponseWriter, r *http.Request) {
+	runStart := time.Now()
 	id := ""
 
 	if strings.HasPrefix(r.URL.Path, "/run/") { // run specific item
@@ -65,140 +74,144 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	conduitList := []string{} // default, empty list defaults to all known
+	if id != "" {
+		// identify conduit to collect from based on id passed
+		switch {
+		case id == conduitPrometheus || id == "prom":
+			conduitList = []string{conduitPrometheus}
+		case id == conduitReceiver || id == "write":
+			conduitList = []string{conduitReceiver}
+		case id == conduitStatsd:
+			conduitList = []string{conduitStatsd}
+		case s.builtins.IsBuiltin(id):
+			conduitList = []string{conduitBuiltin}
+		default:
+			conduitList = []string{conduitPlugin}
+		}
+	}
+
+	metrics := s.GetMetrics(conduitList, id)
+	s.logger.Debug().Int("num_metrics", len(metrics)).Msg("aggregated")
+
+	lastMetricsmu.Lock()
+	lastMetrics.metrics = &metrics
+	lastMetrics.ts = time.Now()
+	lastMetricsmu.Unlock()
+
+	// if err := s.check.EnableNewMetrics(&metrics); err != nil {
+	// 	s.logger.Warn().Err(err).Msg("unable to update check bundle metrics")
+	// }
+
+	s.encodeResponse(&metrics, w, r, runStart)
+}
+
+// GetMetrics collects metrics from the various conduits and returns them for disposition
+func (s *Server) GetMetrics(conduits []string, id string) cgm.Metrics {
+	// default to all conduits if list is empty
+	if len(conduits) == 0 {
+		conduits = []string{conduitBuiltin, conduitPlugin, conduitReceiver, conduitStatsd, conduitPrometheus}
+	}
+
+	collectStart := time.Now()
+
 	type conduit struct {
 		id      string
 		metrics *cgm.Metrics
 	}
-	conduitCh := make(chan conduit, 5) // number of conduits
-	// default conduits to true if id is blank, otherwise set all to false
-	runBuiltins := id == ""
-	runPlugins := id == ""
-	flushProm := id == ""
-	flushReceiver := id == ""
-	flushStatsd := id == ""
-
-	if id != "" {
-		// identify conduit to collect from based on id passed
-		switch {
-		case id == "prom":
-			flushProm = true
-		case id == "write":
-			flushReceiver = true
-		case id == "statsd":
-			flushStatsd = true
-		case s.builtins.IsBuiltin(id):
-			runBuiltins = true
-		default:
-			runPlugins = true
-		}
-	}
-
-	runStart := time.Now()
+	conduitCh := make(chan conduit, len(conduits)) // number of conduits
 	var wg sync.WaitGroup
 
-	if runBuiltins {
-		wg.Add(1)
-		go func() {
-			start := time.Now()
-			conduitID := "builtins"
-			numMetrics := 0
-			s.logger.Debug().Str("conduit_id", conduitID).Msg("start")
-			if err := s.builtins.Run(s.groupCtx, id); err != nil {
-				s.logger.Error().Err(err).Str("id", id).Msg("running builtin")
-			}
-			builtinMetrics := s.builtins.Flush(id)
-			if builtinMetrics != nil && len(*builtinMetrics) > 0 {
-				numMetrics = len(*builtinMetrics)
-				conduitCh <- conduit{id: conduitID, metrics: builtinMetrics}
-			}
-			s.logger.Debug().Str("conduit_id", conduitID).Str("duration", time.Since(start).String()).Int("metrics", numMetrics).Msg("done")
-			wg.Done()
-		}()
-	}
-
-	if runPlugins {
-		wg.Add(1)
-		go func() {
-			// NOTE: errors are ignored from plugins.Run
-			//       1. errors are already logged by Run
-			//       2. do not expose execution state to callers
-			start := time.Now()
-			conduitID := "plugins"
-			numMetrics := 0
-			s.logger.Debug().Str("conduit_id", conduitID).Msg("start")
-			if err := s.plugins.Run(id); err != nil {
-				s.logger.Error().Err(err).Str("id", id).Msg("running plugin")
-			}
-			pluginMetrics := s.plugins.Flush(id)
-			if pluginMetrics != nil && len(*pluginMetrics) > 0 {
-				numMetrics = len(*pluginMetrics)
-				conduitCh <- conduit{id: conduitID, metrics: pluginMetrics}
-			}
-			s.logger.Debug().Str("conduit_id", conduitID).Str("duration", time.Since(start).String()).Int("metrics", numMetrics).Msg("done")
-			wg.Done()
-		}()
-	}
-
-	if flushReceiver {
-		wg.Add(1)
-		go func() {
-			start := time.Now()
-			conduitID := "receiver"
-			numMetrics := 0
-			s.logger.Debug().Str("conduit_id", conduitID).Msg("start")
-			receiverMetrics := receiver.Flush()
-			if receiverMetrics != nil && len(*receiverMetrics) > 0 {
-				numMetrics = len(*receiverMetrics)
-				conduitCh <- conduit{id: conduitID, metrics: receiverMetrics}
-			}
-			s.logger.Debug().Str("conduit_id", conduitID).Str("duration", time.Since(start).String()).Int("metrics", numMetrics).Msg("done")
-			wg.Done()
-		}()
-	}
-
-	if flushStatsd {
-		if s.statsdSvr != nil {
+	for _, cid := range conduits {
+		switch cid {
+		case conduitBuiltin:
 			wg.Add(1)
-			go func() {
+			go func(conduitID string) {
 				start := time.Now()
-				conduitID := "statsd"
 				numMetrics := 0
 				s.logger.Debug().Str("conduit_id", conduitID).Msg("start")
-				statsdMetrics := s.statsdSvr.Flush()
-				if statsdMetrics != nil && len(*statsdMetrics) > 0 {
-					numMetrics = len(*statsdMetrics)
-					conduitCh <- conduit{id: conduitID, metrics: statsdMetrics}
+				if err := s.builtins.Run(s.groupCtx, id); err != nil {
+					s.logger.Error().Err(err).Str("id", id).Msg("running builtin")
+				}
+				builtinMetrics := s.builtins.Flush(id)
+				if builtinMetrics != nil && len(*builtinMetrics) > 0 {
+					numMetrics = len(*builtinMetrics)
+					conduitCh <- conduit{id: conduitID, metrics: builtinMetrics}
 				}
 				s.logger.Debug().Str("conduit_id", conduitID).Str("duration", time.Since(start).String()).Int("metrics", numMetrics).Msg("done")
 				wg.Done()
-			}()
-		}
-	}
-
-	if flushProm {
-		wg.Add(1)
-		go func() {
-			start := time.Now()
-			conduitID := "prometheus"
-			numMetrics := 0
-			s.logger.Debug().Str("conduit_id", conduitID).Msg("start")
-			promMetrics := promrecv.Flush()
-			if promMetrics != nil && len(*promMetrics) > 0 {
-				numMetrics = len(*promMetrics)
-				conduitCh <- conduit{id: conduitID, metrics: promMetrics}
+			}(cid)
+		case conduitPlugin:
+			wg.Add(1)
+			go func(conduitID string) {
+				// NOTE: errors are ignored from plugins.Run
+				//       1. errors are already logged by Run
+				//       2. do not expose execution state to callers
+				start := time.Now()
+				numMetrics := 0
+				s.logger.Debug().Str("conduit_id", conduitID).Msg("start")
+				if err := s.plugins.Run(id); err != nil {
+					s.logger.Error().Err(err).Str("id", id).Msg("running plugin")
+				}
+				pluginMetrics := s.plugins.Flush(id)
+				if pluginMetrics != nil && len(*pluginMetrics) > 0 {
+					numMetrics = len(*pluginMetrics)
+					conduitCh <- conduit{id: conduitID, metrics: pluginMetrics}
+				}
+				s.logger.Debug().Str("conduit_id", conduitID).Str("duration", time.Since(start).String()).Int("metrics", numMetrics).Msg("done")
+				wg.Done()
+			}(cid)
+		case conduitReceiver:
+			wg.Add(1)
+			go func(conduitID string) {
+				start := time.Now()
+				numMetrics := 0
+				s.logger.Debug().Str("conduit_id", conduitID).Msg("start")
+				receiverMetrics := receiver.Flush()
+				if receiverMetrics != nil && len(*receiverMetrics) > 0 {
+					numMetrics = len(*receiverMetrics)
+					conduitCh <- conduit{id: conduitID, metrics: receiverMetrics}
+				}
+				s.logger.Debug().Str("conduit_id", conduitID).Str("duration", time.Since(start).String()).Int("metrics", numMetrics).Msg("done")
+				wg.Done()
+			}(cid)
+		case conduitStatsd:
+			if s.statsdSvr != nil {
+				wg.Add(1)
+				go func(conduitID string) {
+					start := time.Now()
+					numMetrics := 0
+					s.logger.Debug().Str("conduit_id", conduitID).Msg("start")
+					statsdMetrics := s.statsdSvr.Flush()
+					if statsdMetrics != nil && len(*statsdMetrics) > 0 {
+						numMetrics = len(*statsdMetrics)
+						conduitCh <- conduit{id: conduitID, metrics: statsdMetrics}
+					}
+					s.logger.Debug().Str("conduit_id", conduitID).Str("duration", time.Since(start).String()).Int("metrics", numMetrics).Msg("done")
+					wg.Done()
+				}(cid)
 			}
-			s.logger.Debug().Str("conduit_id", conduitID).Str("duration", time.Since(start).String()).Int("metrics", numMetrics).Msg("done")
-			wg.Done()
-		}()
+		case conduitPrometheus:
+			wg.Add(1)
+			go func(conduitID string) {
+				start := time.Now()
+				numMetrics := 0
+				s.logger.Debug().Str("conduit_id", conduitID).Msg("start")
+				promMetrics := promrecv.Flush()
+				if promMetrics != nil && len(*promMetrics) > 0 {
+					numMetrics = len(*promMetrics)
+					conduitCh <- conduit{id: conduitID, metrics: promMetrics}
+				}
+				s.logger.Debug().Str("conduit_id", conduitID).Str("duration", time.Since(start).String()).Int("metrics", numMetrics).Msg("done")
+				wg.Done()
+			}(cid)
+		}
 	}
 
 	s.logger.Debug().Msg("waiting for metric collection from input conduits")
 	wg.Wait()
 	close(conduitCh)
 
-	s.logger.Debug().Str("duration", time.Since(runStart).String()).Msg("collection complete")
-
-	// s.logger.Debug().Msg("aggregating metrics")
 	metrics := cgm.Metrics{}
 	for cm := range conduitCh {
 		for m, v := range *cm.metrics {
@@ -214,18 +227,10 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 		}
 		metrics[tags.MetricNameWithStreamTags("circonus_agent", tags.FromList(mtags))] = cgm.Metric{Value: release.NAME + "_" + release.VERSION, Type: "s"}
 	}
-	s.logger.Debug().Int("num_metrics", len(metrics)).Msg("aggregated")
 
-	lastMetricsmu.Lock()
-	lastMetrics.metrics = &metrics
-	lastMetrics.ts = time.Now()
-	lastMetricsmu.Unlock()
+	s.logger.Debug().Str("duration", time.Since(collectStart).String()).Msg("collection complete")
 
-	if err := s.check.EnableNewMetrics(&metrics); err != nil {
-		s.logger.Warn().Err(err).Msg("unable to update check bundle metrics")
-	}
-
-	s.encodeResponse(&metrics, w, r, runStart)
+	return metrics
 }
 
 // encodeResponse takes care of encoding the response to an HTTP request for metrics.

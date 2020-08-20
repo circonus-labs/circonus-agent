@@ -80,10 +80,10 @@ func (e *OpError) Error() string {
 	if e == nil {
 		return "<nil>"
 	}
-	if e.Err == "" {
-		return e.OrigErr.Error()
+	if e.Err != "" {
+		return e.Err + ": (" + e.OrigErr.Error() + ")"
 	}
-	return e.Err
+	return e.OrigErr.Error()
 }
 
 const (
@@ -98,13 +98,13 @@ const (
 	CommTimeoutSeconds   = 10    // seconds, when communicating with noit
 	DialerTimeoutSeconds = 15    // seconds, establishing connection
 	MetricTimeoutSeconds = 50    // seconds, when communicating with agent
-	MaxDelaySeconds      = 60    // maximum amount of delay between attempts
+	MaxDelaySeconds      = 10    // maximum amount of delay between attempts
 	MaxRequests          = -1    // max requests from broker before resetting connection, -1 = unlimited
 	MaxPayloadLen        = 65529 // max unsigned short - 6 (for header)
 	MaxCommTimeouts      = 6     // multiply by commTimeout, ensure >(broker polling interval) otherwise conn reset loop
 	MinDelayStep         = 1     // minimum seconds to add on retry
-	MaxDelayStep         = 20    // maximum seconds to add on retry
-	ConfigRetryLimit     = 5     // if failed attempts > limit, force check reconfig (see if broker configuration changed)
+	MaxDelayStep         = 7     // maximum seconds to add on retry
+	ConfigRetryLimit     = 3     // if failed attempts > limit, force check reconfig (see if broker configuration changed)
 )
 
 func New(parentLogger zerolog.Logger, agentAddress string, cfg *check.ReverseConfig) (*Connection, error) {
@@ -136,21 +136,19 @@ func New(parentLogger zerolog.Logger, agentAddress string, cfg *check.ReverseCon
 
 // Start the reverse connection to the broker
 func (c *Connection) Start(ctx context.Context) error {
-
 	for {
-
-		conn, cerr := c.connect()
+		conn, cerr := c.connect(ctx)
 		if cerr != nil {
 			if cerr.retry {
 				c.logger.Warn().Err(cerr.err).Msg("retrying")
 				continue
 			}
-			c.logger.Error().Err(cerr.err).Msg("unable to establish reverse connection to broker")
+			// c.logger.Error().Err(cerr.err).Msg("unable to establish reverse connection to broker")
 			return &OpError{
+				Err:          "unable to establish reverse connection to broker",
 				RefreshCheck: true,
 				OrigErr:      cerr.err,
 			}
-
 		}
 
 		select {
@@ -165,7 +163,6 @@ func (c *Connection) Start(ctx context.Context) error {
 		commandProcessor := c.newCommandProcessor(cmdCtx, commandReader)
 
 		for result := range commandProcessor {
-
 			select {
 			case <-ctx.Done():
 				conn.Close()
@@ -181,7 +178,6 @@ func (c *Connection) Start(ctx context.Context) error {
 				switch {
 				case result.reset:
 					c.logger.Warn().Err(result.err).Int("timeouts", c.commTimeouts).Msg("resetting connection")
-					cmdCancel()
 				case result.fatal:
 					c.logger.Error().Err(result.err).Interface("result", result).Msg("fatal error, exiting")
 					conn.Close()
@@ -193,6 +189,8 @@ func (c *Connection) Start(ctx context.Context) error {
 					c.logger.Error().Err(result.err).Interface("result", result).Msg("unhandled error state...")
 					continue
 				}
+				cmdCancel()
+				break // inner loop for check refresh
 			}
 
 			// send metrics to broker
@@ -227,7 +225,7 @@ func (c *Connection) Start(ctx context.Context) error {
 
 // connect to broker w/tls and send initial introduction
 // NOTE: all reverse connections require tls
-func (c *Connection) connect() (*tls.Conn, *connError) {
+func (c *Connection) connect(ctx context.Context) (*tls.Conn, *connError) {
 	c.Lock()
 	if c.connAttempts > 0 {
 		if c.maxConnRetry != -1 && c.connAttempts >= c.maxConnRetry {
@@ -241,6 +239,12 @@ func (c *Connection) connect() (*tls.Conn, *connError) {
 			Msg("connect retry")
 
 		time.Sleep(c.delay)
+		select {
+		case <-ctx.Done():
+			c.Unlock()
+			return nil, nil
+		default:
+		}
 		c.delay = c.getNextDelay(c.delay)
 
 		// Under normal circumstances the configuration for reverse is
@@ -307,13 +311,13 @@ func (c *Connection) getNextDelay(currDelay time.Duration) time.Duration {
 	maxDelay := MaxDelaySeconds * time.Second
 
 	if currDelay == maxDelay {
-		return currDelay
+		return time.Duration(MinDelayStep) * time.Second
 	}
 
 	delay := currDelay
 
 	if delay < maxDelay {
-		drift := rand.Intn(MaxDelayStep-MinDelayStep) + MinDelayStep
+		drift := rand.Intn(MaxDelayStep-MinDelayStep) + MinDelayStep //nolint:gosec
 		delay += time.Duration(drift) * time.Second
 	}
 

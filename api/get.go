@@ -6,6 +6,7 @@
 package api
 
 import (
+	"context"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -13,7 +14,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (c *Client) get(reqpath string) ([]byte, error) {
+func (c *Client) get(ctx context.Context, reqpath string) ([]byte, error) {
 	if reqpath == "" {
 		return nil, errors.New("invalid request path (empty)")
 	}
@@ -24,7 +25,7 @@ func (c *Client) get(reqpath string) ([]byte, error) {
 	}
 
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", au.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", au.String(), nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "preparing request")
 	}

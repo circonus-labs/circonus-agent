@@ -15,7 +15,6 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/check/bundle"
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/circonus-labs/go-apiclient"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
@@ -143,12 +142,11 @@ func New(apiClient API) (*Check, error) {
 	}
 
 	isCreate := viper.GetBool(config.KeyCheckCreate)
-	isManaged := viper.GetBool(config.KeyCheckEnableNewMetrics)
 	isReverse := viper.GetBool(config.KeyReverse)
 	cid := viper.GetString(config.KeyCheckBundleID)
 	needCheck := false
 
-	if isReverse || isManaged || (isCreate && cid == "") {
+	if isReverse || (isCreate && cid == "") {
 		needCheck = true
 	}
 
@@ -215,6 +213,25 @@ func (c *Check) CheckMeta() (*Meta, error) {
 		CheckID:   c.checkConfig.CID,
 		CheckUUID: c.checkConfig.CheckUUID,
 	}, nil
+}
+
+// SubmissionURL returns the URL to submit metrics to as well as the tls config for https
+func (c *Check) SubmissionURL() (string, *tls.Config, error) {
+	surl, err := c.checkBundle.SubmissionURL()
+	if err != nil {
+		return "", nil, err
+	}
+
+	u, err := url.Parse(surl)
+	if err != nil {
+		return "", nil, errors.Wrap(err, "parsing submission url")
+	}
+	tlsConfig, _, err := c.brokerTLSConfig(u)
+	if err != nil {
+		return "", nil, errors.Wrapf(err, "creating TLS config for (%s - %s)", c.broker.CID, surl)
+	}
+
+	return surl, tlsConfig, nil
 }
 
 // CheckPeriod returns check bundle period (intetrval between when broker should make request)
@@ -310,13 +327,4 @@ func (c *Check) FetchBrokerConfig() error {
 	c.logger.Debug().Interface("config", c.broker).Msg("using broker config")
 
 	return nil
-}
-
-// EnableNewMetrics updates the check bundle enabling any new metrics
-func (c *Check) EnableNewMetrics(m *cgm.Metrics) error {
-	if c.checkBundle == nil {
-		return nil // noop -- errors.New("check bundle uninitialized")
-	}
-
-	return c.checkBundle.EnableNewMetrics(m)
 }

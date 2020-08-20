@@ -55,6 +55,10 @@ const (
 	// Watch plugins for changes
 	Watch = false
 
+	// MultiAgent
+	MultiAgent         = false
+	MultiAgentInterval = "60s"
+
 	// ReverseMaxConnRetry - how many times to retry persistently failing broker connection
 	ReverseMaxConnRetry = -1
 

@@ -6,6 +6,7 @@
 package check
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"net/url"
@@ -72,7 +73,7 @@ func (c *Check) setReverseConfigs() error {
 
 // FindPrimaryBrokerInstance will walk through reverse urls to locate the instance
 // in a broker cluster which is the current check owner. Returns the instance cn or error.
-func (c *Check) FindPrimaryBrokerInstance(cfgs *ReverseConfigs) (string, error) {
+func (c *Check) FindPrimaryBrokerInstance(ctx context.Context, cfgs *ReverseConfigs) (string, error) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -111,7 +112,7 @@ func (c *Check) FindPrimaryBrokerInstance(cfgs *ReverseConfigs) (string, error) 
 		ownerReqURL := strings.Replace(cfg.ReverseURL.String(), "/check/", "/checks/owner/", 1)
 		c.logger.Debug().Str("trying", ownerReqURL).Msg("checking")
 
-		req, err := http.NewRequest("GET", ownerReqURL, nil)
+		req, err := http.NewRequestWithContext(ctx, "GET", ownerReqURL, nil)
 		if err != nil {
 			c.logger.Warn().Err(err).Str("url", ownerReqURL).Msg("creating check owner request")
 			return "", err

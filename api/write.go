@@ -7,6 +7,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -16,6 +17,10 @@ import (
 )
 
 func (c *Client) Write(groupID string, metrics *Metrics) error {
+	return c.WriteWithContext(context.Background(), groupID, metrics)
+}
+
+func (c *Client) WriteWithContext(ctx context.Context, groupID string, metrics *Metrics) error {
 	if groupID == "" {
 		return errors.New("invalid group id (empty)")
 	}
@@ -37,7 +42,7 @@ func (c *Client) Write(groupID string, metrics *Metrics) error {
 	}
 
 	client := &http.Client{}
-	req, err := http.NewRequest("POST", au.String(), bytes.NewBuffer(m))
+	req, err := http.NewRequestWithContext(ctx, "POST", au.String(), bytes.NewBuffer(m))
 	if err != nil {
 		return errors.Wrap(err, "preparing request")
 	}
