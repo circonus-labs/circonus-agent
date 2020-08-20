@@ -64,7 +64,6 @@ func TestFetchCheck(t *testing.T) {
 	{
 		cid := ""
 		viper.Set(config.KeyCheckBundleID, cid)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
 
 		_, err := c.fetchCheckBundle(cid)
 		if err == nil {
@@ -80,7 +79,6 @@ func TestFetchCheck(t *testing.T) {
 	{
 		cid := "abc"
 		viper.Set(config.KeyCheckBundleID, cid)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
 
 		_, err := c.fetchCheckBundle(cid)
 		if err == nil {
@@ -96,7 +94,6 @@ func TestFetchCheck(t *testing.T) {
 	{
 		cid := "000"
 		viper.Set(config.KeyCheckBundleID, cid)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
 
 		_, err := c.fetchCheckBundle(cid)
 		if err == nil {
@@ -112,7 +109,6 @@ func TestFetchCheck(t *testing.T) {
 	{
 		cid := "1234"
 		viper.Set(config.KeyCheckBundleID, cid)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
 
 		_, err := c.fetchCheckBundle(cid)
 		if err != nil {
@@ -140,7 +136,6 @@ func TestFindCheck(t *testing.T) {
 
 		target := ""
 		viper.Set(config.KeyCheckTarget, target)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
 
 		_, found, err := c.findCheckBundle()
 		if err == nil {
@@ -159,7 +154,6 @@ func TestFindCheck(t *testing.T) {
 	{
 		target := "000"
 		viper.Set(config.KeyCheckTarget, target)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
 
 		_, found, err := c.findCheckBundle()
 		if err == nil {
@@ -178,7 +172,6 @@ func TestFindCheck(t *testing.T) {
 	{
 		target := "not_found"
 		viper.Set(config.KeyCheckTarget, target)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
 
 		_, found, err := c.findCheckBundle()
 		if err == nil {
@@ -247,7 +240,6 @@ func TestFindCheck(t *testing.T) {
 	{
 		target := "valid"
 		viper.Set(config.KeyCheckTarget, target)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
 
 		_, found, err := c.findCheckBundle()
 		if err != nil {
@@ -277,7 +269,6 @@ func TestCreateCheck(t *testing.T) {
 	{
 		target := ""
 		viper.Set(config.KeyCheckTarget, target)
-		viper.Set(config.KeyCheckEnableNewMetrics, true)
 
 		_, err := c.createCheckBundle()
 		if err == nil {
