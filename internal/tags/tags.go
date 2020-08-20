@@ -177,6 +177,33 @@ func MetricNameWithStreamTags(metric string, tags Tags) string {
 	return metric
 }
 
+func MergeTags(metricName string, metricTags []string) string {
+	if len(metricTags) == 0 {
+		return metricName
+	}
+	if !strings.Contains(metricName, "|ST[") {
+		return EncodeMetricStreamTags(FromList(metricTags))
+	}
+
+	p1 := strings.SplitN(metricName, "|ST[", 2)
+	if len(p1) != 2 {
+		return EncodeMetricStreamTags(FromList(metricTags))
+	}
+
+	mn := p1[0]
+	mt := strings.TrimSuffix(p1[1], "]")
+
+	tl := strings.Split(mt, ",")
+	tl = append(tl, metricTags...)
+	st := EncodeMetricStreamTags(FromList(tl))
+
+	if st != "" {
+		return mn + "|ST[" + st + "]"
+	}
+
+	return mn
+}
+
 // EncodeMetricStreamTags encodes Tags into a string suitable for use with
 // stream tags. Tags directly embedded into metric names using the
 // `metric_name|ST[<tags>]` syntax.

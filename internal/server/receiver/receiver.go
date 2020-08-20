@@ -108,6 +108,11 @@ func Parse(id string, data io.Reader) error {
 		tagList = append(tagList, "collector_id:"+id)
 		metricTags := tags.FromList(tagList)
 
+		if strings.Contains(metricName, "|ST") {
+			// merge metricTags into the already present streamtags
+			metricName = tags.MergeTags(metricName, tagList)
+		}
+
 		switch metric.Type {
 		case "i":
 			if v := parseInt32(metricName, metric); v != nil {
