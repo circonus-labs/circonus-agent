@@ -37,7 +37,7 @@ Three formats are supported (json, toml, yaml) for collector configurations. Col
 
 ## Default collectors:
 
-* Linux: `['procfs/cpu', 'procfs/disk', 'procfs/if', 'procfs/load', 'procfs/proto', 'procfs/vm']`
+* Linux: `['procfs/cpu', 'procfs/disk', 'procfs/if', 'procfs/load', 'procfs/proto', 'procfs/vm', 'generic/fs']`
 * Windows: `['wmi/cache', 'wmi/disk', 'wmi/ip', 'wmi/interface', 'wmi/memory', 'wmi/object', 'wmi/paging_file' 'wmi/processor', 'wmi/tcp', 'wmi/udp']`
 * Generic: `['generic/cpu', 'generic/disk', 'generic/fs', 'generic/if', 'generic/load', 'generic/proto', 'generic/vm']`
 * Common `prometheus` (disabled if no configuration file exists)
