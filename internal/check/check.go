@@ -8,6 +8,8 @@ package check
 
 import (
 	"crypto/tls"
+	"crypto/x509"
+	"io/ioutil"
 	"net"
 	"net/url"
 	"sync"
@@ -163,6 +165,9 @@ func New(apiClient API) (*Check, error) {
 			TokenApp: viper.GetString(config.KeyAPITokenApp),
 			TokenKey: viper.GetString(config.KeyAPITokenKey),
 			URL:      viper.GetString(config.KeyAPIURL),
+		}
+		if caFile := viper.GetString(config.KeyAPICAFile); caFile != "" {
+			cfg.CACert = c.loadAPICAfile(caFile)
 		}
 		client, err := apiclient.New(cfg)
 		if err != nil {
@@ -327,4 +332,18 @@ func (c *Check) FetchBrokerConfig() error {
 	c.logger.Debug().Interface("config", c.broker).Msg("using broker config")
 
 	return nil
+}
+
+func (c *Check) loadAPICAfile(file string) *x509.CertPool {
+	cp := x509.NewCertPool()
+	cert, err := ioutil.ReadFile(file)
+	if err != nil {
+		c.logger.Error().Err(err).Str("file", file).Msg("unable to load api ca file")
+		return nil
+	}
+	if !cp.AppendCertsFromPEM(cert) {
+		c.logger.Error().Err(err).Str("file", file).Msg("problem parsing cert in api ca file")
+		return nil
+	}
+	return cp
 }
