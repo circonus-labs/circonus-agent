@@ -1,5 +1,6 @@
 # v1.2.0
 
+* fix: use api ca file if specified for check api client
 * add: generic hostTags method for check tags (applies to create and update)
 * add: host tags to check (like cosi did)
 * fix: only lower case category if not already encoded (affected receiver w/streamtagged metric names)
