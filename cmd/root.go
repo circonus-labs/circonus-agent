@@ -10,6 +10,7 @@ import (
 	"fmt"
 	stdlog "log"
 	"os"
+	"path/filepath"
 	"runtime"
 	"time"
 
@@ -116,7 +117,7 @@ func init() {
 		var (
 			longOpt     = "config"
 			shortOpt    = "c"
-			description = "config file (default is " + defaults.EtcPath + "/" + release.NAME + ".(json|toml|yaml)"
+			description = "config file (default is " + filepath.Join(defaults.EtcPath, release.NAME) + ".(json|toml|yaml)"
 		)
 		RootCmd.PersistentFlags().StringVarP(&cfgFile, longOpt, shortOpt, "", description)
 	}
@@ -1364,7 +1365,9 @@ func initLogging(cmd *cobra.Command, args []string) error {
 
 // initConfig reads in config file and/or ENV variables if set.
 func initConfig() {
+
 	if cfgFile != "" {
+		log.Warn().Str("config_file", cfgFile).Msg("config file set")
 		viper.SetConfigFile(cfgFile)
 	} else {
 		viper.AddConfigPath(defaults.EtcPath)
@@ -1374,12 +1377,15 @@ func initConfig() {
 
 	viper.AutomaticEnv()
 
-	if err := viper.ReadInConfig(); err != nil {
-		f := viper.ConfigFileUsed()
+	err := viper.ReadInConfig()
+	f := viper.ConfigFileUsed()
+	if err != nil {
 		if f != "" {
 			log.Fatal().Err(err).Str("config_file", f).Msg("Unable to load config file")
 		}
 	}
+
+	log.Warn().Str("config_file", f).Msg("config file used")
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

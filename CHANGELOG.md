@@ -1,3 +1,13 @@
+# v1.2.0
+
+* fix: use api ca file if specified for check api client
+* add: generic hostTags method for check tags (applies to create and update)
+* add: host tags to check (like cosi did)
+* fix: only lower case category if not already encoded (affected receiver w/streamtagged metric names)
+* upd: go1.15 manual tls VerifyConnection
+* upd: depedencies
+* fix: config file path sep to be os sensitive
+
 # v1.1.0
 
 * doc: add multi-agent details

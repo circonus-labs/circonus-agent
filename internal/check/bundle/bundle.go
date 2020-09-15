@@ -378,6 +378,7 @@ func (cb *Bundle) createCheckBundle() (*apiclient.CheckBundle, error) {
 	}
 	note := fmt.Sprintf("created by %s %s", release.NAME, release.VERSION)
 	cfg.Notes = &note
+	cfg.Tags = cb.getHostTags()
 	cfg.Type = "json:nad"
 	cfg.Config = apiclient.CheckBundleConfig{apiconf.URL: "http://" + targetAddr + "/"}
 	cfg.Metrics = []apiclient.CheckBundleMetric{}
@@ -402,11 +403,6 @@ func (cb *Bundle) createCheckBundle() (*apiclient.CheckBundle, error) {
 			return nil, errors.Wrap(err, "getting metric filters")
 		}
 		cfg.MetricFilters = filters
-	}
-
-	tags := viper.GetString(config.KeyCheckTags)
-	if tags != "" {
-		cfg.Tags = strings.Split(tags, ",")
 	}
 
 	brokerCID := viper.GetString(config.KeyCheckBroker)
@@ -471,6 +467,7 @@ func (cb *Bundle) updateCheckBundle(cfg *apiclient.CheckBundle) (*apiclient.Chec
 	}
 	note := fmt.Sprintf("updated by %s %s", release.NAME, release.VERSION)
 	cfg.Notes = &note
+	cfg.Tags = cb.getHostTags()
 	cfg.Config = apiclient.CheckBundleConfig{apiconf.URL: "http://" + targetAddr + "/"}
 	cfg.Metrics = []apiclient.CheckBundleMetric{}
 	{
@@ -494,11 +491,6 @@ func (cb *Bundle) updateCheckBundle(cfg *apiclient.CheckBundle) (*apiclient.Chec
 			return nil, errors.Wrap(err, "getting metric filters")
 		}
 		cfg.MetricFilters = filters
-	}
-
-	tags := viper.GetString(config.KeyCheckTags)
-	if tags != "" {
-		cfg.Tags = strings.Split(tags, ",")
 	}
 
 	brokerCID := viper.GetString(config.KeyCheckBroker)

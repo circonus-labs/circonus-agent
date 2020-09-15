@@ -9,6 +9,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/url"
 
@@ -37,26 +38,26 @@ func (c *Check) brokerTLSConfig(reverseURL *url.URL) (*tls.Config, string, error
 	}
 
 	tlsConfig := &tls.Config{
-		RootCAs:    cp, // go1.15 see VerifyConnection below - until CN added to SAN in broker certs
+		// RootCAs:    cp, // go1.15 see VerifyConnection below - until CN added to SAN in broker certs
 		ServerName: cn,
 		MinVersion: tls.VersionTLS12,
-		// // NOTE: This does NOT disable VerifyConnection()
-		// InsecureSkipVerify: true, //nolint:gosec
-		// VerifyConnection: func(cs tls.ConnectionState) error {
-		// 	commonName := cs.PeerCertificates[0].Subject.CommonName
-		// 	if commonName != cs.ServerName {
-		// 		return fmt.Errorf("invalid certificate name %q, expected %q", commonName, cs.ServerName)
-		// 	}
-		// 	opts := x509.VerifyOptions{
-		// 		Roots:         cp,
-		// 		Intermediates: x509.NewCertPool(),
-		// 	}
-		// 	for _, cert := range cs.PeerCertificates[1:] {
-		// 		opts.Intermediates.AddCert(cert)
-		// 	}
-		// 	_, err := cs.PeerCertificates[0].Verify(opts)
-		// 	return err
-		// },
+		// NOTE: This does NOT disable VerifyConnection()
+		InsecureSkipVerify: true, //nolint:gosec
+		VerifyConnection: func(cs tls.ConnectionState) error {
+			commonName := cs.PeerCertificates[0].Subject.CommonName
+			if commonName != cs.ServerName {
+				return fmt.Errorf("invalid certificate name %q, expected %q", commonName, cs.ServerName)
+			}
+			opts := x509.VerifyOptions{
+				Roots:         cp,
+				Intermediates: x509.NewCertPool(),
+			}
+			for _, cert := range cs.PeerCertificates[1:] {
+				opts.Intermediates.AddCert(cert)
+			}
+			_, err := cs.PeerCertificates[0].Verify(opts)
+			return err
+		},
 	}
 
 	c.logger.Debug().Str("CN", cn).Msg("setting tls CN")

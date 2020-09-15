@@ -218,6 +218,8 @@ func EncodeMetricStreamTags(tags Tags) string {
 	}
 
 	tagList := make([]string, len(tmpTags))
+	encodeFmt := `b"%s"`
+	encodedSig := `b"` // has cat or val been previously (or manually) base64 encoded and formatted
 	for i, tag := range tmpTags {
 		if i >= MAX_TAGS {
 			log.Warn().Int("num", len(tags)).Int("max", MAX_TAGS).Interface("tags", tags).Msg("ignoring tags over max")
@@ -228,12 +230,10 @@ func EncodeMetricStreamTags(tags Tags) string {
 			log.Warn().Int("num", len(tagParts)).Str("tag", tag).Msg("invalid tag format, ignoring")
 			continue // invalid tag, skip it
 		}
-		encodeFmt := `b"%s"`
-		encodedSig := `b"` // has cat or val been previously (or manually) base64 encoded and formatted
 		tc := tagParts[0]
 		tv := tagParts[1]
 		if !strings.HasPrefix(tc, encodedSig) {
-			tc = fmt.Sprintf(encodeFmt, base64.StdEncoding.EncodeToString([]byte(tc)))
+			tc = fmt.Sprintf(encodeFmt, base64.StdEncoding.EncodeToString([]byte(strings.ToLower(tc))))
 		}
 		if !strings.HasPrefix(tv, encodedSig) {
 			tv = fmt.Sprintf(encodeFmt, base64.StdEncoding.EncodeToString([]byte(tv)))
@@ -254,13 +254,17 @@ func EncodeMetricTags(tags Tags) []string {
 	}
 
 	uniqueTags := make(map[string]bool)
+	encodedSig := `b"` // has cat or val been previously (or manually) base64 encoded and formatted
 	for i, t := range tags {
 		if i >= MAX_TAGS {
 			log.Warn().Int("num", len(tags)).Int("max", MAX_TAGS).Interface("tags", tags).Msg("too many tags, ignoring remainder")
 			break
 		}
-		tc := strings.Map(removeSpaces, strings.ToLower(t.Category))
-		tv := strings.Map(removeSpaces, strings.ToLower(t.Value))
+		tc := t.Category
+		tv := t.Value
+		if !strings.HasPrefix(tc, encodedSig) {
+			tc = strings.Map(removeSpaces, strings.ToLower(t.Category))
+		}
 		if tc == "" || tv == "" {
 			log.Warn().Interface("tag", t).Msg("invalid tag format, ignoring")
 			continue // invalid tag, skip it
