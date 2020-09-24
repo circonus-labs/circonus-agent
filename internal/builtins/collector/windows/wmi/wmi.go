@@ -195,6 +195,14 @@ func New() ([]collector.Collector, error) {
 			}
 			collectors = append(collectors, c)
 
+		case "system":
+			c, err := NewSystemCollector(path.Join(defaults.EtcPath, cfgBase))
+			if err != nil {
+				logError(name, err)
+				continue
+			}
+			collectors = append(collectors, c)
+
 		default:
 			l.Warn().
 				Str("name", name).
