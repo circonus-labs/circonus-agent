@@ -73,17 +73,19 @@ func TestNew(t *testing.T) {
 
 	t.Log("no config spec (force default)")
 	{
-		_, err := New("")
-		if err == nil {
-			t.Fatal("expected error")
+		p, err := New("")
+		if p != nil && err != nil {
+			t.Fatalf("expected no error and no prom instance -- got %v %s", p, err)
+			// t.Fatal("expected error")
 		}
 	}
 
 	t.Log("missing config file")
 	{
-		_, err := New(path.Join("testdata", "missing"))
-		if err == nil {
-			t.Fatal("expected error")
+		p, err := New(path.Join("testdata", "missing"))
+		if p != nil && err != nil {
+			t.Fatalf("expected no error and no prom instance -- got %v %s", p, err)
+			// t.Fatal("expected error")
 		}
 	}
 
