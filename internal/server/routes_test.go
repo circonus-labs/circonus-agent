@@ -8,6 +8,7 @@ package server
 import (
 	"bytes"
 	"context"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -114,6 +115,8 @@ func TestRouter(t *testing.T) {
 		viper.Set(config.KeyListen, ":2609")
 		viper.Set(config.KeyStatsdDisabled, true)
 		viper.Set(config.KeyPluginDir, "testdata/")
+		viper.Set(config.KeyCPUThreshold, -1)
+		viper.Set(config.KeyMemThreshold, -1)
 		b, berr := builtins.New(context.Background())
 		if berr != nil {
 			t.Fatalf("expected no error, got (%s)", berr)
@@ -144,8 +147,8 @@ func TestRouter(t *testing.T) {
 			{"GET", "/inventory/", http.StatusOK},
 			{"GET", "/stats", http.StatusOK},
 			{"GET", "/stats/", http.StatusOK},
-			{"GET", "/prom", http.StatusNoContent},
-			{"GET", "/prom/", http.StatusNoContent},
+			{"GET", "/prom", http.StatusOK},
+			{"GET", "/prom/", http.StatusOK},
 		}
 		// zerolog.SetGlobalLevel(zerolog.DebugLevel)
 
@@ -155,8 +158,13 @@ func TestRouter(t *testing.T) {
 			w := httptest.NewRecorder()
 			s.router(w, req)
 			resp := w.Result()
+			body, berr := ioutil.ReadAll(resp.Body)
+			if berr != nil {
+				t.Fatalf("expected no error, got (%s)", berr)
+			}
 			resp.Body.Close()
 			if resp.StatusCode != reqtest.code {
+				t.Logf("resp (%s)", string(body))
 				t.Fatalf("expected %d, got %d", reqtest.code, resp.StatusCode)
 			}
 		}
