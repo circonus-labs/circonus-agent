@@ -38,7 +38,7 @@ func TestGet(t *testing.T) {
 		expectedErr string
 	}{
 		{"invalid path (empty)", "", true, "invalid request path (empty)"},
-		{"invalid path (bad)", "/%/%", true, "creating request url: parse /%/%: invalid URL escape \"%/%\""},
+		{"invalid path (bad)", "/%/%", true, `creating request url: parse "/%/%": invalid URL escape "%/%"`},
 		{"invalid path (not found)", "/not_found", true, "404 Not Found - " + ts.URL + "/not_found - Not Found"},
 		{"valid", "/valid", false, ""},
 	}
