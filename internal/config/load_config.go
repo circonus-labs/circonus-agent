@@ -17,6 +17,15 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+type FileNotFoundErr struct {
+	Name    string
+	ExtList []string
+}
+
+func (e *FileNotFoundErr) Error() string {
+	return fmt.Sprintf("no config found matching (%s%s)", e.Name, strings.Join(e.ExtList, "|"))
+}
+
 // LoadConfigFile will attempt to load json|toml|yaml configuration files.
 // `base` is the full path and base name of the configuration file to load.
 // `target` is an interface in to which the data will be loaded. Checks for
@@ -60,7 +69,7 @@ func LoadConfigFile(base string, target interface{}) error {
 	}
 
 	if !loaded {
-		return errors.Errorf("no config found matching (%s%s)", base, strings.Join(extensions, "|"))
+		return errors.Wrapf(os.ErrNotExist, "no config found matching (%s%s)", base, strings.Join(extensions, "|"))
 	}
 
 	return nil
