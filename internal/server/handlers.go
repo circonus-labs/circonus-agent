@@ -108,9 +108,11 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 
 // GetMetrics collects metrics from the various conduits and returns them for disposition
 func (s *Server) GetMetrics(conduits []string, id string) cgm.Metrics {
+	includeAgentMetrics := false
 	// default to all conduits if list is empty
 	if len(conduits) == 0 {
 		conduits = []string{conduitBuiltin, conduitPlugin, conduitReceiver, conduitStatsd, conduitPrometheus}
+		includeAgentMetrics = true
 	}
 
 	collectStart := time.Now()
@@ -221,7 +223,7 @@ func (s *Server) GetMetrics(conduits []string, id string) cgm.Metrics {
 
 	cdur := time.Since(collectStart)
 
-	{
+	if includeAgentMetrics {
 		mtags := tags.GetBaseTags()
 		mtags = append(mtags, []string{"collector:agent", "__rollup:false"}...)
 		if viper.GetBool(config.KeyClusterEnabled) {
