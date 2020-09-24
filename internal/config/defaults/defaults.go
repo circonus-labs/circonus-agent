@@ -129,6 +129,11 @@ const (
 	ClusterEnableBuiltins = false
 	// Cluster mode represent statsd gauges as histogram samples, so that _one_ sample will be collected for each node
 	ClusterStatsdHistogramGauges = false
+
+	// Utilization thresholds for memory and cpu to trigger sending process metric (if a given process is higher for EITHER)
+	// -1 disables the feature
+	CPUThreshold = float32(-1)
+	MemThreshold = float32(-1)
 )
 
 var (
@@ -195,6 +200,8 @@ var (
 
 	// StatsdConf returns the default statsd config file
 	StatsdConf = "" // (e.g. /opt/circonus/agent/etc/statsd.json)
+
+	CheckType = ""
 )
 
 func init() {
@@ -229,6 +236,8 @@ func init() {
 	}
 	CheckTitle = CheckTarget + " /agent"
 
+	CheckType = "json:" + release.NAME + ":" + runtime.GOOS
+
 	switch runtime.GOOS {
 	case "linux":
 		Collectors = []string{
@@ -253,6 +262,7 @@ func init() {
 			"wmi/processor",
 			"wmi/tcp", // ipv4 and ipv6
 			"wmi/udp", // ipv4 and ipv6
+			"wmi/system",
 		}
 	default:
 		Collectors = []string{

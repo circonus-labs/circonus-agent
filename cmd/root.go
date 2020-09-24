@@ -1221,6 +1221,44 @@ func init() {
 		viper.SetDefault(key, defaultValue)
 	}
 
+	// Threshold for CPU and Memory utilization to include process metric
+	{
+		const (
+			key          = config.KeyCPUThreshold
+			longOpt      = "threshold-hicpu"
+			envVar       = release.ENVPREFIX + "_THRESHOLD_HICPU"
+			description  = "High CPU utilization percentage to include process metric [-1=disabled]"
+			defaultValue = defaults.CPUThreshold
+		)
+
+		RootCmd.Flags().Float32(longOpt, defaultValue, desc(description, envVar))
+		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
+			bindFlagError(longOpt, err)
+		}
+		if err := viper.BindEnv(key, envVar); err != nil {
+			bindEnvError(envVar, err)
+		}
+		viper.SetDefault(key, defaultValue)
+	}
+	{
+		const (
+			key          = config.KeyMemThreshold
+			longOpt      = "threshold-himem"
+			envVar       = release.ENVPREFIX + "_THRESHOLD_HIMEM"
+			description  = "High memory utilization percentage to include process metric [-1=disabled]"
+			defaultValue = defaults.MemThreshold
+		)
+
+		RootCmd.Flags().Float32(longOpt, defaultValue, desc(description, envVar))
+		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
+			bindFlagError(longOpt, err)
+		}
+		if err := viper.BindEnv(key, envVar); err != nil {
+			bindEnvError(envVar, err)
+		}
+		viper.SetDefault(key, defaultValue)
+	}
+
 	{
 		const (
 			key          = config.KeyShowVersion
