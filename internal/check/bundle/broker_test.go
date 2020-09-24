@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/circonus-labs/go-apiclient"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -121,7 +122,7 @@ func Test_brokerSupportsCheckType(t *testing.T) {
 		{"nil details", args{checkType: "json", details: nil}, false},
 		{"unsupported type", args{checkType: "invalid", details: defaultDetails}, false},
 		{"supported type (json)", args{checkType: "json", details: defaultDetails}, true},
-		{"supported subtype (json:nad)", args{checkType: "json:nad", details: defaultDetails}, true},
+		{"supported subtype (" + defaults.CheckType + ")", args{checkType: defaults.CheckType, details: defaultDetails}, true},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -181,10 +182,10 @@ func TestBundle_selectBroker(t *testing.T) {
 		needTestServer bool
 	}{
 		{"invalid check type (empty)", defaultFields, args{checkType: "", brokerList: nil}, nil, true, false},
-		{"invalid broker list (nil)", defaultFields, args{checkType: "json:nad", brokerList: nil}, nil, true, false},
-		{"invalid broker list (empty)", defaultFields, args{checkType: "json:nad", brokerList: &[]apiclient.Broker{}}, nil, true, false},
-		{"no valid broker", defaultFields, args{checkType: "json:nad", brokerList: &noValidBrokers}, nil, true, false},
-		{"valid", defaultFields, args{checkType: "json:nad", brokerList: &noValidBrokers}, nil, false, true},
+		{"invalid broker list (nil)", defaultFields, args{checkType: defaults.CheckType, brokerList: nil}, nil, true, false},
+		{"invalid broker list (empty)", defaultFields, args{checkType: defaults.CheckType, brokerList: &[]apiclient.Broker{}}, nil, true, false},
+		{"no valid broker", defaultFields, args{checkType: defaults.CheckType, brokerList: &noValidBrokers}, nil, true, false},
+		{"valid", defaultFields, args{checkType: defaults.CheckType, brokerList: &noValidBrokers}, nil, false, true},
 	}
 	for _, tt := range tests {
 		tt := tt
