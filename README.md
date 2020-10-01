@@ -1,11 +1,10 @@
 # Circonus Agent
 
-Version 1.x of the circonus-agent only supports metrics with stream tags (if it is _dropped in_ an existing NAD install, the metric names will change). If metric name continuity is required, use the v0 circonus-agent releases.
+> NOTE: Version 2.x of the circonus-agent uses a new check type in order to support the new dynamic host dashboards. It will create a new check if it is installed over any prior version of the circonus-agent or NAD.
 
 # Features
 
-1. Replacement for NAD, written in Go - note, v0.x only
-1. Builtin metric [collectors](#builtin-collectors) -- the default Linux builtins emit the common metrics needed for cosi visuals (graphs, worksheets, & dashboards)
+1. Builtin metric [collectors](#builtin-collectors) -- the default Linux builtins emit the common metrics needed for the dynamic host dashboard
 1. [Plugin](#plugins) architecture for local metric collection
 1. Local HTTP [Receiver](#receiver) for POST/PUT metric collection
 1. Local [StatsD](#statsd) listener for application metrics
