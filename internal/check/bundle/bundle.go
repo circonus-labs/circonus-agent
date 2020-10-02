@@ -244,20 +244,30 @@ func (cb *Bundle) initCheckBundle(cid string, create bool) error {
 	}
 
 	if viper.GetBool(config.KeyCheckUpdate) {
+		cb.logger.Info().Str("cid", bundle.CID).Msg("updating check bundle")
 		b, err := cb.updateCheckBundle(bundle)
 		if err != nil {
 			return errors.Wrap(err, "updating check bundle")
 		}
 		bundle = b
 	} else if viper.GetBool(config.KeyCheckUpdateMetricFilters) {
+		cb.logger.Info().Str("cid", bundle.CID).Msg("updating check bundle metric filters and host tags")
 		b, err := cb.updateCheckBundleMetricFilters(bundle)
 		if err != nil {
 			return errors.Wrap(err, "updating check bundle metric filters")
 		}
 		bundle = b
+	} else {
+		cb.logger.Info().Str("cid", bundle.CID).Msg("updating check bundle host tags")
+		b, err := cb.updateCheckBundleTags(bundle)
+		if err != nil {
+			return errors.Wrap(err, "updating check bundle tags")
+		}
+		bundle = b
 	}
 
 	cb.bundle = bundle
+	cb.logger.Info().Str("cid", cb.bundle.CID).Str("name", cb.bundle.DisplayName).Msg("using check bundle")
 
 	return nil
 }
@@ -298,7 +308,7 @@ func (cb *Bundle) findCheckBundle() (*apiclient.CheckBundle, int, error) {
 		return nil, -1, errors.New("invalid check bundle target (empty)")
 	}
 
-	criteria := apiclient.SearchQueryType(fmt.Sprintf(`(active:1)(type:"json:nad")(target:"%s")`, target))
+	criteria := apiclient.SearchQueryType(fmt.Sprintf(`(active:1)(type:"`+defaults.CheckType+`")(target:"%s")`, target))
 	bundles, err := cb.client.SearchCheckBundles(&criteria, nil)
 	if err != nil {
 		return nil, -1, errors.Wrap(err, "searching for check bundle")
@@ -379,7 +389,7 @@ func (cb *Bundle) createCheckBundle() (*apiclient.CheckBundle, error) {
 	note := fmt.Sprintf("created by %s %s", release.NAME, release.VERSION)
 	cfg.Notes = &note
 	cfg.Tags = cb.getHostTags()
-	cfg.Type = "json:nad"
+	cfg.Type = defaults.CheckType
 	cfg.Config = apiclient.CheckBundleConfig{apiconf.URL: "http://" + targetAddr + "/"}
 	cfg.Metrics = []apiclient.CheckBundleMetric{}
 	{
@@ -412,7 +422,7 @@ func (cb *Bundle) createCheckBundle() (*apiclient.CheckBundle, error) {
 			return nil, errors.Wrap(err, "select broker")
 		}
 
-		broker, err := cb.selectBroker("json:nad", brokerList)
+		broker, err := cb.selectBroker(defaults.CheckType, brokerList)
 		if err != nil {
 			return nil, errors.Wrap(err, "selecting broker to create check bundle")
 		}
@@ -434,7 +444,10 @@ func (cb *Bundle) createCheckBundle() (*apiclient.CheckBundle, error) {
 	return bundle, nil
 }
 
+// updateCheckBundle will update all check bundle settings/tags/filters controlled by agent
 func (cb *Bundle) updateCheckBundle(cfg *apiclient.CheckBundle) (*apiclient.CheckBundle, error) {
+
+	// this is an explicit update - all configurable values will be overwritten with their configuration settings
 
 	// parse the first listen address to use as the required
 	// URL in the check config
@@ -544,16 +557,81 @@ func (cb *Bundle) getMetricFilters() ([][]string, error) {
 	return defaults.CheckMetricFilters, nil
 }
 
+// updateCheckBundleMetricFilters only (forced); then merge/update tags
 func (cb *Bundle) updateCheckBundleMetricFilters(cfg *apiclient.CheckBundle) (*apiclient.CheckBundle, error) {
+
+	// this is an explicit, forced update and bundle metric filters will be overwritten with configured filters
+
 	filters, err := cb.getMetricFilters()
 	if err != nil {
 		return nil, errors.Wrap(err, "getting metric filters")
 	}
 	cfg.MetricFilters = filters
+
 	cb.logger.Info().Interface("filters", filters).Msg("updating check bundle metric filters")
 	bundle, err := cb.client.UpdateCheckBundle(cfg)
 	if err != nil {
 		return nil, errors.Wrap(err, "updating metric filters")
 	}
-	return bundle, nil
+
+	return cb.updateCheckBundleTags(bundle)
+}
+
+// updateCheckBundleTags only, merge w/user-added; update any host tags where value has changed
+func (cb *Bundle) updateCheckBundleTags(cfg *apiclient.CheckBundle) (*apiclient.CheckBundle, error) {
+
+	// this is a passive update, so tags are merged with user tags and any host tags are updated to new values if they've changed
+
+	updateCheck := false
+
+	newTags := cb.getHostTags()
+
+	if len(cfg.Tags) == 0 {
+		updateCheck = true
+		cfg.Tags = newTags
+	} else {
+		updTags := make([]string, len(cfg.Tags))
+		copy(updTags, cfg.Tags)
+
+		for _, tag := range newTags {
+			parts := strings.SplitN(tag, ":", 2)
+			tagCat := parts[0] + ":"
+			found := false
+			replace := false
+			repIdx := 0
+			for i, et := range updTags {
+				if strings.HasPrefix(et, tagCat) {
+					found = true
+					if et != tag {
+						replace = true
+						repIdx = i
+					}
+					break
+				}
+			}
+			if found {
+				if replace {
+					updateCheck = true
+					updTags[repIdx] = tag
+				}
+			} else {
+				updateCheck = true
+				updTags = append(updTags, tag)
+			}
+		}
+
+		if updateCheck {
+			cfg.Tags = updTags
+		}
+	}
+
+	if updateCheck {
+		bundle, err := cb.client.UpdateCheckBundle(cfg)
+		if err != nil {
+			return nil, errors.Wrap(err, "updating check bundle")
+		}
+		return bundle, nil
+	}
+
+	return cfg, nil
 }

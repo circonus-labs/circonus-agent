@@ -51,6 +51,8 @@ func TestRun(t *testing.T) {
 	testDir := path.Join(dir, "testdata")
 
 	viper.Reset()
+	viper.Set(config.KeyCPUThreshold, -1)
+	viper.Set(config.KeyMemThreshold, -1)
 	viper.Set(config.KeyPluginDir, testDir)
 	viper.Set(config.KeyListen, ":2609")
 	b, berr := builtins.New(context.Background())

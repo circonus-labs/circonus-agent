@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/circonus-labs/go-apiclient"
 	"github.com/gojuno/minimock/v3"
 	"github.com/rs/zerolog"
@@ -181,7 +182,7 @@ func TestFindCheck(t *testing.T) {
 			t.Fatal("expected found == 0")
 		}
 
-		if err.Error() != `no check bundles matched criteria ((active:1)(type:"json:nad")(target:"not_found"))` {
+		if err.Error() != `no check bundles matched criteria ((active:1)(type:"`+defaults.CheckType+`")(target:"not_found"))` {
 			t.Fatalf("unexpected error return (%s)", err)
 		}
 	}
@@ -199,7 +200,7 @@ func TestFindCheck(t *testing.T) {
 			t.Fatal("expected found == 2")
 		}
 
-		if err.Error() != `multiple check bundles (2) found matching criteria ((active:1)(type:"json:nad")(target:"multiple2")) created by (circonus-agent)` {
+		if err.Error() != `multiple check bundles (2) found matching criteria ((active:1)(type:"`+defaults.CheckType+`")(target:"multiple2")) created by (circonus-agent)` {
 			t.Fatalf("unexpected error return (%s)", err)
 		}
 	}
@@ -231,7 +232,7 @@ func TestFindCheck(t *testing.T) {
 			t.Fatal("expected found == 0")
 		}
 
-		if err.Error() != `multiple check bundles (2) found matching criteria ((active:1)(type:"json:nad")(target:"multiple0")), none created by (circonus-agent)` {
+		if err.Error() != `multiple check bundles (2) found matching criteria ((active:1)(type:"`+defaults.CheckType+`")(target:"multiple0")), none created by (circonus-agent)` {
 			t.Fatalf("unexpected error return (%s)", err)
 		}
 	}

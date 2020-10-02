@@ -95,7 +95,7 @@ func TestLoadCosiV2Config(t *testing.T) {
 		shouldFail  bool
 		expectedErr string
 	}{
-		{"invalid (missing)", filepath.Join("testdata", "cosi_missing"), true, "unable to load cosi config: no config found matching (testdata/cosi_missing.json|.toml|.yaml)"},
+		{"invalid (missing)", filepath.Join("testdata", "cosi_missing"), true, "unable to load cosi config: no config found matching (testdata/cosi_missing.json|.toml|.yaml): file does not exist"},
 		{"invalid (bad)", filepath.Join("testdata", "cosi_bad"), true, "unable to load cosi config: parsing configuration file (testdata/cosi_bad.json): invalid character '#' looking for beginning of value"},
 		{"invalid (missing key)", filepath.Join("testdata", "cosiv2_invalid_key"), true, "missing API key, invalid cosi config (testdata/cosiv2_invalid_key)"},
 		{"invalid (missing app)", filepath.Join("testdata", "cosiv2_invalid_app"), true, "missing API app, invalid cosi config (testdata/cosiv2_invalid_app)"},

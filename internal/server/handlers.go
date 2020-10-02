@@ -108,9 +108,11 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 
 // GetMetrics collects metrics from the various conduits and returns them for disposition
 func (s *Server) GetMetrics(conduits []string, id string) cgm.Metrics {
+	includeAgentMetrics := false
 	// default to all conduits if list is empty
 	if len(conduits) == 0 {
 		conduits = []string{conduitBuiltin, conduitPlugin, conduitReceiver, conduitStatsd, conduitPrometheus}
+		includeAgentMetrics = true
 	}
 
 	collectStart := time.Now()
@@ -218,17 +220,28 @@ func (s *Server) GetMetrics(conduits []string, id string) cgm.Metrics {
 			metrics[m] = v
 		}
 	}
-	{
+
+	cdur := time.Since(collectStart)
+
+	if includeAgentMetrics {
 		mtags := tags.GetBaseTags()
+		mtags = append(mtags, []string{"collector:agent", "__rollup:false"}...)
 		if viper.GetBool(config.KeyClusterEnabled) {
 			if n := viper.GetString(config.KeyCheckTarget); n != "" {
 				mtags = append(mtags, "node:"+n)
 			}
 		}
-		metrics[tags.MetricNameWithStreamTags("circonus_agent", tags.FromList(mtags))] = cgm.Metric{Value: release.NAME + "_" + release.VERSION, Type: "s"}
+		metrics[tags.MetricNameWithStreamTags("agent_version", tags.FromList(mtags))] = cgm.Metric{Value: release.NAME + "_" + release.VERSION, Type: "s"}
+		{
+			var ctags []string
+			ctags = append(ctags, mtags...)
+			ctags = append(ctags, "units:milliseconds")
+			metrics[tags.MetricNameWithStreamTags("agent_collect_duration", tags.FromList(ctags))] = cgm.Metric{Value: cdur.Milliseconds(), Type: "L"}
+		}
+		s.agentStats(metrics, mtags)
 	}
 
-	s.logger.Debug().Str("duration", time.Since(collectStart).String()).Msg("collection complete")
+	s.logger.Debug().Str("duration", cdur.String()).Msg("collection complete")
 
 	return metrics
 }

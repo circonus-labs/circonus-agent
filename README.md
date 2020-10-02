@@ -1,11 +1,10 @@
 # Circonus Agent
 
-Version 1.x of the circonus-agent only supports metrics with stream tags (if it is _dropped in_ an existing NAD install, the metric names will change). If metric name continuity is required, use the v0 circonus-agent releases.
+> NOTE: Version 2.x of the circonus-agent uses a new check type in order to support the new dynamic host dashboards. It will create a new check if it is installed over any prior version of the circonus-agent or NAD.
 
 # Features
 
-1. Replacement for NAD, written in Go - note, v0.x only
-1. Builtin metric [collectors](#builtin-collectors) -- the default Linux builtins emit the common metrics needed for cosi visuals (graphs, worksheets, & dashboards)
+1. Builtin metric [collectors](#builtin-collectors) -- the default Linux builtins emit the common metrics needed for the dynamic host dashboard
 1. [Plugin](#plugins) architecture for local metric collection
 1. Local HTTP [Receiver](#receiver) for POST/PUT metric collection
 1. Local [StatsD](#statsd) listener for application metrics
@@ -22,6 +21,7 @@ Version 1.x of the circonus-agent only supports metrics with stream tags (if it 
 
 # Install
 
+<!---
 ## Automated via [cosi](https://github.com/circonus-labs/cosi-tool)
 
 > Note: installs v0 release of the circonus-agent, not the v1 release
@@ -86,13 +86,14 @@ bundle_id = "cosi" # use cosi system check bundle
 [reverse]
 enabled = true
 ```
+--->
 
 ## Manual, stand-alone (non-windows)
 
 1. `mkdir -p /opt/circonus/agent`
 1. Download [latest release](../../releases/latest) from repository or RPM/DEB/TGZ [package](https://setup.circonus.com/packages/)
 1. Extract archive into `/opt/circonus/agent` or manually install os package
-1. Create a [config](https://github.com/circonus-labs/circonus-agent/blob/master/etc/README.md#main-configuration) (see minimal example below) or use command line parameters
+1. Create a [config](https://github.com/circonus-labs/circonus-agent/blob/master/etc/README.md#main-configuration) or use command line parameters
 1. Optionally, modify and install a [service configuration](service/)
 
 ## Manual, stand-alone (windows)
@@ -100,7 +101,7 @@ enabled = true
 1. Create a directory (e.g. `md C:\agent`)
 1. Download [latest release](../../releases/latest) from repository
 1. Unzip archive into directory created in step 1
-1. Create a [config](https://github.com/circonus-labs/circonus-agent/blob/master/etc/README.md#main-configuration) (see minimal example below) or use command line parameters
+1. Create a [config](https://github.com/circonus-labs/circonus-agent/blob/master/etc/README.md#main-configuration) or use command line parameters
 1. Optionally, create a service (for example, [using PowerShell](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.management/new-service?view=powershell-7&viewFallbackFrom=powershell-3.0))
 
 ## Docker

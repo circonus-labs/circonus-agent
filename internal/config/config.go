@@ -105,30 +105,37 @@ type StatsD struct {
 	Port     string      `json:"port" yaml:"port" toml:"port"`
 }
 
+// Thresholds defines triggers used to include metrics
+type Thresholds struct {
+	HighCPU    float32 `mapstructure:"high_cpu" json:"high_cpu" toml:"high_cpu" yaml:"high_cpu"`
+	HighMemory float32 `mapstructure:"high_memory" json:"high_memory" toml:"high_memory" yaml:"high_memory"`
+}
+
 // Config defines the running config structure
 type Config struct {
-	API              API        `json:"api" yaml:"api" toml:"api"`
+	StatsD           StatsD     `json:"statsd" yaml:"statsd" toml:"statsd"`
 	Check            Check      `json:"check" yaml:"check" toml:"check"`
+	API              API        `json:"api" yaml:"api" toml:"api"`
+	SSL              SSL        `json:"ssl" yaml:"ssl" toml:"ssl"`
+	Reverse          Reverse    `json:"reverse" yaml:"reverse" toml:"reverse"`
 	Collectors       []string   `json:"collectors" yaml:"collectors" toml:"collectors"`
-	Debug            bool       `json:"debug" yaml:"debug" toml:"debug"`
-	DebugCGM         bool       `mapstructure:"debug_cgm" json:"debug_cgm" yaml:"debug_cgm" toml:"debug_cgm"`
-	DebugAPI         bool       `mapstructure:"debug_api" json:"debug_api" yaml:"debug_api" toml:"debug_api"`
-	DebugDumpMetrics string     `mapstructure:"debug_dump_metrics" json:"debug_dump_metrics" yaml:"debug_dump_metrics" toml:"debug_dump_metrics"`
 	Listen           []string   `json:"listen" yaml:"listen" toml:"listen"`
 	ListenSocket     []string   `mapstructure:"listen_socket" json:"listen_socket" yaml:"listen_socket" toml:"listen_socket"`
-	Log              Log        `json:"log" yaml:"log" toml:"log"`
-	PluginDir        string     `mapstructure:"plugin_dir" json:"plugin_dir" yaml:"plugin_dir" toml:"plugin_dir"`
 	PluginList       []string   `mapstructure:"plugin_list" json:"plugin_list" yaml:"plugin_list" toml:"plugin_list"`
-	PluginTTLUnits   string     `mapstructure:"plugin_ttl_units" json:"plugin_ttl_units" yaml:"plugin_ttl_units" toml:"plugin_ttl_units"`
-	Reverse          Reverse    `json:"reverse" yaml:"reverse" toml:"reverse"`
+	Log              Log        `json:"log" yaml:"log" toml:"log"`
 	MultiAgent       MultiAgent `mapstructure:"multi_agent" json:"multi_agent" toml:"multi_agent" yaml:"multi_agent"`
-	SSL              SSL        `json:"ssl" yaml:"ssl" toml:"ssl"`
-	StatsD           StatsD     `json:"statsd" yaml:"statsd" toml:"statsd"`
+	DebugDumpMetrics string     `mapstructure:"debug_dump_metrics" json:"debug_dump_metrics" yaml:"debug_dump_metrics" toml:"debug_dump_metrics"`
+	PluginDir        string     `mapstructure:"plugin_dir" json:"plugin_dir" yaml:"plugin_dir" toml:"plugin_dir"`
+	PluginTTLUnits   string     `mapstructure:"plugin_ttl_units" json:"plugin_ttl_units" yaml:"plugin_ttl_units" toml:"plugin_ttl_units"`
 	HostProc         string     `mapstructure:"host_proc" json:"host_proc" toml:"host_proc" yaml:"host_proc"`
 	HostSys          string     `mapstructure:"host_sys" json:"host_sys" toml:"host_sys" yaml:"host_sys"`
 	HostEtc          string     `mapstructure:"host_etc" json:"host_etc" toml:"host_etc" yaml:"host_etc"`
 	HostVar          string     `mapstructure:"host_var" json:"host_var" toml:"host_var" yaml:"host_var"`
 	HostRun          string     `mapstructure:"host_run" json:"host_run" toml:"host_run" yaml:"host_run"`
+	Thresholds       Thresholds `mapstructure:"thresholds" json:"thresholds" toml:"thresholds" yaml:"thresholds"`
+	Debug            bool       `json:"debug" yaml:"debug" toml:"debug"`
+	DebugCGM         bool       `mapstructure:"debug_cgm" json:"debug_cgm" yaml:"debug_cgm" toml:"debug_cgm"`
+	DebugAPI         bool       `mapstructure:"debug_api" json:"debug_api" yaml:"debug_api" toml:"debug_api"`
 }
 
 //
@@ -160,6 +167,12 @@ const (
 	// it should contain a directory name where the user running circonus-agentd has write
 	// permissions. metrics will be dumped for each _successful_ request.
 	KeyDebugDumpMetrics = "debug_dump_metrics"
+
+	// Process metrics will be included if EITHER cpu or mem utilization percentages are above these thresholds
+	// KeyCPUThreshold high cpu utilization percentage to include process metrics
+	KeyCPUThreshold = "thresholds.high_cpu"
+	// KeyMemThreshold high memory utilization percentage to include process metrics
+	KeyMemThreshold = "thresholds.high_memory"
 
 	// KeyListen primary address and port to listen on
 	KeyListen = "listen"

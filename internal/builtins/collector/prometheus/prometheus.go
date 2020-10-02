@@ -12,6 +12,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"regexp"
 	"sync"
@@ -79,9 +80,13 @@ func New(cfgBaseName string) (collector.Collector, error) {
 		cfgBaseName = path.Join(defaults.EtcPath, "prometheus_collector")
 	}
 
+	// a configuration file being found is what enables this plugin
 	var opts promOptions
 	err := config.LoadConfigFile(cfgBaseName, &opts)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, nil // if none found, return nothing
+		}
 		return nil, errors.Wrapf(err, "%s config", c.pkgID)
 	}
 

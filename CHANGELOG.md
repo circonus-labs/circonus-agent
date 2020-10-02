@@ -1,3 +1,17 @@
+# v2.0.0
+
+Note: For automatic host dashboards a new check type is being used. This makes this update **not** backwards compatible. It will create a new check of the correct type.
+
+* add: new check types for automatic dashboard
+* add: internal agent metrics `agent_*` for new dashboard
+* add: host based check tags for new dashboard
+* add: check bundle tag updater
+* add: wmi/system builtin collector
+* add: settings for cpu and memory utilization thresholds for `process_threshold` metrics
+* fix: various tests for new features
+* upd: silently ignore prom config missing for builtin, just disable quietly
+* upd: config loader, return `os.ErrNotExist` wrapped for `errors.Is`
+
 # v1.2.0
 
 * fix: use api ca file if specified for check api client
