@@ -17,6 +17,7 @@
       <method_credential user='nobody' group='nobody'/>
       <method_environment>
         <envvar name='HOME' value='/opt/circonus/agent'/>
+        <envvar name='PATH' value='/usr/sbin:/usr/bin:/opt/tools/sbin:/opt/tools/bin'/>
       </method_environment>
     </method_context>
     <exec_method name='start' type='method' exec='/opt/circonus/agent/sbin/circonus-agentd' timeout_seconds='60'/>
