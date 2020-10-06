@@ -15,7 +15,7 @@
 
 # Releases
 
-* Binary only [releases](https://github.com/circonus-labs/circonus-agent/releases) provide pre-built binaries for Linux (arm and x86_64), FreeBSD (x86_64), Solaris (x86_64), and Windows (x86_64).
+* Binary only [releases](https://github.com/circonus-labs/circonus-agent/releases) pre-built binaries for various platforms
 * RPM and DEB [packages](https://setup.circonus.com/packages/) for manual installations with plugins included
 * Docker [images](https://hub.docker.com/r/circonuslabs/circonus-agent/tags)
 
