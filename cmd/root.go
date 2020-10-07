@@ -68,6 +68,21 @@ in JSON format.`,
 			return
 		}
 
+		//
+		// generate tmp config file in etc/ and exit
+		//
+		if viper.GetString(config.KeyGenerateConfig) != "" {
+			f, err := os.Create(fmt.Sprintf("%s/circonus-agent.%s.tmp", defaults.EtcPath, viper.GetString(config.KeyGenerateConfig)))
+			if err != nil {
+				log.Fatal().Err(err).Msg("generate-config")
+			}
+			defer f.Close()
+			if err := config.GenerateConfig(f); err != nil {
+				log.Fatal().Err(err).Msg("generate-config")
+			}
+			return
+		}
+
 		log.Info().
 			Int("pid", os.Getpid()).
 			Str("name", release.NAME).
@@ -1278,6 +1293,19 @@ func init() {
 			key         = config.KeyShowConfig
 			longOpt     = "show-config"
 			description = "Show config (json|toml|yaml) and exit"
+		)
+
+		RootCmd.Flags().String(longOpt, "", description)
+		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
+			bindFlagError(longOpt, err)
+		}
+	}
+
+	{
+		const (
+			key         = config.KeyGenerateConfig
+			longOpt     = "generate-config"
+			description = "Generate config file (json|toml|yaml) and exit"
 		)
 
 		RootCmd.Flags().String(longOpt, "", description)
