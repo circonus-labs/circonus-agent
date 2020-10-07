@@ -143,6 +143,7 @@ Flags:
       --debug-api                         [ENV: CA_DEBUG_API] Enable Circonus API debug messages
       --debug-cgm                         [ENV: CA_DEBUG_CGM] Enable CGM debug messages
       --debug-dump-metrics string         [ENV: CA_DEBUG_DUMP_METRICS] Directory to dump sent metrics
+      --generate-config string            Generate config file (json|toml|yaml) and exit
   -h, --help                              help for circonus-agent
       --host-etc string                   [ENV: HOST_ETC] Host /etc directory
       --host-proc string                  [ENV: HOST_PROC] Host /proc directory
