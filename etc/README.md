@@ -6,9 +6,11 @@ The `etc` directory is used for the main configuration of the Circonus agent, as
 
 File name: `circonus-agent.(json|toml|yaml)`
 
-An example configuration, with default values, can be retrieved using the `--show-config=(json|toml|yaml)`.
+An example configuration, with default values, can be retrieved using the `--show-config=(json|toml|yaml)` or `--generate-config=(json|toml|yaml)`.
 
 ## Configuration file quick start
+
+### Using show-config
 
 Run one of the following (from the base directory where the agent was installed) and edit the resulting configuration file:
 
@@ -25,6 +27,26 @@ or, on Windows:
 sbin\circonus-agentd.exe --show-config=json > etc\circonus-agent.json.tmp
 sbin\circonus-agentd.exe --show-config=toml > etc\circonus-agent.toml.tmp
 sbin\circonus-agentd.exe --show-config=yaml > etc\circonus-agent.yaml.tmp
+```
+
+Edit the resulting file to customize configuration settings. When done, rename file to remove the `.tmp` extension. (e.g. `mv etc/circonus-agent.json.tmp` `etc/circonus-agent.json`)
+
+### Using generate-config
+
+Run one of the following (from the base directory where the agent was installed) and edit the resulting configuration file:
+
+```
+sbin/circonus-agentd --generate-config=json
+sbin/circonus-agentd --generate-config=toml
+sbin/circonus-agentd --generate-config=yaml
+```
+
+or, on Windows:
+
+```
+sbin\circonus-agentd.exe --generate-config=json
+sbin\circonus-agentd.exe --generate-config=toml
+sbin\circonus-agentd.exe --generate-config=yaml
 ```
 
 Edit the resulting file to customize configuration settings. When done, rename file to remove the `.tmp` extension. (e.g. `mv etc/circonus-agent.json.tmp` `etc/circonus-agent.json`)
