@@ -1,3 +1,7 @@
+# v2.0.1
+
+* fix: fix: trim spaces from each user supplied check tag
+
 # v2.0.0
 
 Note: For automatic host dashboards a new check type is being used. This makes this update **not** backwards compatible. It will create a new check of the correct type.
