@@ -1,3 +1,7 @@
+# v1.2.1
+
+* fix: trim spaces from each user supplied check tag
+
 # v1.2.0
 
 * fix: use api ca file if specified for check api client
