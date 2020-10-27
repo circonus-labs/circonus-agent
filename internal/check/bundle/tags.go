@@ -15,7 +15,20 @@ func (cb *Bundle) getHostTags() []string {
 
 	chkTags := viper.GetString(config.KeyCheckTags)
 	if chkTags != "" {
-		tags = append(tags, strings.Split(chkTags, ",")...)
+		ctags := strings.Split(chkTags, ",")
+		for tpos, tag := range ctags {
+			parts := strings.SplitN(tag, ":", 2)
+			if parts == nil {
+				cb.logger.Warn().Int("pos", tpos).Str("tag", tag).Msg("invalid check tag")
+				continue
+			}
+			ntag := strings.ToLower(strings.TrimSpace(parts[0]))
+			ntag += ":"
+			if len(parts) == 2 {
+				ntag += parts[1]
+			}
+			tags = append(tags, ntag)
+		}
 	}
 
 	hi, err := host.Info()
