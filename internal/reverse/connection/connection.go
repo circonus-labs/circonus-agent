@@ -275,7 +275,7 @@ func (c *Connection) connect(ctx context.Context) (*tls.Conn, *connError) {
 	dialer := &net.Dialer{Timeout: DialerTimeoutSeconds * time.Second}
 	conn, err := tls.DialWithDialer(dialer, "tcp", c.revConfig.BrokerAddr.String(), c.revConfig.TLSConfig)
 	if err != nil {
-		if ne, ok := err.(*net.OpError); ok {
+		if ne, ok := err.(*net.OpError); ok { //nolint:errorlint
 			if ne.Timeout() {
 				return nil, &connError{retry: ne.Temporary(), err: errors.Wrapf(err, "timeout connecting to %s", revHost)}
 			}

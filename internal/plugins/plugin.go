@@ -374,7 +374,7 @@ func (p *plugin) exec() error {
 		if errOut.Len() > 0 {
 			stderr = strings.Replace(errOut.String(), "\n", "", -1)
 		}
-		if exiterr, ok := err.(*exec.ExitError); ok {
+		if exiterr, ok := err.(*exec.ExitError); ok { //nolint:errorlint
 			errMsg := fmt.Sprintf("%s %s", stderr, exiterr.Stderr)
 			plog.Error().
 				Str("stderr", errMsg).

@@ -7,6 +7,7 @@ package statsd
 
 import (
 	"bytes"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -14,7 +15,6 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/maier/go-appstats"
-	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
@@ -84,7 +84,7 @@ func (s *Server) parseMetric(metric string) error {
 	metricTagSpec := ""
 
 	if !s.metricRegex.MatchString(metric) {
-		return errors.Errorf("invalid metric format '%s', ignoring", metric)
+		return fmt.Errorf("invalid metric format '%s', ignoring", metric)
 	}
 
 	for _, match := range s.metricRegex.FindAllStringSubmatch(metric, -1) {
@@ -107,13 +107,13 @@ func (s *Server) parseMetric(metric string) error {
 	}
 
 	if metricName == "" || metricValue == "" {
-		return errors.Errorf("empty metric name (%s) or metric value (%s) - metricRegex failed, check", metricName, metricValue)
+		return fmt.Errorf("empty metric name (%s) or metric value (%s) - metricRegex failed, check", metricName, metricValue)
 	}
 
 	if metricRate != "" {
 		r, err := strconv.ParseFloat(metricRate, 32)
 		if err != nil {
-			return errors.Errorf("invalid metric sampling rate (%s), ignoring", err)
+			return fmt.Errorf("invalid metric sampling rate: %w, ignoring", err)
 		}
 		sampleRate = r
 	}
@@ -132,7 +132,7 @@ func (s *Server) parseMetric(metric string) error {
 	}
 
 	if dest == nil {
-		return errors.Errorf("invalid metric destination (%s)->(%s)", metric, metricDest)
+		return fmt.Errorf("invalid metric destination (%s)->(%s)", metric, metricDest)
 	}
 
 	// add stream tags to metric name
@@ -149,7 +149,7 @@ func (s *Server) parseMetric(metric string) error {
 	case "c": // counter
 		v, err := strconv.ParseUint(metricValue, 10, 64)
 		if err != nil {
-			return errors.Wrap(err, "invalid counter value")
+			return fmt.Errorf("invalid counter value: %w", err)
 		}
 		if sampleRate > 0 {
 			v = uint64(float64(v) * (1 / sampleRate))
@@ -166,21 +166,21 @@ func (s *Server) parseMetric(metric string) error {
 		case strings.Contains(metricValue, "."):
 			v, err := strconv.ParseFloat(metricValue, 64)
 			if err != nil {
-				return errors.Wrap(err, "invalid gauge value")
+				return fmt.Errorf("invalid gauge value: %w", err)
 			}
 			val = v
 			// dest.GaugeWithTags(metricName, metricTags, v)
 		case strings.Contains(metricValue, "-"):
 			v, err := strconv.ParseInt(metricValue, 10, 64)
 			if err != nil {
-				return errors.Wrap(err, "invalid gauge value")
+				return fmt.Errorf("invalid gauge value: %w", err)
 			}
 			val = v
 			// dest.GaugeWithTags(metricName, metricTags, v)
 		default:
 			v, err := strconv.ParseUint(metricValue, 10, 64)
 			if err != nil {
-				return errors.Wrap(err, "invalid gauge value")
+				return fmt.Errorf("invalid gauge value: %w", err)
 			}
 			val = v
 			// dest.GaugeWithTags(metricName, metricTags, v)
@@ -196,7 +196,7 @@ func (s *Server) parseMetric(metric string) error {
 	case "ms": // measurement
 		v, err := strconv.ParseFloat(metricValue, 64)
 		if err != nil {
-			return errors.Wrap(err, "invalid histogram value")
+			return fmt.Errorf("invalid histogram value: %w", err)
 		}
 		if sampleRate > 0 {
 			v /= sampleRate
@@ -215,7 +215,7 @@ func (s *Server) parseMetric(metric string) error {
 	case "t": // text (circonus)
 		dest.SetTextWithTags(metricName, metricTags, metricValue)
 	default:
-		return errors.Errorf("invalid metric type (%s)", metricType)
+		return fmt.Errorf("invalid metric type (%s)", metricType)
 	}
 
 	s.logger.Debug().

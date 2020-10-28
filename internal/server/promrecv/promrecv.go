@@ -19,7 +19,6 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 	"github.com/rs/zerolog"
@@ -62,7 +61,7 @@ func initCGM() error {
 
 	hm, err := cgm.NewCirconusMetrics(cmc)
 	if err != nil {
-		return errors.Wrap(err, "prom receiver cgm")
+		return fmt.Errorf("prom receiver cgm: %w", err)
 	}
 
 	metrics = hm

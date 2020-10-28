@@ -7,6 +7,7 @@ package receiver
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -18,7 +19,6 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
@@ -65,7 +65,7 @@ func initCGM() error {
 
 	hm, err := cgm.NewCirconusMetrics(cmc)
 	if err != nil {
-		return errors.Wrap(err, "receiver cgm")
+		return fmt.Errorf("receiver cgm: %w", err)
 	}
 
 	metrics = hm
@@ -93,10 +93,11 @@ func Parse(id string, data io.Reader) error {
 
 	var tmp tags.JSONMetrics // cgm.Metrics
 	if err := json.NewDecoder(data).Decode(&tmp); err != nil {
-		if serr, ok := err.(*json.SyntaxError); ok {
-			return errors.Wrapf(serr, "id:%s - offset %d", id, serr.Offset)
+		var serr *json.SyntaxError
+		if errors.As(err, &serr) {
+			return fmt.Errorf("id:%s - offset %d -- %w", id, serr.Offset, err)
 		}
-		return errors.Wrapf(err, "parsing json for %s", id)
+		return fmt.Errorf("parsing json for %s: %w", id, err)
 	}
 
 	for name, metric := range tmp {

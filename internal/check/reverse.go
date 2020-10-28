@@ -122,7 +122,7 @@ func (c *Check) FindPrimaryBrokerInstance(ctx context.Context, cfgs *ReverseConf
 		resp, err := client.Do(req)
 		if err != nil {
 			c.logger.Warn().Err(err).Str("url", ownerReqURL).Msg("executing check owner request")
-			if nerr, ok := err.(net.Error); ok {
+			if nerr, ok := err.(net.Error); ok { //nolint:errorlint
 				if nerr.Timeout() {
 					continue
 				}

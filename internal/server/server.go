@@ -7,6 +7,8 @@ package server
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -22,7 +24,6 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
 	"github.com/circonus-labs/circonus-agent/internal/statsd"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
@@ -99,7 +100,7 @@ func New(ctx context.Context, c *check.Check, b *builtins.Builtins, p *plugins.P
 			ta, err := config.ParseListen(addr)
 			if err != nil {
 				s.logger.Error().Err(err).Int("id", idx).Str("addr", addr).Msg("resolving address")
-				return nil, errors.Wrap(err, "HTTP Server")
+				return nil, fmt.Errorf("HTTP Server: %w", err)
 			}
 
 			svr := httpServer{
@@ -120,19 +121,19 @@ func New(ctx context.Context, c *check.Check, b *builtins.Builtins, p *plugins.P
 		ta, err := net.ResolveTCPAddr("tcp", addr)
 		if err != nil {
 			s.logger.Error().Err(err).Str("addr", addr).Msg("resolving address")
-			return nil, errors.Wrap(err, "SSL Server")
+			return nil, fmt.Errorf("SSL Server: %w", err)
 		}
 
 		certFile := viper.GetString(config.KeySSLCertFile)
 		if _, err := os.Stat(certFile); os.IsNotExist(err) {
 			s.logger.Error().Err(err).Str("cert_file", certFile).Msg("SSL server")
-			return nil, errors.Wrapf(err, "SSL server cert file")
+			return nil, fmt.Errorf("SSL server cert file: %w", err)
 		}
 
 		keyFile := viper.GetString(config.KeySSLKeyFile)
 		if _, err := os.Stat(keyFile); os.IsNotExist(err) {
 			s.logger.Error().Err(err).Str("key_file", keyFile).Msg("SSL server")
-			return nil, errors.Wrapf(err, "SSL server key file")
+			return nil, fmt.Errorf("SSL server key file: %w", err)
 		}
 
 		svr := sslServer{
@@ -157,18 +158,18 @@ func New(ctx context.Context, c *check.Check, b *builtins.Builtins, p *plugins.P
 			ua, err := net.ResolveUnixAddr("unix", addr)
 			if err != nil {
 				s.logger.Error().Err(err).Int("id", idx).Str("addr", addr).Msg("resolving address")
-				return nil, errors.Wrap(err, "Socket server")
+				return nil, fmt.Errorf("socket server: %w", err)
 			}
 
 			if _, serr := os.Stat(ua.String()); serr == nil || !os.IsNotExist(serr) {
 				s.logger.Error().Int("id", idx).Str("socket_file", ua.String()).Msg("already exists")
-				return nil, errors.Errorf("Socket server file (%s) exists", ua.String())
+				return nil, fmt.Errorf("Socket server file (%s) exists", ua.String())
 			}
 
 			ul, err := net.ListenUnix(ua.Network(), ua)
 			if err != nil {
 				s.logger.Error().Err(err).Int("id", idx).Str("addr", ua.String()).Msg("creating socket")
-				return nil, errors.Wrap(err, "creating socket")
+				return nil, fmt.Errorf("creating socket: %w", err)
 			}
 
 			s.svrSockets = append(s.svrSockets, &socketServer{
@@ -186,7 +187,7 @@ func New(ctx context.Context, c *check.Check, b *builtins.Builtins, p *plugins.P
 // Initially, this is the first server address.
 func (s *Server) GetReverseAgentAddress() (string, error) {
 	if len(s.svrHTTP) == 0 {
-		return "", errors.New("No listen servers defined")
+		return "", fmt.Errorf("No listen servers defined")
 	}
 	return s.svrHTTP[0].address.String(), nil
 }
@@ -194,7 +195,7 @@ func (s *Server) GetReverseAgentAddress() (string, error) {
 // Start main listening server(s)
 func (s *Server) Start() error {
 	if len(s.svrHTTP) == 0 && s.svrHTTPS == nil && len(s.svrSockets) > 0 {
-		return errors.New("No servers defined")
+		return fmt.Errorf("No servers defined")
 	}
 
 	s.group.Go(s.startHTTPS)
@@ -263,9 +264,9 @@ func (s *Server) startHTTP(svr *httpServer) error {
 
 	s.logger.Info().Str("listen", svr.address.String()).Msg("Starting")
 	if err := svr.server.ListenAndServe(); err != nil {
-		if err != http.ErrServerClosed {
+		if !errors.Is(err, http.ErrServerClosed) {
 			s.logger.Fatal().Err(err).Msg("HTTP Server, stopping agent")
-			return errors.Wrap(err, "HTTP server")
+			return fmt.Errorf("HTTP server: %w", err)
 		}
 
 	}
@@ -279,9 +280,9 @@ func (s *Server) startHTTPS() error {
 	}
 	s.logger.Info().Str("listen", s.svrHTTPS.server.Addr).Msg("SSL starting")
 	if err := s.svrHTTPS.server.ListenAndServeTLS(s.svrHTTPS.certFile, s.svrHTTPS.keyFile); err != nil {
-		if err != http.ErrServerClosed {
+		if !errors.Is(err, http.ErrServerClosed) {
 			s.logger.Fatal().Err(err).Msg("SSL Server, stopping agent")
-			return errors.Wrap(err, "SSL server")
+			return fmt.Errorf("SSL server: %w", err)
 		}
 	}
 	return nil
@@ -303,9 +304,9 @@ func (s *Server) startSocket(svr *socketServer) error {
 
 	s.logger.Info().Str("listen", svr.address.String()).Msg("Socket starting")
 	if err := svr.server.Serve(svr.listener); err != nil {
-		if err != http.ErrServerClosed {
+		if !errors.Is(err, http.ErrServerClosed) {
 			s.logger.Fatal().Err(err).Str("socket", svr.address.String()).Msg("Socket Server, stopping agent")
-			return errors.Wrap(err, "socket server")
+			return fmt.Errorf("socket server: %w", err)
 		}
 	}
 	return nil
