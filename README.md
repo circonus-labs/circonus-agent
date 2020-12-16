@@ -17,7 +17,7 @@
 
 * Binary only [releases](https://github.com/circonus-labs/circonus-agent/releases) pre-built binaries for various platforms
 * RPM and DEB [packages](https://setup.circonus.com/packages/) for manual installations with plugins included
-* Docker [images](https://hub.docker.com/r/circonuslabs/circonus-agent/tags)
+* Docker [images](https://hub.docker.com/r/circonus/circonus-agent/tags)
 
 # Install
 
