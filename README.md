@@ -169,7 +169,7 @@ Flags:
       --ssl-verify                        [ENV: CA_SSL_VERIFY] Enable SSL verification (default true)
       --statsd-addr string                [ENV: CA_STATSD_ADDR] StatsD address to listen on (default "localhost")
       --statsd-enable-tcp                 [ENV: CA_STATSD_ENABLE_TCP] Enable StatsD TCP listener
-      --statsd-group-cid string           [ENV: CA_STATSD_GROUP_CID] StatsD group check bundle ID
+      --statsd-group-cid string           [ENV: CA_STATSD_GROUP_CID] StatsD group check ID
       --statsd-group-counters string      [ENV: CA_STATSD_GROUP_COUNTERS] StatsD group metric counter handling (average|sum) (default "sum")
       --statsd-group-gauges string        [ENV: CA_STATSD_GROUP_GAUGES] StatsD group gauge operator (default "average")
       --statsd-group-prefix string        [ENV: CA_STATSD_GROUP_PREFIX] StatsD group metric prefix (default "group.")
