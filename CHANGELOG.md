@@ -1,3 +1,7 @@
+# v2.0.2
+
+* upd: change dockerhub organization (circonuslabs->circonus): https://hub.docker.com/repository/docker/circonus/circonus-agent
+
 # v2.0.1
 
 * fix: fix: trim spaces from each user supplied check tag

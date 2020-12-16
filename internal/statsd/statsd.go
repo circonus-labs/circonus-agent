@@ -9,6 +9,8 @@ import (
 	"bufio"
 	"context"
 	"crypto/x509"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"regexp"
@@ -22,7 +24,6 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/maier/go-appstats"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
@@ -130,11 +131,11 @@ func New(ctx context.Context) (*Server, error) {
 
 	if !s.disabled {
 		if ierr := s.initHostMetrics(); ierr != nil {
-			return nil, errors.Wrap(ierr, "initializing host metrics for StatsD")
+			return nil, fmt.Errorf("initializing host metrics for StatsD: %w", ierr)
 		}
 
 		if ierr := s.initGroupMetrics(); ierr != nil {
-			return nil, errors.Wrap(ierr, "initializing group metrics for StatsD")
+			return nil, fmt.Errorf("initializing group metrics for StatsD: %w", ierr)
 		}
 	}
 
@@ -151,7 +152,7 @@ func New(ctx context.Context) (*Server, error) {
 	if s.enableUDPListener {
 		addr, err := net.ResolveUDPAddr("udp", address)
 		if err != nil {
-			return nil, errors.Wrapf(err, "resolving UDP address '%s'", address)
+			return nil, fmt.Errorf("resolving UDP address '%s': %w", address, err)
 		}
 		s.udpAddress = addr
 	}
@@ -159,7 +160,7 @@ func New(ctx context.Context) (*Server, error) {
 	if s.enableTCPListener {
 		addr, err := net.ResolveTCPAddr("tcp", address)
 		if err != nil {
-			return nil, errors.Wrapf(err, "resolving TCP address '%s'", address)
+			return nil, fmt.Errorf("resolving TCP address '%s': %w", address, err)
 		}
 		s.tcpAddress = addr
 	}
@@ -175,10 +176,10 @@ func (s *Server) Start() error {
 	}
 
 	if err := s.startUDP(); err != nil {
-		return errors.Wrap(err, "starting UDP listener")
+		return fmt.Errorf("starting UDP listener: %w", err)
 	}
 	if err := s.startTCP(); err != nil {
-		return errors.Wrap(err, "starting TCP listener")
+		return fmt.Errorf("starting TCP listener: %w", err)
 	}
 
 	packetCh := make(chan []byte, packetQueueSize)
@@ -248,7 +249,7 @@ func (s *Server) startUDP() error {
 	}
 	l, err := net.ListenUDP("udp", s.udpAddress)
 	if err != nil {
-		return errors.Wrap(err, "starting statsd udp listener")
+		return fmt.Errorf("starting statsd udp listener: %w", err)
 	}
 	s.udpListener = l
 	return nil
@@ -264,7 +265,7 @@ func (s *Server) startTCP() error {
 	}
 	l, err := net.ListenTCP("tcp", s.tcpAddress)
 	if err != nil {
-		return errors.Wrap(err, "starting statsd tcp listener")
+		return fmt.Errorf("starting statsd tcp listener: %w", err)
 	}
 	s.tcpListener = l
 	return nil
@@ -295,7 +296,7 @@ func (s *Server) initHostMetrics() error {
 
 	hm, err := cgm.NewCirconusMetrics(cmc)
 	if err != nil {
-		return errors.Wrap(err, "statsd host check")
+		return fmt.Errorf("statsd host check: %w", err)
 	}
 
 	s.hostMetrics = hm
@@ -334,7 +335,7 @@ func (s *Server) initGroupMetrics() error {
 
 		cp := x509.NewCertPool()
 		if !cp.AppendCertsFromPEM(cert) {
-			return errors.Errorf("using api CA cert %#v", cert)
+			return fmt.Errorf("using api CA cert %#v", cert)
 		}
 
 		cmc.CheckManager.API.CACert = cp
@@ -342,7 +343,7 @@ func (s *Server) initGroupMetrics() error {
 
 	gm, err := cgm.NewCirconusMetrics(cmc)
 	if err != nil {
-		return errors.Wrap(err, "statsd group check")
+		return fmt.Errorf("statsd group check: %w", err)
 	}
 
 	s.groupMetrics = gm
@@ -426,7 +427,8 @@ func (s *Server) tcpReader(conn *net.TCPConn, packetCh chan<- []byte) error {
 		if err := scanner.Err(); err != nil {
 			s.logger.Debug().Err(err).Str("remote", addr).Msg("statsd tcp conn scanner error")
 
-			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
+			var nerr net.Error
+			if errors.As(err, &nerr) && nerr.Timeout() {
 				s.logger.Debug().Err(nerr).Str("remote", addr).Msg("resetting deadline")
 				if derr := conn.SetDeadline(time.Now().Add(10 * time.Second)); derr != nil {
 					return derr
@@ -508,17 +510,17 @@ func validateStatsdOptions() error {
 
 	port := viper.GetString(config.KeyStatsdPort)
 	if port == "" {
-		return errors.New("invalid StatsD port (empty)")
+		return fmt.Errorf("invalid StatsD port (empty)")
 	}
 	if ok, err := regexp.MatchString("^[0-9]+$", port); err != nil {
-		return errors.Wrapf(err, "invalid StatsD port (%s)", port)
+		return fmt.Errorf("invalid StatsD port (%s): %w", port, err)
 	} else if !ok {
-		return errors.Errorf("invalid StatsD port (%s)", port)
+		return fmt.Errorf("invalid StatsD port (%s)", port)
 	}
 	if pnum, err := strconv.ParseUint(port, 10, 32); err != nil {
-		return errors.Wrap(err, "invalid StatsD port")
+		return fmt.Errorf("invalid StatsD port: %w", err)
 	} else if pnum < 1024 || pnum > 65535 {
-		return errors.Errorf("invalid StatsD port 1024>%s<65535", port)
+		return fmt.Errorf("invalid StatsD port 1024>%s<65535", port)
 	}
 
 	// can be empty (all metrics go to host)
@@ -527,7 +529,7 @@ func validateStatsdOptions() error {
 
 	hostCat := viper.GetString(config.KeyStatsdHostCategory)
 	if hostCat == "" {
-		return errors.New("invalid StatsD host category (empty)")
+		return fmt.Errorf("invalid StatsD host category (empty)")
 	}
 
 	groupCID := viper.GetString(config.KeyStatsdGroupCID)
@@ -546,49 +548,49 @@ func validateStatsdOptions() error {
 
 	ok, err := config.IsValidCheckID(groupCID)
 	if err != nil {
-		return errors.Wrap(err, "validating StatsD Group Check ID")
+		return fmt.Errorf("validating StatsD Group Check ID: %w", err)
 	}
 	if !ok {
-		return errors.Errorf("invalid StatsD Group Check ID (%s)", groupCID)
+		return fmt.Errorf("invalid StatsD Group Check ID (%s)", groupCID)
 	}
 
 	groupPrefix := viper.GetString(config.KeyStatsdGroupPrefix)
 	if hostPrefix == "" && groupPrefix == "" {
-		return errors.New("invalid StatsD host/group prefix (both empty)")
+		return fmt.Errorf("invalid StatsD host/group prefix (both empty)")
 	}
 
 	if hostPrefix == groupPrefix {
-		return errors.New("invalid StatsD host/group prefix (same)")
+		return fmt.Errorf("invalid StatsD host/group prefix (same)")
 	}
 
 	counterOp := viper.GetString(config.KeyStatsdGroupCounters)
 	if counterOp == "" {
-		return errors.New("invalid StatsD counter operator (empty)")
+		return fmt.Errorf("invalid StatsD counter operator (empty)")
 	}
 	if ok, err := regexp.MatchString("^(average|sum)$", counterOp); err != nil {
-		return errors.Wrapf(err, "invalid StatsD counter operator (%s)", counterOp)
+		return fmt.Errorf("invalid StatsD counter operator (%s): %w", counterOp, err)
 	} else if !ok {
-		return errors.Errorf("invalid StatsD counter operator (%s)", counterOp)
+		return fmt.Errorf("invalid StatsD counter operator (%s)", counterOp)
 	}
 
 	gaugeOp := viper.GetString(config.KeyStatsdGroupGauges)
 	if gaugeOp == "" {
-		return errors.New("invalid StatsD gauge operator (empty)")
+		return fmt.Errorf("invalid StatsD gauge operator (empty)")
 	}
 	if ok, err := regexp.MatchString("^(average|sum)$", gaugeOp); err != nil {
-		return errors.Wrapf(err, "invalid StatsD gauge operator (%s)", gaugeOp)
+		return fmt.Errorf("invalid StatsD gauge operator (%s): %w", gaugeOp, err)
 	} else if !ok {
-		return errors.Errorf("invalid StatsD gauge operator (%s)", gaugeOp)
+		return fmt.Errorf("invalid StatsD gauge operator (%s)", gaugeOp)
 	}
 
 	setOp := viper.GetString(config.KeyStatsdGroupSets)
 	if setOp == "" {
-		return errors.New("invalid StatsD set operator (empty)")
+		return fmt.Errorf("invalid StatsD set operator (empty)")
 	}
 	if ok, err := regexp.MatchString("^(average|sum)$", setOp); err != nil {
-		return errors.Wrapf(err, "invalid StatsD set operator (%s)", setOp)
+		return fmt.Errorf("invalid StatsD set operator (%s): %w", setOp, err)
 	} else if !ok {
-		return errors.Errorf("invalid StatsD set operator (%s)", setOp)
+		return fmt.Errorf("invalid StatsD set operator (%s)", setOp)
 	}
 
 	return nil

@@ -9,6 +9,7 @@ package eventharness
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -66,7 +67,7 @@ func ProcessTrace(pipe *os.File, handler func(string), tasks chan func(), finish
 	// This stupid timeout is because of https://lkml.org/lkml/2014/6/10/30
 	_ = pipe.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
 	line, err := rdr.ReadString('\n')
-	for err != io.EOF {
+	for errors.Is(err, io.EOF) {
 		if line != "" {
 			handler(string(line))
 		}
@@ -94,12 +95,12 @@ func HarnessMain(instance string, args [][]string, handler func(string)) (*Harne
 
 	if err := StartTracing(instance, args); err != nil {
 		_ = StopTracing(instance)
-		return nil, fmt.Errorf("Failed to start tracing: %s", err)
+		return nil, fmt.Errorf("Failed to start tracing: %w", err)
 	}
 	pipe, erro := os.Open(filepath.Join(inst, "trace_pipe"))
 	if erro != nil {
 		_ = StopTracing(instance)
-		return nil, fmt.Errorf("Failed to read trace: %s", erro)
+		return nil, fmt.Errorf("Failed to read trace: %w", erro)
 	}
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, unix.SIGTERM, unix.SIGHUP, unix.SIGPIPE, unix.SIGTRAP)

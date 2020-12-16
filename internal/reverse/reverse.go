@@ -112,11 +112,17 @@ func (r *Reverse) Start(ctx context.Context) error {
 		r.logger.Debug().Msg("find primary broker instance")
 		primaryCN, err := r.chk.FindPrimaryBrokerInstance(rctx, r.configs)
 		if err != nil {
-			if nferr, ok := errors.Cause(err).(*check.ErrNoOwnerFound); ok {
+			var nferr *check.ErrNoOwnerFound
+			if errors.As(err, nferr) {
 				r.logger.Warn().Err(nferr).Msg("refreshing check bundle configuration")
 				refreshCheck = true
 				continue
 			}
+			// if nferr, ok := errors.Cause(err).(*check.ErrNoOwnerFound); ok { //nolint:errorlint
+			// 	r.logger.Warn().Err(nferr).Msg("refreshing check bundle configuration")
+			// 	refreshCheck = true
+			// 	continue
+			// }
 			return err
 		}
 
@@ -148,7 +154,8 @@ func (r *Reverse) Start(ctx context.Context) error {
 			r.logger.Debug().Msg("starting reverse connection")
 			if err := rc.Start(rctx); err != nil {
 				r.logger.Warn().Err(err).Msg("reverse connection")
-				if cerr, ok := err.(*connection.OpError); ok {
+				var cerr connection.OpError
+				if errors.As(err, cerr) {
 					if cerr.Fatal {
 						cancel()
 					} else if cerr.RefreshCheck {

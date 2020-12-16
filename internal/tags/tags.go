@@ -15,7 +15,6 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
@@ -145,7 +144,7 @@ func PrepStreamTags(tagList string) (string, error) {
 	}
 
 	if !valid.MatchString(tagList) {
-		return "", errors.Errorf("invalid tag format")
+		return "", fmt.Errorf("invalid tag format")
 	}
 
 	t := strings.Split(cleaner.ReplaceAllString(tagList, replacementChar), Separator)
