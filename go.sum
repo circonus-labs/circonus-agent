@@ -31,6 +31,8 @@ github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRF
 github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
 github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d h1:UQZhZ2O0vMHr2cI+DC1Mbh0TJxzA3RcLoMsFw+aXw7E=
 github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d/go.mod h1:rBZYJk541a8SKzHPHnH3zbiI+7dagKZ0cgpgrD7Fyho=
+github.com/alecthomas/units v0.0.0-20201120081800-1786d5ef83d4 h1:EBTWhcAX7rNQ80RLwLCpHZBBrJuzallFHnF+yMXo928=
+github.com/alecthomas/units v0.0.0-20201120081800-1786d5ef83d4/go.mod h1:OMCwj8VM1Kc9e19TLln2VL61YJF0x1XFtfdL4JdbSyE=
 github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
 github.com/apache/thrift v0.13.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
@@ -51,14 +53,14 @@ github.com/cenkalti/backoff v2.2.1+incompatible/go.mod h1:90ReRw6GdpyfrHakVjL/QH
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
 github.com/cespare/xxhash/v2 v2.1.1/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
-github.com/circonus-labs/circonus-gometrics/v3 v3.1.0 h1:Iv2BP77vuyrhNUTSn11HUfCqyJtdwk3iltSqASmWnIc=
-github.com/circonus-labs/circonus-gometrics/v3 v3.1.0/go.mod h1:hbHb81YGFfRAgDZHE8J5kws/aDP1D40tkaTnhVfnqSw=
+github.com/circonus-labs/circonus-gometrics/v3 v3.2.1 h1:vFCxETqBDWbxX18jrhjiJKBY20IWRRTi10dyaMMntz0=
+github.com/circonus-labs/circonus-gometrics/v3 v3.2.1/go.mod h1:hbHb81YGFfRAgDZHE8J5kws/aDP1D40tkaTnhVfnqSw=
 github.com/circonus-labs/circonusllhist v0.1.4 h1:G5qJPuD16akpIXMUR7KcfBvrQOVm95+qyqUm+SEAZks=
 github.com/circonus-labs/circonusllhist v0.1.4/go.mod h1:kMXHVDlOchFAehlya5ePtbp5jckzBHf4XRpQvBOLI+I=
 github.com/circonus-labs/go-apiclient v0.7.6 h1:Pr69I76ReDKRKe/yb9o0lKphRQ/a6Jr8XLh7M4GZrPY=
 github.com/circonus-labs/go-apiclient v0.7.6/go.mod h1:RP/BcaTRf8MlHaMGCSuSDPGPQqyMeBxaAdwNv5CM/eQ=
-github.com/circonus-labs/go-apiclient v0.7.9 h1:OYDi4XeO8RLPW22RDKb0vIfd2mZUj4Hv12kRLtJQtKI=
-github.com/circonus-labs/go-apiclient v0.7.9/go.mod h1:7PoP39q4+O82aWOsd0/3bMvBon6HCBwrs7g+/DXczNc=
+github.com/circonus-labs/go-apiclient v0.7.10 h1:9HdVReOvecmU15lv7jIyHLhQKRBavdfEFRSl8XJz4mM=
+github.com/circonus-labs/go-apiclient v0.7.10/go.mod h1:BDt91sr9gHxvll8eVCybGIZvXAd49B6vhrICMqEim8Y=
 github.com/clbanning/x2j v0.0.0-20191024224557-825249438eec/go.mod h1:jMjuTZXRI4dUb/I5gc9Hdhagfvm9+RyrPryS/auMzxE=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/cockroachdb/datadriven v0.0.0-20190809214429-80d97fb3cbaa/go.mod h1:zn76sxSg3SzpJ0PPJaLDCu+Bu0Lg3sKTORVIj19EIF8=
@@ -188,6 +190,8 @@ github.com/hashicorp/go-retryablehttp v0.6.6 h1:HJunrbHTDDbBb/ay4kxa1n+dLmttUlnP
 github.com/hashicorp/go-retryablehttp v0.6.6/go.mod h1:vAew36LZh98gCBJNLH42IQ1ER/9wtLZZ8meHqQvEYWY=
 github.com/hashicorp/go-retryablehttp v0.6.7 h1:8/CAEZt/+F7kR7GevNHulKkUjLht3CPmn7egmhieNKo=
 github.com/hashicorp/go-retryablehttp v0.6.7/go.mod h1:vAew36LZh98gCBJNLH42IQ1ER/9wtLZZ8meHqQvEYWY=
+github.com/hashicorp/go-retryablehttp v0.6.8 h1:92lWxgpa+fF3FozM4B3UZtHZMJX8T5XT+TFdCxsPyWs=
+github.com/hashicorp/go-retryablehttp v0.6.8/go.mod h1:vAew36LZh98gCBJNLH42IQ1ER/9wtLZZ8meHqQvEYWY=
 github.com/hashicorp/go-rootcerts v1.0.0/go.mod h1:K6zTfqpRlCUIjkwsN4Z+hiSfzSTQa6eBIzfwKfwNnHU=
 github.com/hashicorp/go-sockaddr v1.0.0/go.mod h1:7Xibr9yA9JjQq1JpNB2Vw7kxv8xerXegt+ozgdvDeDU=
 github.com/hashicorp/go-syslog v1.0.0/go.mod h1:qPfqrKkXGihmCqbJM2mZgkZGvKG1dFdvsLplgctolz4=
