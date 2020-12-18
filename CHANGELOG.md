@@ -1,6 +1,13 @@
+# v2.0.3
+
+* fix: update to latest CGM to get around go1.15 x509 SAN validation issue
+* fix: remove 'bundle' from group check id config option `statsd.group.check_bundle_id` is now `statsd.group.check_id`
+* fix: remove `bundle` from group cid help in help output
+* doc: remove `bundle` from group cid help
+
 # v2.0.2
 
-* upd: change dockerhub organization (circonuslabs->circonus): https://hub.docker.com/repository/docker/circonus/circonus-agent
+* upd: change [dockerhub organization](https://hub.docker.com/repository/docker/circonus/circonus-agent) circonuslabs->circonus
 
 # v2.0.1
 
