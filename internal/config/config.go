@@ -89,11 +89,11 @@ type StatsDHost struct {
 
 // StatsDGroup defines the running config.statsd.group structure
 type StatsDGroup struct {
-	CheckBundleID string `mapstructure:"check_bundle_id" json:"check_bundle_id" yaml:"check_bundle_id" toml:"check_bundle_id"`
-	Counters      string `json:"counters" yaml:"counters" toml:"counters"`
-	Gauges        string `json:"gauges" yaml:"gauges" toml:"gauges"`
-	MetricPrefix  string `mapstructure:"metric_prefix" json:"metric_prefix" yaml:"metric_prefix" toml:"metric_prefix"`
-	Sets          string `json:"sets" yaml:"sets" toml:"sets"`
+	CheckID      string `mapstructure:"check_id" json:"check_id" yaml:"check_id" toml:"check_id"`
+	Counters     string `json:"counters" yaml:"counters" toml:"counters"`
+	Gauges       string `json:"gauges" yaml:"gauges" toml:"gauges"`
+	MetricPrefix string `mapstructure:"metric_prefix" json:"metric_prefix" yaml:"metric_prefix" toml:"metric_prefix"`
+	Sets         string `json:"sets" yaml:"sets" toml:"sets"`
 }
 
 // StatsD defines the running config.statsd structure
@@ -230,8 +230,8 @@ const (
 	// KeyStatsdDisabled disables the default statsd listener
 	KeyStatsdDisabled = "statsd.disabled"
 
-	// KeyStatsdGroupCID circonus check bundle id for "group" metrics sent to statsd
-	KeyStatsdGroupCID = "statsd.group.check_bundle_id"
+	// KeyStatsdGroupCID circonus check id for "group" metrics sent to statsd
+	KeyStatsdGroupCID = "statsd.group.check_id"
 
 	// KeyStatsdGroupCounters operator for group counters (sum|average)
 	KeyStatsdGroupCounters = "statsd.group.counters"
