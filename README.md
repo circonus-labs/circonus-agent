@@ -121,7 +121,7 @@ Flags:
       --api-ca-file string                [ENV: CA_API_CA_FILE] Circonus API CA certificate file
       --api-key string                    [ENV: CA_API_KEY] Circonus API Token key
       --api-url string                    [ENV: CA_API_URL] Circonus API URL (default "https://api.circonus.com/v2/")
-      --check-broker string               [ENV: CA_CHECK_BROKER] ID of Broker to use or 'select' for random selection of valid broker, if creating a check bundle (default "select")
+      --check-broker string               [ENV: CA_CHECK_BROKER] CID (e.g. '99' or '/broker/99') of Broker to use or 'select' for random selection of valid broker, if creating a check bundle (default "select")
   -C, --check-create                      [ENV: CA_CHECK_CREATE] Create check bundle
   -I, --check-id string                   [ENV: CA_CHECK_ID] Check Bundle ID or 'cosi' for cosi system check
       --check-metric-filter-file string   [ENV: CA_CHECK_METRIC_FILTER_FILE] JSON file with metric filters (default "/opt/circonus/agent/etc/metric_filters.json")

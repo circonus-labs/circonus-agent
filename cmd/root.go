@@ -528,7 +528,7 @@ func init() {
 			key         = config.KeyCheckBroker
 			longOpt     = "check-broker"
 			envVar      = release.ENVPREFIX + "_CHECK_BROKER"
-			description = "ID of Broker to use or 'select' for random selection of valid broker, if creating a check bundle"
+			description = "CID (e.g. '99' or '/broker/99') of Broker to use or 'select' for random selection of valid broker, if creating a check bundle"
 		)
 
 		RootCmd.Flags().String(longOpt, defaults.CheckBroker, desc(description, envVar))
