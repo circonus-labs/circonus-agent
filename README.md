@@ -296,6 +296,8 @@ Unless otherwise noted, the source files are distributed under the BSD-style lic
 
 # Metric filter file example
 
+See [Allow/Deny Filters](https://docs.circonus.com/circonus/checks/create/#allowdeny-metric-filters) documentation for more information.
+
 ```json
 {
   "metric_filters": [
