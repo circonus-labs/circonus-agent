@@ -293,3 +293,22 @@ The above command would set the following options and then redirect the output i
 1. Install `cp circonus-agentd /opt/circonus/agent/sbin`
 
 Unless otherwise noted, the source files are distributed under the BSD-style license found in the [LICENSE](LICENSE) file.
+
+# Metric filter file example
+
+```json
+{
+  "metric_filters": [
+    [
+      "deny",
+      "^$",
+      ""
+    ],
+    [
+      "allow",
+      "^.+$",
+      ""
+    ]
+  ]
+}
+```
