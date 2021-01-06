@@ -1,3 +1,12 @@
+# v2.1.0
+
+* upd: statsd - change spaces to `_` in metric names (e.g. `foo bar` -> `foo_bar`) CIRC-6087
+* upd: linter to v1.34
+* fix: linter issues
+* upd: dependencies
+* doc: add reference to allow/deny filters in check documentation
+* doc: add metric filter file example
+
 # v2.0.3
 
 * fix: update to latest CGM to get around go1.15 x509 SAN validation issue
