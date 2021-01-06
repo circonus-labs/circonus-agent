@@ -458,7 +458,7 @@ func (c *NetProto) emitICMPMetric(proto string, metrics *cgm.Metrics, name strin
 		// no units
 	case "InRouterAdvertisements":
 		// no units
-	case "InNeighborSolicits":
+	case "InNeighborSolicits", "InType135":
 		// no units
 	case "InNeighborAdvertisements":
 		// no units
