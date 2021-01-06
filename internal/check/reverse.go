@@ -35,7 +35,7 @@ func (c *Check) setReverseConfigs() error {
 		// Replace protocol, url.Parse does not understand 'mtev_reverse'.
 		// Important part is validating what's after 'proto://'.
 		// Using raw tls connections, the url protocol is not germane.
-		reverseURL, err := url.Parse(strings.Replace(rURL, "mtev_reverse", "https", -1))
+		reverseURL, err := url.Parse(strings.ReplaceAll(rURL, "mtev_reverse", "https"))
 		if err != nil {
 			return errors.Wrapf(err, "parsing check reverse URL (%s)", rURL)
 		}

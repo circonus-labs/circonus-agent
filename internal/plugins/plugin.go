@@ -121,7 +121,7 @@ func (p *plugin) parsePluginOutput(output []string) error {
 			continue
 		}
 
-		metricName := strings.Replace(fields[0], " ", "_", -1)
+		metricName := strings.ReplaceAll(fields[0], " ", "_")
 		metricType := strings.TrimSpace(fields[1])
 
 		if _, ok := metrics[metricName]; ok {
@@ -262,8 +262,6 @@ func (p *plugin) exec() error {
 
 	plog := p.logger
 
-	//plog.Debug().Msg("running")
-
 	if p.runTTL > time.Duration(0) {
 		if time.Since(p.lastEnd) < p.runTTL {
 			msg := "TTL not expired"
@@ -372,7 +370,7 @@ func (p *plugin) exec() error {
 	if err := p.cmd.Wait(); err != nil {
 		var stderr string
 		if errOut.Len() > 0 {
-			stderr = strings.Replace(errOut.String(), "\n", "", -1)
+			stderr = strings.ReplaceAll(errOut.String(), "\n", "")
 		}
 		if exiterr, ok := err.(*exec.ExitError); ok { //nolint:errorlint
 			errMsg := fmt.Sprintf("%s %s", stderr, exiterr.Stderr)

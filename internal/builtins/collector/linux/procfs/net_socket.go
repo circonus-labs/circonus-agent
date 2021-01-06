@@ -158,7 +158,7 @@ func (c *NetSocket) sockstatCollect(metrics *cgm.Metrics) error {
 
 	{
 		emsg := "sockstat - invalid number of fields"
-		sockstatFile := strings.Replace(c.file, "dev", "sockstat", -1)
+		sockstatFile := strings.ReplaceAll(c.file, "dev", "sockstat")
 		lines, err := c.readFile(sockstatFile)
 		if err != nil {
 			return errors.Wrapf(err, "parsing %s", c.file)
@@ -179,7 +179,7 @@ func (c *NetSocket) sockstatCollect(metrics *cgm.Metrics) error {
 			line := strings.TrimSpace(string(l))
 			fields := strings.Fields(line)
 
-			statType := strings.ToLower(strings.Replace(fields[0], ":", "", -1))
+			statType := strings.ToLower(strings.ReplaceAll(fields[0], ":", ""))
 
 			switch statType {
 			case "sockets":
@@ -406,7 +406,7 @@ func (c *NetSocket) sockstatCollect(metrics *cgm.Metrics) error {
 
 	{
 		emsg := "sockstat6 - invalid number of fields"
-		sockstatFile := strings.Replace(c.file, "dev", "sockstat6", -1)
+		sockstatFile := strings.ReplaceAll(c.file, "dev", "sockstat6")
 		lines, err := c.readFile(sockstatFile)
 		if err != nil {
 			return errors.Wrapf(err, "parsing %s", c.file)
@@ -426,7 +426,7 @@ func (c *NetSocket) sockstatCollect(metrics *cgm.Metrics) error {
 			line := strings.TrimSpace(string(l))
 			fields := strings.Fields(line)
 
-			statType := strings.ToLower(strings.Replace(fields[0], ":", "", -1))
+			statType := strings.ToLower(strings.ReplaceAll(fields[0], ":", ""))
 
 			switch statType {
 			case "tcp6":

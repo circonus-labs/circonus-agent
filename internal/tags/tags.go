@@ -245,8 +245,8 @@ func EncodeMetricStreamTags(tags Tags) string {
 
 // EncodeMetricTags encodes Tags into an array of strings. The format
 // check_bundle.metircs.metric.tags needs. This helper is intended to work
-// with legacy check bundle metrics. Tags directly on named metrics are being
-// deprecated in favor of stream tags.
+// with legacy check bundle metrics. Tags directly on named metrics are
+// being dropped in favor of stream tags.
 func EncodeMetricTags(tags Tags) []string {
 	if len(tags) == 0 {
 		return []string{}

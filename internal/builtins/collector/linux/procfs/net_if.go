@@ -206,7 +206,7 @@ func (c *NetIF) ifCollect(metrics *cgm.Metrics) error {
 		}
 
 		fields := strings.Fields(line)
-		iface := strings.Replace(fields[0], ":", "", -1)
+		iface := strings.ReplaceAll(fields[0], ":", "")
 
 		if c.exclude.MatchString(iface) || !c.include.MatchString(iface) {
 			c.logger.Debug().Str("iface", iface).Msg("excluded iface name, skipping")

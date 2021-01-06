@@ -53,14 +53,15 @@ func New(ctx context.Context) (*Builtins, error) {
 	prom, err := prometheus.New("")
 	if err != nil {
 		b.logger.Warn().Err(err).Msg("prom collector, disabling")
-	} else {
-		// presence of a config is what enables this plugin
-		// if no error, and no config both `prom` and `err` will be nil, so silently disable
-		if prom != nil {
-			b.logger.Info().Str("id", "prom").Msg("enabled builtin")
-			b.collectors[prom.ID()] = prom
-			_ = appstats.IncrementInt("builtins.total")
-		}
+		return &b, nil
+	}
+
+	// presence of a config is what enables this plugin
+	// if no error, and no config both `prom` and `err` will be nil, so silently disable
+	if prom != nil {
+		b.logger.Info().Str("id", "prom").Msg("enabled builtin")
+		b.collectors[prom.ID()] = prom
+		_ = appstats.IncrementInt("builtins.total")
 	}
 
 	return &b, nil

@@ -104,7 +104,7 @@ func New() ([]collector.Collector, error) {
 		if !strings.HasPrefix(name, wmiPrefix) {
 			continue
 		}
-		name = strings.Replace(name, wmiPrefix, "", -1)
+		name = strings.ReplaceAll(name, wmiPrefix, "")
 		cfgBase := "wmi_" + name + "_collector"
 		switch name {
 		case "cache":

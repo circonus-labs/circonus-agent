@@ -456,7 +456,7 @@ func (c *Disk) parse(fields []string) (*dstats, error) {
 }
 
 func (c *Disk) parsemdstat() map[string][]string {
-	mdstatFile := strings.Replace(c.file, c.id, "mdstat", -1)
+	mdstatFile := strings.ReplaceAll(c.file, c.id, "mdstat")
 	mdList := make(map[string][]string)
 
 	mdrx := regexp.MustCompile(`^md[0-9]+`)

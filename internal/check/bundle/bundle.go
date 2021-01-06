@@ -243,21 +243,22 @@ func (cb *Bundle) initCheckBundle(cid string, create bool) error {
 		}
 	}
 
-	if viper.GetBool(config.KeyCheckUpdate) {
+	switch {
+	case viper.GetBool(config.KeyCheckUpdate):
 		cb.logger.Info().Str("cid", bundle.CID).Msg("updating check bundle")
 		b, err := cb.updateCheckBundle(bundle)
 		if err != nil {
 			return errors.Wrap(err, "updating check bundle")
 		}
 		bundle = b
-	} else if viper.GetBool(config.KeyCheckUpdateMetricFilters) {
+	case viper.GetBool(config.KeyCheckUpdateMetricFilters):
 		cb.logger.Info().Str("cid", bundle.CID).Msg("updating check bundle metric filters and host tags")
 		b, err := cb.updateCheckBundleMetricFilters(bundle)
 		if err != nil {
 			return errors.Wrap(err, "updating check bundle metric filters")
 		}
 		bundle = b
-	} else {
+	default:
 		cb.logger.Info().Str("cid", bundle.CID).Msg("updating check bundle host tags")
 		b, err := cb.updateCheckBundleTags(bundle)
 		if err != nil {
@@ -616,7 +617,7 @@ func (cb *Bundle) updateCheckBundleTags(cfg *apiclient.CheckBundle) (*apiclient.
 				}
 			} else {
 				updateCheck = true
-				updTags = append(updTags, tag)
+				updTags = append(updTags, tag) //nolint:makezero
 			}
 		}
 

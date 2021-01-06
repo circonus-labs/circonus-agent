@@ -177,7 +177,7 @@ func (c *NetProto) snmpCollect(metrics *cgm.Metrics) error {
 		for _, line := range lines {
 			fields := strings.Fields(line)
 
-			proto := strings.ToLower(strings.Replace(fields[0], ":", "", -1))
+			proto := strings.ToLower(strings.ReplaceAll(fields[0], ":", ""))
 
 			if c.exclude.MatchString(proto) || !c.include.MatchString(proto) {
 				c.logger.Debug().Str("proto", proto).Msg("excluded, skipping")

@@ -141,7 +141,7 @@ func (c *VM) parseMemstats(metrics *cgm.Metrics) error {
 			continue
 		}
 
-		name := strings.Replace(fields[0], ":", "", -1)
+		name := strings.ReplaceAll(fields[0], ":", "")
 		vs := strings.TrimSpace(fields[1])
 		units := ""
 		if len(fields) > 2 {
@@ -270,7 +270,7 @@ func (c *VM) parseMemstats(metrics *cgm.Metrics) error {
 }
 
 func (c *VM) parseVMstats(metrics *cgm.Metrics) error {
-	file := strings.Replace(c.file, "meminfo", "vmstat", -1)
+	file := strings.ReplaceAll(c.file, "meminfo", "vmstat")
 	lines, err := c.readFile(file)
 	if err != nil {
 		return errors.Wrapf(err, "parsing %s", file)

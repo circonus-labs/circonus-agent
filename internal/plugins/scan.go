@@ -85,7 +85,7 @@ func (p *Plugins) verifyPluginList(l []string) error {
 		fileExt := filepath.Ext(fileName)
 
 		if fileExt != "" {
-			fileBase = strings.Replace(fileName, fileExt, "", -1)
+			fileBase = strings.ReplaceAll(fileName, fileExt, "")
 		}
 
 		fs, err := os.Stat(fileSpec)
@@ -220,7 +220,7 @@ func (p *Plugins) scanPluginDirectory(b *builtins.Builtins) error {
 		fileExt := filepath.Ext(fileName)
 
 		if fileExt != "" {
-			fileBase = strings.Replace(fileName, fileExt, "", -1)
+			fileBase = strings.ReplaceAll(fileName, fileExt, "")
 		}
 
 		if fileBase == "" || fileExt == "" {
