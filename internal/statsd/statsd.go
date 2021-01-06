@@ -53,6 +53,7 @@ type Server struct {
 	groupGaugeOp          string
 	groupSetOp            string
 	metricRegex           *regexp.Regexp
+	nameSpaceReplaceRx    *regexp.Regexp
 	metricRegexGroupNames []string
 	apiKey                string
 	apiApp                string
@@ -126,8 +127,9 @@ func New(ctx context.Context) (*Server, error) {
 	// standard statsd metric format supported (with addition of tags):
 	// name:value|type[|@rate][|#tag_list]
 	// where tag_list is comma separated list of <tag_category:tag_value> pairs
-	s.metricRegex = regexp.MustCompile(`^(?P<name>[^:\s]+):(?P<value>[^|\s]+)\|(?P<type>[a-z]+)(?:\|@(?P<sample>[0-9.]+))?(?:\|#(?P<tags>[^:,]+:[^:,]+(,[^:,]+:[^:,]+)*))?$`)
+	s.metricRegex = regexp.MustCompile(`^(?P<name>[^:]+):(?P<value>[^|]+)\|(?P<type>[a-z]+)(?:\|@(?P<sample>[0-9.]+))?(?:\|#(?P<tags>[^:,]+:[^:,]+(,[^:,]+:[^:,]+)*))?$`)
 	s.metricRegexGroupNames = s.metricRegex.SubexpNames()
+	s.nameSpaceReplaceRx = regexp.MustCompile(`\s+`)
 
 	if !s.disabled {
 		if ierr := s.initHostMetrics(); ierr != nil {
