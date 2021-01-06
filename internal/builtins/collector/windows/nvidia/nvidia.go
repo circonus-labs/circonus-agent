@@ -76,7 +76,7 @@ func New() ([]collector.Collector, error) {
 		if !strings.HasPrefix(name, prefix) {
 			continue
 		}
-		name = strings.Replace(name, prefix, "", -1)
+		name = strings.ReplaceAll(name, prefix, "")
 		cfgBase := "nvidia_" + name + "_collector"
 		switch name {
 		case "gpu":

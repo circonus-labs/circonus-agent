@@ -55,7 +55,7 @@ func New() ([]collector.Collector, error) {
 		if !strings.HasPrefix(name, NamePrefix) {
 			continue
 		}
-		name = strings.Replace(name, NamePrefix, "", -1)
+		name = strings.ReplaceAll(name, NamePrefix, "")
 		cfgBase := "generic_" + name + "_collector"
 		switch name {
 		case NameCPU:

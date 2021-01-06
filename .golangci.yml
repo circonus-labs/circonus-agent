@@ -12,7 +12,8 @@ run:
   # If invoked with -mod=vendor, the go command assumes that the vendor
   # directory holds the correct copies of dependencies and ignores
   # the dependency descriptions in go.mod.
-  modules-download-mode: readonly
+  #commented out for: https://github.com/golangci/golangci-lint/issues/1502
+  #modules-download-mode: readonly
 
 # all available settings of specific linters
 linters-settings:
@@ -43,12 +44,12 @@ linters-settings:
     #       - (github.com/golangci/golangci-lint/pkg/logutils.Log).Fatalf
 
     # enable or disable analyzers by name
-    enable:
-      - atomicalign
-    enable-all: false
-    disable:
-      - shadow
-    disable-all: false
+    # enable:
+    #   - atomicalign
+    enable-all: true
+    # disable:
+    #   - shadow
+    # disable-all: false
   golint:
     # minimal confidence for issues, default is 0.8
     min-confidence: 0.8
@@ -173,12 +174,29 @@ linters-settings:
 
 linters:
   enable:
-    - megacheck
+    - deadcode
+    - errcheck
+    - gocritic
+    - gofmt
+    - golint
+    - gosec
+    - gosimple
     - govet
+    - ineffassign
+    - interfacer
     - maligned
-  disable:
-    # - maligned
+    - megacheck
+    - misspell
     - prealloc
+    - scopelint
+    - staticcheck
+    - structcheck
+    - typecheck
+    - unparam
+    - unused
+    - varcheck
+  disable:
+  #  - prealloc
   disable-all: false
   presets:
     - bugs

@@ -91,7 +91,7 @@ func (s *Server) parseMetric(metric string) error {
 		for gIdx, matchVal := range match {
 			switch s.metricRegexGroupNames[gIdx] {
 			case "name":
-				metricName = matchVal
+				metricName = s.nameSpaceReplaceRx.ReplaceAllString(matchVal, "_")
 			case "type":
 				metricType = matchVal
 			case "value":

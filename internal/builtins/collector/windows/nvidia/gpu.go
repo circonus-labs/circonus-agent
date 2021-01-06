@@ -410,7 +410,7 @@ func (gpu *GPU) Collect(ctx context.Context) error {
 		if err := cmd.Wait(); err != nil {
 			var stderr string
 			if errOut.Len() > 0 {
-				stderr = strings.Replace(errOut.String(), "\n", "", -1)
+				stderr = strings.ReplaceAll(errOut.String(), "\n", "")
 			}
 			var exiterr exec.ExitError
 			if errors.As(err, exiterr) {

@@ -70,7 +70,7 @@ const (
 
 	// StatsdHostPrefix defines that metrics received through StatsD inteface
 	// which are prefixed with this string plus a period go to the host check
-	StatsdHostPrefix = "" //"host."
+	StatsdHostPrefix = "" // "host."
 
 	// StatsdHostCategory defines the "plugin" in which the host metrics will be namepspaced
 	StatsdHostCategory = "statsd"

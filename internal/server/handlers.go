@@ -44,7 +44,7 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 	id := ""
 
 	if strings.HasPrefix(r.URL.Path, "/run/") { // run specific item
-		id = strings.Replace(r.URL.Path, "/run/", "", -1)
+		id = strings.ReplaceAll(r.URL.Path, "/run/", "")
 		if id != "" {
 			idOK := false
 
@@ -366,7 +366,7 @@ func (s *Server) socketHandler(w http.ResponseWriter, r *http.Request) {
 // simple value (e.g. {"name": 1, "foo": "bar", ...}) or a structured value
 // representation (e.g. {"foo": {_type: "i", _value: 1}, ...}).
 func (s *Server) write(w http.ResponseWriter, r *http.Request) {
-	id := strings.Replace(r.URL.Path, "/write/", "", -1)
+	id := strings.ReplaceAll(r.URL.Path, "/write/", "")
 	// a write request *MUST* include a metric group id to act as a namespace.
 	// in other words, a "plugin name", all metrics for that write will appear
 	// _under_ the metric group id (aka plugin name)

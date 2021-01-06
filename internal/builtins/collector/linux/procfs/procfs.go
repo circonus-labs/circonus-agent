@@ -68,7 +68,7 @@ func New(ctx context.Context) ([]collector.Collector, error) {
 		if !strings.HasPrefix(name, CollectorPrefix) {
 			continue
 		}
-		name = strings.Replace(name, CollectorPrefix, "", -1)
+		name = strings.ReplaceAll(name, CollectorPrefix, "")
 		cfgBase := "procfs_" + name + "_collector"
 		switch name {
 		case NameCPU:
