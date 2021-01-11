@@ -1,3 +1,11 @@
+# v2.2.0
+
+* new: statsd counters and sets represented as histograms (like broker)
+* upd: add `statsd_type` tag to counters, gauges, timings, and sets
+* upd: allow independent control of cgm debug (for statsd group) without having to turn on full debug logging
+* upd: support icmp6 intype135 (in neighbor solicits)
+* upd: cgm v3.3.0
+
 # v2.1.0
 
 * upd: statsd - change spaces to `_` in metric names (e.g. `foo bar` -> `foo_bar`) CIRC-6087
