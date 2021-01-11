@@ -273,24 +273,12 @@ func (s *Server) startTCP() error {
 	return nil
 }
 
-// logshim is used to satisfy apiclient Logger interface (avoiding ptr receiver issue)
-type logshim struct {
-	logh zerolog.Logger
-}
-
-func (l logshim) Printf(fmt string, v ...interface{}) {
-	l.logh.Printf(fmt, v...)
-}
-
 // initHostMetrics initializes the host metrics circonus-gometrics instance
 func (s *Server) initHostMetrics() error {
 	s.hostMetricsmu.Lock()
 	defer s.hostMetricsmu.Unlock()
 
-	cmc := &cgm.Config{
-		Debug: s.debugCGM,
-		Log:   logshim{logh: s.logger.With().Str("pkg", "cgm.statsd-host-check").Logger()},
-	}
+	cmc := &cgm.Config{}
 
 	// put cgm into manual mode (no interval, no api key, invalid submission url)
 	cmc.Interval = "0"                            // disable automatic flush
@@ -307,6 +295,15 @@ func (s *Server) initHostMetrics() error {
 	return nil
 }
 
+// logshim is used to satisfy apiclient Logger interface (avoiding ptr receiver issue)
+type logshim struct {
+	logh zerolog.Logger
+}
+
+func (l logshim) Printf(msgfmt string, v ...interface{}) {
+	l.logh.Info().Msg(fmt.Sprintf(msgfmt, v...))
+}
+
 // initGroupMetrics initializes the group metric circonus-gometrics instance
 // NOTE: Group metrics are sent directly to circonus, to an existing HTTPTRAP
 //       check created manually or by cosi - the group check is intended to be
@@ -320,9 +317,10 @@ func (s *Server) initGroupMetrics() error {
 	s.groupMetricsmu.Lock()
 	defer s.groupMetricsmu.Unlock()
 
-	cmc := &cgm.Config{
-		Debug: s.debugCGM,
-		Log:   logshim{logh: s.logger.With().Str("pkg", "cgm.statsd-group-check").Logger()},
+	cmc := &cgm.Config{}
+	if s.debugCGM {
+		cmc.Debug = s.debugCGM
+		cmc.Log = logshim{logh: s.logger.With().Str("pkg", "cgm.statsd-group-check").Logger()}
 	}
 	cmc.CheckManager.API.TokenKey = s.apiKey
 	cmc.CheckManager.API.TokenApp = s.apiApp

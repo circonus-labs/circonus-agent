@@ -154,12 +154,8 @@ func (s *Server) parseMetric(metric string) error {
 		if sampleRate > 0 {
 			v = uint64(float64(v) * (1 / sampleRate))
 		}
-		if viper.GetBool(config.KeyClusterEnabled) {
-			metricTags = append(metricTags, cgm.Tag{Category: "statsd_type", Value: "count"})
-			dest.RecordCountForValueWithTags(metricName, metricTags, 0, int64(v))
-		} else {
-			dest.IncrementByValueWithTags(metricName, metricTags, v)
-		}
+		metricTags = append(metricTags, cgm.Tag{Category: "statsd_type", Value: "count"})
+		dest.RecordCountForValueWithTags(metricName, metricTags, 0, int64(v))
 	case "g": // gauge
 		var val interface{}
 		switch {
@@ -169,31 +165,27 @@ func (s *Server) parseMetric(metric string) error {
 				return fmt.Errorf("invalid gauge value: %w", err)
 			}
 			val = v
-			// dest.GaugeWithTags(metricName, metricTags, v)
 		case strings.Contains(metricValue, "-"):
 			v, err := strconv.ParseInt(metricValue, 10, 64)
 			if err != nil {
 				return fmt.Errorf("invalid gauge value: %w", err)
 			}
 			val = v
-			// dest.GaugeWithTags(metricName, metricTags, v)
 		default:
 			v, err := strconv.ParseUint(metricValue, 10, 64)
 			if err != nil {
 				return fmt.Errorf("invalid gauge value: %w", err)
 			}
 			val = v
-			// dest.GaugeWithTags(metricName, metricTags, v)
 		}
 		if viper.GetBool(config.KeyClusterEnabled) && viper.GetBool(config.KeyClusterStatsdHistogramGauges) {
 			dest.RemoveHistogramWithTags(metricName, metricTags)
 			dest.SetHistogramValueWithTags(metricName, metricTags, val.(float64))
 		} else {
+			metricTags = append(metricTags, cgm.Tag{Category: "statsd_type", Value: "gauge"})
 			dest.GaugeWithTags(metricName, metricTags, val)
 		}
 	case "h": // histogram (circonus)
-		fallthrough
-	case "ms": // measurement
 		v, err := strconv.ParseFloat(metricValue, 64)
 		if err != nil {
 			return fmt.Errorf("invalid histogram value: %w", err)
@@ -202,16 +194,24 @@ func (s *Server) parseMetric(metric string) error {
 			v /= sampleRate
 		}
 		dest.RecordValueWithTags(metricName, metricTags, v)
+	case "ms": // timing measurement
+		v, err := strconv.ParseFloat(metricValue, 64)
+		if err != nil {
+			return fmt.Errorf("invalid histogram value: %w", err)
+		}
+		if sampleRate > 0 {
+			v /= sampleRate
+		}
+		metricTags = append(metricTags, cgm.Tag{Category: "statsd_type", Value: "timing"})
+		dest.RecordValueWithTags(metricName, metricTags, v)
 	case "s": // set
 		// in the case of sets, the value is the unique "thing" to be tracked
 		// counters are used to track individual "things"
-		metricTags = append(metricTags, cgm.Tag{Category: "set_id", Value: metricValue})
-		if viper.GetBool(config.KeyClusterEnabled) {
-			metricTags = append(metricTags, cgm.Tag{Category: "statsd_type", Value: "count"})
-			dest.RecordCountForValueWithTags(metricName, metricTags, 0, 1)
-		} else {
-			dest.IncrementWithTags(metricName, metricTags)
-		}
+		metricTags = append(metricTags, cgm.Tags{
+			cgm.Tag{Category: "set_id", Value: metricValue},
+			cgm.Tag{Category: "statsd_type", Value: "count"},
+		}...)
+		dest.RecordCountForValueWithTags(metricName, metricTags, 0, 1)
 	case "t": // text (circonus)
 		dest.SetTextWithTags(metricName, metricTags, metricValue)
 	default:
