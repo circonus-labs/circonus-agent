@@ -1,3 +1,7 @@
+# v2.2.1
+
+* fix: use target in config url when not reverse
+
 # v2.2.0
 
 * new: statsd counters and sets represented as histograms (like broker)

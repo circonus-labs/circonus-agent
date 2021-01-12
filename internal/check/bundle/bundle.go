@@ -365,7 +365,7 @@ func (cb *Bundle) createCheckBundle() (*apiclient.CheckBundle, error) {
 		if len(serverList) == 0 {
 			serverList = []string{defaults.Listen}
 		}
-		if serverList[0][0:1] == ":" {
+		if serverList[0][0:1] == ":" && viper.GetBool(config.KeyReverse) {
 			serverList[0] = "localhost" + serverList[0]
 		}
 		ta, err := config.ParseListen(serverList[0])
@@ -379,6 +379,10 @@ func (cb *Bundle) createCheckBundle() (*apiclient.CheckBundle, error) {
 	target := viper.GetString(config.KeyCheckTarget)
 	if target == "" {
 		return nil, errors.New("invalid check bundle target (empty)")
+	}
+
+	if targetAddr[0:1] == ":" && !viper.GetBool(config.KeyReverse) {
+		targetAddr = target + targetAddr
 	}
 
 	cfg := apiclient.NewCheckBundle()
@@ -458,7 +462,7 @@ func (cb *Bundle) updateCheckBundle(cfg *apiclient.CheckBundle) (*apiclient.Chec
 		if len(serverList) == 0 {
 			serverList = []string{defaults.Listen}
 		}
-		if serverList[0][0:1] == ":" {
+		if serverList[0][0:1] == ":" && viper.GetBool(config.KeyReverse) {
 			serverList[0] = "localhost" + serverList[0]
 		}
 		ta, err := config.ParseListen(serverList[0])
@@ -472,6 +476,10 @@ func (cb *Bundle) updateCheckBundle(cfg *apiclient.CheckBundle) (*apiclient.Chec
 	target := viper.GetString(config.KeyCheckTarget)
 	if target == "" {
 		return nil, errors.New("invalid check bundle target (empty)")
+	}
+
+	if targetAddr[0:1] == ":" && !viper.GetBool(config.KeyReverse) {
+		targetAddr = target + targetAddr
 	}
 
 	cfg.Target = target

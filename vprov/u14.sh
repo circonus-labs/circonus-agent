@@ -12,6 +12,7 @@ apt-get --assume-yes install git ruby ruby-dev build-essential libpcap-dev
 
 echo "Installing ruby2.3 for FPM"
 apt-add-repository -y ppa:brightbox/ruby-ng
+apt-get update
 apt-get -y install ruby2.3 ruby2.3-dev
 
 echo "Installing FPM gem"
