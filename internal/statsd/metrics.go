@@ -8,6 +8,7 @@ package statsd
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -80,7 +81,7 @@ func (s *Server) parseMetric(metric string) error {
 	metricType := ""
 	metricValue := ""
 	metricRate := ""
-	sampleRate := 0.0
+	sampleRate := 1.0
 	metricTagSpec := ""
 
 	if !s.metricRegex.MatchString(metric) {
@@ -116,6 +117,9 @@ func (s *Server) parseMetric(metric string) error {
 			return fmt.Errorf("invalid metric sampling rate: %w, ignoring", err)
 		}
 		sampleRate = r
+		if sampleRate == 0.0 {
+			return fmt.Errorf("invalid sample rate %f", sampleRate)
+		}
 	}
 
 	var (
@@ -145,17 +149,33 @@ func (s *Server) parseMetric(metric string) error {
 	tagList = append(tagList, metricTagList...)
 	metricTags := tags.FromList(tagList)
 
+	s.logger.Debug().
+		Str("destination", metricDest).
+		Str("metric", metric).
+		Str("name", metricName).
+		Str("type", metricType).
+		Str("value", metricValue).
+		Float64("rate", sampleRate).
+		Strs("mtags", metricTagList).
+		Msg("parsed")
+
 	switch metricType {
 	case "c": // counter
 		v, err := strconv.ParseUint(metricValue, 10, 64)
 		if err != nil {
 			return fmt.Errorf("invalid counter value: %w", err)
 		}
-		if sampleRate > 0 {
-			v = uint64(float64(v) * (1 / sampleRate))
-		}
+		val := int64(math.Round(float64(v) / sampleRate))
 		metricTags = append(metricTags, cgm.Tag{Category: "statsd_type", Value: "count"})
-		dest.RecordCountForValueWithTags(metricName, metricTags, 0, int64(v))
+		// counters always go in bin 0
+		dest.RecordCountForValueWithTags(metricName, metricTags, 0, val)
+		// s.logger.Debug().
+		// 	Str("metric_name", metricName).
+		// 	Float64("sample_rate", sampleRate).
+		// 	Float64("bin", 0).
+		// 	Int64("val", val).
+		// 	Msg("RecordCountForValueWithTags - COUNTER")
+
 	case "g": // gauge
 		var val interface{}
 		switch {
@@ -190,20 +210,22 @@ func (s *Server) parseMetric(metric string) error {
 		if err != nil {
 			return fmt.Errorf("invalid histogram value: %w", err)
 		}
-		if sampleRate > 0 {
-			v /= sampleRate
-		}
-		dest.RecordValueWithTags(metricName, metricTags, v)
+		val := int64(math.Round(1.0 / sampleRate))
+		dest.RecordCountForValueWithTags(metricName, metricTags, v, val)
 	case "ms": // timing measurement
 		v, err := strconv.ParseFloat(metricValue, 64)
 		if err != nil {
 			return fmt.Errorf("invalid histogram value: %w", err)
 		}
-		if sampleRate > 0 {
-			v /= sampleRate
-		}
 		metricTags = append(metricTags, cgm.Tag{Category: "statsd_type", Value: "timing"})
-		dest.RecordValueWithTags(metricName, metricTags, v)
+		val := int64(math.Round(1.0 / sampleRate))
+		dest.RecordCountForValueWithTags(metricName, metricTags, v, val)
+		// s.logger.Debug().
+		// 	Str("metric_name", metricName).
+		// 	Float64("sample_rate", sampleRate).
+		// 	Float64("bin", v).
+		// 	Int64("val", val).
+		// 	Msg("RecordCountForValueWithTags - TIMING")
 	case "s": // set
 		// in the case of sets, the value is the unique "thing" to be tracked
 		// counters are used to track individual "things"
@@ -217,14 +239,6 @@ func (s *Server) parseMetric(metric string) error {
 	default:
 		return fmt.Errorf("invalid metric type (%s)", metricType)
 	}
-
-	s.logger.Debug().
-		Str("destination", metricDest).
-		Str("metric", metric).
-		Str("name", metricName).
-		Str("type", metricType).
-		Str("value", metricValue).
-		Msg("parsing")
 
 	return nil
 }
