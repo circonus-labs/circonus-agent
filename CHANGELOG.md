@@ -1,3 +1,8 @@
+# v2.3.0
+
+* upd: adjust statsd rate hadnling to match broker
+* fix: error handling in reverse
+
 # v2.2.1
 
 * fix: use target in config url when not reverse
