@@ -113,7 +113,7 @@ func (r *Reverse) Start(ctx context.Context) error {
 		primaryCN, err := r.chk.FindPrimaryBrokerInstance(rctx, r.configs)
 		if err != nil {
 			var nferr *check.ErrNoOwnerFound
-			if errors.As(err, nferr) {
+			if errors.As(err, &nferr) {
 				r.logger.Warn().Err(nferr).Msg("refreshing check bundle configuration")
 				refreshCheck = true
 				continue
@@ -154,8 +154,8 @@ func (r *Reverse) Start(ctx context.Context) error {
 			r.logger.Debug().Msg("starting reverse connection")
 			if err := rc.Start(rctx); err != nil {
 				r.logger.Warn().Err(err).Msg("reverse connection")
-				var cerr connection.OpError
-				if errors.As(err, cerr) {
+				var cerr *connection.OpError
+				if errors.As(err, &cerr) {
 					if cerr.Fatal {
 						cancel()
 					} else if cerr.RefreshCheck {
