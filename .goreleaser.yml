@@ -8,16 +8,13 @@ before:
 
 builds:
     -
+        id: circonus-agent
         main: main.go
-
         binary: sbin/circonus-agentd
-
         env:
             - CGO_ENABLED=0
-
         flags: 
             #- -a
-
         goos:
             - linux
             - darwin
@@ -53,8 +50,7 @@ dockers:
         goos: linux
         goarch: amd64
         goarm: ''
-        binaries:
-            - circonus-agentd
+        ids: ['circonus-agent']
         image_templates:
             - "circonus/{{.ProjectName}}:{{.Tag}}-amd64"
             - "circonus/{{.ProjectName}}:latest-amd64"
@@ -68,8 +64,7 @@ dockers:
         goos: linux
         goarch: arm64
         goarm: ''
-        binaries:
-            - circonus-agentd
+        ids: ['circonus-agent']
         image_templates:
             - "circonus/{{.ProjectName}}:{{.Tag}}-arm64"
             - "circonus/{{.ProjectName}}:latest-arm64"
