@@ -352,7 +352,18 @@ func (cb *Bundle) findCheckBundle() (*apiclient.CheckBundle, int, error) {
 		return nil, found, errors.Errorf("multiple check bundles (%d) found matching criteria (%s) created by (%s)", matched, string(criteria), release.NAME)
 	}
 
-	return &(*bundles)[0], found, nil
+	// search does not always return a valid mtev_reverse url (e.g. mtev_reverse://:43191/ no host/ip)
+	// re-fetch the bundle by its cid does however fill out correctly.
+
+	cid := (*bundles)[0].CID
+	// cb.logger.Debug().Str("cid", cid).Msg("fetching check bundle found by search")
+	b, err := cb.fetchCheckBundle(cid)
+	if err != nil {
+		return nil, 0, errors.Errorf("unable to retrieve check bundle by id (%s): %s", cid, err)
+	}
+	// cb.logger.Debug().Interface("search", *bundles).Interface("fetch", b).Msg("bundles")
+
+	return b, found, nil
 }
 
 func (cb *Bundle) createCheckBundle() (*apiclient.CheckBundle, error) {

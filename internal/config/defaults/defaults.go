@@ -56,8 +56,9 @@ const (
 	Watch = false
 
 	// MultiAgent
-	MultiAgent         = false
-	MultiAgentInterval = "60s"
+	MultiAgent           = false
+	MultiAgentInterval   = "60s"
+	MultiAgentAccumulate = true
 
 	// ReverseMaxConnRetry - how many times to retry persistently failing broker connection
 	ReverseMaxConnRetry = -1

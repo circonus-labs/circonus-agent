@@ -1,3 +1,8 @@
+# v2.3.1
+
+* add: accumulate option for multi-agent (default:true)
+* fix: workaround mtev_rev not always having host/ip in search results
+
 # v2.3.0
 
 * upd: adjust statsd rate hadnling to match broker
