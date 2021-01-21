@@ -366,6 +366,24 @@ func init() {
 		}
 		viper.SetDefault(key, defaultValue)
 	}
+	{
+		const (
+			key         = config.KeyMultiAgentAccumulate
+			longOpt     = "multi-agent-accumulate"
+			envVar      = release.ENVPREFIX + "_MULTI_AGENT_ACCUMULATE"
+			description = "Controls whether broker accumulates numerics in multi-agent mode"
+			defaultVal  = defaults.MultiAgentAccumulate
+		)
+
+		RootCmd.Flags().Bool(longOpt, defaultVal, desc(description, envVar))
+		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
+			bindFlagError(longOpt, err)
+		}
+		if err := viper.BindEnv(key, envVar); err != nil {
+			bindEnvError(envVar, err)
+		}
+		viper.SetDefault(key, defaultVal)
+	}
 
 	//
 	// Reverse mode

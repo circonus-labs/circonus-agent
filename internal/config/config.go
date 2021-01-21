@@ -62,8 +62,9 @@ type Check struct {
 
 // MultiAgent defines the running config.multi_agent structure
 type MultiAgent struct {
-	Enabled  bool   `json:"enabled" toml:"enabled" yaml:"enabled"`
-	Interval string `json:"interval" toml:"interval" yaml:"interal"`
+	Enabled    bool   `json:"enabled" toml:"enabled" yaml:"enabled"`
+	Accumulate bool   `json:"accumulate" toml:"accumulate" yaml:"accumulate"`
+	Interval   string `json:"interval" toml:"interval" yaml:"interval"`
 }
 
 // Reverse defines the running config.reverse structure
@@ -199,6 +200,9 @@ const (
 
 	// KeyMultiAgentInterval indicates how frequently metrics should be sent
 	KeyMultiAgentInterval = "multi_agent.interval"
+
+	// KeyMultiAgentAccumulate determines if metrics are accumulated on the broker
+	KeyMultiAgentAccumulate = "multi_agent.accumulate"
 
 	// KeyReverse indicates whether to use reverse connections
 	KeyReverse = "reverse.enabled"

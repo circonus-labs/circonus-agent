@@ -54,6 +54,7 @@ type Submitter struct {
 	svr             *server.Server
 	useCompression  bool
 	enabled         bool
+	accumulate      bool
 	traceSubmits    string
 }
 
@@ -79,6 +80,7 @@ func New(parentLogger zerolog.Logger, chk *check.Check, svr *server.Server) (*Su
 		enabled:      viper.GetBool(config.KeyMultiAgent),
 		logger:       parentLogger.With().Str("pkg", "multiagent").Logger(),
 		traceSubmits: viper.GetString(config.KeyDebugDumpMetrics),
+		accumulate:   viper.GetBool(config.KeyMultiAgentAccumulate),
 	}
 
 	if !s.enabled {
@@ -333,7 +335,9 @@ func (s *Submitter) getMetrics() Metrics {
 		case "h", "H", "s":
 			// noop for histogram, cumulative histogram, and text metrics
 		case "i", "I", "l", "L", "n":
-			flag = "+" // accumulate for all numeric metrics
+			if s.accumulate {
+				flag = "+" // accumulate for all numeric metrics
+			}
 		default:
 			s.logger.Warn().Str("metric", mn).Interface("value", mv).Msg("unknown type, skipping")
 			continue
