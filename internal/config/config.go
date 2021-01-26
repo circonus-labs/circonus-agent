@@ -104,6 +104,8 @@ type StatsD struct {
 	Host     StatsDHost  `json:"host" yaml:"host" toml:"host"`
 	Addr     string      `join:"addr" yaml:"addr" toml:"addr"`
 	Port     string      `json:"port" yaml:"port" toml:"port"`
+	NPP      uint        `json:"npp" yaml:"npp" toml:"npp"`
+	PQS      uint        `json:"pqs" yaml:"pqs" toml:"pqs"`
 }
 
 // Thresholds defines triggers used to include metrics
@@ -266,6 +268,12 @@ const (
 
 	// KeyStatsdMaxTCPConns set max statsd tcp connections
 	KeyStatsdMaxTCPConns = "statsd.max_tcp_connections"
+
+	// KeyStatsdNPP sets number of packet processors to run concurrently
+	KeyStatsdNPP = "statsd.npp"
+
+	// KeyStatsdPQS sets packet queue size
+	KeyStatsdPQS = "statsd.pqs"
 
 	// KeyCollectors defines the builtin collectors to enable
 	KeyCollectors = "collectors"

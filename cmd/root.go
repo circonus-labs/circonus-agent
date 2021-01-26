@@ -1051,6 +1051,44 @@ func init() {
 		viper.SetDefault(key, defaults.StatsdMaxTCPConns)
 	}
 
+	{
+		const (
+			key          = config.KeyStatsdNPP
+			longOpt      = "statsd-npp"
+			envVar       = release.ENVPREFIX + "_STATSD_NPP"
+			description  = "StatsD number of packet processors"
+			defaultValue = defaults.StatsdNPP
+		)
+
+		RootCmd.Flags().Uint(longOpt, defaultValue, desc(description, envVar))
+		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
+			bindFlagError(longOpt, err)
+		}
+		if err := viper.BindEnv(key, envVar); err != nil {
+			bindEnvError(envVar, err)
+		}
+		viper.SetDefault(key, defaultValue)
+	}
+
+	{
+		const (
+			key          = config.KeyStatsdPQS
+			longOpt      = "statsd-pqs"
+			envVar       = release.ENVPREFIX + "_STATSD_PQS"
+			description  = "StatsD packet queue size"
+			defaultValue = defaults.StatsdPQS
+		)
+
+		RootCmd.Flags().Uint(longOpt, defaultValue, desc(description, envVar))
+		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
+			bindFlagError(longOpt, err)
+		}
+		if err := viper.BindEnv(key, envVar); err != nil {
+			bindEnvError(envVar, err)
+		}
+		viper.SetDefault(key, defaultValue)
+	}
+
 	// Miscellenous
 
 	{
