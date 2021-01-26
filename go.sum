@@ -54,6 +54,8 @@ github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghf
 github.com/cespare/xxhash/v2 v2.1.1/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/circonus-labs/circonus-gometrics/v3 v3.3.0 h1:7jglWWxtmeRBHnxfDFJi4NVgeEgqgjg2YAG2I7KfM54=
 github.com/circonus-labs/circonus-gometrics/v3 v3.3.0/go.mod h1:hbHb81YGFfRAgDZHE8J5kws/aDP1D40tkaTnhVfnqSw=
+github.com/circonus-labs/circonus-gometrics/v3 v3.3.1 h1:HbeZLKqpauSzNS8smVb1Xt+T4uo8uexJFYZN9t+q26g=
+github.com/circonus-labs/circonus-gometrics/v3 v3.3.1/go.mod h1:hbHb81YGFfRAgDZHE8J5kws/aDP1D40tkaTnhVfnqSw=
 github.com/circonus-labs/circonusllhist v0.1.4 h1:G5qJPuD16akpIXMUR7KcfBvrQOVm95+qyqUm+SEAZks=
 github.com/circonus-labs/circonusllhist v0.1.4/go.mod h1:kMXHVDlOchFAehlya5ePtbp5jckzBHf4XRpQvBOLI+I=
 github.com/circonus-labs/go-apiclient v0.7.6 h1:Pr69I76ReDKRKe/yb9o0lKphRQ/a6Jr8XLh7M4GZrPY=
