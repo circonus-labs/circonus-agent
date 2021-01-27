@@ -177,7 +177,9 @@ Flags:
       --statsd-host-category string       [ENV: CA_STATSD_HOST_CATEGORY] StatsD host metric category (default "statsd")
       --statsd-host-prefix string         [ENV: CA_STATSD_HOST_PREFIX] StatsD host metric prefix
       --statsd-max-tcp-connections uint   [ENV: CA_STATSD_MAX_TCP_CONNS] StatsD maximum TCP connections (default 250)
+      --statsd-npp uint                   [ENV: CA_STATSD_NPP] StatsD number of packet processors (default 1)
       --statsd-port string                [ENV: CA_STATSD_PORT] StatsD port to listen on (default "8125")
+      --statsd-pqs uint                   [ENV: CA_STATSD_PQS] StatsD packet queue size (default 1000)
   -V, --version                           Show version and exit
 ```
 
