@@ -95,6 +95,12 @@ const (
 	// StatsdMaxTCPConns defines the max statsd tcp client connections
 	StatsdMaxTCPConns = uint(250)
 
+	// StatsdNPP sets the number of concurrent packet processors to run
+	StatsdNPP = uint(1)
+
+	// StastdPQS sets the packet queue size
+	StatsdPQS = uint(1000)
+
 	// MetricNameSeparator defines character used to delimit metric name parts
 	MetricNameSeparator = "`"
 

@@ -17,6 +17,8 @@ import (
 func (s *Server) agentStats(metrics cgm.Metrics, mtags []string) {
 	s.agentHostStats(metrics, mtags)
 
+	metrics[tags.MetricNameWithStreamTags("agent_ngr", tags.FromList(mtags))] = cgm.Metric{Value: runtime.NumGoroutine(), Type: "L"}
+
 	debug.FreeOSMemory()
 
 	// memory utilization metrics

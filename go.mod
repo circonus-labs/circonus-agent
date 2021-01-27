@@ -4,7 +4,7 @@ require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20200131002437-cf55d5288a48
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d
 	github.com/alecthomas/units v0.0.0-20201120081800-1786d5ef83d4
-	github.com/circonus-labs/circonus-gometrics/v3 v3.3.0
+	github.com/circonus-labs/circonus-gometrics/v3 v3.3.2
 	github.com/circonus-labs/circonusllhist v0.1.4
 	github.com/circonus-labs/go-apiclient v0.7.10
 	github.com/go-ole/go-ole v1.2.4 // indirect

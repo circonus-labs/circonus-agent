@@ -63,16 +63,18 @@ type Server struct {
 	tcpListener           *net.TCPListener
 	tcpMaxConnections     uint
 	tcpConnections        map[string]*net.TCPConn
+	npp                   uint
+	pqs                   uint
 	baseTags              []string
 	sync.Mutex
 }
 
 const (
-	maxPacketSize   = 1472
-	packetQueueSize = 1000
-	destHost        = "host"
-	destGroup       = "group"
-	destIgnore      = "ignore"
+	maxPacketSize = 1472
+	// packetQueueSize = 20000
+	destHost   = "host"
+	destGroup  = "group"
+	destIgnore = "ignore"
 )
 
 // New returns a statsd server definition
@@ -114,6 +116,15 @@ func New(ctx context.Context) (*Server, error) {
 		baseTags:          tags.GetBaseTags(),
 		tcpConnections:    map[string]*net.TCPConn{},
 		tcpMaxConnections: viper.GetUint(config.KeyStatsdMaxTCPConns),
+		npp:               viper.GetUint(config.KeyStatsdNPP),
+		pqs:               viper.GetUint(config.KeyStatsdPQS),
+	}
+
+	if s.npp == 0 {
+		s.npp = defaults.StatsdNPP
+	}
+	if s.pqs == 0 {
+		s.pqs = defaults.StatsdPQS
 	}
 
 	s.enableUDPListener = !s.disabled
@@ -184,7 +195,8 @@ func (s *Server) Start() error {
 		return fmt.Errorf("starting TCP listener: %w", err)
 	}
 
-	packetCh := make(chan []byte, packetQueueSize)
+	s.logger.Debug().Uint("pqs", s.pqs).Msg("creating packet queue")
+	packetCh := make(chan []byte, s.pqs)
 
 	if s.enableUDPListener && s.udpListener != nil {
 		s.group.Go(func() error {
@@ -192,17 +204,20 @@ func (s *Server) Start() error {
 			return s.udpReader(packetCh)
 		})
 	}
+
 	if s.enableTCPListener && s.tcpListener != nil {
 		s.group.Go(func() error {
 			s.logger.Debug().Msg("starting tcp listener")
 			return s.tcpHandler(packetCh)
 		})
 	}
-	s.group.Go(func() error {
-		s.logger.Debug().Msg("starting packet processor")
 
-		return s.processor(packetCh)
-	})
+	s.logger.Debug().Uint("npp", s.npp).Msg("starting packet processor(s)")
+	for i := uint(0); i < s.npp; i++ {
+		s.group.Go(func() error {
+			return s.processor(packetCh)
+		})
+	}
 
 	go func() {
 		s.logger.Debug().Msg("waiting for group")
@@ -365,10 +380,10 @@ func (s *Server) udpReader(packetCh chan<- []byte) error {
 			continue
 		}
 		if n > 0 {
-			_ = appstats.IncrementInt("statsd_packets_total")
 			pkt := make([]byte, n)
 			copy(pkt, buff[:n])
 			packetCh <- pkt
+			_ = appstats.IncrementInt("statsd_packets_total")
 		}
 	}
 }
