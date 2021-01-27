@@ -1,3 +1,9 @@
+# v2.3.2
+
+* upd: dependency (cgm)
+* add: concurrency options for tuning statsd (`--statsd-npp` and `--statsd-pqs`)
+* add: agent_ngr metric
+
 # v2.3.1
 
 * add: accumulate option for multi-agent (default:true)
