@@ -26,8 +26,8 @@ When distributed in a binary form, circonus-agent may contain portions of the fo
 |[cobra](https://github.com/spf13/cobra)|direct|[Apache 2.0](https://github.com/spf13/cobra/blob/master/LICENSE.txt)|
 |[jwalterweatherman](https://github.com/spf13/jwalterweatherman)|indirect|[MIT](https://github.com/spf13/jwalterweatherman/blob/master/LICENSE)|
 |[viper](https://github.com/spf13/viper)|direct|[MIT](https://github.com/spf13/viper/blob/master/LICENSE)|
-|[sync](https://golang.org/x/sync)|direct|[Go/Google/??](https://github.com/golang/sync/blob/master/LICENSE)|
-|[sys](https://golang.org/x/sys)|direct|[Go/Google/??](https://github.com/golang/sys/blob/master/LICENSE)|
+|[sync](https://golang.org/x/sync)|direct|[custom](https://github.com/golang/sync/blob/master/LICENSE)|
+|[sys](https://golang.org/x/sys)|direct|[custom](https://github.com/golang/sys/blob/master/LICENSE)|
 |[ini](https://gopkg.in/ini.v1)|indirect|[Apache 2.0](https://github.com/go-ini/ini/blob/v1.62.0/LICENSE)|
 |[yaml](https://github.com/go-yaml/yaml)|direct|[Apache 2.0](https://github.com/go-yaml/yaml/blob/v2/LICENSE)|
 
