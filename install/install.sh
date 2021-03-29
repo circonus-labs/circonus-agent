@@ -140,6 +140,11 @@ __ca_init() {
     [[ -n "${ca_api_key:-}" ]] || fail "Circonus API key is *required*."
     [[ "select" == ${ca_broker_id,,} ]] && ca_broker_id=""
 
+    log "Getting latest release version from repository"
+    tag=$(__get_latest_release)
+    ca_version=${tag#v}
+
+    __get_os_sig
 }
 
 __make_circonus_dir() {
@@ -251,11 +256,8 @@ __get_latest_release() {
 }
 
 ca_install() {
-    log "Getting latest release version from repository"
-    tag=$(__get_latest_release)
-    ca_version=${tag#v}
 
-    __get_os_sig
+    __ca_init "$@"
 
     pkg_file="circonus-agent-${ca_version}-1.${ca_os_sig}_${pkg_arch}"
     pkg_url="https://github.com/circonus-labs/circonus-agent/releases/download/v${ca_version}/"
@@ -265,7 +267,6 @@ ca_install() {
     ca_dir="/opt/circonus/agent"
     [[ -d $ca_dir ]] && fail "${ca_dir} previous installation directory found."
 
-    __ca_init "$@"
     __make_circonus_dir
     __get_ca_package
     __configure_agent
