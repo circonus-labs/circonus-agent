@@ -24,8 +24,8 @@ import (
 
 // Load metrics from the Linux ProcFS (actually from unix.Sysinfo call)
 type Load struct {
-	common
 	processStatsFile string
+	common
 }
 
 // loadOptions defines what elements can be overridden in a config file
@@ -33,10 +33,10 @@ type loadOptions struct {
 	// common
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
 	ProcFSPath           string   `json:"procfs_path" toml:"procfs_path" yaml:"procfs_path"`
-	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
-	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
 	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" yaml:"metrics_default_status"`
 	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
+	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
+	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
 }
 
 // NewLoadCollector creates new procfs load collector

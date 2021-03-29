@@ -17,11 +17,11 @@ func TestInventory(t *testing.T) {
 	tests := []struct {
 		name        string
 		response    string
-		shouldErr   bool
 		expectedErr string
+		shouldErr   bool
 	}{
-		{"invalid (json/parse)", "invalid", true, "parsing inventory: invalid character 'i' looking for beginning of value"},
-		{"valid", `[{"id":"test","name":"test","instance":""}]`, false, ""},
+		{"invalid (json/parse)", "invalid", "parsing inventory: invalid character 'i' looking for beginning of value", true},
+		{"valid", `[{"id":"test","name":"test","instance":""}]`, "", false},
 	}
 
 	for _, test := range tests {

@@ -17,17 +17,17 @@ import (
 
 func TestCheck_setReverseConfigs(t *testing.T) {
 	type fields struct {
-		statusActiveBroker    string
-		brokerMaxResponseTime time.Duration
-		brokerMaxRetries      int
 		checkConfig           *apiclient.Check
 		checkBundle           *bundle.Bundle
 		broker                *apiclient.Broker
 		client                API
-		logger                zerolog.Logger
-		refreshTTL            time.Duration
-		reverse               bool
+		statusActiveBroker    string
 		revConfigs            *ReverseConfigs
+		logger                zerolog.Logger
+		brokerMaxResponseTime time.Duration
+		refreshTTL            time.Duration
+		brokerMaxRetries      int
+		reverse               bool
 	}
 	tests := []struct {
 		name    string
@@ -61,26 +61,26 @@ func TestCheck_setReverseConfigs(t *testing.T) {
 
 func TestCheck_FindPrimaryBrokerInstance(t *testing.T) {
 	type fields struct {
-		statusActiveBroker    string
-		brokerMaxResponseTime time.Duration
-		brokerMaxRetries      int
 		checkConfig           *apiclient.Check
 		checkBundle           *bundle.Bundle
 		broker                *apiclient.Broker
+		statusActiveBroker    string
 		client                API
+		revConfigs            *ReverseConfigs
 		logger                zerolog.Logger
 		refreshTTL            time.Duration
+		brokerMaxResponseTime time.Duration
+		brokerMaxRetries      int
 		reverse               bool
-		revConfigs            *ReverseConfigs
 	}
 	type args struct {
 		cfgs *ReverseConfigs
 	}
 	tests := []struct {
 		name    string
-		fields  fields
-		args    args
 		want    string
+		args    args
+		fields  fields
 		wantErr bool
 	}{
 		// TODO: Add test cases.

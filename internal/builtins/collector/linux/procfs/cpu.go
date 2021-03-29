@@ -25,11 +25,11 @@ import (
 
 // CPU metrics from the Linux ProcFS
 type CPU struct {
-	common
+	lastRunValues map[string]lastValues // values from last run
+	common                              // common attributes
 	numCPU        float64               // number of cpus
 	clockNorm     float64               // cpu clock normalized to 100Hz tick rate
 	reportAllCPUs bool                  // OPT report all cpus (vs just total) may be overridden in config file
-	lastRunValues map[string]lastValues // values from last run
 }
 
 // cpuOptions defines what elements can be overridden in a config file

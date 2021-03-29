@@ -30,11 +30,11 @@ import (
 
 // Disk metrics from the Linux ProcFS
 type Disk struct {
+	include         *regexp.Regexp
+	exclude         *regexp.Regexp
+	sectorSizeCache map[string]uint64
 	common
-	include           *regexp.Regexp
-	exclude           *regexp.Regexp
 	sectorSizeDefault uint64
-	sectorSizeCache   map[string]uint64
 }
 
 // diskOptions defines what elements can be overridden in a config file

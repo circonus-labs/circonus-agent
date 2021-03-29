@@ -38,24 +38,24 @@ type Metric struct {
 
 type TrapResult struct {
 	CheckUUID  string
+	Error      string `json:"error,omitempty"`
 	SubmitUUID uuid.UUID
 	Filtered   uint64 `json:"filtered,omitempty"`
 	Stats      uint64 `json:"stats"`
-	Error      string `json:"error,omitempty"`
 }
 
 type Submitter struct {
-	logger          zerolog.Logger
+	brokerTLSConfig *tls.Config
 	client          *http.Client
+	svr             *server.Server
 	submissionURL   string
 	checkUUID       string
-	brokerTLSConfig *tls.Config
-	interval        time.Duration
-	svr             *server.Server
+	traceSubmits    string
+	logger          zerolog.Logger
 	useCompression  bool
 	enabled         bool
 	accumulate      bool
-	traceSubmits    string
+	interval        time.Duration
 }
 
 // submitLogshim is used to satisfy submission use of retryable-http Logger interface (avoiding ptr receiver issue)

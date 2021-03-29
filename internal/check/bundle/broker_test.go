@@ -25,7 +25,7 @@ func TestBundle_isValidBroker(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	type fields struct {
+	type fields struct { //nolint:govet
 		statusActiveBroker    string
 		brokerMaxResponseTime time.Duration
 		brokerMaxRetries      int
@@ -43,7 +43,7 @@ func TestBundle_isValidBroker(t *testing.T) {
 		logger:                log.With().Logger(),
 	}
 
-	tests := []struct {
+	tests := []struct { //nolint:govet
 		name           string
 		fields         fields
 		args           args
@@ -109,11 +109,11 @@ func TestBundle_isValidBroker(t *testing.T) {
 
 func Test_brokerSupportsCheckType(t *testing.T) {
 	defaultDetails := &apiclient.BrokerDetail{Modules: []string{"json", "httptrap"}}
-	type args struct {
+	type args struct { //nolint:govet
 		checkType string
 		details   *apiclient.BrokerDetail
 	}
-	tests := []struct {
+	tests := []struct { //nolint:govet
 		name string
 		args args
 		want bool
@@ -155,7 +155,7 @@ func TestBundle_selectBroker(t *testing.T) {
 		},
 	}
 
-	type fields struct {
+	type fields struct { //nolint:govet
 		statusActiveBroker    string
 		brokerMaxResponseTime time.Duration
 		brokerMaxRetries      int
@@ -169,11 +169,11 @@ func TestBundle_selectBroker(t *testing.T) {
 		logger:                log.With().Logger(),
 	}
 
-	type args struct {
+	type args struct { //nolint:govet
 		checkType  string
 		brokerList *[]apiclient.Broker
 	}
-	tests := []struct {
+	tests := []struct { //nolint:govet
 		name           string
 		fields         fields
 		args           args

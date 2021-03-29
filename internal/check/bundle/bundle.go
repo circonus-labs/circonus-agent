@@ -28,12 +28,12 @@ import (
 
 // Bundle exposes the check bundle management interface
 type Bundle struct {
-	logger                zerolog.Logger
 	statusActiveBroker    string
+	bundle                *apiclient.CheckBundle
 	client                API
+	logger                zerolog.Logger
 	brokerMaxResponseTime time.Duration
 	brokerMaxRetries      int
-	bundle                *apiclient.CheckBundle
 	sync.Mutex
 }
 

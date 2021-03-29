@@ -26,17 +26,17 @@ import (
 
 // Check exposes the check bundle management interface
 type Check struct {
-	statusActiveBroker    string
-	brokerMaxResponseTime time.Duration
-	brokerMaxRetries      int
 	checkConfig           *apiclient.Check
 	checkBundle           *bundle.Bundle
 	broker                *apiclient.Broker
+	statusActiveBroker    string
 	client                API
-	logger                zerolog.Logger
-	refreshTTL            time.Duration
-	reverse               bool
 	revConfigs            *ReverseConfigs
+	logger                zerolog.Logger
+	brokerMaxResponseTime time.Duration
+	refreshTTL            time.Duration
+	brokerMaxRetries      int
+	reverse               bool
 	sync.Mutex
 }
 
@@ -49,11 +49,11 @@ type Meta struct {
 
 // ReverseConfig contains the reverse configuration for the check
 type ReverseConfig struct {
-	CN         string
 	BrokerAddr *net.TCPAddr
-	BrokerID   string
 	ReverseURL *url.URL
 	TLSConfig  *tls.Config
+	CN         string
+	BrokerID   string
 }
 
 type ReverseConfigs map[string]ReverseConfig

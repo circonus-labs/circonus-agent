@@ -225,7 +225,7 @@ func TestParseMetric(t *testing.T) {
 		t.Fatalf("initHostMetrics %s", err)
 	}
 
-	mtests := []struct {
+	mtests := []struct { //nolint:govet
 		metric string
 		expect error
 	}{

@@ -59,9 +59,9 @@ type Win32_PerfFormattedData_PerfProc_Process struct { //nolint: golint
 
 // Processes metrics from the Windows Management Interface (wmi)
 type Processes struct {
-	wmicommon
 	include *regexp.Regexp
 	exclude *regexp.Regexp
+	wmicommon
 }
 
 // ProcessesOptions defines what elements can be overridden in a config file

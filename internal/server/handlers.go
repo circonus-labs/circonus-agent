@@ -118,8 +118,8 @@ func (s *Server) GetMetrics(conduits []string, id string) cgm.Metrics {
 	collectStart := time.Now()
 
 	type conduit struct {
-		id      string
 		metrics *cgm.Metrics
+		id      string
 	}
 	conduitCh := make(chan conduit, len(conduits)) // number of conduits
 	var wg sync.WaitGroup

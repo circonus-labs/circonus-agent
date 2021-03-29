@@ -29,17 +29,15 @@ import (
 type common struct {
 	id              string               // id of the collector (used as metric name prefix)
 	pkgID           string               // package prefix used for logging and errors
-	lastEnd         time.Time            // last collection end time
 	lastError       string               // last collection error
-	metrics         *cgm.CirconusMetrics // metrics instance
+	baseTags        tags.Tags            // base tags
 	lastMetrics     cgm.Metrics          // last metrics collected
-	lastRunDuration time.Duration        // last collection duration
+	lastEnd         time.Time            // last collection end time
 	lastStart       time.Time            // last collection start time
+	metrics         *cgm.CirconusMetrics // metrics instance
 	logger          zerolog.Logger       // collector logging instance
-	// metricNameChar  string               // OPT character(s) used as replacement for metricNameRegex, may be overridden in config
-	// metricNameRegex *regexp.Regexp       // OPT regex for cleaning names, may be overridden in config
-	running  bool // is collector currently running
-	baseTags tags.Tags
+	lastRunDuration time.Duration        // last collection duration
+	running         bool                 // is collector currently running
 	sync.Mutex
 }
 

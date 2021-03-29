@@ -34,13 +34,13 @@ func TestGet(t *testing.T) {
 	tests := []struct {
 		name        string
 		rpath       string
-		shouldErr   bool
 		expectedErr string
+		shouldErr   bool
 	}{
-		{"invalid path (empty)", "", true, "invalid request path (empty)"},
-		{"invalid path (bad)", "/%/%", true, `creating request url: parse "/%/%": invalid URL escape "%/%"`},
-		{"invalid path (not found)", "/not_found", true, "404 Not Found - " + ts.URL + "/not_found - Not Found"},
-		{"valid", "/valid", false, ""},
+		{"invalid path (empty)", "", "invalid request path (empty)", true},
+		{"invalid path (bad)", "/%/%", `creating request url: parse "/%/%": invalid URL escape "%/%"`, true},
+		{"invalid path (not found)", "/not_found", "404 Not Found - " + ts.URL + "/not_found - Not Found", true},
+		{"valid", "/valid", "", false},
 	}
 
 	for _, test := range tests {

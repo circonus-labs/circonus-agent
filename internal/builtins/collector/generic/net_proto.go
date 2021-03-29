@@ -22,8 +22,8 @@ import (
 
 // Proto metrics
 type Proto struct {
-	gencommon
 	protocols []string
+	gencommon
 }
 
 // protoOptions defines what elements can be overridden in a config file

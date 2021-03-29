@@ -19,13 +19,13 @@ import (
 // fake collector stub
 
 type foo struct {
-	id              string
-	lastEnd         time.Time
-	lastError       error
 	lastMetrics     cgm.Metrics
-	lastRunDuration time.Duration
+	id              string
+	lastError       error
+	lastEnd         time.Time
 	lastStart       time.Time
 	logger          zerolog.Logger
+	lastRunDuration time.Duration
 	sync.Mutex
 }
 

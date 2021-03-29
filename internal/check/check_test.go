@@ -45,7 +45,7 @@ func TestCheck_CheckMeta(t *testing.T) {
 	type fields struct {
 		checkBundle *bundle.Bundle
 	}
-	tests := []struct {
+	tests := []struct { //nolint:govet
 		name    string
 		fields  fields
 		want    *Meta

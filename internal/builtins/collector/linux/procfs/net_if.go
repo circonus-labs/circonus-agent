@@ -26,9 +26,9 @@ import (
 
 // NetIF metrics from the Linux ProcFS
 type NetIF struct {
-	common
 	include *regexp.Regexp
 	exclude *regexp.Regexp
+	common
 }
 
 // netIFOptions defines what elements can be overridden in a config file
@@ -171,10 +171,10 @@ func (c *NetIF) ifCollect(metrics *cgm.Metrics) error {
 	// 17 transmit compressed
 	fieldsExpected := 17
 	stats := []struct {
-		idx   int
 		name  string
 		desc  string
 		stags tags.Tags
+		idx   int
 	}{
 		{idx: 1, name: "recv", desc: "receive bytes", stags: tags.Tags{unitBytesTag}},
 		{idx: 2, name: "recv", desc: "receive packets", stags: tags.Tags{unitPacketsTag}},

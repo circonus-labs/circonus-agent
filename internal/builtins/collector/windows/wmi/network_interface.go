@@ -26,11 +26,11 @@ import (
 // Win32_PerfRawData_Tcpip_NetworkInterface defines the metrics to collect
 // https://technet.microsoft.com/en-us/security/aa394340(v=vs.80)
 type Win32_PerfRawData_Tcpip_NetworkInterface struct { //nolint: golint
+	Name                            string
 	BytesReceivedPersec             uint64
 	BytesSentPersec                 uint64
 	BytesTotalPersec                uint64
 	CurrentBandwidth                uint64
-	Name                            string
 	OffloadedConnections            uint64
 	OutputQueueLength               uint64
 	PacketsOutboundDiscarded        uint64
@@ -53,9 +53,9 @@ type Win32_PerfRawData_Tcpip_NetworkInterface struct { //nolint: golint
 
 // NetInterface metrics from the Windows Management Interface (wmi)
 type NetInterface struct {
-	wmicommon
 	include *regexp.Regexp
 	exclude *regexp.Regexp
+	wmicommon
 }
 
 // netInterfaceOptions defines what elements can be overridden in a config file

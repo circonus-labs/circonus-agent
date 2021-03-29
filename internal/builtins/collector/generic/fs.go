@@ -25,11 +25,11 @@ import (
 
 // FS metrics from the Linux ProcFS
 type FS struct {
-	gencommon
 	includeFS     *regexp.Regexp
 	excludeFS     *regexp.Regexp
 	excludeFSType map[string]bool
-	allFSDevices  bool
+	gencommon
+	allFSDevices bool
 }
 
 // fsOptions defines what elements can be overridden in a config file
@@ -41,8 +41,8 @@ type fsOptions struct {
 	// collector specific
 	IncludeRegexFS    string   `json:"include_fs_regex" toml:"include_fs_regex" yaml:"include_fs_regex"`
 	ExcludeRegexFS    string   `json:"exclude_fs_regex" toml:"exclude_fs_regex" yaml:"exclude_fs_regex"`
-	ExcludeFSType     []string `json:"exclude_fs_type" toml:"exclude_fs_type" yaml:"exclude_fs_type"`
 	IncludeAllDevices string   `json:"include_all_devices" toml:"include_all_devices" yaml:"include_all_devices"`
+	ExcludeFSType     []string `json:"exclude_fs_type" toml:"exclude_fs_type" yaml:"exclude_fs_type"`
 }
 
 // NewFSCollector creates new psutils disk collector

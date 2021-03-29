@@ -41,17 +41,17 @@ type URLDef struct {
 // Prom defines prom collector
 type Prom struct {
 	pkgID           string         // package prefix used for logging and errors
+	lastError       string         // last collection error
+	baseTags        []string       // base tags
 	urls            []URLDef       // prom URLs to collect metric from
 	lastEnd         time.Time      // last collection end time
-	lastError       string         // last collection error
 	lastMetrics     cgm.Metrics    // last metrics collected
-	lastRunDuration time.Duration  // last collection duration
 	lastStart       time.Time      // last collection start time
-	logger          zerolog.Logger // collector logging instance
 	metricNameRegex *regexp.Regexp // OPT regex for cleaning names, may be overridden in config
-	running         bool           // is collector currently running
+	logger          zerolog.Logger // collector logging instance
+	lastRunDuration time.Duration  // last collection duration
 	runTTL          time.Duration  // OPT ttl for collector (default is for every request)
-	baseTags        []string
+	running         bool           // is collector currently running
 	sync.Mutex
 }
 

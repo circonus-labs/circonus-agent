@@ -26,9 +26,9 @@ import (
 
 // NetProto metrics from the Linux ProcFS
 type NetProto struct {
-	common
 	include *regexp.Regexp
 	exclude *regexp.Regexp
+	common
 }
 
 // netProtoOptions defines what elements can be overridden in a config file

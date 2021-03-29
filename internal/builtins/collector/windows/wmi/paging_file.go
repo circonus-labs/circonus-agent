@@ -31,9 +31,9 @@ type Win32_PerfFormattedData_PerfOS_PagingFile struct { //nolint: golint
 
 // PagingFile metrics from the Windows Management Interface (wmi)
 type PagingFile struct {
-	wmicommon
 	include *regexp.Regexp
 	exclude *regexp.Regexp
+	wmicommon
 }
 
 // pagingFileOptions defines what elements can be overridden in a config file
