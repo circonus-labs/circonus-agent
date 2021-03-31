@@ -32,19 +32,17 @@ import (
 
 // Server defines a statsd server
 type Server struct {
-	disabled              bool
-	enableUDPListener     bool // NOTE: defaults to TRUE; uses !disabled (not really a separate option)
-	enableTCPListener     bool // NOTE: defaults to FALSE
-	debugCGM              bool
+	tcpConnections        map[string]*net.TCPConn
 	group                 *errgroup.Group
-	groupCtx              context.Context
 	udpAddress            *net.UDPAddr
 	tcpAddress            *net.TCPAddr
 	hostMetrics           *cgm.CirconusMetrics
-	hostMetricsmu         sync.Mutex
 	groupMetrics          *cgm.CirconusMetrics
-	groupMetricsmu        sync.Mutex
-	logger                zerolog.Logger
+	metricRegex           *regexp.Regexp
+	nameSpaceReplaceRx    *regexp.Regexp
+	udpListener           *net.UDPConn
+	tcpListener           *net.TCPListener
+	groupCtx              context.Context
 	hostPrefix            string
 	hostCategory          string
 	groupCID              string
@@ -52,20 +50,22 @@ type Server struct {
 	groupCounterOp        string
 	groupGaugeOp          string
 	groupSetOp            string
-	metricRegex           *regexp.Regexp
-	nameSpaceReplaceRx    *regexp.Regexp
-	metricRegexGroupNames []string
 	apiKey                string
 	apiApp                string
 	apiURL                string
 	apiCAFile             string
-	udpListener           *net.UDPConn
-	tcpListener           *net.TCPListener
+	metricRegexGroupNames []string
+	baseTags              []string
+	logger                zerolog.Logger
 	tcpMaxConnections     uint
-	tcpConnections        map[string]*net.TCPConn
 	npp                   uint
 	pqs                   uint
-	baseTags              []string
+	disabled              bool
+	enableUDPListener     bool // NOTE: defaults to TRUE; uses !disabled (not really a separate option)
+	enableTCPListener     bool // NOTE: defaults to FALSE
+	debugCGM              bool
+	groupMetricsmu        sync.Mutex
+	hostMetricsmu         sync.Mutex
 	sync.Mutex
 }
 

@@ -195,6 +195,10 @@ fetch_agent_repo() {
         popd >/dev/null
     fi
     echo "-using agent version ${agent_version}"
+
+    dir_publish="${dir_publish}/${agent_version}"
+    [[ -d $dir_publish ]] || $MKDIR -p $dir_publish
+    echo "publishing packing to: ${dir_publish}"
 }
 fetch_agent_package() {
     if [[ "$agent_version" != "snapshot" ]]; then

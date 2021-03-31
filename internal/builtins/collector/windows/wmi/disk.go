@@ -108,11 +108,11 @@ type Win32_PerfFormattedData_PerfDisk_PhysicalDisk struct { //nolint: golint
 
 // Disk metrics from the Windows Management Interface (wmi)
 type Disk struct {
+	include *regexp.Regexp
+	exclude *regexp.Regexp
 	wmicommon
 	logical  bool
 	physical bool
-	include  *regexp.Regexp
-	exclude  *regexp.Regexp
 }
 
 // diskOptions defines what elements can be overridden in a config file

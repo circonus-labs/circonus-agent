@@ -23,9 +23,9 @@ import (
 
 // IF metrics
 type IF struct {
-	gencommon
 	include *regexp.Regexp
 	exclude *regexp.Regexp
+	gencommon
 }
 
 // ifOptions defines what elements can be overridden in a config file

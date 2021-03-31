@@ -26,9 +26,9 @@ import (
 
 // NetSocket metrics from the Linux ProcFS
 type NetSocket struct {
-	common
 	include *regexp.Regexp
 	exclude *regexp.Regexp
+	common
 }
 
 // netSocketOptions defines what elements can be overridden in a config file

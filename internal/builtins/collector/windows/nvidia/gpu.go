@@ -32,12 +32,12 @@ import (
 
 // GPU metrics from the Windows Management Interface (wmi)
 type GPU struct {
-	common
 	exePath      string
 	exeArgs      []string
-	interval     time.Duration
-	metricList   []gpuMetric
 	metadataList []gpuMeta
+	metricList   []gpuMetric
+	common
+	interval time.Duration
 }
 
 // gpuOptions defines what elements can be overridden in a config file
@@ -50,11 +50,11 @@ type gpuOptions struct {
 }
 
 type gpuMetric struct {
+	MatchValue interface{} `mapstructure:"match_value" json:"match_value" toml:"match_value" yaml:"match_value"` // so text metrics can be put into histograms. type th1 string if match, value 1, otherwise 0; type th2 string list, index is value, -1 if not found
 	ArgName    string      `mapstructure:"arg_name" json:"arg_name" toml:"arg_name" yaml:"arg_name"`
 	MetricName string      `mapstructure:"metric_name" json:"metric_name" toml:"metric_name" yaml:"metric_name"`
 	MetricType string      `mapstructure:"metric_type" json:"metric_type" toml:"metric_type" yaml:"metric_type"`
 	Units      string      `mapstructure:"units" json:"units" toml:"units" yaml:"units"`
-	MatchValue interface{} `mapstructure:"match_value" json:"match_value" toml:"match_value" yaml:"match_value"` // so text metrics can be put into histograms. type th1 string if match, value 1, otherwise 0; type th2 string list, index is value, -1 if not found
 }
 
 type gpuMeta struct {

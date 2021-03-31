@@ -30,10 +30,10 @@ import (
 type Plugins struct {
 	active        map[string]*plugin
 	plugList      []string
-	ctx           context.Context
-	logger        zerolog.Logger
 	pluginDir     string
 	reservedNames map[string]bool
+	ctx           context.Context
+	logger        zerolog.Logger
 	running       bool
 	sync.RWMutex
 }
@@ -42,23 +42,23 @@ type Plugins struct {
 type plugin struct {
 	cmd             *exec.Cmd
 	command         string
-	ctx             context.Context
 	id              string
-	instanceArgs    []string
+	name            string
+	runDir          string
 	instanceID      string
+	instanceArgs    []string
+	baseTags        []string
 	lastError       error
-	lastRunDuration time.Duration
 	currStart       time.Time
 	lastStart       time.Time
 	lastEnd         time.Time
-	logger          zerolog.Logger
 	metrics         *cgm.Metrics
-	name            string
 	prevMetrics     *cgm.Metrics
-	runDir          string
-	running         bool
+	ctx             context.Context
+	logger          zerolog.Logger
+	lastRunDuration time.Duration
 	runTTL          time.Duration
-	baseTags        []string
+	running         bool
 	sync.Mutex
 }
 

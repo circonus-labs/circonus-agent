@@ -19,13 +19,13 @@ func TestWrite(t *testing.T) {
 		name        string
 		id          string
 		metrics     *Metrics
-		shouldErr   bool
 		expectedErr string
+		shouldErr   bool
 	}{
-		{"invalid (id)", "", nil, true, "invalid group id (empty)"},
-		{"invalid (nil metrics)", "foo", nil, true, "invalid metrics (nil)"},
-		{"invalid (no metrics)", "foo", &Metrics{}, true, "invalid metrics (none)"},
-		{"valid", "foo", &Metrics{"foo": Metric{"n", 3.12}}, false, ""},
+		{"invalid (id)", "", nil, "invalid group id (empty)", true},
+		{"invalid (nil metrics)", "foo", nil, "invalid metrics (nil)", true},
+		{"invalid (no metrics)", "foo", &Metrics{}, "invalid metrics (none)", true},
+		{"valid", "foo", &Metrics{"foo": Metric{3.12, "n"}}, "", false},
 	}
 
 	for _, test := range tests {

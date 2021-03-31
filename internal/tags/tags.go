@@ -27,9 +27,9 @@ type Tags = cgm.Tags
 
 // TaggedMetric definefs a tagged metric
 type TaggedMetric struct {
+	Value interface{} `json:"_value"`
 	Tags  *Tags       `json:"_tags"`
 	Type  string      `json:"_type"`
-	Value interface{} `json:"_value"`
 }
 
 // TaggedMetrics is a list of metrics with tags
@@ -37,9 +37,9 @@ type TaggedMetrics map[string]TaggedMetric
 
 // JSONMetric defines an individual metric received in JSON
 type JSONMetric struct {
-	Tags  []string    `json:"_tags"`
-	Type  string      `json:"_type"`
 	Value interface{} `json:"_value"`
+	Type  string      `json:"_type"`
+	Tags  []string    `json:"_tags"`
 }
 
 // JSONMetrics holds list of JSON metrics received at /write receiver interface

@@ -22,7 +22,7 @@ func TestNew(t *testing.T) {
 	type args struct {
 		client API
 	}
-	tests := []struct {
+	tests := []struct { //nolint:govet
 		name    string
 		args    args
 		want    *Bundle
@@ -317,7 +317,7 @@ func TestBundle_Period(t *testing.T) {
 	type fields struct {
 		bundle *apiclient.CheckBundle
 	}
-	tests := []struct {
+	tests := []struct { //nolint:govet
 		name    string
 		fields  fields
 		want    uint
@@ -386,7 +386,7 @@ func TestBundle_CheckCID(t *testing.T) {
 	type args struct {
 		idx uint
 	}
-	tests := []struct {
+	tests := []struct { //nolint:govet
 		name    string
 		fields  fields
 		args    args

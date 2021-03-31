@@ -20,8 +20,8 @@ type Client struct {
 
 // Metric defines an individual metric
 type Metric struct {
-	Type  string      `json:"_type"`
 	Value interface{} `json:"_value"`
+	Type  string      `json:"_type"`
 }
 
 // Metrics holds host metrics
@@ -36,11 +36,11 @@ type Plugin struct {
 	Name            string   `json:"name"`
 	Instance        string   `json:"instance"`
 	Command         string   `json:"command"`
-	Args            []string `json:"args"`
 	LastRunStart    string   `json:"last_run_start"`
 	LastRunEnd      string   `json:"last_run_end"`
 	LastRunDuration string   `json:"last_run_duration"`
 	LastError       string   `json:"last_error"`
+	Args            []string `json:"args"`
 }
 
 // New creates a new circonus-agent api client

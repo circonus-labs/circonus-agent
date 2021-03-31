@@ -27,7 +27,7 @@ func TestNew(t *testing.T) {
 	t.Log("Testing New")
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	tests := []struct {
+	tests := []struct { //nolint:govet
 		id         string
 		defaultDir string
 		dir        string

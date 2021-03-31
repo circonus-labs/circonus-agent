@@ -25,29 +25,29 @@ import (
 )
 
 type Connection struct {
-	logger          zerolog.Logger
 	State           string
-	LastRequestTime *time.Time
 	agentAddress    string
+	LastRequestTime *time.Time
+	revConfig       check.ReverseConfig
+	logger          zerolog.Logger
+	delay           time.Duration
 	commTimeouts    int
 	connAttempts    int
-	delay           time.Duration
 	maxConnRetry    int
-	revConfig       check.ReverseConfig
 	sync.Mutex
 }
 
 // command contains details of the command received from the broker
 type command struct {
+	start     time.Time
+	metrics   *[]byte
 	err       error
+	name      string
+	request   []byte
+	channelID uint16
 	ignore    bool
 	fatal     bool
 	reset     bool
-	channelID uint16
-	name      string
-	request   []byte
-	metrics   *[]byte
-	start     time.Time
 }
 
 // noitHeader defines the header received from the noit/broker
@@ -70,10 +70,10 @@ type connError struct {
 }
 
 type OpError struct {
+	OrigErr      error
 	Err          string
 	Fatal        bool
 	RefreshCheck bool
-	OrigErr      error
 }
 
 func (e *OpError) Error() string {

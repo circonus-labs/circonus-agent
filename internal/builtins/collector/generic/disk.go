@@ -21,8 +21,8 @@ import (
 
 // Disk metrics from the Linux ProcFS
 type Disk struct {
-	gencommon
 	ioDevices []string
+	gencommon
 }
 
 // DiskOptions defines what elements can be overridden in a config file

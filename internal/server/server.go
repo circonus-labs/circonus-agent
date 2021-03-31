@@ -42,24 +42,24 @@ type socketServer struct {
 }
 
 type sslServer struct {
+	server   *http.Server
 	address  *net.TCPAddr
 	certFile string
 	keyFile  string
-	server   *http.Server
 }
 
 // Server defines the listening servers
 type Server struct {
-	group      *errgroup.Group
-	groupCtx   context.Context
-	builtins   *builtins.Builtins
 	check      *check.Check
-	logger     zerolog.Logger
+	group      *errgroup.Group
+	builtins   *builtins.Builtins
 	plugins    *plugins.Plugins
-	svrHTTP    []*httpServer
-	svrHTTPS   *sslServer
-	svrSockets []*socketServer
 	statsdSvr  *statsd.Server
+	svrHTTPS   *sslServer
+	svrHTTP    []*httpServer
+	svrSockets []*socketServer
+	groupCtx   context.Context
+	logger     zerolog.Logger
 }
 
 type previousMetrics struct {

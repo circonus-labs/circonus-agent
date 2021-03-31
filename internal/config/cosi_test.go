@@ -55,15 +55,15 @@ func TestLoadCosiV1Config(t *testing.T) {
 	tests := []struct {
 		name        string
 		file        string
-		shouldFail  bool
 		expectedErr string
+		shouldFail  bool
 	}{
-		{"invalid (missing)", filepath.Join("testdata", "cosi_missing.json"), true, "unable to access cosi config: open testdata/cosi_missing.json: no such file or directory"},
-		{"invalid (bad)", filepath.Join("testdata", "cosi_bad.json"), true, "unable to parse cosi config (testdata/cosi_bad.json): invalid character '#' looking for beginning of value"},
-		{"invalid (missing key)", filepath.Join("testdata", "cosiv1_invalid_key.json"), true, "missing API key, invalid cosi config (testdata/cosiv1_invalid_key.json)"},
-		{"invalid (missing app)", filepath.Join("testdata", "cosiv1_invalid_app.json"), true, "missing API app, invalid cosi config (testdata/cosiv1_invalid_app.json)"},
-		{"invalid (missing url)", filepath.Join("testdata", "cosiv1_invalid_url.json"), true, "missing API URL, invalid cosi config (testdata/cosiv1_invalid_url.json)"},
-		{"valid", filepath.Join("testdata", "cosiv1.json"), false, ""},
+		{"invalid (missing)", filepath.Join("testdata", "cosi_missing.json"), "unable to access cosi config: open testdata/cosi_missing.json: no such file or directory", true},
+		{"invalid (bad)", filepath.Join("testdata", "cosi_bad.json"), "unable to parse cosi config (testdata/cosi_bad.json): invalid character '#' looking for beginning of value", true},
+		{"invalid (missing key)", filepath.Join("testdata", "cosiv1_invalid_key.json"), "missing API key, invalid cosi config (testdata/cosiv1_invalid_key.json)", true},
+		{"invalid (missing app)", filepath.Join("testdata", "cosiv1_invalid_app.json"), "missing API app, invalid cosi config (testdata/cosiv1_invalid_app.json)", true},
+		{"invalid (missing url)", filepath.Join("testdata", "cosiv1_invalid_url.json"), "missing API URL, invalid cosi config (testdata/cosiv1_invalid_url.json)", true},
+		{"valid", filepath.Join("testdata", "cosiv1.json"), "", false},
 	}
 
 	for _, test := range tests {
@@ -92,15 +92,15 @@ func TestLoadCosiV2Config(t *testing.T) {
 	tests := []struct {
 		name        string
 		file        string
-		shouldFail  bool
 		expectedErr string
+		shouldFail  bool
 	}{
-		{"invalid (missing)", filepath.Join("testdata", "cosi_missing"), true, "unable to load cosi config: no config found matching (testdata/cosi_missing.json|.toml|.yaml): file does not exist"},
-		{"invalid (bad)", filepath.Join("testdata", "cosi_bad"), true, "unable to load cosi config: parsing configuration file (testdata/cosi_bad.json): invalid character '#' looking for beginning of value"},
-		{"invalid (missing key)", filepath.Join("testdata", "cosiv2_invalid_key"), true, "missing API key, invalid cosi config (testdata/cosiv2_invalid_key)"},
-		{"invalid (missing app)", filepath.Join("testdata", "cosiv2_invalid_app"), true, "missing API app, invalid cosi config (testdata/cosiv2_invalid_app)"},
-		{"invalid (missing url)", filepath.Join("testdata", "cosiv2_invalid_url"), true, "missing API URL, invalid cosi config (testdata/cosiv2_invalid_url)"},
-		{"valid", filepath.Join("testdata", "cosiv2"), false, ""},
+		{"invalid (missing)", filepath.Join("testdata", "cosi_missing"), "unable to load cosi config: no config found matching (testdata/cosi_missing.json|.toml|.yaml): file does not exist", true},
+		{"invalid (bad)", filepath.Join("testdata", "cosi_bad"), "unable to load cosi config: parsing configuration file (testdata/cosi_bad.json): invalid character '#' looking for beginning of value", true},
+		{"invalid (missing key)", filepath.Join("testdata", "cosiv2_invalid_key"), "missing API key, invalid cosi config (testdata/cosiv2_invalid_key)", true},
+		{"invalid (missing app)", filepath.Join("testdata", "cosiv2_invalid_app"), "missing API app, invalid cosi config (testdata/cosiv2_invalid_app)", true},
+		{"invalid (missing url)", filepath.Join("testdata", "cosiv2_invalid_url"), "missing API URL, invalid cosi config (testdata/cosiv2_invalid_url)", true},
+		{"valid", filepath.Join("testdata", "cosiv2"), "", false},
 	}
 
 	for _, test := range tests {

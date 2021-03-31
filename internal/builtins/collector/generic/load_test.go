@@ -20,7 +20,7 @@ func TestNewLoadCollector(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	tests := []struct {
+	tests := []struct { //nolint:govet
 		id          string
 		cfgFile     string
 		shouldFail  bool

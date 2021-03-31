@@ -22,11 +22,23 @@ for dist in $distros; do
     sleep 5
 done
 
-if [[ -n "$CA_BUILDS_DEST" ]]; then
-    [[ ! -d $CA_BUILDS_DEST ]] && { echo "invalid build destination (${CA_BUILDS_DEST}), directory does not exist"; exit 1; }
-    set +e # these can fail, e.g. building a single package
-    echo "copying packages to cosi-examples/server for provisioning"
-    for ext in rpm deb tgz; do
-        cp -v package/publish/circonus-agent-*.$ext ${CA_BUILDS_DEST}
-    done
-fi
+sig_file="package_checksums.txt"
+agent_version=$(git describe --abbrev=0 --tags)
+pub_dir="package/publish/${agent_version}"
+pushd $pub_dir
+[[ -f $sig_file ]] && rm $sig_file
+echo "Creating $sig_file"
+for f in circonus-agent*; do
+    echo "  processing $f"
+    shasum -a 256 $f >> $sig_file
+done
+
+
+#if [[ -n "$CA_BUILDS_DEST" ]]; then
+#   [[ ! -d $CA_BUILDS_DEST ]] && { echo "invalid build destination (${CA_BUILDS_DEST}), directory does not exist"; exit 1; }
+#   set +e # these can fail, e.g. building a single package
+#   echo "copying packages to cosi-examples/server for provisioning"
+#   for ext in rpm deb tgz; do
+#       cp -v package/publish/circonus-agent-*.$ext ${CA_BUILDS_DEST}
+#   done
+#fi

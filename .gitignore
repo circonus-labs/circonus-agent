@@ -57,9 +57,10 @@ studio.toml
 
 # ignore local build.conf
 package/build.conf
-package/publish/*.rpm
-package/publish/*.deb
-package/publish/*.tgz
+package/publish/*/*.rpm
+package/publish/*/*.deb
+package/publish/*/*.tgz
+package/publish/*/package_checksums.txt
 package/rhel/circonus-agent.spec
 
 # wip dirs

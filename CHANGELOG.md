@@ -1,3 +1,17 @@
+# v2.4.0
+
+* add: simple installer (deprecate cosi)
+* upd: dependencies
+* upd: openhistogram/circonusllhist
+* fix: lint issues
+* upd: lint ver 1.38
+* upd: copyright symbol to `(c)`
+* upd: parse params first, ordering
+* upd: ignore versioned builds
+* upd: publish packages under versioned subdir
+* add: generate sha256 sig file for versioned builds
+* doc: rename dependencies list
+
 # v2.3.2
 
 * upd: dependency (cgm)

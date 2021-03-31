@@ -23,8 +23,8 @@ type Reverse struct {
 	agentAddress string
 	configs      *check.ReverseConfigs
 	chk          *check.Check
-	enabled      bool
 	logger       zerolog.Logger
+	enabled      bool
 }
 
 func New(parentLogger zerolog.Logger, chk *check.Check, agentAddress string) (*Reverse, error) {

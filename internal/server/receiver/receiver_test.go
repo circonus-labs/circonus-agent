@@ -409,7 +409,7 @@ func TestParseInt32(t *testing.T) {
 
 	metricType := "i"
 
-	tt := []struct {
+	tt := []struct { //nolint:govet
 		Description string
 		Value       interface{}
 		Expect      int32
@@ -445,7 +445,7 @@ func TestParseUint32(t *testing.T) {
 
 	metricType := "I"
 
-	tt := []struct {
+	tt := []struct { //nolint:govet
 		Description string
 		Value       interface{}
 		Expect      uint32
@@ -481,7 +481,7 @@ func TestParseInt64(t *testing.T) {
 
 	metricType := "l"
 
-	tt := []struct {
+	tt := []struct { //nolint:govet
 		Description string
 		Value       interface{}
 		Expect      int64
@@ -517,7 +517,7 @@ func TestParseUint64(t *testing.T) {
 
 	metricType := "L"
 
-	tt := []struct {
+	tt := []struct { //nolint:govet
 		Description string
 		Value       interface{}
 		Expect      uint64
@@ -553,7 +553,7 @@ func TestParseFloat(t *testing.T) {
 
 	metricType := "n"
 
-	tt := []struct {
+	tt := []struct { //nolint:govet
 		Description string
 		Value       interface{}
 		Expect      float64

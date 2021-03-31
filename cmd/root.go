@@ -73,6 +73,8 @@ in JSON format.`,
 			Str("name", release.NAME).
 			Str("ver", release.VERSION).Msg("Starting")
 
+		log.Info().Str("config_file", cfgFile).Msg("config file used")
+
 		a, err := agent.New()
 		if err != nil {
 			log.Fatal().Err(err).Msg("initializing")
@@ -1461,7 +1463,6 @@ func initLogging(cmd *cobra.Command, args []string) error {
 func initConfig() {
 
 	if cfgFile != "" {
-		log.Warn().Str("config_file", cfgFile).Msg("config file set")
 		viper.SetConfigFile(cfgFile)
 	} else {
 		viper.AddConfigPath(defaults.EtcPath)
@@ -1472,14 +1473,12 @@ func initConfig() {
 	viper.AutomaticEnv()
 
 	err := viper.ReadInConfig()
-	f := viper.ConfigFileUsed()
+	cfgFile = viper.ConfigFileUsed()
 	if err != nil {
-		if f != "" {
-			log.Fatal().Err(err).Str("config_file", f).Msg("Unable to load config file")
+		if cfgFile != "" {
+			log.Fatal().Err(err).Str("config_file", cfgFile).Msg("Unable to load config file")
 		}
 	}
-
-	log.Warn().Str("config_file", f).Msg("config file used")
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

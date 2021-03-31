@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/plugins/linux/io/eventharness"
-	"github.com/circonus-labs/circonusllhist"
+	"github.com/openhistogram/circonusllhist"
 )
 
 var maxAge = 310.0 // 5m10s

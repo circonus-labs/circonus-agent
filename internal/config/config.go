@@ -62,9 +62,9 @@ type Check struct {
 
 // MultiAgent defines the running config.multi_agent structure
 type MultiAgent struct {
+	Interval   string `json:"interval" toml:"interval" yaml:"interval"`
 	Enabled    bool   `json:"enabled" toml:"enabled" yaml:"enabled"`
 	Accumulate bool   `json:"accumulate" toml:"accumulate" yaml:"accumulate"`
-	Interval   string `json:"interval" toml:"interval" yaml:"interval"`
 }
 
 // Reverse defines the running config.reverse structure
@@ -99,13 +99,13 @@ type StatsDGroup struct {
 
 // StatsD defines the running config.statsd structure
 type StatsD struct {
-	Disabled bool        `json:"disabled" yaml:"disabled" toml:"disabled"`
 	Group    StatsDGroup `json:"group" yaml:"group" toml:"group"`
 	Host     StatsDHost  `json:"host" yaml:"host" toml:"host"`
 	Addr     string      `join:"addr" yaml:"addr" toml:"addr"`
 	Port     string      `json:"port" yaml:"port" toml:"port"`
 	NPP      uint        `json:"npp" yaml:"npp" toml:"npp"`
 	PQS      uint        `json:"pqs" yaml:"pqs" toml:"pqs"`
+	Disabled bool        `json:"disabled" yaml:"disabled" toml:"disabled"`
 }
 
 // Thresholds defines triggers used to include metrics
@@ -116,17 +116,6 @@ type Thresholds struct {
 
 // Config defines the running config structure
 type Config struct {
-	StatsD           StatsD     `json:"statsd" yaml:"statsd" toml:"statsd"`
-	Check            Check      `json:"check" yaml:"check" toml:"check"`
-	API              API        `json:"api" yaml:"api" toml:"api"`
-	SSL              SSL        `json:"ssl" yaml:"ssl" toml:"ssl"`
-	Reverse          Reverse    `json:"reverse" yaml:"reverse" toml:"reverse"`
-	Collectors       []string   `json:"collectors" yaml:"collectors" toml:"collectors"`
-	Listen           []string   `json:"listen" yaml:"listen" toml:"listen"`
-	ListenSocket     []string   `mapstructure:"listen_socket" json:"listen_socket" yaml:"listen_socket" toml:"listen_socket"`
-	PluginList       []string   `mapstructure:"plugin_list" json:"plugin_list" yaml:"plugin_list" toml:"plugin_list"`
-	Log              Log        `json:"log" yaml:"log" toml:"log"`
-	MultiAgent       MultiAgent `mapstructure:"multi_agent" json:"multi_agent" toml:"multi_agent" yaml:"multi_agent"`
 	DebugDumpMetrics string     `mapstructure:"debug_dump_metrics" json:"debug_dump_metrics" yaml:"debug_dump_metrics" toml:"debug_dump_metrics"`
 	PluginDir        string     `mapstructure:"plugin_dir" json:"plugin_dir" yaml:"plugin_dir" toml:"plugin_dir"`
 	PluginTTLUnits   string     `mapstructure:"plugin_ttl_units" json:"plugin_ttl_units" yaml:"plugin_ttl_units" toml:"plugin_ttl_units"`
@@ -135,6 +124,17 @@ type Config struct {
 	HostEtc          string     `mapstructure:"host_etc" json:"host_etc" toml:"host_etc" yaml:"host_etc"`
 	HostVar          string     `mapstructure:"host_var" json:"host_var" toml:"host_var" yaml:"host_var"`
 	HostRun          string     `mapstructure:"host_run" json:"host_run" toml:"host_run" yaml:"host_run"`
+	API              API        `json:"api" yaml:"api" toml:"api"`
+	SSL              SSL        `json:"ssl" yaml:"ssl" toml:"ssl"`
+	Collectors       []string   `json:"collectors" yaml:"collectors" toml:"collectors"`
+	Listen           []string   `json:"listen" yaml:"listen" toml:"listen"`
+	ListenSocket     []string   `mapstructure:"listen_socket" json:"listen_socket" yaml:"listen_socket" toml:"listen_socket"`
+	PluginList       []string   `mapstructure:"plugin_list" json:"plugin_list" yaml:"plugin_list" toml:"plugin_list"`
+	Log              Log        `json:"log" yaml:"log" toml:"log"`
+	StatsD           StatsD     `json:"statsd" yaml:"statsd" toml:"statsd"`
+	MultiAgent       MultiAgent `mapstructure:"multi_agent" json:"multi_agent" toml:"multi_agent" yaml:"multi_agent"`
+	Reverse          Reverse    `json:"reverse" yaml:"reverse" toml:"reverse"`
+	Check            Check      `json:"check" yaml:"check" toml:"check"`
 	Thresholds       Thresholds `mapstructure:"thresholds" json:"thresholds" toml:"thresholds" yaml:"thresholds"`
 	Debug            bool       `json:"debug" yaml:"debug" toml:"debug"`
 	DebugCGM         bool       `mapstructure:"debug_cgm" json:"debug_cgm" yaml:"debug_cgm" toml:"debug_cgm"`

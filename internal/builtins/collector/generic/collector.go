@@ -22,15 +22,15 @@ import (
 type gencommon struct {
 	id              string         // OPT id of the collector (used as metric name prefix)
 	pkgID           string         // package prefix used for logging and errors
-	lastEnd         time.Time      // last collection end time
 	lastError       string         // last collection error
+	baseTags        tags.Tags      // base tags
 	lastMetrics     cgm.Metrics    // last metrics collected
-	lastRunDuration time.Duration  // last collection duration
+	lastEnd         time.Time      // last collection end time
 	lastStart       time.Time      // last collection start time
 	logger          zerolog.Logger // collector logging instance
-	running         bool           // is collector currently running
+	lastRunDuration time.Duration  // last collection duration
 	runTTL          time.Duration  // OPT ttl for collectors (default is for every request)
-	baseTags        tags.Tags
+	running         bool           // is collector currently running
 	sync.Mutex
 }
 
