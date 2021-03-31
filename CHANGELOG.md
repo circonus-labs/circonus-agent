@@ -1,8 +1,8 @@
 # v2.4.0
 
+* add: simple installer (deprecate cosi)
 * upd: dependencies
 * upd: openhistogram/circonusllhist
-* add: simple installer
 * fix: lint issues
 * upd: lint ver 1.38
 * upd: copyright symbol to `(c)`
