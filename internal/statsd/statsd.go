@@ -32,6 +32,17 @@ import (
 
 // Server defines a statsd server
 type Server struct {
+	tcpConnections        map[string]*net.TCPConn
+	group                 *errgroup.Group
+	udpAddress            *net.UDPAddr
+	tcpAddress            *net.TCPAddr
+	hostMetrics           *cgm.CirconusMetrics
+	groupMetrics          *cgm.CirconusMetrics
+	metricRegex           *regexp.Regexp
+	nameSpaceReplaceRx    *regexp.Regexp
+	udpListener           *net.UDPConn
+	tcpListener           *net.TCPListener
+	groupCtx              context.Context
 	hostPrefix            string
 	hostCategory          string
 	groupCID              string
@@ -43,20 +54,9 @@ type Server struct {
 	apiApp                string
 	apiURL                string
 	apiCAFile             string
-	tcpConnections        map[string]*net.TCPConn
-	group                 *errgroup.Group
-	udpAddress            *net.UDPAddr
-	tcpAddress            *net.TCPAddr
-	hostMetrics           *cgm.CirconusMetrics
-	groupMetrics          *cgm.CirconusMetrics
-	logger                zerolog.Logger
-	metricRegex           *regexp.Regexp
-	nameSpaceReplaceRx    *regexp.Regexp
-	udpListener           *net.UDPConn
-	tcpListener           *net.TCPListener
-	groupCtx              context.Context
 	metricRegexGroupNames []string
 	baseTags              []string
+	logger                zerolog.Logger
 	tcpMaxConnections     uint
 	npp                   uint
 	pqs                   uint
