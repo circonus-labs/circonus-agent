@@ -38,6 +38,9 @@ builds:
               goarch: arm64
             - goos: openbsd
               goarch: arm
+            - goos: windows
+              goarch: arm
+
 
         ldflags: 
             - -X github.com/circonus-labs/circonus-agent/internal/release.VERSION={{.Version}} 
