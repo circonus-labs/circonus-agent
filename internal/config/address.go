@@ -5,17 +5,17 @@
 
 package config
 
-// ParseListen parses and fixes listen spec
+// ParseListen parses and fixes listen spec.
 import (
+	"fmt"
 	"net"
 	"regexp"
 	"strings"
 
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
-	"github.com/pkg/errors"
 )
 
-// ParseListen verifies and parses a listen address spec
+// ParseListen verifies and parses a listen address spec.
 func ParseListen(spec string) (*net.TCPAddr, error) {
 	// empty, default
 	if spec == "" {
@@ -36,12 +36,12 @@ func ParseListen(spec string) (*net.TCPAddr, error) {
 
 	host, port, err := net.SplitHostPort(spec)
 	if err != nil {
-		return nil, errors.Wrap(err, "parsing listen")
+		return nil, fmt.Errorf("parsing listen: %w", err)
 	}
 
 	addr, err := net.ResolveTCPAddr("tcp", net.JoinHostPort(host, port))
 	if err != nil {
-		return nil, errors.Wrap(err, "resolving listen")
+		return nil, fmt.Errorf("resolving listen: %w", err)
 	}
 
 	return addr, nil

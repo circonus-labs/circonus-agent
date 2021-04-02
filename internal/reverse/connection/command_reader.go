@@ -11,8 +11,6 @@ import (
 	"io"
 	"net"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 func (c *Connection) newCommandReader(ctx context.Context, r io.Reader) <-chan command {
@@ -51,7 +49,7 @@ func (c *Connection) readCommand(r io.Reader) command {
 				c.Unlock()
 			}
 		}
-		return command{err: errors.Wrap(err, "reading command"), reset: reset, ignore: ignore}
+		return command{err: fmt.Errorf("reading command: %w", err), reset: reset, ignore: ignore}
 	}
 
 	c.Lock()
@@ -63,7 +61,7 @@ func (c *Connection) readCommand(r io.Reader) command {
 			Str("cmd_header", fmt.Sprintf("%#v", cmdPkt.header)).
 			Str("cmd_payload", string(cmdPkt.payload)).
 			Msg("expected command")
-		return command{err: errors.New("expected command")}
+		return command{err: fmt.Errorf("expected command")} //nolint:goerr113
 	}
 
 	cmd := command{
@@ -92,7 +90,7 @@ func (c *Connection) readCommand(r io.Reader) command {
 					c.Unlock()
 				}
 			}
-			return command{err: errors.Wrap(err, "reading command payload"), reset: reset, ignore: ignore}
+			return command{err: fmt.Errorf("reading command payload: %w", err), reset: reset, ignore: ignore}
 		}
 
 		c.Lock()
@@ -106,7 +104,7 @@ func (c *Connection) readCommand(r io.Reader) command {
 				Str("req_header", fmt.Sprintf("%#v", reqPkt.header)).
 				Str("req_payload", string(reqPkt.payload)).
 				Msg("expected request")
-			cmd.err = errors.New("expected request")
+			cmd.err = fmt.Errorf("expected request") //nolint:goerr113
 			return cmd
 		}
 

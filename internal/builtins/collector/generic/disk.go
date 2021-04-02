@@ -7,6 +7,7 @@ package generic
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -14,18 +15,17 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/shirou/gopsutil/disk"
 )
 
-// Disk metrics from the Linux ProcFS
+// Disk metrics from the Linux ProcFS.
 type Disk struct {
 	ioDevices []string
 	gencommon
 }
 
-// DiskOptions defines what elements can be overridden in a config file
+// DiskOptions defines what elements can be overridden in a config file.
 type DiskOptions struct {
 	// common
 	ID     string `json:"id" toml:"id" yaml:"id"`
@@ -35,7 +35,7 @@ type DiskOptions struct {
 	IODevices []string `json:"io_devices" toml:"io_devices" yaml:"io_devices"`
 }
 
-// NewDiskCollector creates new psutils disk collector
+// NewDiskCollector creates new psutils disk collector.
 func NewDiskCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector.Collector, error) {
 	c := Disk{}
 	c.id = NameDisk
@@ -51,7 +51,7 @@ func NewDiskCollector(cfgBaseName string, parentLogger zerolog.Logger) (collecto
 			return &c, nil
 		}
 		c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-		return nil, errors.Wrapf(err, "%s config", c.pkgID)
+		return nil, fmt.Errorf("%s config: %w", c.pkgID, err)
 	}
 
 	c.logger.Debug().Str("base", cfgBaseName).Interface("config", opts).Msg("loaded config")
@@ -67,7 +67,7 @@ func NewDiskCollector(cfgBaseName string, parentLogger zerolog.Logger) (collecto
 	if opts.RunTTL != "" {
 		dur, err := time.ParseDuration(opts.RunTTL)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
+			return nil, fmt.Errorf("%s parsing run_ttl: %w", c.pkgID, err)
 		}
 		c.runTTL = dur
 	}
@@ -75,7 +75,7 @@ func NewDiskCollector(cfgBaseName string, parentLogger zerolog.Logger) (collecto
 	return &c, nil
 }
 
-// Collect disk device metrics
+// Collect disk device metrics.
 func (c *Disk) Collect(ctx context.Context) error {
 	c.Lock()
 	if c.runTTL > time.Duration(0) {

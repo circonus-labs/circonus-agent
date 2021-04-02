@@ -6,7 +6,7 @@
 package config
 
 import (
-	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -48,7 +48,7 @@ func TestValidateAPIOptions(t *testing.T) {
 
 	t.Log("No key/app/url")
 	{
-		expectedError := errors.New("API key is required")
+		expectedError := fmt.Errorf("API key is required") //nolint:goerr113
 		err := validateAPIOptions()
 		if err == nil {
 			t.Fatal("Expected error")
@@ -74,7 +74,7 @@ func TestValidateAPIOptions(t *testing.T) {
 	t.Log("No app")
 	{
 		viper.Set(KeyAPITokenKey, "foo")
-		expectedError := errors.New("API app is required")
+		expectedError := fmt.Errorf("API app is required") //nolint:goerr113
 		err := validateAPIOptions()
 		if err == nil {
 			t.Fatal("Expected error")
@@ -88,7 +88,7 @@ func TestValidateAPIOptions(t *testing.T) {
 	{
 		viper.Set(KeyAPITokenKey, "foo")
 		viper.Set(KeyAPITokenApp, "foo")
-		expectedError := errors.New("API URL is required")
+		expectedError := fmt.Errorf("API URL is required") //nolint:goerr113
 		err := validateAPIOptions()
 		if err == nil {
 			t.Fatal("Expected error")
@@ -103,7 +103,7 @@ func TestValidateAPIOptions(t *testing.T) {
 		viper.Set(KeyAPITokenKey, "foo")
 		viper.Set(KeyAPITokenApp, "foo")
 		viper.Set(KeyAPIURL, "foo")
-		expectedError := errors.New("Invalid API URL (foo)")
+		expectedError := fmt.Errorf("invalid API URL (foo)") //nolint:goerr113
 		err := validateAPIOptions()
 		if err == nil {
 			t.Fatal("Expected error")
@@ -118,7 +118,7 @@ func TestValidateAPIOptions(t *testing.T) {
 		viper.Set(KeyAPITokenKey, "foo")
 		viper.Set(KeyAPITokenApp, "foo")
 		viper.Set(KeyAPIURL, "foo_bar://herp/derp")
-		expectedError := errors.New(`Invalid API URL: parse "foo_bar://herp/derp": first path segment in URL cannot contain colon`)
+		expectedError := fmt.Errorf(`invalid API URL: parse "foo_bar://herp/derp": first path segment in URL cannot contain colon`) //nolint:goerr113
 		err := validateAPIOptions()
 		if err == nil {
 			t.Fatal("Expected error")

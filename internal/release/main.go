@@ -10,25 +10,25 @@ import (
 )
 
 const (
-	// NAME is the name of this application
+	// NAME is the name of this application.
 	NAME = "circonus-agent"
-	// ENVPREFIX is the environment variable prefix
+	// ENVPREFIX is the environment variable prefix.
 	ENVPREFIX = "CA"
 )
 
-// defined during build (e.g. goreleaser, see .goreleaser.yml)
+// defined during build (e.g. goreleaser, see .goreleaser.yml).
 var (
-	// COMMIT of relase in git repo
+	// COMMIT of relase in git repo.
 	COMMIT = "undef"
-	// DATE of release
+	// DATE of release.
 	DATE = "undef"
-	// TAG of release
+	// TAG of release.
 	TAG = "none"
-	// VERSION of the release
+	// VERSION of the release.
 	VERSION = "Dev"
 )
 
-// Info contains release information
+// Info contains release information.
 type Info struct {
 	Name      string
 	Version   string

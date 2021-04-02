@@ -13,7 +13,7 @@ import (
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 )
 
-// agentStats produces the internal agent metrics
+// agentStats produces the internal agent metrics.
 func (s *Server) agentStats(metrics cgm.Metrics, mtags []string) {
 	s.agentHostStats(metrics, mtags)
 

@@ -14,14 +14,19 @@ import (
 	"net/url"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
-// brokerTLSConfig returns the correct TLS configuration for the broker
+var (
+	errBrokerNotInitialized  = fmt.Errorf("broker not initialized")
+	errBrokerAddCACertToPool = fmt.Errorf("unable to add Broker CA Certificate to x509 cert pool")
+	errBrokerMatchRevURLHost = fmt.Errorf("unable to match reverse URL host to broker")
+)
+
+// brokerTLSConfig returns the correct TLS configuration for the broker.
 func (c *Check) brokerTLSConfig(reverseURL *url.URL) (*tls.Config, string, error) {
 	if c.broker == nil {
-		return nil, "", errors.New("broker not initialized")
+		return nil, "", errBrokerNotInitialized
 	}
 
 	cn, err := c.getBrokerCN(reverseURL)
@@ -34,7 +39,7 @@ func (c *Check) brokerTLSConfig(reverseURL *url.URL) (*tls.Config, string, error
 	}
 	cp := x509.NewCertPool()
 	if !cp.AppendCertsFromPEM(cert) {
-		return nil, "", errors.New("unable to add Broker CA Certificate to x509 cert pool")
+		return nil, "", errBrokerAddCACertToPool
 	}
 
 	tlsConfig := &tls.Config{
@@ -46,7 +51,7 @@ func (c *Check) brokerTLSConfig(reverseURL *url.URL) (*tls.Config, string, error
 		VerifyConnection: func(cs tls.ConnectionState) error {
 			commonName := cs.PeerCertificates[0].Subject.CommonName
 			if commonName != cs.ServerName {
-				return fmt.Errorf("invalid certificate name %q, expected %q", commonName, cs.ServerName)
+				return fmt.Errorf("invalid certificate name %q, expected %q", commonName, cs.ServerName) //nolint:goerr113
 			}
 			opts := x509.VerifyOptions{
 				Roots:         cp,
@@ -56,7 +61,7 @@ func (c *Check) brokerTLSConfig(reverseURL *url.URL) (*tls.Config, string, error
 				opts.Intermediates.AddCert(cert)
 			}
 			_, err := cs.PeerCertificates[0].Verify(opts)
-			return err
+			return fmt.Errorf("verify peer cert: %w", err)
 		},
 	}
 
@@ -92,7 +97,7 @@ func (c *Check) getBrokerCN(reverseURL *url.URL) (string, error) {
 	}
 
 	if cn == "" {
-		return "", errors.Errorf("unable to match reverse URL host (%s) to broker", host)
+		return "", fmt.Errorf("%s: %w", host, errBrokerMatchRevURLHost)
 	}
 
 	return cn, nil
@@ -104,7 +109,7 @@ func (c *Check) fetchBrokerCA() ([]byte, error) {
 	if file != "" {
 		cert, err := ioutil.ReadFile(file)
 		if err != nil {
-			return nil, errors.Wrapf(err, "reading specified broker-ca-file (%s)", file)
+			return nil, fmt.Errorf("read file: %w", err)
 		}
 		return cert, nil
 	}
@@ -112,7 +117,7 @@ func (c *Check) fetchBrokerCA() ([]byte, error) {
 	// otherwise, try the api
 	data, err := c.client.Get("/pki/ca.crt")
 	if err != nil {
-		return nil, errors.Wrap(err, "fetching Broker CA certificate")
+		return nil, fmt.Errorf("fetching Broker CA certificate: %w", err)
 	}
 
 	type cacert struct {
@@ -122,11 +127,11 @@ func (c *Check) fetchBrokerCA() ([]byte, error) {
 	var cadata cacert
 
 	if err := json.Unmarshal(data, &cadata); err != nil {
-		return nil, errors.Wrap(err, "parsing Broker CA certificate")
+		return nil, fmt.Errorf("json parse - Broker CA certificate: %w", err)
 	}
 
 	if cadata.Contents == "" {
-		return nil, errors.Errorf("no Broker CA certificate in response (%#v)", string(data))
+		return nil, fmt.Errorf("no Broker CA certificate in response (%#v)", string(data)) //nolint:goerr113
 	}
 
 	return []byte(cadata.Contents), nil

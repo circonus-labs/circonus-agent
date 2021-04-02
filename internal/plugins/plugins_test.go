@@ -36,7 +36,7 @@ func TestNew(t *testing.T) {
 		errMsg     string
 	}{
 		{"invalid - both dir/list specified", "testdata", "testdata", []string{path.Join("testdata", "test.sh")}, true, "invalid configuration cannot specify plugin-dir AND plugin-list"},
-		{"invalid - not a dir", "testdata", path.Join("testdata", "test.sh"), []string{}, true, "Invalid plugin directory"},
+		{"invalid - not a dir", "testdata", path.Join("testdata", "test.sh"), []string{}, true, "invalid plugin directory:"},
 		{"valid - no dir/list, default to dir", "testdata", "", []string{}, false, ""},
 		{"valid - dir", "", "testdata", []string{}, false, ""},
 		{"valid - list", "", "", []string{path.Join("testdata", "test.sh")}, false, ""},
@@ -158,6 +158,7 @@ func TestFlush(t *testing.T) {
 		data := p.Flush("invalid")
 		if data == nil {
 			t.Fatal("expected data")
+			return
 		}
 		if len(*data) != 0 {
 			t.Fatalf("expected no metrics, got (%#v)", data)
@@ -173,6 +174,7 @@ func TestFlush(t *testing.T) {
 		data := p.Flush(id)
 		if data == nil {
 			t.Fatal("expected not nil")
+			return
 		}
 		if len(*data) == 0 {
 			t.Fatalf("expected metrics got none (%#v)", data)
@@ -329,6 +331,7 @@ func TestInventory(t *testing.T) {
 		data := p.Inventory()
 		if data == nil {
 			t.Fatalf("expected not nil")
+			return
 		}
 
 		expect := []byte(`{"id":"test","name":"test","instance":"","command":"testdata/test.sh"`)

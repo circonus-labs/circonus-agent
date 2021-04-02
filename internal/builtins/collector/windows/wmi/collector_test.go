@@ -9,7 +9,7 @@ package wmi
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -142,7 +142,7 @@ func TestSetStatus(t *testing.T) {
 	t.Log("\tmetrics, no error")
 	c.setStatus(m, nil)
 	t.Log("\tmetrics, error")
-	c.setStatus(m, errors.New("foo"))
+	c.setStatus(m, fmt.Errorf("foo")) //nolint:goerr113
 
 	t.Log("\tmetrics, no error, add last start")
 	c.lastStart = time.Now()

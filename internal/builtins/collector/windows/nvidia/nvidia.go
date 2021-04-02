@@ -25,7 +25,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// common defines common elements for metrics collector
+// common defines common elements for metrics collector.
 type common struct {
 	id              string               // id of the collector (used as metric name prefix)
 	pkgID           string               // package prefix used for logging and errors
@@ -46,7 +46,7 @@ const (
 	pkgName = "builtins.windows.nvidia"
 )
 
-// New creates new Nvidia GPU collector
+// New creates new Nvidia GPU collector.
 func New() ([]collector.Collector, error) {
 	none := []collector.Collector{}
 	l := log.With().Str("pkg", pkgName).Logger()

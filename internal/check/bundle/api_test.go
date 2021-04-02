@@ -2,13 +2,13 @@ package bundle
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"strings"
 
 	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/go-apiclient"
 	"github.com/gojuno/minimock/v3"
-	"github.com/pkg/errors"
 )
 
 type pkicacert struct {
@@ -62,7 +62,7 @@ func genMockClient(mc *minimock.Controller) *APIMock {
 	m.FetchBrokerMock.Set(func(cid apiclient.CIDType) (*apiclient.Broker, error) {
 		switch *cid {
 		case "/broker/000":
-			return nil, errors.New("forced mock api call error")
+			return nil, fmt.Errorf("forced mock api call error") //nolint:goerr113
 		case "/broker/123":
 			return &apiclient.Broker{
 				CID:  "/broker/123",
@@ -92,7 +92,7 @@ func genMockClient(mc *minimock.Controller) *APIMock {
 		case "/broker/1234":
 			return &testBroker, nil
 		default:
-			return nil, errors.Errorf("bad broker request cid (%s)", *cid)
+			return nil, fmt.Errorf("bad broker request cid (%s)", *cid) //nolint:goerr113
 		}
 	})
 
@@ -109,7 +109,7 @@ func genMockClient(mc *minimock.Controller) *APIMock {
 	m.FetchCheckBundleMock.Set(func(cid apiclient.CIDType) (*apiclient.CheckBundle, error) {
 		switch *cid {
 		case "/check_bundle/000":
-			return nil, errors.New("forced mock api call error")
+			return nil, fmt.Errorf("forced mock api call error") //nolint:goerr113
 		case "/check_bundle/0002":
 			x := testCheckBundle
 			x.CID = *cid
@@ -117,7 +117,7 @@ func genMockClient(mc *minimock.Controller) *APIMock {
 		case "/check_bundle/1234":
 			return &testCheckBundle, nil
 		default:
-			return nil, errors.Errorf("bad request cid (%s)", *cid)
+			return nil, fmt.Errorf("bad request cid (%s)", *cid) //nolint:goerr113
 		}
 	})
 
@@ -134,7 +134,7 @@ func genMockClient(mc *minimock.Controller) *APIMock {
 			}
 			return ret, nil
 		case "/check_bundle_metrics/000?query_broker=1":
-			return nil, errors.New("forced mock api call error")
+			return nil, fmt.Errorf("forced mock api call error") //nolint:goerr113
 		case "/check_bundle_metrics/0001?query_broker=1":
 			return []byte("{"), nil
 		case "/check_bundle_metrics/1234?query_broker=1":
@@ -150,13 +150,13 @@ func genMockClient(mc *minimock.Controller) *APIMock {
 			}
 			return data, nil
 		default:
-			return nil, errors.Errorf("bad apiclient.Get(%s), no handler for url", url)
+			return nil, fmt.Errorf("bad apiclient.Get(%s), no handler for url", url) //nolint:goerr113
 		}
 	})
 
 	m.SearchCheckBundlesMock.Set(func(searchCriteria *apiclient.SearchQueryType, filterCriteria *apiclient.SearchFilterType) (*[]apiclient.CheckBundle, error) {
 		if strings.Contains(string(*searchCriteria), `target:"000"`) {
-			return nil, errors.New("forced mock api call error")
+			return nil, fmt.Errorf("forced mock api call error") //nolint:goerr113
 		}
 		if strings.Contains(string(*searchCriteria), `target:"not_found"`) {
 			return &[]apiclient.CheckBundle{}, nil
@@ -173,7 +173,7 @@ func genMockClient(mc *minimock.Controller) *APIMock {
 		if strings.Contains(string(*searchCriteria), `target:"valid"`) {
 			return &[]apiclient.CheckBundle{testCheckBundle}, nil
 		}
-		return nil, errors.Errorf("don't know what to do with search criteria (%s)", string(*searchCriteria))
+		return nil, fmt.Errorf("don't know what to do with search criteria (%s)", string(*searchCriteria)) //nolint:goerr113
 	})
 
 	m.UpdateCheckBundleMock.Set(func(cfg *apiclient.CheckBundle) (*apiclient.CheckBundle, error) {
@@ -181,9 +181,9 @@ func genMockClient(mc *minimock.Controller) *APIMock {
 		case "/check_bundle/1234":
 			return cfg, nil
 		case "/check_bundle/0002":
-			return nil, errors.New("api update check bundle error")
+			return nil, fmt.Errorf("api update check bundle error") //nolint:goerr113
 		default:
-			return nil, errors.Errorf("add handler for %s", cfg.CID)
+			return nil, fmt.Errorf("add handler for %s", cfg.CID) //nolint:goerr113
 		}
 	})
 

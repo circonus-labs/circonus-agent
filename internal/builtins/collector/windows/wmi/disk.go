@@ -15,12 +15,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/StackExchange/wmi"
+	// "github.com/StackExchange/wmi".
+	"github.com/bi-zone/wmi"
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
 
@@ -80,7 +80,7 @@ type Win32_PerfFormattedData_PerfDisk_LogicalDisk struct { //nolint: golint
 	SplitIOPerSec           uint32
 }
 
-// Win32_PerfFormattedData_PerfDisk_PhysicalDisk defines the metrics to collect
+// Win32_PerfFormattedData_PerfDisk_PhysicalDisk defines the metrics to collect.
 type Win32_PerfFormattedData_PerfDisk_PhysicalDisk struct { //nolint: golint
 	Name                    string
 	AvgDiskBytesPerRead     uint64
@@ -106,7 +106,7 @@ type Win32_PerfFormattedData_PerfDisk_PhysicalDisk struct { //nolint: golint
 	SplitIOPerSec           uint32
 }
 
-// Disk metrics from the Windows Management Interface (wmi)
+// Disk metrics from the Windows Management Interface (wmi).
 type Disk struct {
 	include *regexp.Regexp
 	exclude *regexp.Regexp
@@ -115,7 +115,7 @@ type Disk struct {
 	physical bool
 }
 
-// diskOptions defines what elements can be overridden in a config file
+// diskOptions defines what elements can be overridden in a config file.
 type diskOptions struct {
 	ID              string `json:"id" toml:"id" yaml:"id"`
 	IncludeLogical  string `json:"logical_disks" toml:"logical_disks" yaml:"logical_disks"`
@@ -127,7 +127,7 @@ type diskOptions struct {
 	RunTTL          string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
-// NewDiskCollector creates new wmi collector
+// NewDiskCollector creates new wmi collector.
 func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 	c := Disk{}
 	c.id = "disk"
@@ -153,7 +153,7 @@ func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 			return &c, nil
 		}
 		c.logger.Debug().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-		return nil, errors.Wrapf(err, "%s config", c.pkgID)
+		return nil, fmt.Errorf("%s config: %w", c.pkgID, err)
 	}
 
 	c.logger.Debug().Interface("config", cfg).Msg("loaded config")
@@ -161,7 +161,7 @@ func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.IncludeLogical != "" {
 		logical, err := strconv.ParseBool(cfg.IncludeLogical)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing disks", c.pkgID)
+			return nil, fmt.Errorf("%s parsing disks: %w", c.pkgID, err)
 		}
 		c.logical = logical
 	}
@@ -169,7 +169,7 @@ func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.IncludePhysical != "" {
 		physical, err := strconv.ParseBool(cfg.IncludePhysical)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing physical_disks", c.pkgID)
+			return nil, fmt.Errorf("%s parsing physical_disks: %w", c.pkgID, err)
 		}
 		c.physical = physical
 	}
@@ -178,7 +178,7 @@ func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.IncludeRegex != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, cfg.IncludeRegex))
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s compiling include regex", c.pkgID)
+			return nil, fmt.Errorf("%s compile include rx: %w", c.pkgID, err)
 		}
 		c.include = rx
 	}
@@ -187,7 +187,7 @@ func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.ExcludeRegex != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, cfg.ExcludeRegex))
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s compiling exclude regex", c.pkgID)
+			return nil, fmt.Errorf("%s compile exclude rx: %w", c.pkgID, err)
 		}
 		c.exclude = rx
 	}
@@ -199,7 +199,7 @@ func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.MetricNameRegex != "" {
 		rx, err := regexp.Compile(cfg.MetricNameRegex)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s compile metric_name_regex", c.pkgID)
+			return nil, fmt.Errorf("%s compile metric name rx: %w", c.pkgID, err)
 		}
 		c.metricNameRegex = rx
 	}
@@ -211,7 +211,7 @@ func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.RunTTL != "" {
 		dur, err := time.ParseDuration(cfg.RunTTL)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
+			return nil, fmt.Errorf("%s parsing run_ttl: %w", c.pkgID, err)
 		}
 		c.wmicommon.runTTL = dur
 	}
@@ -219,7 +219,7 @@ func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
 	return &c, nil
 }
 
-// Collect metrics from the wmi resource
+// Collect metrics from the wmi resource.
 func (c *Disk) Collect(ctx context.Context) error {
 	metrics := cgm.Metrics{}
 
@@ -248,7 +248,7 @@ func (c *Disk) Collect(ctx context.Context) error {
 		if err := wmi.Query(qry, &dst); err != nil {
 			c.logger.Error().Err(err).Str("query", qry).Msg("wmi query error")
 			c.setStatus(metrics, err)
-			return errors.Wrap(err, c.pkgID)
+			return fmt.Errorf("wmi %s query: %w", c.pkgID, err)
 		}
 
 		if len(dst) == 0 {
@@ -267,7 +267,7 @@ func (c *Disk) Collect(ctx context.Context) error {
 		if err := wmi.Query(qry, &dst); err != nil {
 			c.logger.Error().Err(err).Str("query", qry).Msg("wmi query error")
 			c.setStatus(metrics, err)
-			return errors.Wrap(err, c.pkgID)
+			return fmt.Errorf("wmi %s query: %w", c.pkgID, err)
 		}
 
 		if len(dst) == 0 {

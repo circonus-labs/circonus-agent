@@ -14,18 +14,17 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	toml "github.com/pelletier/go-toml"
-	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	yaml "gopkg.in/yaml.v2"
 )
 
-// Log defines the running config.log structure
+// Log defines the running config.log structure.
 type Log struct {
 	Level  string `json:"level" yaml:"level" toml:"level"`
 	Pretty bool   `json:"pretty" yaml:"pretty" toml:"pretty"`
 }
 
-// API defines the running config.api structure
+// API defines the running config.api structure.
 type API struct {
 	App    string `json:"app" yaml:"app" toml:"app"`
 	CAFile string `mapstructure:"ca_file" json:"ca_file" yaml:"ca_file" toml:"ca_file"`
@@ -33,14 +32,14 @@ type API struct {
 	URL    string `json:"url" yaml:"url" toml:"url"`
 }
 
-// ReverseCreateCheckOptions defines the running config.reverse.check structure
+// ReverseCreateCheckOptions defines the running config.reverse.check structure.
 type ReverseCreateCheckOptions struct {
 	Broker string `json:"broker" yaml:"broker" toml:"broker"`
 	Tags   string `json:"tags" yaml:"tags" toml:"tags"`
 	Title  string `json:"title" yaml:"title" toml:"title"`
 }
 
-// Check defines the check parameters
+// Check defines the check parameters.
 type Check struct {
 	Broker           string `json:"broker" yaml:"broker" toml:"broker"`
 	BundleID         string `mapstructure:"bundle_id" json:"bundle_id" yaml:"bundle_id" toml:"bundle_id"`
@@ -60,21 +59,21 @@ type Check struct {
 	// EnableNewMetrics    bool    `json:"-" yaml:"-" toml:"-"` // deprecated, hidden
 }
 
-// MultiAgent defines the running config.multi_agent structure
+// MultiAgent defines the running config.multi_agent structure.
 type MultiAgent struct {
 	Interval   string `json:"interval" toml:"interval" yaml:"interval"`
 	Enabled    bool   `json:"enabled" toml:"enabled" yaml:"enabled"`
 	Accumulate bool   `json:"accumulate" toml:"accumulate" yaml:"accumulate"`
 }
 
-// Reverse defines the running config.reverse structure
+// Reverse defines the running config.reverse structure.
 type Reverse struct {
 	BrokerCAFile string `mapstructure:"broker_ca_file" json:"broker_ca_file" yaml:"broker_ca_file" toml:"broker_ca_file"`
 	Enabled      bool   `json:"enabled" yaml:"enabled" toml:"enabled"`
 	MaxConnRetry int    `mapstructure:"max_conn_retry" json:"max_conn_retry" yaml:"max_conn_retry" toml:"max_conn_retry"`
 }
 
-// SSL defines the running config.ssl structure
+// SSL defines the running config.ssl structure.
 type SSL struct {
 	CertFile string `mapstructure:"cert_file" json:"cert_file" yaml:"cert_file" toml:"cert_file"`
 	KeyFile  string `mapstructure:"key_file" json:"key_file" yaml:"key_file" toml:"key_file"`
@@ -82,13 +81,13 @@ type SSL struct {
 	Verify   bool   `json:"verify" yaml:"verify" toml:"verify"`
 }
 
-// StatsDHost defines the running config.statsd.host structure
+// StatsDHost defines the running config.statsd.host structure.
 type StatsDHost struct {
 	Category     string `json:"category" yaml:"category" toml:"category"`
 	MetricPrefix string `mapstructure:"metric_prefix" json:"metric_prefix" yaml:"metric_prefix" toml:"metric_prefix"`
 }
 
-// StatsDGroup defines the running config.statsd.group structure
+// StatsDGroup defines the running config.statsd.group structure.
 type StatsDGroup struct {
 	CheckID      string `mapstructure:"check_id" json:"check_id" yaml:"check_id" toml:"check_id"`
 	Counters     string `json:"counters" yaml:"counters" toml:"counters"`
@@ -97,7 +96,7 @@ type StatsDGroup struct {
 	Sets         string `json:"sets" yaml:"sets" toml:"sets"`
 }
 
-// StatsD defines the running config.statsd structure
+// StatsD defines the running config.statsd structure.
 type StatsD struct {
 	Group    StatsDGroup `json:"group" yaml:"group" toml:"group"`
 	Host     StatsDHost  `json:"host" yaml:"host" toml:"host"`
@@ -108,13 +107,13 @@ type StatsD struct {
 	Disabled bool        `json:"disabled" yaml:"disabled" toml:"disabled"`
 }
 
-// Thresholds defines triggers used to include metrics
+// Thresholds defines triggers used to include metrics.
 type Thresholds struct {
 	HighCPU    float32 `mapstructure:"high_cpu" json:"high_cpu" toml:"high_cpu" yaml:"high_cpu"`
 	HighMemory float32 `mapstructure:"high_memory" json:"high_memory" toml:"high_memory" yaml:"high_memory"`
 }
 
-// Config defines the running config structure
+// Config defines the running config structure.
 type Config struct {
 	DebugDumpMetrics string     `mapstructure:"debug_dump_metrics" json:"debug_dump_metrics" yaml:"debug_dump_metrics" toml:"debug_dump_metrics"`
 	PluginDir        string     `mapstructure:"plugin_dir" json:"plugin_dir" yaml:"plugin_dir" toml:"plugin_dir"`
@@ -142,28 +141,28 @@ type Config struct {
 }
 
 //
-// NOTE: adding a Key* MUST be reflected in the Config structures above
+// NOTE: adding a Key* MUST be reflected in the Config structures above.
 //
 const (
-	// KeyAPICAFile custom ca for circonus api (e.g. inside)
+	// KeyAPICAFile custom ca for circonus api (e.g. inside).
 	KeyAPICAFile = "api.ca_file"
 
-	// KeyAPITokenApp circonus api token key application name
+	// KeyAPITokenApp circonus api token key application name.
 	KeyAPITokenApp = "api.app"
 
-	// KeyAPITokenKey circonus api token key
+	// KeyAPITokenKey circonus api token key.
 	KeyAPITokenKey = "api.key"
 
-	// KeyAPIURL custom circonus api url (e.g. inside)
+	// KeyAPIURL custom circonus api url (e.g. inside).
 	KeyAPIURL = "api.url"
 
-	// KeyDebug enables debug messages
+	// KeyDebug enables debug messages.
 	KeyDebug = "debug"
 
-	// KeyDebugCGM enables debug messages for circonus-gometrics
+	// KeyDebugCGM enables debug messages for circonus-gometrics.
 	KeyDebugCGM = "debug_cgm"
 
-	// KeyDebugAPI enables debug messages for circonus API calls
+	// KeyDebugAPI enables debug messages for circonus API calls.
 	KeyDebugAPI = "debug_api"
 
 	// KeyDebugDumpMetrics enables dumping metrics to a file as they are submitted to circonus
@@ -172,130 +171,130 @@ const (
 	KeyDebugDumpMetrics = "debug_dump_metrics"
 
 	// Process metrics will be included if EITHER cpu or mem utilization percentages are above these thresholds
-	// KeyCPUThreshold high cpu utilization percentage to include process metrics
+	// KeyCPUThreshold high cpu utilization percentage to include process metrics.
 	KeyCPUThreshold = "thresholds.high_cpu"
-	// KeyMemThreshold high memory utilization percentage to include process metrics
+	// KeyMemThreshold high memory utilization percentage to include process metrics.
 	KeyMemThreshold = "thresholds.high_memory"
 
-	// KeyListen primary address and port to listen on
+	// KeyListen primary address and port to listen on.
 	KeyListen = "listen"
 
-	// KeyListenSocket identifies one or more unix socket files to create
+	// KeyListenSocket identifies one or more unix socket files to create.
 	KeyListenSocket = "listen_socket"
 
-	// KeyLogLevel logging level (panic, fatal, error, warn, info, debug, disabled)
+	// KeyLogLevel logging level (panic, fatal, error, warn, info, debug, disabled).
 	KeyLogLevel = "log.level"
 
-	// KeyLogPretty output formatted log lines (for running in foreground)
+	// KeyLogPretty output formatted log lines (for running in foreground).
 	KeyLogPretty = "log.pretty"
 
-	// KeyPluginDir plugin directory
+	// KeyPluginDir plugin directory.
 	KeyPluginDir = "plugin_dir"
-	// KeyPluginList is a list of explicit commands to run as plugins
+	// KeyPluginList is a list of explicit commands to run as plugins.
 	KeyPluginList = "plugin_list"
 
-	// KeyPluginTTLUnits plugin run ttl units
+	// KeyPluginTTLUnits plugin run ttl units.
 	KeyPluginTTLUnits = "plugin_ttl_units"
 
-	// KeyMultiAgent indicates whether multiple agents will be sending metrics to a single check (requires enterprise brokers)
+	// KeyMultiAgent indicates whether multiple agents will be sending metrics to a single check (requires enterprise brokers).
 	KeyMultiAgent = "multi_agent.enabled"
 
-	// KeyMultiAgentInterval indicates how frequently metrics should be sent
+	// KeyMultiAgentInterval indicates how frequently metrics should be sent.
 	KeyMultiAgentInterval = "multi_agent.interval"
 
-	// KeyMultiAgentAccumulate determines if metrics are accumulated on the broker
+	// KeyMultiAgentAccumulate determines if metrics are accumulated on the broker.
 	KeyMultiAgentAccumulate = "multi_agent.accumulate"
 
-	// KeyReverse indicates whether to use reverse connections
+	// KeyReverse indicates whether to use reverse connections.
 	KeyReverse = "reverse.enabled"
 
-	// KeyReverseBrokerCAFile custom broker ca file
+	// KeyReverseBrokerCAFile custom broker ca file.
 	KeyReverseBrokerCAFile = "reverse.broker_ca_file"
 
-	// KeyReverseMaxConnRetry how many times to retry a persistently failing broker connection. default 10, -1 = indefinitely
+	// KeyReverseMaxConnRetry how many times to retry a persistently failing broker connection. default 10, -1 = indefinitely.
 	KeyReverseMaxConnRetry = "reverse.max_conn_retry"
 
-	// KeyShowConfig - show configuration and exit
+	// KeyShowConfig - show configuration and exit.
 	KeyShowConfig = "show-config"
 
-	// KeyShowVersion - show version information and exit
+	// KeyShowVersion - show version information and exit.
 	KeyShowVersion = "version"
 
-	// KeySSLCertFile pem certificate file for SSL
+	// KeySSLCertFile pem certificate file for SSL.
 	KeySSLCertFile = "ssl.cert_file"
 
-	// KeySSLKeyFile key for ssl.cert_file
+	// KeySSLKeyFile key for ssl.cert_file.
 	KeySSLKeyFile = "ssl.key_file"
 
-	// KeySSLListen ssl address and prot to listen on
+	// KeySSLListen ssl address and prot to listen on.
 	KeySSLListen = "ssl.listen"
 
-	// KeySSLVerify controls verification for ssl connections
+	// KeySSLVerify controls verification for ssl connections.
 	KeySSLVerify = "ssl.verify"
 
-	// KeyStatsdDisabled disables the default statsd listener
+	// KeyStatsdDisabled disables the default statsd listener.
 	KeyStatsdDisabled = "statsd.disabled"
 
-	// KeyStatsdGroupCID circonus check id for "group" metrics sent to statsd
+	// KeyStatsdGroupCID circonus check id for "group" metrics sent to statsd.
 	KeyStatsdGroupCID = "statsd.group.check_id"
 
-	// KeyStatsdGroupCounters operator for group counters (sum|average)
+	// KeyStatsdGroupCounters operator for group counters (sum|average).
 	KeyStatsdGroupCounters = "statsd.group.counters"
 
-	// KeyStatsdGroupGauges operator for group gauges (sum|average)
+	// KeyStatsdGroupGauges operator for group gauges (sum|average).
 	KeyStatsdGroupGauges = "statsd.group.gauges"
 
-	// KeyStatsdGroupPrefix metrics prefixed with this string are considered "group" metrics
+	// KeyStatsdGroupPrefix metrics prefixed with this string are considered "group" metrics.
 	KeyStatsdGroupPrefix = "statsd.group.metric_prefix"
 
-	// KeyStatsdGroupSets operator for group sets (sum|average)
+	// KeyStatsdGroupSets operator for group sets (sum|average).
 	KeyStatsdGroupSets = "statsd.group.sets"
 
-	// KeyStatsdHostCategory "plugin" name to put metrics sent to host
+	// KeyStatsdHostCategory "plugin" name to put metrics sent to host.
 	KeyStatsdHostCategory = "statsd.host.category"
 
-	// KeyStatsdHostPrefix metrics prefixed with this string are considered "host" metrics
+	// KeyStatsdHostPrefix metrics prefixed with this string are considered "host" metrics.
 	KeyStatsdHostPrefix = "statsd.host.metric_prefix"
 
-	// KeyStatsdAddr address for statsd listener (default address will always be 'localhost')
+	// KeyStatsdAddr address for statsd listener (default address will always be 'localhost').
 	KeyStatsdAddr = "statsd.addr"
 
-	// KeyStatsdPort port for statsd listener
+	// KeyStatsdPort port for statsd listener.
 	KeyStatsdPort = "statsd.port"
 
-	// KeyStatsdEnableTCP enables statsd tcp listener
+	// KeyStatsdEnableTCP enables statsd tcp listener.
 	KeyStatsdEnableTCP = "statsd.enable_tcp"
 
-	// KeyStatsdMaxTCPConns set max statsd tcp connections
+	// KeyStatsdMaxTCPConns set max statsd tcp connections.
 	KeyStatsdMaxTCPConns = "statsd.max_tcp_connections"
 
-	// KeyStatsdNPP sets number of packet processors to run concurrently
+	// KeyStatsdNPP sets number of packet processors to run concurrently.
 	KeyStatsdNPP = "statsd.npp"
 
-	// KeyStatsdPQS sets packet queue size
+	// KeyStatsdPQS sets packet queue size.
 	KeyStatsdPQS = "statsd.pqs"
 
-	// KeyCollectors defines the builtin collectors to enable
+	// KeyCollectors defines the builtin collectors to enable.
 	KeyCollectors = "collectors"
-	// KeyHostProc defines path builtins will use
+	// KeyHostProc defines path builtins will use.
 	KeyHostProc = "host_proc"
-	// KeyHostSys defines path builtins will use, if needed
+	// KeyHostSys defines path builtins will use, if needed.
 	KeyHostSys = "host_sys"
-	// KeyHostEtc defines path builtins will use, if needed
+	// KeyHostEtc defines path builtins will use, if needed.
 	KeyHostEtc = "host_etc"
-	// KeyHostVar defines path builtins will use, if needed
+	// KeyHostVar defines path builtins will use, if needed.
 	KeyHostVar = "host_var"
-	// KeyHostRun defines path builtins will use, if needed
+	// KeyHostRun defines path builtins will use, if needed.
 	KeyHostRun = "host_run"
 
-	// KeyDisableGzip disables gzip on http responses
+	// KeyDisableGzip disables gzip on http responses.
 	KeyDisableGzip = "server.disable_gzip"
 
-	// KeyCheckBundleID the check bundle id to use
+	// KeyCheckBundleID the check bundle id to use.
 	KeyCheckBundleID = "check.bundle_id"
 
 	// KeyCheckTarget the check bundle target to use to search for or create a check bundle
-	// note: if not using reverse, this must be an IP address reachable by the broker
+	// note: if not using reverse, this must be an IP address reachable by the broker.
 	KeyCheckTarget = "check.target"
 
 	// KeyCheckEnableNewMetrics toggles automatically enabling new metrics
@@ -324,60 +323,60 @@ const (
 	// TOML configuration file:
 	//  `metric_filters = '''[["deny","$^",""],["allow","^.+$",""]]'''`
 	KeyCheckMetricFilters = "check.metric_filters"
-	// KeyCheckMetricFilterFile an external JSON file to use (see etc/example_metric_filters.json)
+	// KeyCheckMetricFilterFile an external JSON file to use (see etc/example_metric_filters.json).
 	KeyCheckMetricFilterFile = "check.metric_filter_file"
-	// KeyCheckUpdateMetricFIlters force update of check with configured metric filters on start
+	// KeyCheckUpdateMetricFIlters force update of check with configured metric filters on start.
 	KeyCheckUpdateMetricFilters = "check.update_metric_filters"
 
-	// KeyCheckPeriod when broker requests metrics
+	// KeyCheckPeriod when broker requests metrics.
 	KeyCheckPeriod = "check.period"
 
-	// KeyCheckTimeout broker timeout when requesting metrics
+	// KeyCheckTimeout broker timeout when requesting metrics.
 	KeyCheckTimeout = "check.timeout"
 
-	// KeyCheckCreate toggles creating a new check bundle when a check bundle id is not supplied
+	// KeyCheckCreate toggles creating a new check bundle when a check bundle id is not supplied.
 	KeyCheckCreate = "check.create"
 
-	// KeyCheckUpdate forces updating all configurable check bundle attributes
+	// KeyCheckUpdate forces updating all configurable check bundle attributes.
 	KeyCheckUpdate = "check.update"
 
-	// KeyCheckBroker a specific broker ID to use when creating a new check bundle
+	// KeyCheckBroker a specific broker ID to use when creating a new check bundle.
 	KeyCheckBroker = "check.broker"
 
-	// KeyCheckTitle a specific title to use when creating a new check bundle
+	// KeyCheckTitle a specific title to use when creating a new check bundle.
 	KeyCheckTitle = "check.title"
 
-	// KeyCheckTags a specific set of tags to use when creating a new check bundle
+	// KeyCheckTags a specific set of tags to use when creating a new check bundle.
 	KeyCheckTags = "check.tags"
 
-	// KeyCheckMetricStreamtags specifies whether to use stream tags (if stream tags are enabled, check tags are added to all metrics by default)
+	// KeyCheckMetricStreamtags specifies whether to use stream tags (if stream tags are enabled, check tags are added to all metrics by default).
 	KeyCheckMetricStreamtags = "check.metric_streamtags"
 
-	// Cluster mode
+	// Cluster mode.
 	KeyCluster = "cluster"
-	// Cluster mode enabled
+	// Cluster mode enabled.
 	KeyClusterEnabled = "cluster.enabled"
 	// Cluster mode enable builtins (host filesystems must be mounted in container and corresponding
-	// `HOST_*`` environment variables must be set)
+	// `HOST_*`` environment variables must be set).
 	KeyClusterEnableBuiltins = "cluster.enable_builtins"
-	// Cluster mode represent statsd gauges as histogram samples, so that _one_ sample will be collected for each node
+	// Cluster mode represent statsd gauges as histogram samples, so that _one_ sample will be collected for each node.
 	KeyClusterStatsdHistogramGauges = "cluster.statsd_histogram_gauges"
 
 	cosiName = "cosi"
 )
 
 var (
-	// MetricNameSeparator defines character used to delimit metric name parts
+	// MetricNameSeparator defines character used to delimit metric name parts.
 	MetricNameSeparator = defaults.MetricNameSeparator // var, TBD whether it will become configurable
 )
 
-// Validate verifies the required portions of the configuration
+// Validate verifies the required portions of the configuration.
 func Validate() error {
 
 	if apiRequired() {
 		err := validateAPIOptions()
 		if err != nil {
-			return errors.Wrap(err, "API config")
+			return fmt.Errorf("API config: %w", err)
 		}
 	}
 
@@ -385,24 +384,24 @@ func Validate() error {
 	isMultiAgent := viper.GetBool(KeyMultiAgent)
 
 	if isReverse && isMultiAgent {
-		return errors.New("cannot enable reverse AND multi agent simultaneously")
+		return fmt.Errorf("cannot enable reverse AND multi agent simultaneously") //nolint:goerr113
 	}
 
 	if isReverse {
 		err := validateReverseOptions()
 		if err != nil {
-			return errors.Wrap(err, "reverse config")
+			return fmt.Errorf("reverse config: %w", err)
 		}
 	}
 
 	if viper.GetString(KeyCheckBundleID) != "" && viper.GetBool(KeyCheckCreate) {
-		return errors.New("use --check-create OR --check-id, they are mutually exclusive")
+		return fmt.Errorf("use --check-create OR --check-id, they are mutually exclusive") //nolint:goerr113
 	}
 
 	return nil
 }
 
-// StatConfig adds the running config to the app stats
+// StatConfig adds the running config to the app stats.
 func StatConfig() error {
 	cfg, err := getConfig()
 	if err != nil {
@@ -419,18 +418,18 @@ func StatConfig() error {
 	return nil
 }
 
-// getConfig dumps the current configuration and returns it
+// getConfig dumps the current configuration and returns it.
 func getConfig() (*Config, error) {
 	var cfg *Config
 
 	if err := viper.Unmarshal(&cfg); err != nil {
-		return nil, errors.Wrap(err, "parsing config")
+		return nil, fmt.Errorf("parsing config: %w", err)
 	}
 
 	return cfg, nil
 }
 
-// ShowConfig prints the running configuration
+// ShowConfig prints the running configuration.
 func ShowConfig(w io.Writer) error {
 	var cfg *Config
 	var err error
@@ -453,11 +452,11 @@ func ShowConfig(w io.Writer) error {
 	case "toml":
 		data, err = toml.Marshal(*cfg)
 	default:
-		return errors.Errorf("unknown config format '%s'", format)
+		return fmt.Errorf("unknown config format '%s'", format) //nolint:goerr113
 	}
 
 	if err != nil {
-		return errors.Wrapf(err, "formatting config (%s)", format)
+		return fmt.Errorf("formatting config (%s): %w", format, err)
 	}
 
 	fmt.Fprintln(w, string(data))

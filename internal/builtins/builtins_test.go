@@ -123,6 +123,7 @@ func TestRun(t *testing.T) {
 		}
 		if b == nil {
 			t.Fatal("expected a builtins instance")
+			return
 		}
 
 		b.collectors["foo"] = newFoo()
@@ -142,6 +143,7 @@ func TestRun(t *testing.T) {
 		}
 		if b == nil {
 			t.Fatal("expected a builtins instance")
+			return
 		}
 
 		b.collectors["foo"] = newFoo()
@@ -160,6 +162,7 @@ func TestRun(t *testing.T) {
 		}
 		if b == nil {
 			t.Fatal("expected a builtins instance")
+			return
 		}
 
 		b.collectors["foo"] = newFoo()
@@ -178,6 +181,7 @@ func TestRun(t *testing.T) {
 		}
 		if b == nil {
 			t.Fatal("expected a builtins instance")
+			return
 		}
 
 		b.collectors["foo"] = newFoo()
@@ -216,6 +220,7 @@ func TestIsBuiltIn(t *testing.T) {
 		}
 		if b == nil {
 			t.Fatal("expected a builtins instance")
+			return
 		}
 
 		if b.IsBuiltin("foo") {
@@ -231,6 +236,7 @@ func TestIsBuiltIn(t *testing.T) {
 		}
 		if b == nil {
 			t.Fatal("expected a builtins instance")
+			return
 		}
 		b.collectors["foo"] = newFoo()
 

@@ -24,11 +24,10 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
-// Disk metrics from the Linux ProcFS
+// Disk metrics from the Linux ProcFS.
 type Disk struct {
 	include         *regexp.Regexp
 	exclude         *regexp.Regexp
@@ -37,7 +36,7 @@ type Disk struct {
 	sectorSizeDefault uint64
 }
 
-// diskOptions defines what elements can be overridden in a config file
+// diskOptions defines what elements can be overridden in a config file.
 type diskOptions struct {
 	// common
 	ID         string `json:"id" toml:"id" yaml:"id"`
@@ -72,7 +71,7 @@ type dstats struct {
 	discardms         uint64
 }
 
-// NewDiskCollector creates new procfs disk collector
+// NewDiskCollector creates new procfs disk collector.
 func NewDiskCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
 	procFile := "diskstats"
 
@@ -87,7 +86,7 @@ func NewDiskCollector(cfgBaseName, procFSPath string) (collector.Collector, erro
 
 	if cfgBaseName == "" {
 		if _, err := os.Stat(c.file); os.IsNotExist(err) {
-			return nil, errors.Wrap(err, c.pkgID)
+			return nil, fmt.Errorf("%s procfile: %w", c.pkgID, err)
 		}
 		return &c, nil
 	}
@@ -97,7 +96,7 @@ func NewDiskCollector(cfgBaseName, procFSPath string) (collector.Collector, erro
 	if err != nil {
 		if !strings.Contains(err.Error(), "no config found matching") {
 			c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-			return nil, errors.Wrapf(err, "%s config", c.pkgID)
+			return nil, fmt.Errorf("%s config: %w", c.pkgID, err)
 		}
 	} else {
 		c.logger.Debug().Str("base", cfgBaseName).Interface("config", opts).Msg("loaded config")
@@ -106,7 +105,7 @@ func NewDiskCollector(cfgBaseName, procFSPath string) (collector.Collector, erro
 	if opts.IncludeRegex != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, opts.IncludeRegex))
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s compiling include regex", c.pkgID)
+			return nil, fmt.Errorf("%s compile include rx: %w", c.pkgID, err)
 		}
 		c.include = rx
 	}
@@ -114,7 +113,7 @@ func NewDiskCollector(cfgBaseName, procFSPath string) (collector.Collector, erro
 	if opts.ExcludeRegex != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, opts.ExcludeRegex))
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s compiling exclude regex", c.pkgID)
+			return nil, fmt.Errorf("%s compile exclude rx: %w", c.pkgID, err)
 		}
 		c.exclude = rx
 	}
@@ -122,7 +121,7 @@ func NewDiskCollector(cfgBaseName, procFSPath string) (collector.Collector, erro
 	if opts.DefaultSectorSize != "" {
 		v, err := strconv.ParseUint(opts.DefaultSectorSize, 10, 64)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing default sector size", c.pkgID)
+			return nil, fmt.Errorf("%s parsing default sector size: %w", c.pkgID, err)
 		}
 		c.sectorSizeDefault = v
 	}
@@ -139,19 +138,19 @@ func NewDiskCollector(cfgBaseName, procFSPath string) (collector.Collector, erro
 	if opts.RunTTL != "" {
 		dur, err := time.ParseDuration(opts.RunTTL)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
+			return nil, fmt.Errorf("%s parsing run_ttl: %w", c.pkgID, err)
 		}
 		c.runTTL = dur
 	}
 
 	if _, err := os.Stat(c.file); os.IsNotExist(err) {
-		return nil, errors.Wrap(err, c.pkgID)
+		return nil, fmt.Errorf("%s procfile: %w", c.pkgID, err)
 	}
 
 	return &c, nil
 }
 
-// Collect metrics from the procfs resource
+// Collect metrics from the procfs resource.
 func (c *Disk) Collect(ctx context.Context) error {
 	metrics := cgm.Metrics{}
 
@@ -179,7 +178,7 @@ func (c *Disk) Collect(ctx context.Context) error {
 	lines, err := c.readFile(c.file)
 	if err != nil {
 		c.setStatus(metrics, err)
-		return errors.Wrap(err, c.pkgID)
+		return fmt.Errorf("%s read file: %w", c.pkgID, err)
 	}
 	for _, line := range lines {
 		fields := strings.Fields(line)
@@ -335,12 +334,12 @@ func (c *Disk) parse(fields []string) (*dstats, error) {
 	devName := fields[2]
 	if devName == "" {
 		c.logger.Debug().Msg("invalid device name (empty), ignoring")
-		return nil, errors.New("invalid device name (empty)")
+		return nil, fmt.Errorf("invalid device name (empty)") //nolint:goerr113
 	}
 
 	sectorSz := c.getSectorSize(devName)
 
-	pe := errors.New("parsing field")
+	pe := fmt.Errorf("parsing field") //nolint:goerr113
 	d := dstats{
 		id:            devName,
 		haveKernel418: len(fields) > 14,
@@ -350,14 +349,14 @@ func (c *Disk) parse(fields []string) (*dstats, error) {
 		d.readsCompleted = v
 	} else {
 		c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field reads completed")
-		return nil, pe
+		return nil, fmt.Errorf("%s parse readsCompleted: %w", c.pkgID, pe)
 	}
 
 	if v, err := strconv.ParseUint(fields[4], 10, 64); err == nil {
 		d.readsMerged = v
 	} else {
 		c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field reads merged")
-		return nil, pe
+		return nil, fmt.Errorf("%s parse readsMerged: %w", c.pkgID, pe)
 	}
 
 	if v, err := strconv.ParseUint(fields[5], 10, 64); err == nil {
@@ -365,28 +364,28 @@ func (c *Disk) parse(fields []string) (*dstats, error) {
 		d.bytesRead = v * sectorSz
 	} else {
 		c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field sectors read")
-		return nil, pe
+		return nil, fmt.Errorf("%s parse sectorsRead: %w", c.pkgID, pe)
 	}
 
 	if v, err := strconv.ParseUint(fields[6], 10, 64); err == nil {
 		d.readms = v
 	} else {
 		c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field read ms")
-		return nil, pe
+		return nil, fmt.Errorf("%s parsing read ms: %w", c.pkgID, pe)
 	}
 
 	if v, err := strconv.ParseUint(fields[7], 10, 64); err == nil {
 		d.writesCompleted = v
 	} else {
 		c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field writes completed")
-		return nil, pe
+		return nil, fmt.Errorf("%s parsing writesCompleted: %w", c.pkgID, pe)
 	}
 
 	if v, err := strconv.ParseUint(fields[8], 10, 64); err == nil {
 		d.writesMerged = v
 	} else {
 		c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field writes merged")
-		return nil, pe
+		return nil, fmt.Errorf("%s parsing writesMerged: %w", c.pkgID, pe)
 	}
 
 	if v, err := strconv.ParseUint(fields[9], 10, 64); err == nil {
@@ -394,35 +393,35 @@ func (c *Disk) parse(fields []string) (*dstats, error) {
 		d.bytesWritten = v * sectorSz
 	} else {
 		c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field sectors written")
-		return nil, pe
+		return nil, fmt.Errorf("%s parsing sectorsWritten: %w", c.pkgID, pe)
 	}
 
 	if v, err := strconv.ParseUint(fields[10], 10, 64); err == nil {
 		d.writems = v
 	} else {
 		c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field write ms")
-		return nil, pe
+		return nil, fmt.Errorf("%s parsing write ms: %w", c.pkgID, pe)
 	}
 
 	if v, err := strconv.ParseUint(fields[11], 10, 64); err == nil {
 		d.currIO = v
 	} else {
 		c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field IO ops in progress")
-		return nil, pe
+		return nil, fmt.Errorf("%s parsing curr io: %w", c.pkgID, pe)
 	}
 
 	if v, err := strconv.ParseUint(fields[12], 10, 64); err == nil {
 		d.ioms = v
 	} else {
 		c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field IO ms")
-		return nil, pe
+		return nil, fmt.Errorf("%s parsing io ms: %w", c.pkgID, pe)
 	}
 
 	if v, err := strconv.ParseUint(fields[13], 10, 64); err == nil {
 		d.iomsWeighted = v
 	} else {
 		c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field weighted IO ms")
-		return nil, pe
+		return nil, fmt.Errorf("%s parsing io ms weighted: %w", c.pkgID, pe)
 	}
 
 	if d.haveKernel418 {
@@ -430,25 +429,25 @@ func (c *Disk) parse(fields []string) (*dstats, error) {
 			d.discardsCompleted = v
 		} else {
 			c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field discards completed")
-			return nil, pe
+			return nil, fmt.Errorf("%s parsing discardsCompleted: %w", c.pkgID, pe)
 		}
 		if v, err := strconv.ParseUint(fields[15], 10, 64); err == nil {
 			d.discardsMerged = v
 		} else {
 			c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field discards merged")
-			return nil, pe
+			return nil, fmt.Errorf("%s parsing discardsMerged: %w", c.pkgID, pe)
 		}
 		if v, err := strconv.ParseUint(fields[16], 10, 64); err == nil {
 			d.sectorsDiscarded = v
 		} else {
 			c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field sectors discarded")
-			return nil, pe
+			return nil, fmt.Errorf("%s parsing sectorsDiscarded: %w", c.pkgID, pe)
 		}
 		if v, err := strconv.ParseUint(fields[17], 10, 64); err == nil {
 			d.discardms = v
 		} else {
 			c.logger.Warn().Err(err).Str("dev", devName).Msg("parsing field discard ms")
-			return nil, pe
+			return nil, fmt.Errorf("%s parsing discard ms: %w", c.pkgID, pe)
 		}
 	}
 
@@ -469,7 +468,7 @@ func (c *Disk) parsemdstat() map[string][]string {
 
 	for _, l := range lines {
 
-		line := strings.TrimSpace(string(l))
+		line := strings.TrimSpace(l)
 		if line == "" {
 			continue
 		}

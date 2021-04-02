@@ -7,7 +7,7 @@ package server
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"path"
 	"regexp"
 	"runtime"
@@ -502,7 +502,7 @@ func TestStart(t *testing.T) {
 		if serr == nil {
 			t.Fatal("expected error")
 		}
-		expected := errors.New("SSL server: tls: failed to find any PEM data in certificate input")
+		expected := fmt.Errorf("SSL server: tls: failed to find any PEM data in certificate input") //nolint:goerr113
 		if serr.Error() != expected.Error() {
 			t.Fatalf("expected (%s) got (%s)", expected, serr)
 		}

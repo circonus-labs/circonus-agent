@@ -34,7 +34,7 @@ func TestCheck_setReverseConfigs(t *testing.T) {
 		fields  fields
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		// Add test cases.
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -83,7 +83,7 @@ func TestCheck_FindPrimaryBrokerInstance(t *testing.T) {
 		fields  fields
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		// Add test cases.
 	}
 	for _, tt := range tests {
 		tt := tt

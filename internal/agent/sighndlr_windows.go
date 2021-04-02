@@ -24,7 +24,7 @@ func (a *Agent) signalNotifySetup() {
 	signal.Notify(a.signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE, syscall.SIGTRAP)
 }
 
-// handleSignals runs the signal handler thread
+// handleSignals runs the signal handler thread.
 func (a *Agent) handleSignals() error {
 	const stacktraceBufSize = 1 * units.MiB
 

@@ -8,10 +8,9 @@ package connection
 import (
 	"crypto/tls"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 // buildFrame creates a frame to send to broker.
@@ -19,7 +18,7 @@ import (
 // bytes 1-6 header
 //      2 bytes channel id and command flag
 //      4 bytes length of data
-// bytes 7-n are data, where 0 < n <= maxPayloadLen
+// bytes 7-n are data, where 0 < n <= maxPayloadLen.
 func buildFrame(channelID uint16, isCommand bool, payload []byte) []byte {
 	frame := make([]byte, len(payload)+6)
 
@@ -35,7 +34,7 @@ func buildFrame(channelID uint16, isCommand bool, payload []byte) []byte {
 	return frame
 }
 
-// readFrameFromBroker reads a frame(header + payload) from broker
+// readFrameFromBroker reads a frame(header + payload) from broker.
 func (c *Connection) readFrameFromBroker(r io.Reader) (*noitFrame, error) {
 	if conn, ok := r.(*tls.Conn); ok {
 		if err := conn.SetDeadline(time.Now().Add(CommTimeoutSeconds * time.Second)); err != nil {
@@ -48,7 +47,7 @@ func (c *Connection) readFrameFromBroker(r io.Reader) (*noitFrame, error) {
 	}
 
 	if hdr.payloadLen > MaxPayloadLen {
-		return nil, errors.Errorf("received oversized frame (%d len)", hdr.payloadLen) // restart the connection
+		return nil, fmt.Errorf("received oversized frame (%d len)", hdr.payloadLen) //nolint:goerr113 // restart the connection
 	}
 
 	if conn, ok := r.(*tls.Conn); ok {
@@ -74,7 +73,7 @@ func (c *Connection) readFrameFromBroker(r io.Reader) (*noitFrame, error) {
 	}, nil
 }
 
-// readFrameHeader reads 6 bytes from the broker connection
+// readFrameHeader reads 6 bytes from the broker connection.
 func readFrameHeader(r io.Reader) (*noitHeader, error) {
 	hdrSize := 6
 
@@ -93,7 +92,7 @@ func readFrameHeader(r io.Reader) (*noitHeader, error) {
 	return hdr, nil
 }
 
-// readFramePayload consumes n bytes from the broker connection
+// readFramePayload consumes n bytes from the broker connection.
 func readFramePayload(r io.Reader, size uint32) ([]byte, error) {
 	data, err := readBytes(r, int64(size))
 	if err != nil {
@@ -112,7 +111,7 @@ func readBytes(r io.Reader, size int64) ([]byte, error) {
 
 	n, err := lr.Read(buff[:cap(buff)])
 	if n == 0 && err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read: %w", err)
 	}
 
 	// dealing with expected sizes
@@ -121,7 +120,7 @@ func readBytes(r io.Reader, size int64) ([]byte, error) {
 		if n < sz {
 			sz = n
 		}
-		return nil, errors.Errorf("invalid read, expected bytes %d got %d (%#v = %s)", size, n, buff[0:sz], string(buff[0:sz]))
+		return nil, fmt.Errorf("invalid read, expected bytes %d got %d (%#v = %s)", size, n, buff[0:sz], string(buff[0:sz])) //nolint:goerr113
 	}
 
 	return buff[:n], nil

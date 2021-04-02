@@ -13,7 +13,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// Collector defines the interface for builtin metric collectors
+// Collector defines the interface for builtin metric collectors.
 type Collector interface {
 	Collect(context.Context) error
 	Flush() cgm.Metrics
@@ -22,7 +22,7 @@ type Collector interface {
 	Logger() zerolog.Logger
 }
 
-// InventoryStats defines the stats a collector exposes for the /inventory endpoint
+// InventoryStats defines the stats a collector exposes for the /inventory endpoint.
 type InventoryStats struct {
 	ID              string `json:"name"`
 	LastError       string `json:"last_error"`
@@ -32,12 +32,12 @@ type InventoryStats struct {
 }
 
 var (
-	// ErrNotImplemented collector type is not implemented on this os
+	// ErrNotImplemented collector type is not implemented on this os.
 	ErrNotImplemented = errors.New("not implemented on OS")
 
-	// ErrAlreadyRunning collector is already running
+	// ErrAlreadyRunning collector is already running.
 	ErrAlreadyRunning = errors.New("already running")
 
-	// ErrTTLNotExpired collector run ttl has not expired
+	// ErrTTLNotExpired collector run ttl has not expired.
 	ErrTTLNotExpired = errors.New("TTL not expired")
 )

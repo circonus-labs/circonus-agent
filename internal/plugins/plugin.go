@@ -19,10 +19,9 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 )
 
-// drain returns and resets plugin's current metrics
+// drain returns and resets plugin's current metrics.
 func (p *plugin) drain() *cgm.Metrics {
 	p.Lock()
 	defer p.Unlock()
@@ -43,7 +42,7 @@ func (p *plugin) drain() *cgm.Metrics {
 	return metrics
 }
 
-// baseTagList returns the base tags for the plugin
+// baseTagList returns the base tags for the plugin.
 func (p *plugin) baseTagList() []string {
 	tagList := []string{
 		"source:" + release.NAME,
@@ -64,7 +63,7 @@ func (p *plugin) parsePluginOutput(output []string) error {
 
 	if len(output) == 0 {
 		p.metrics = &cgm.Metrics{}
-		return errors.Errorf("zero lines of output")
+		return fmt.Errorf("zero lines of output") //nolint:goerr113
 	}
 
 	parseStart := time.Now()
@@ -81,7 +80,7 @@ func (p *plugin) parsePluginOutput(output []string) error {
 				Str("output", strings.Join(output, "\n")).
 				Msg("parsing json")
 			p.metrics = &cgm.Metrics{}
-			return errors.Wrap(err, "parsing json")
+			return fmt.Errorf("json parse: %w", err)
 		}
 		for mn, md := range jm {
 			// add stream tags to metric name
@@ -253,7 +252,7 @@ func (p *plugin) parsePluginOutput(output []string) error {
 	return nil
 }
 
-// exec runs a specific plugin and saves plugin output
+// exec runs a specific plugin and saves plugin output.
 func (p *plugin) exec() error {
 	// NOTE: !! IMPORTANT !!
 	//       locks are handled manually so that long running plugins
@@ -267,7 +266,7 @@ func (p *plugin) exec() error {
 			msg := "TTL not expired"
 			plog.Debug().Msg(msg)
 			p.Unlock()
-			return errors.New(msg)
+			return fmt.Errorf(msg) //nolint:goerr113
 		}
 	}
 
@@ -313,25 +312,23 @@ func (p *plugin) exec() error {
 
 	stdout, err := p.cmd.StdoutPipe()
 	if err != nil {
-		msg := "stdout pipe"
 		plog.Error().
 			Err(err).
-			Msg(msg)
+			Msg("stdout pipe")
 		resetStatus(err)
-		return errors.Wrap(err, msg)
+		return fmt.Errorf("stdout pipe: %w", err)
 	}
 
 	lines := []string{}
 	scanner := bufio.NewScanner(stdout)
 
 	if err := p.cmd.Start(); err != nil {
-		msg := "cmd start"
 		plog.Error().
 			Err(err).
 			Str("cmd", p.command).
-			Msg(msg)
+			Msg("cmd start")
 		resetStatus(err)
-		return errors.Wrap(err, msg)
+		return fmt.Errorf("cmd start: %w", err)
 	}
 
 	for scanner.Scan() {
@@ -358,7 +355,7 @@ func (p *plugin) exec() error {
 			Err(err).
 			Msg("reading stdio")
 
-		runErr = errors.Wrap(err, "scanner, reading stdio")
+		runErr = fmt.Errorf("scanner - reading stdio: %w", err)
 	}
 
 	// parse lines if there are any in the buffer
@@ -380,9 +377,9 @@ func (p *plugin) exec() error {
 				Str("cmd", p.command).
 				Msg("exited non-zero")
 			if runErr != nil {
-				runErr = errors.Wrapf(exiterr, "cmd err (%s) and %s", errMsg, runErr)
+				runErr = fmt.Errorf("cmd err (%s) and %s: %w", errMsg, runErr.Error(), exiterr) //nolint:errorlint
 			} else {
-				runErr = errors.Wrapf(exiterr, "cmd err (%s)", errMsg)
+				runErr = fmt.Errorf("cmd err (%s): %w", errMsg, exiterr)
 			}
 		} else {
 			plog.Error().
@@ -391,13 +388,13 @@ func (p *plugin) exec() error {
 				Str("stderr", stderr).
 				Msg("exited non-zero (not exiterr)")
 			if runErr != nil {
-				runErr = errors.Wrapf(err, "cmd err (%s) and %s", stderr, runErr)
+				runErr = fmt.Errorf("cmd err (%s) and %s: %w", stderr, runErr.Error(), err)
 			} else {
-				runErr = errors.Wrapf(err, "cmd err (%s)", stderr)
+				runErr = fmt.Errorf("cmd err (%s): %w", stderr, err)
 			}
 		}
 	}
 
 	resetStatus(runErr)
-	return runErr
+	return runErr //nolint:wrapcheck
 }

@@ -27,7 +27,6 @@ package reverse
 // 	"github.com/circonus-labs/circonus-agent/internal/config"
 // 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 // 	"github.com/circonus-labs/go-apiclient"
-// 	"github.com/pkg/errors"
 // 	"github.com/rs/zerolog"
 // 	"github.com/rs/zerolog/log"
 // 	"github.com/spf13/viper"

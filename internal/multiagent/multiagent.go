@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -22,7 +23,6 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/server"
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-retryablehttp"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
@@ -58,7 +58,7 @@ type Submitter struct {
 	interval        time.Duration
 }
 
-// submitLogshim is used to satisfy submission use of retryable-http Logger interface (avoiding ptr receiver issue)
+// submitLogshim is used to satisfy submission use of retryable-http Logger interface (avoiding ptr receiver issue).
 type submitLogshim struct {
 	logh zerolog.Logger
 }
@@ -68,12 +68,18 @@ const (
 	traceTSFormat        = "20060102_150405.000000000"
 )
 
+var (
+	errInvalidCheck   = fmt.Errorf("invalid check (nil)")
+	errInvalidServer  = fmt.Errorf("invalid server (nil)")
+	errInvalidMetrics = fmt.Errorf("invalid metrics (nil)")
+)
+
 func New(parentLogger zerolog.Logger, chk *check.Check, svr *server.Server) (*Submitter, error) {
 	if chk == nil {
-		return nil, errors.New("invalid check (nil")
+		return nil, errInvalidCheck
 	}
 	if svr == nil {
-		return nil, errors.New("invalid server (nil)")
+		return nil, errInvalidServer
 	}
 
 	s := &Submitter{
@@ -92,7 +98,7 @@ func New(parentLogger zerolog.Logger, chk *check.Check, svr *server.Server) (*Su
 
 	cm, err := chk.CheckMeta()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("check meta: %w", err)
 	}
 
 	s.checkUUID = cm.CheckUUID
@@ -100,14 +106,14 @@ func New(parentLogger zerolog.Logger, chk *check.Check, svr *server.Server) (*Su
 	interval := viper.GetString(config.KeyMultiAgentInterval)
 	i, err := time.ParseDuration(interval)
 	if err != nil {
-		return nil, errors.Wrapf(err, "invalid submission interval (%s)", interval)
+		return nil, fmt.Errorf("parse submission interval (%s): %w", interval, err)
 	}
 
 	s.interval = i
 
 	surl, tlsConfig, err := chk.SubmissionURL()
 	if err != nil {
-		return nil, errors.Wrap(err, "getting submission url")
+		return nil, fmt.Errorf("submission url: %w", err)
 	}
 
 	s.submissionURL = surl
@@ -175,7 +181,7 @@ func (s *Submitter) Start(ctx context.Context) error {
 func (s *Submitter) sendMetrics(ctx context.Context) error {
 	metrics := s.getMetrics()
 	if metrics == nil {
-		return errors.New("invalid metrics (nil)")
+		return errInvalidMetrics
 	}
 	if len(metrics) == 0 {
 		return nil
@@ -184,7 +190,7 @@ func (s *Submitter) sendMetrics(ctx context.Context) error {
 	rawData, err := json.Marshal(metrics)
 	if err != nil {
 		s.logger.Error().Err(err).Msg("json encoding metrics")
-		return errors.Wrap(err, "marshaling metrics")
+		return fmt.Errorf("encode json: %w", err)
 	}
 
 	start := time.Now()
@@ -192,7 +198,7 @@ func (s *Submitter) sendMetrics(ctx context.Context) error {
 	submitUUID, err := uuid.NewRandom()
 	if err != nil {
 		s.logger.Error().Err(err).Msg("creating new submit ID")
-		return errors.Wrap(err, "creating new submit ID")
+		return fmt.Errorf("create submission id: %w", err)
 	}
 
 	payloadIsCompressed := false
@@ -204,15 +210,15 @@ func (s *Submitter) sendMetrics(ctx context.Context) error {
 		n, e1 := zw.Write(rawData)
 		if e1 != nil {
 			s.logger.Error().Err(e1).Msg("compressing metrics")
-			return errors.Wrap(e1, "compressing metrics")
+			return fmt.Errorf("compressing metrics: %w", e1)
 		}
 		if n != len(rawData) {
 			s.logger.Error().Int("data_len", len(rawData)).Int("written", n).Msg("gzip write length mismatch")
-			return errors.Errorf("write length mismatch data length %d != written length %d", len(rawData), n)
+			return fmt.Errorf("write length mismatch data length %d != written length %d", len(rawData), n) //nolint:goerr113
 		}
 		if e2 := zw.Close(); e2 != nil {
 			s.logger.Error().Err(e2).Msg("closing gzip writer")
-			return errors.Wrap(e2, "closing gzip writer")
+			return fmt.Errorf("closing gzip writer: %w", e2)
 		}
 		payloadIsCompressed = true
 	} else {
@@ -244,7 +250,7 @@ func (s *Submitter) sendMetrics(ctx context.Context) error {
 	req, err := retryablehttp.NewRequest("PUT", s.submissionURL, subData)
 	if err != nil {
 		s.logger.Error().Err(err).Msg("creating submission request")
-		return err
+		return fmt.Errorf("new req: %w", err)
 	}
 	req = req.WithContext(ctx)
 	req.Header.Set("User-Agent", release.NAME+"/"+release.VERSION)
@@ -283,24 +289,24 @@ func (s *Submitter) sendMetrics(ctx context.Context) error {
 	}
 	if err != nil {
 		s.logger.Error().Err(err).Msg("making request")
-		return err
+		return fmt.Errorf("http do: %w", err)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		s.logger.Error().Err(err).Msg("reading body")
-		return err
+		return fmt.Errorf("read response: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		s.logger.Error().Str("url", s.submissionURL).Str("status", resp.Status).Str("body", string(body)).Msg("submitting telemetry")
-		return errors.Errorf("submitting metrics (%s %s)", s.submissionURL, resp.Status)
+		return fmt.Errorf("submitting metrics (%s %s)", s.submissionURL, resp.Status) //nolint:goerr113
 	}
 
 	var result TrapResult
 	if err := json.Unmarshal(body, &result); err != nil {
 		s.logger.Error().Err(err).Str("body", string(body)).Msg("parsing response")
-		return errors.Wrapf(err, "parsing response (%s)", string(body))
+		return fmt.Errorf("json parse - response (%s): %w", string(body), err)
 	}
 
 	result.CheckUUID = s.checkUUID

@@ -9,6 +9,7 @@ package procfs
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -20,10 +21,9 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 )
 
-// CPU metrics from the Linux ProcFS
+// CPU metrics from the Linux ProcFS.
 type CPU struct {
 	lastRunValues map[string]lastValues // values from last run
 	common                              // common attributes
@@ -32,7 +32,7 @@ type CPU struct {
 	reportAllCPUs bool                  // OPT report all cpus (vs just total) may be overridden in config file
 }
 
-// cpuOptions defines what elements can be overridden in a config file
+// cpuOptions defines what elements can be overridden in a config file.
 type cpuOptions struct {
 	// common
 	ID         string `json:"id" toml:"id" yaml:"id"`
@@ -49,7 +49,7 @@ type lastValues struct {
 	busy float64
 }
 
-// NewCPUCollector creates new procfs cpu collector
+// NewCPUCollector creates new procfs cpu collector.
 func NewCPUCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
 	procFile := "stat"
 
@@ -65,7 +65,7 @@ func NewCPUCollector(cfgBaseName, procFSPath string) (collector.Collector, error
 
 	if cfgBaseName == "" {
 		if _, err := os.Stat(c.file); os.IsNotExist(err) {
-			return nil, errors.Wrap(err, c.pkgID)
+			return nil, fmt.Errorf("%s procfile: %w", c.pkgID, err)
 		}
 
 		return &c, nil
@@ -76,7 +76,7 @@ func NewCPUCollector(cfgBaseName, procFSPath string) (collector.Collector, error
 	if err != nil {
 		if !strings.Contains(err.Error(), "no config found matching") {
 			c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-			return nil, errors.Wrapf(err, "%s config", c.pkgID)
+			return nil, fmt.Errorf("%s config: %w", c.pkgID, err)
 		}
 	} else {
 		c.logger.Debug().Interface("config", opts).Msg("loaded config")
@@ -85,7 +85,7 @@ func NewCPUCollector(cfgBaseName, procFSPath string) (collector.Collector, error
 	if opts.ClockHZ != "" {
 		v, err := strconv.ParseFloat(opts.ClockHZ, 64)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing clock_hz", c.pkgID)
+			return nil, fmt.Errorf("%s parsing clock_hz: %w", c.pkgID, err)
 		}
 		clockHZ = v
 		c.clockNorm = clockHZ / 100
@@ -94,7 +94,7 @@ func NewCPUCollector(cfgBaseName, procFSPath string) (collector.Collector, error
 	if opts.AllCPU != "" {
 		rpt, err := strconv.ParseBool(opts.AllCPU)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing report_all_cpus", c.pkgID)
+			return nil, fmt.Errorf("%s parsing report_all_cpus: %w", c.pkgID, err)
 		}
 		c.reportAllCPUs = rpt
 	}
@@ -111,19 +111,19 @@ func NewCPUCollector(cfgBaseName, procFSPath string) (collector.Collector, error
 	if opts.RunTTL != "" {
 		dur, err := time.ParseDuration(opts.RunTTL)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
+			return nil, fmt.Errorf("%s parsing run_ttl: %w", c.pkgID, err)
 		}
 		c.runTTL = dur
 	}
 
 	if _, err := os.Stat(c.file); os.IsNotExist(err) {
-		return nil, errors.Wrap(err, c.pkgID)
+		return nil, fmt.Errorf("%s procfile: %w", c.pkgID, err)
 	}
 
 	return &c, nil
 }
 
-// Collect metrics from the procfs resource
+// Collect metrics from the procfs resource.
 func (c *CPU) Collect(ctx context.Context) error {
 	metrics := cgm.Metrics{}
 
@@ -152,7 +152,7 @@ func (c *CPU) Collect(ctx context.Context) error {
 	lines, err := c.readFile(c.file)
 	if err != nil {
 		c.setStatus(metrics, err)
-		return errors.Wrap(err, c.pkgID)
+		return fmt.Errorf("%s read file: %w", c.pkgID, err)
 	}
 
 	_ = c.addMetric(&metrics, "", "num_cpu", "I", runtime.NumCPU(), tags.Tags{})
@@ -195,7 +195,7 @@ func (c *CPU) Collect(ctx context.Context) error {
 		id, cpuMetrics, err := c.parseCPU(fields)
 		if err != nil {
 			c.setStatus(metrics, err)
-			return errors.Wrapf(err, "%s parsing %s", c.pkgID, fields[0])
+			return fmt.Errorf("%s parsing %s: %w", c.pkgID, fields[0], err)
 		}
 
 		for mn, mv := range *cpuMetrics {
@@ -237,42 +237,42 @@ func (c *CPU) parseCPU(fields []string) (string, *cgm.Metrics, error) {
 
 	userNormal, err := strconv.ParseFloat(fields[1], 64)
 	if err != nil {
-		return cpuID, nil, err
+		return cpuID, nil, fmt.Errorf("parse userNormal: %w", err)
 	}
 	busy += userNormal
 
 	userNice, err := strconv.ParseFloat(fields[2], 64)
 	if err != nil {
-		return cpuID, nil, err
+		return cpuID, nil, fmt.Errorf("parse userNice: %w", err)
 	}
 	busy += userNice
 
 	sys, err := strconv.ParseFloat(fields[3], 64)
 	if err != nil {
-		return cpuID, nil, err
+		return cpuID, nil, fmt.Errorf("parse sys: %w", err)
 	}
 	busy += sys
 
 	idleNormal, err := strconv.ParseFloat(fields[4], 64)
 	if err != nil {
-		return cpuID, nil, err
+		return cpuID, nil, fmt.Errorf("parse idleNormal: %w", err)
 	}
 
 	waitIO, err := strconv.ParseFloat(fields[5], 64)
 	if err != nil {
-		return cpuID, nil, err
+		return cpuID, nil, fmt.Errorf("parse waitIO: %w", err)
 	}
 	busy += waitIO
 
 	irq, err := strconv.ParseFloat(fields[6], 64)
 	if err != nil {
-		return cpuID, nil, err
+		return cpuID, nil, fmt.Errorf("parse irq: %w", err)
 	}
 	busy += irq
 
 	softIRQ, err := strconv.ParseFloat(fields[7], 64)
 	if err != nil {
-		return cpuID, nil, err
+		return cpuID, nil, fmt.Errorf("parse softIRQ: %w", err)
 	}
 	busy += softIRQ
 
@@ -280,7 +280,7 @@ func (c *CPU) parseCPU(fields []string) (string, *cgm.Metrics, error) {
 	if len(fields) > 8 {
 		v, err := strconv.ParseFloat(fields[8], 64)
 		if err != nil {
-			return cpuID, nil, err
+			return cpuID, nil, fmt.Errorf("parse steal: %w", err)
 		}
 		steal = v
 		busy += steal
@@ -290,7 +290,7 @@ func (c *CPU) parseCPU(fields []string) (string, *cgm.Metrics, error) {
 	if len(fields) > 9 {
 		v, err := strconv.ParseFloat(fields[9], 64)
 		if err != nil {
-			return cpuID, nil, err
+			return cpuID, nil, fmt.Errorf("parse guest: %w", err)
 		}
 		guest = v
 		busy += guest
@@ -300,7 +300,7 @@ func (c *CPU) parseCPU(fields []string) (string, *cgm.Metrics, error) {
 	if len(fields) > 10 {
 		v, err := strconv.ParseFloat(fields[10], 64)
 		if err != nil {
-			return cpuID, nil, err
+			return cpuID, nil, fmt.Errorf("parse guestNice: %w", err)
 		}
 		guestNice = v
 		busy += guestNice
@@ -319,7 +319,7 @@ func (c *CPU) parseCPU(fields []string) (string, *cgm.Metrics, error) {
 		"cpu_guest_nice": cgm.Metric{Type: metricType, Value: (guestNice / numCPU) / c.clockNorm},
 	}
 
-	all := float64(busy + idleNormal)
+	all := busy + idleNormal
 	if lrv, ok := c.lastRunValues[fields[0]]; ok {
 		used := ((busy - lrv.busy) / (all - lrv.all)) * 100
 		metrics["cpu_used"] = cgm.Metric{Type: metricType, Value: used}

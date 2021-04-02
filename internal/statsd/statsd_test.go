@@ -7,7 +7,7 @@ package statsd
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -39,7 +39,7 @@ func TestNew(t *testing.T) {
 	t.Log("Enabled - no port")
 	{
 		viper.Set(config.KeyStatsdDisabled, false)
-		expect := errors.New("invalid StatsD port (empty)")
+		expect := fmt.Errorf("invalid StatsD port (empty)") //nolint:goerr113
 		_, err := New(context.Background())
 		if err == nil {
 			t.Fatal("expect error")
@@ -54,7 +54,7 @@ func TestNew(t *testing.T) {
 	{
 		viper.Set(config.KeyStatsdDisabled, false)
 		viper.Set(config.KeyStatsdPort, "65125")
-		expect := errors.New("invalid StatsD host category (empty)")
+		expect := fmt.Errorf("invalid StatsD host category (empty)") //nolint:goerr113
 		_, err := New(context.Background())
 		if err == nil {
 			t.Fatal("expect error")
@@ -153,6 +153,7 @@ func TestFlush(t *testing.T) {
 		metrics := s.Flush()
 		if metrics == nil {
 			t.Fatal("expected not nil")
+			return
 		}
 		if len(*metrics) != 0 {
 			t.Fatalf("expected empty metrics, got (%#v)", metrics)
@@ -173,6 +174,7 @@ func TestFlush(t *testing.T) {
 		metrics := s.Flush()
 		if metrics == nil {
 			t.Fatal("expected not nil")
+			return
 		}
 		if len(*metrics) != 0 {
 			t.Fatalf("expected empty metrics, got (%#v)", metrics)
@@ -200,7 +202,7 @@ func TestValidateStatsdOptions(t *testing.T) {
 	{
 		viper.Set(config.KeyStatsdPort, "")
 
-		expectedErr := errors.New("invalid StatsD port (empty)")
+		expectedErr := fmt.Errorf("invalid StatsD port (empty)") //nolint:goerr113
 		err := validateStatsdOptions()
 		if err == nil {
 			t.Fatal("Expected error")
@@ -214,7 +216,7 @@ func TestValidateStatsdOptions(t *testing.T) {
 	{
 		viper.Set(config.KeyStatsdPort, "abc")
 
-		expectedErr := errors.New("invalid StatsD port (abc)")
+		expectedErr := fmt.Errorf("invalid StatsD port (abc)") //nolint:goerr113
 		err := validateStatsdOptions()
 		if err == nil {
 			t.Fatal("Expected error")
@@ -228,7 +230,7 @@ func TestValidateStatsdOptions(t *testing.T) {
 	{
 		viper.Set(config.KeyStatsdPort, "10")
 
-		expectedErr := errors.New("invalid StatsD port 1024>10<65535")
+		expectedErr := fmt.Errorf("invalid StatsD port 1024>10<65535") //nolint:goerr113
 		err := validateStatsdOptions()
 		if err == nil {
 			t.Fatal("Expected error")
@@ -242,7 +244,7 @@ func TestValidateStatsdOptions(t *testing.T) {
 	{
 		viper.Set(config.KeyStatsdPort, "70000")
 
-		expectedErr := errors.New("invalid StatsD port 1024>70000<65535")
+		expectedErr := fmt.Errorf("invalid StatsD port 1024>70000<65535") //nolint:goerr113
 		err := validateStatsdOptions()
 		if err == nil {
 			t.Fatal("Expected error")
@@ -258,7 +260,7 @@ func TestValidateStatsdOptions(t *testing.T) {
 	{
 		viper.Set(config.KeyStatsdHostCategory, "")
 
-		expectedErr := errors.New("invalid StatsD host category (empty)")
+		expectedErr := fmt.Errorf("invalid StatsD host category (empty)") //nolint:goerr113
 		err := validateStatsdOptions()
 		if err == nil {
 			t.Fatal("Expected error")
@@ -287,7 +289,7 @@ func TestValidateStatsdOptions(t *testing.T) {
 		if err == nil {
 			t.Fatal("Expected error")
 		}
-		if !strings.HasPrefix(err.Error(), "unable to access cosi check config: open") {
+		if !strings.HasPrefix(err.Error(), "load cosi cid for group:") {
 			t.Errorf("unexpected error (%s)", err)
 		}
 	}
@@ -296,7 +298,7 @@ func TestValidateStatsdOptions(t *testing.T) {
 	{
 		viper.Set(config.KeyStatsdGroupCID, "abc")
 
-		expectedErr := errors.New("invalid StatsD Group Check ID (abc)")
+		expectedErr := fmt.Errorf("invalid StatsD Group Check ID (abc)") //nolint:goerr113
 		err := validateStatsdOptions()
 		if err == nil {
 			t.Fatal("Expected error")
@@ -309,7 +311,7 @@ func TestValidateStatsdOptions(t *testing.T) {
 	t.Log("Group CID, valid - 123")
 	{
 		viper.Set(config.KeyStatsdGroupCID, "123")
-		expectedErr := errors.New("invalid StatsD host/group prefix (both empty)")
+		expectedErr := fmt.Errorf("invalid StatsD host/group prefix (both empty)") //nolint:goerr113
 		err := validateStatsdOptions()
 		if err == nil {
 			t.Fatal("Expected error")
@@ -322,7 +324,7 @@ func TestValidateStatsdOptions(t *testing.T) {
 	t.Log("Group CID, valid - /check_bundle/123")
 	{
 		viper.Set(config.KeyStatsdGroupCID, "/check_bundle/123")
-		expectedErr := errors.New("invalid StatsD host/group prefix (both empty)")
+		expectedErr := fmt.Errorf("invalid StatsD host/group prefix (both empty)") //nolint:goerr113
 		err := validateStatsdOptions()
 		if err == nil {
 			t.Fatal("Expected error")
@@ -339,7 +341,7 @@ func TestValidateStatsdOptions(t *testing.T) {
 	{
 		viper.Set(config.KeyStatsdGroupPrefix, "host.")
 
-		expectedErr := errors.New("invalid StatsD host/group prefix (same)")
+		expectedErr := fmt.Errorf("invalid StatsD host/group prefix (same)") //nolint:goerr113
 		err := validateStatsdOptions()
 		if err == nil {
 			t.Fatal("Expected error")
@@ -355,7 +357,7 @@ func TestValidateStatsdOptions(t *testing.T) {
 	{
 		viper.Set(config.KeyStatsdGroupCounters, "")
 
-		expectedErr := errors.New("invalid StatsD counter operator (empty)")
+		expectedErr := fmt.Errorf("invalid StatsD counter operator (empty)") //nolint:goerr113
 		err := validateStatsdOptions()
 		if err == nil {
 			t.Fatal("Expected error")
@@ -369,7 +371,7 @@ func TestValidateStatsdOptions(t *testing.T) {
 	{
 		viper.Set(config.KeyStatsdGroupCounters, "multiply")
 
-		expectedErr := errors.New("invalid StatsD counter operator (multiply)")
+		expectedErr := fmt.Errorf("invalid StatsD counter operator (multiply)") //nolint:goerr113
 		err := validateStatsdOptions()
 		if err == nil {
 			t.Fatal("Expected error")
@@ -383,7 +385,7 @@ func TestValidateStatsdOptions(t *testing.T) {
 	{
 		viper.Set(config.KeyStatsdGroupCounters, "sum")
 
-		expectedErr := errors.New("invalid StatsD gauge operator (empty)")
+		expectedErr := fmt.Errorf("invalid StatsD gauge operator (empty)") //nolint:goerr113
 		err := validateStatsdOptions()
 		if err == nil {
 			t.Fatal("Expected error")
@@ -397,7 +399,7 @@ func TestValidateStatsdOptions(t *testing.T) {
 	{
 		viper.Set(config.KeyStatsdGroupCounters, "average")
 
-		expectedErr := errors.New("invalid StatsD gauge operator (empty)")
+		expectedErr := fmt.Errorf("invalid StatsD gauge operator (empty)") //nolint:goerr113
 		err := validateStatsdOptions()
 		if err == nil {
 			t.Fatal("Expected error")
@@ -411,7 +413,7 @@ func TestValidateStatsdOptions(t *testing.T) {
 	{
 		viper.Set(config.KeyStatsdGroupGauges, "")
 
-		expectedErr := errors.New("invalid StatsD gauge operator (empty)")
+		expectedErr := fmt.Errorf("invalid StatsD gauge operator (empty)") //nolint:goerr113
 		err := validateStatsdOptions()
 		if err == nil {
 			t.Fatal("Expected error")
@@ -425,7 +427,7 @@ func TestValidateStatsdOptions(t *testing.T) {
 	{
 		viper.Set(config.KeyStatsdGroupGauges, "multiply")
 
-		expectedErr := errors.New("invalid StatsD gauge operator (multiply)")
+		expectedErr := fmt.Errorf("invalid StatsD gauge operator (multiply)") //nolint:goerr113
 		err := validateStatsdOptions()
 		if err == nil {
 			t.Fatal("Expected error")
@@ -439,7 +441,7 @@ func TestValidateStatsdOptions(t *testing.T) {
 	{
 		viper.Set(config.KeyStatsdGroupGauges, "sum")
 
-		expectedErr := errors.New("invalid StatsD set operator (empty)")
+		expectedErr := fmt.Errorf("invalid StatsD set operator (empty)") //nolint:goerr113
 		err := validateStatsdOptions()
 		if err == nil {
 			t.Fatal("Expected error")
@@ -453,7 +455,7 @@ func TestValidateStatsdOptions(t *testing.T) {
 	{
 		viper.Set(config.KeyStatsdGroupGauges, "average")
 
-		expectedErr := errors.New("invalid StatsD set operator (empty)")
+		expectedErr := fmt.Errorf("invalid StatsD set operator (empty)") //nolint:goerr113
 		err := validateStatsdOptions()
 		if err == nil {
 			t.Fatal("Expected error")
@@ -467,7 +469,7 @@ func TestValidateStatsdOptions(t *testing.T) {
 	{
 		viper.Set(config.KeyStatsdGroupSets, "")
 
-		expectedErr := errors.New("invalid StatsD set operator (empty)")
+		expectedErr := fmt.Errorf("invalid StatsD set operator (empty)") //nolint:goerr113
 		err := validateStatsdOptions()
 		if err == nil {
 			t.Fatal("Expected error")
@@ -481,7 +483,7 @@ func TestValidateStatsdOptions(t *testing.T) {
 	{
 		viper.Set(config.KeyStatsdGroupSets, "multiply")
 
-		expectedErr := errors.New("invalid StatsD set operator (multiply)")
+		expectedErr := fmt.Errorf("invalid StatsD set operator (multiply)") //nolint:goerr113
 		err := validateStatsdOptions()
 		if err == nil {
 			t.Fatal("Expected error")

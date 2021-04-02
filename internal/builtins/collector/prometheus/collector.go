@@ -13,11 +13,10 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 )
 
-// Flush returns last metrics collected
+// Flush returns last metrics collected.
 func (c *Prom) Flush() cgm.Metrics {
 	c.Lock()
 	defer c.Unlock()
@@ -27,12 +26,12 @@ func (c *Prom) Flush() cgm.Metrics {
 	return c.lastMetrics
 }
 
-// ID returns the id of the instance
+// ID returns the id of the instance.
 func (c *Prom) ID() string {
 	return "promfetch"
 }
 
-// Inventory returns collector stats for /inventory endpoint
+// Inventory returns collector stats for /inventory endpoint.
 func (c *Prom) Inventory() collector.InventoryStats {
 	c.Lock()
 	defer c.Unlock()
@@ -45,28 +44,28 @@ func (c *Prom) Inventory() collector.InventoryStats {
 	}
 }
 
-// Logger returns collector's instance of logger
+// Logger returns collector's instance of logger.
 func (c *Prom) Logger() zerolog.Logger {
 	return c.logger
 }
 
-// cleanName is used to clean the metric name
+// cleanName is used to clean the metric name.
 func (c *Prom) cleanName(name string) string {
 	return c.metricNameRegex.ReplaceAllString(name, "")
 }
 
-// addMetric to internal buffer if metric is active
+// addMetric to internal buffer if metric is active.
 func (c *Prom) addMetric(metrics *cgm.Metrics, prefix string, mname string, mtags tags.Tags, mtype string, mval interface{}) error {
 	if metrics == nil {
-		return errors.New("invalid metric submission")
+		return errInvalidMetric
 	}
 
 	if mname == "" {
-		return errors.New("invalid metric, no name")
+		return errInvalidMetricNoName
 	}
 
 	if mtype == "" {
-		return errors.New("invalid metric, no type")
+		return errInvalidMetricNoType
 	}
 
 	// cleanup the raw metric name, if needed
@@ -89,7 +88,7 @@ func (c *Prom) addMetric(metrics *cgm.Metrics, prefix string, mname string, mtag
 	return nil
 }
 
-// setStatus is used in Collect to set the collector status
+// setStatus is used in Collect to set the collector status.
 func (c *Prom) setStatus(metrics cgm.Metrics, err error) {
 	c.Lock()
 	if err == nil {

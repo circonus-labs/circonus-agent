@@ -6,15 +6,21 @@
 package config
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
-	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
-// apiRequired checks to see if any options are set which would *require* accessing the API
+var (
+	errAPIKeyRequired = fmt.Errorf("API key is required")
+	errAPIAppRequired = fmt.Errorf("API app is required")
+	errAPIURLRequired = fmt.Errorf("API URL is required")
+)
+
+// apiRequired checks to see if any options are set which would *require* accessing the API.
 func apiRequired() bool {
 	// reverse connections require API access
 	if viper.GetBool(KeyReverse) {
@@ -50,24 +56,24 @@ func validateAPIOptions() error {
 	// API is required for reverse and/or statsd
 
 	if apiKey == "" {
-		return errors.New("API key is required")
+		return errAPIKeyRequired
 	}
 
 	if apiApp == "" {
-		return errors.New("API app is required")
+		return errAPIAppRequired
 	}
 
 	if apiURL == "" {
-		return errors.New("API URL is required")
+		return errAPIURLRequired
 	}
 
 	if apiURL != defaults.APIURL {
 		parsedURL, err := url.Parse(apiURL)
 		if err != nil {
-			return errors.Wrap(err, "Invalid API URL")
+			return fmt.Errorf("invalid API URL: %w", err)
 		}
 		if parsedURL.Scheme == "" || parsedURL.Host == "" || parsedURL.Path == "" {
-			return errors.Errorf("Invalid API URL (%s)", apiURL)
+			return fmt.Errorf("invalid API URL (%s)", apiURL) //nolint:goerr113
 		}
 	}
 

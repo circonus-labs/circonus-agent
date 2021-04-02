@@ -9,11 +9,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 func (c *Client) Write(groupID string, metrics *Metrics) error {
@@ -22,34 +21,34 @@ func (c *Client) Write(groupID string, metrics *Metrics) error {
 
 func (c *Client) WriteWithContext(ctx context.Context, groupID string, metrics *Metrics) error {
 	if groupID == "" {
-		return errors.New("invalid group id (empty)")
+		return errInvalidGroupID
 	}
 	if metrics == nil {
-		return errors.New("invalid metrics (nil)")
+		return errInvalidMetrics
 	}
 	if len(*metrics) == 0 {
-		return errors.New("invalid metrics (none)")
+		return errInvalidMetricList
 	}
 
 	au, err := c.agentURL.Parse("/write/" + groupID)
 	if err != nil {
-		return errors.Wrap(err, "creating request url")
+		return fmt.Errorf("creating request url: %w", err)
 	}
 
 	m, err := json.Marshal(metrics)
 	if err != nil {
-		return errors.Wrap(err, "converting metrics to JSON")
+		return fmt.Errorf("json encode - metrics: %w", err)
 	}
 
 	client := &http.Client{}
 	req, err := http.NewRequestWithContext(ctx, "POST", au.String(), bytes.NewBuffer(m))
 	if err != nil {
-		return errors.Wrap(err, "preparing request")
+		return fmt.Errorf("preparing request: %w", err)
 	}
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return errors.Wrap(err, "request")
+		return fmt.Errorf("do request: %w", err)
 	}
 
 	switch resp.StatusCode {
@@ -62,9 +61,9 @@ func (c *Client) WriteWithContext(ctx context.Context, groupID string, metrics *
 		defer resp.Body.Close()
 		data, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return errors.Wrap(err, "reading response")
+			return fmt.Errorf("reading response: %w", err)
 		}
 
-		return errors.Errorf("%s - %s - %s", resp.Status, au.String(), strings.TrimSpace(string(data)))
+		return fmt.Errorf("%s - %s - %s: %w", resp.Status, au.String(), strings.TrimSpace(string(data)), errInvalidHTTPResponse)
 	}
 }

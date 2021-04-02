@@ -6,7 +6,7 @@
 package prometheus
 
 import (
-	"errors"
+	"fmt"
 	"reflect"
 	"regexp"
 	"testing"
@@ -69,7 +69,7 @@ func TestAddMetric(t *testing.T) {
 		if err := c.addMetric(nil, "", "", tags.Tags{}, "", ""); err == nil {
 			t.Fatal("expected error")
 		} else {
-			expect := "invalid metric submission"
+			expect := "invalid metric, nil"
 			if err.Error() != expect {
 				t.Fatalf("expected (%s) got (%v)", expect, err)
 			}
@@ -123,7 +123,7 @@ func TestSetStatus(t *testing.T) {
 	t.Log("\tmetrics, no error")
 	c.setStatus(m, nil)
 	t.Log("\tmetrics, error")
-	c.setStatus(m, errors.New("foo"))
+	c.setStatus(m, fmt.Errorf("foo")) //nolint:goerr113
 
 	t.Log("\tmetrics, no error, add last start")
 	c.lastStart = time.Now()

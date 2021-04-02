@@ -14,7 +14,7 @@ import (
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 )
 
-// agentMemoryStats produces the internal agent metrics
+// agentMemoryStats produces the internal agent metrics.
 func (s *Server) agentMemoryStats(metrics cgm.Metrics, mtags []string) {
 	var mem syscall.Rusage
 	if err := syscall.Getrusage(syscall.RUSAGE_SELF, &mem); err == nil {

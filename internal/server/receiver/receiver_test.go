@@ -8,7 +8,6 @@ package receiver
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -60,7 +59,7 @@ func TestParse(t *testing.T) {
 	{
 		data := []byte{}
 		r := ioutil.NopCloser(bytes.NewReader(data))
-		expectedErr := errors.New("parsing json for test: EOF")
+		expectedErr := fmt.Errorf("parsing json for test: EOF") //nolint:goerr113
 		err := Parse("test", r)
 		if err == nil {
 			t.Fatal("expected error")
@@ -74,7 +73,7 @@ func TestParse(t *testing.T) {
 	{
 		data := []byte("")
 		r := ioutil.NopCloser(bytes.NewReader(data))
-		expectedErr := errors.New("parsing json for test: EOF")
+		expectedErr := fmt.Errorf("parsing json for test: EOF") //nolint:goerr113
 		err := Parse("test", r)
 		if err == nil {
 			t.Fatal("expected error")
@@ -88,7 +87,7 @@ func TestParse(t *testing.T) {
 	{
 		data := []byte("{")
 		r := ioutil.NopCloser(bytes.NewReader(data))
-		expectedErr := errors.New("parsing json for test: unexpected EOF")
+		expectedErr := fmt.Errorf("parsing json for test: unexpected EOF") //nolint:goerr113
 		err := Parse("test", r)
 		if err == nil {
 			t.Fatal("expected error")
@@ -102,7 +101,7 @@ func TestParse(t *testing.T) {
 	{
 		data := []byte(`{"test": }`)
 		r := ioutil.NopCloser(bytes.NewReader(data))
-		expectedErr := errors.New("id:test - offset 10 -- invalid character '}' looking for beginning of value")
+		expectedErr := fmt.Errorf("id:test - offset 10 -- invalid character '}' looking for beginning of value") //nolint:goerr113
 		err := Parse("test", r)
 		if err == nil {
 			t.Fatal("expected error")
@@ -432,6 +431,7 @@ func TestParseInt32(t *testing.T) {
 		} else {
 			if v == nil {
 				t.Fatal("expected value")
+				return
 			}
 			if *v != test.Expect {
 				t.Fatalf("expected (%#v) got (%#v)", test.Expect, *v)
@@ -468,6 +468,7 @@ func TestParseUint32(t *testing.T) {
 		} else {
 			if v == nil {
 				t.Fatal("expected value")
+				return
 			}
 			if *v != test.Expect {
 				t.Fatalf("expected (%#v) got (%#v)", test.Expect, *v)
@@ -504,6 +505,7 @@ func TestParseInt64(t *testing.T) {
 		} else {
 			if v == nil {
 				t.Fatal("expected value")
+				return
 			}
 			if *v != test.Expect {
 				t.Fatalf("expected (%#v) got (%#v)", test.Expect, *v)
@@ -540,6 +542,7 @@ func TestParseUint64(t *testing.T) {
 		} else {
 			if v == nil {
 				t.Fatal("expected value")
+				return
 			}
 			if *v != test.Expect {
 				t.Fatalf("expected (%#v) got (%#v)", test.Expect, *v)
@@ -581,6 +584,7 @@ func TestParseFloat(t *testing.T) {
 		} else {
 			if v == nil {
 				t.Fatal("expected value")
+				return
 			}
 			if *v != test.Expect {
 				t.Fatalf("expected (%#v) got (%#v)", test.Expect, *v)
@@ -623,6 +627,7 @@ func TestParseHistogram(t *testing.T) {
 		} else {
 			if v == nil {
 				t.Fatal("expected value")
+				return
 			}
 			if fmt.Sprintf("%v", *v) != fmt.Sprintf("%v", test.Expect) {
 				t.Fatalf("expected (%#v) got (%#v)", test.Expect, *v)

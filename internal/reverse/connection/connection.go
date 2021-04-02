@@ -19,7 +19,6 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/check"
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
@@ -37,7 +36,7 @@ type Connection struct {
 	sync.Mutex
 }
 
-// command contains details of the command received from the broker
+// command contains details of the command received from the broker.
 type command struct {
 	start     time.Time
 	metrics   *[]byte
@@ -50,20 +49,20 @@ type command struct {
 	reset     bool
 }
 
-// noitHeader defines the header received from the noit/broker
+// noitHeader defines the header received from the noit/broker.
 type noitHeader struct {
 	channelID  uint16
 	isCommand  bool
 	payloadLen uint32
 }
 
-// noitFrame defines the header + the payload (described by the header) received from the noit/broker
+// noitFrame defines the header + the payload (described by the header) received from the noit/broker.
 type noitFrame struct {
 	header  *noitHeader
 	payload []byte
 }
 
-// connError returned from connect(), adds flag indicating whether to retry
+// connError returned from connect(), adds flag indicating whether to retry.
 type connError struct {
 	err   error
 	retry bool
@@ -94,7 +93,7 @@ const (
 	CommandConnect  = "CONNECT"     // Connect command, must be followed by a request payload
 	CommandReset    = "RESET"       // Reset command, resets the connection
 
-	// NOTE: TBD, make some of these user-configurable
+	// NOTE: TBD, make some of these user-configurable.
 	CommTimeoutSeconds   = 10    // seconds, when communicating with noit
 	DialerTimeoutSeconds = 15    // seconds, establishing connection
 	MetricTimeoutSeconds = 50    // seconds, when communicating with agent
@@ -109,10 +108,10 @@ const (
 
 func New(parentLogger zerolog.Logger, agentAddress string, cfg *check.ReverseConfig) (*Connection, error) {
 	if agentAddress == "" {
-		return nil, errors.Errorf("invalid agent address (empty)")
+		return nil, fmt.Errorf("invalid agent address (empty)") //nolint:goerr113
 	}
 	if cfg == nil {
-		return nil, errors.Errorf("invalid config (nil)")
+		return nil, fmt.Errorf("invalid config (nil)") //nolint:goerr113
 	}
 
 	if n, err := crand.Int(crand.Reader, big.NewInt(math.MaxInt64)); err != nil {
@@ -134,7 +133,7 @@ func New(parentLogger zerolog.Logger, agentAddress string, cfg *check.ReverseCon
 	return &c, nil
 }
 
-// Start the reverse connection to the broker
+// Start the reverse connection to the broker.
 func (c *Connection) Start(ctx context.Context) error {
 	for {
 		conn, cerr := c.connect(ctx)
@@ -224,13 +223,13 @@ func (c *Connection) Start(ctx context.Context) error {
 }
 
 // connect to broker w/tls and send initial introduction
-// NOTE: all reverse connections require tls
+// NOTE: all reverse connections require tls.
 func (c *Connection) connect(ctx context.Context) (*tls.Conn, *connError) {
 	c.Lock()
 	if c.connAttempts > 0 {
 		if c.maxConnRetry != -1 && c.connAttempts >= c.maxConnRetry {
 			c.Unlock()
-			return nil, &connError{retry: false, err: errors.Errorf("max broker connection attempts reached (%d of %d)", c.connAttempts, c.maxConnRetry)}
+			return nil, &connError{retry: false, err: fmt.Errorf("max broker connection attempts reached (%d of %d)", c.connAttempts, c.maxConnRetry)} //nolint:goerr113
 		}
 
 		c.logger.Info().
@@ -262,7 +261,7 @@ func (c *Connection) connect(ctx context.Context) (*tls.Conn, *connError) {
 		if c.connAttempts%ConfigRetryLimit == 0 {
 			// Check configuration refresh -- TBD on if check refresh really needed or just find owner again for clustered
 			c.Unlock()
-			return nil, &connError{retry: false, err: errors.Errorf("max connection attempts (%d), check refresh", c.connAttempts)}
+			return nil, &connError{retry: false, err: fmt.Errorf("max connection attempts (%d), check refresh", c.connAttempts)} //nolint:goerr113
 		}
 	}
 	c.Unlock()
@@ -277,10 +276,10 @@ func (c *Connection) connect(ctx context.Context) (*tls.Conn, *connError) {
 	if err != nil {
 		if ne, ok := err.(*net.OpError); ok { //nolint:errorlint
 			if ne.Timeout() {
-				return nil, &connError{retry: ne.Temporary(), err: errors.Wrapf(err, "timeout connecting to %s", revHost)}
+				return nil, &connError{retry: ne.Temporary(), err: fmt.Errorf("timeout connecting to %s: %w", revHost, err)}
 			}
 		}
-		return nil, &connError{retry: true, err: errors.Wrapf(err, "connecting to %s", revHost)}
+		return nil, &connError{retry: true, err: fmt.Errorf("connecting to %s: %w", revHost, err)}
 	}
 	c.logger.Info().Str("host", revHost).Msg("connected")
 
@@ -294,7 +293,7 @@ func (c *Connection) connect(ctx context.Context) (*tls.Conn, *connError) {
 	c.logger.Debug().Msg(fmt.Sprintf("sending intro '%s'", introReq))
 	if _, err := fmt.Fprintf(conn, "%s HTTP/1.1\r\n\r\n", introReq); err != nil {
 		c.logger.Error().Err(err).Msg("sending intro")
-		return nil, &connError{retry: true, err: errors.Wrapf(err, "unable to write intro to %s", revHost)}
+		return nil, &connError{retry: true, err: fmt.Errorf("unable to write intro to %s: %w", revHost, err)}
 	}
 
 	c.Lock()
@@ -306,7 +305,7 @@ func (c *Connection) connect(ctx context.Context) (*tls.Conn, *connError) {
 	return conn, nil
 }
 
-// getNextDelay for failed connection attempts
+// getNextDelay for failed connection attempts.
 func (c *Connection) getNextDelay(currDelay time.Duration) time.Duration {
 	maxDelay := MaxDelaySeconds * time.Second
 
@@ -328,7 +327,7 @@ func (c *Connection) getNextDelay(currDelay time.Duration) time.Duration {
 	return delay
 }
 
-// resetConnectionAttempts on successful send/receive
+// resetConnectionAttempts on successful send/receive.
 func (c *Connection) resetConnectionAttempts() {
 	c.Lock()
 	if c.connAttempts > 0 {
@@ -338,7 +337,7 @@ func (c *Connection) resetConnectionAttempts() {
 	c.Unlock()
 }
 
-// Error returns string representation of a connError
+// Error returns string representation of a connError.
 func (e *connError) Error() string {
 	return e.err.Error()
 }

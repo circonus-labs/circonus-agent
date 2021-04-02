@@ -9,16 +9,17 @@ package wmi
 
 import (
 	"context"
+	"fmt"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/StackExchange/wmi"
+	// "github.com/StackExchange/wmi".
+	"github.com/bi-zone/wmi"
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
 
@@ -52,12 +53,12 @@ type Win32_PerfFormattedData_PerfOS_System struct {
 	Threads                     uint32
 }
 
-// System metrics from the Windows Management Interface (wmi)
+// System metrics from the Windows Management Interface (wmi).
 type System struct {
 	wmicommon
 }
 
-// systemOptions defines what elements can be overridden in a config file
+// systemOptions defines what elements can be overridden in a config file.
 type systemOptions struct {
 	ID              string `json:"id" toml:"id" yaml:"id"`
 	MetricNameRegex string `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
@@ -65,7 +66,7 @@ type systemOptions struct {
 	RunTTL          string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
-// NewSystemCollector creates new wmi collector
+// NewSystemCollector creates new wmi collector.
 func NewSystemCollector(cfgBaseName string) (collector.Collector, error) {
 	c := System{}
 	c.id = "system"
@@ -86,7 +87,7 @@ func NewSystemCollector(cfgBaseName string) (collector.Collector, error) {
 			return &c, nil
 		}
 		c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-		return nil, errors.Wrapf(err, "%s config", c.pkgID)
+		return nil, fmt.Errorf("%s config: %w", c.pkgID, err)
 	}
 
 	c.logger.Debug().Interface("config", cfg).Msg("loaded config")
@@ -98,7 +99,7 @@ func NewSystemCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.MetricNameRegex != "" {
 		rx, err := regexp.Compile(cfg.MetricNameRegex)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s compile metric_name_regex", c.pkgID)
+			return nil, fmt.Errorf("%s compile metric_name_regex: %w", c.pkgID, err)
 		}
 		c.metricNameRegex = rx
 	}
@@ -110,7 +111,7 @@ func NewSystemCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.RunTTL != "" {
 		dur, err := time.ParseDuration(cfg.RunTTL)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
+			return nil, fmt.Errorf("%s parsing run_ttl: %w", c.pkgID, err)
 		}
 		c.runTTL = dur
 	}
@@ -118,7 +119,7 @@ func NewSystemCollector(cfgBaseName string) (collector.Collector, error) {
 	return &c, nil
 }
 
-// Collect metrics from the wmi resource
+// Collect metrics from the wmi resource.
 func (c *System) Collect(ctx context.Context) error {
 	metrics := cgm.Metrics{}
 
@@ -146,7 +147,7 @@ func (c *System) Collect(ctx context.Context) error {
 	if err := wmi.Query(qry, &dst); err != nil {
 		c.logger.Error().Err(err).Str("query", qry).Msg("wmi query error")
 		c.setStatus(metrics, err)
-		return errors.Wrap(err, c.pkgID)
+		return fmt.Errorf("wmi %s query: %w", c.pkgID, err)
 	}
 
 	metricType := "L"

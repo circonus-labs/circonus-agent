@@ -8,16 +8,15 @@ package api
 import (
 	"context"
 	"encoding/json"
-
-	"github.com/pkg/errors"
+	"fmt"
 )
 
-// Inventory retrieves the active plugin inventory from the agent
+// Inventory retrieves the active plugin inventory from the agent.
 func (c *Client) Inventory() (*Inventory, error) {
 	return c.InventoryWithContext(context.Background())
 }
 
-// InventoryWithContext retrieves the active plugin inventory from the agent
+// InventoryWithContext retrieves the active plugin inventory from the agent.
 func (c *Client) InventoryWithContext(ctx context.Context) (*Inventory, error) {
 	data, err := c.get(ctx, "/inventory/")
 	if err != nil {
@@ -26,7 +25,7 @@ func (c *Client) InventoryWithContext(ctx context.Context) (*Inventory, error) {
 
 	var v Inventory
 	if err := json.Unmarshal(data, &v); err != nil {
-		return nil, errors.Wrap(err, "parsing inventory")
+		return nil, fmt.Errorf("json parse - inventory: %w", err)
 	}
 
 	return &v, nil

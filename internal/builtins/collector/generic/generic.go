@@ -33,11 +33,14 @@ const (
 )
 
 var (
-	defaultExcludeRegex = regexp.MustCompile(fmt.Sprintf(regexPat, ""))
-	defaultIncludeRegex = regexp.MustCompile(fmt.Sprintf(regexPat, ".+"))
+	errInvalidMetric       = fmt.Errorf("invalid metric, nil")
+	errInvalidMetricNoName = fmt.Errorf("invalid metric, no name")
+	errInvalidMetricNoType = fmt.Errorf("invalid metric, no type")
+	defaultExcludeRegex    = regexp.MustCompile(fmt.Sprintf(regexPat, ""))
+	defaultIncludeRegex    = regexp.MustCompile(fmt.Sprintf(regexPat, ".+"))
 )
 
-// New creates new PSUtil collector
+// New creates new PSUtil collector.
 func New() ([]collector.Collector, error) {
 	none := []collector.Collector{}
 

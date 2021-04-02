@@ -9,6 +9,7 @@ package check
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/url"
@@ -18,13 +19,12 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/check/bundle"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/go-apiclient"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
 
-// Check exposes the check bundle management interface
+// Check exposes the check bundle management interface.
 type Check struct {
 	checkConfig           *apiclient.Check
 	checkBundle           *bundle.Bundle
@@ -40,14 +40,14 @@ type Check struct {
 	sync.Mutex
 }
 
-// Meta contains check id meta data
+// Meta contains check id meta data.
 type Meta struct {
 	BundleID  string
 	CheckUUID string
 	CheckID   string
 }
 
-// ReverseConfig contains the reverse configuration for the check
+// ReverseConfig contains the reverse configuration for the check.
 type ReverseConfig struct {
 	BrokerAddr *net.TCPAddr
 	ReverseURL *url.URL
@@ -61,6 +61,10 @@ type ReverseConfigs map[string]ReverseConfig
 const (
 	StatusActive      = "active"
 	PrimaryCheckIndex = 0
+)
+
+var (
+	errCheckNotInitialized = fmt.Errorf("check not initialized")
 )
 
 type ErrNoOwnerFound struct {
@@ -119,7 +123,7 @@ func (e *ErrInvalidOwner) Error() string {
 	return s
 }
 
-// logshim is used to satisfy apiclient Logger interface (avoiding ptr receiver issue)
+// logshim is used to satisfy apiclient Logger interface (avoiding ptr receiver issue).
 type logshim struct {
 	logh zerolog.Logger
 }
@@ -128,7 +132,7 @@ func (l logshim) Printf(fmt string, v ...interface{}) {
 	l.logh.Printf(fmt, v...)
 }
 
-// New returns a new check instance
+// New returns a new check instance.
 func New(apiClient API) (*Check, error) {
 	// NOTE: TBD, make broker max retries and response time configurable
 	c := Check{
@@ -171,7 +175,7 @@ func New(apiClient API) (*Check, error) {
 		}
 		client, err := apiclient.New(cfg)
 		if err != nil {
-			return nil, errors.Wrap(err, "creating circonus api client")
+			return nil, fmt.Errorf("creating circonus api client: %w", err)
 		}
 		apiClient = client
 	}
@@ -180,7 +184,7 @@ func New(apiClient API) (*Check, error) {
 
 	b, err := bundle.New(c.client)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("new bundle: %w", err)
 	}
 
 	c.checkBundle = b
@@ -196,7 +200,7 @@ func New(apiClient API) (*Check, error) {
 	if isReverse {
 		err := c.setReverseConfigs()
 		if err != nil {
-			return nil, errors.Wrap(err, "setting up reverse configuration")
+			return nil, fmt.Errorf("setting up reverse configuration: %w", err)
 		}
 		c.reverse = true
 	}
@@ -204,13 +208,13 @@ func New(apiClient API) (*Check, error) {
 	return &c, nil
 }
 
-// CheckMeta returns check id, check bundle id, and check uuid
+// CheckMeta returns check id, check bundle id, and check uuid.
 func (c *Check) CheckMeta() (*Meta, error) {
 	c.Lock()
 	defer c.Unlock()
 
 	if c.checkConfig == nil {
-		return nil, errors.New("check uninitialized")
+		return nil, errCheckNotInitialized
 	}
 
 	return &Meta{
@@ -220,38 +224,43 @@ func (c *Check) CheckMeta() (*Meta, error) {
 	}, nil
 }
 
-// SubmissionURL returns the URL to submit metrics to as well as the tls config for https
+// SubmissionURL returns the URL to submit metrics to as well as the tls config for https.
 func (c *Check) SubmissionURL() (string, *tls.Config, error) {
 	surl, err := c.checkBundle.SubmissionURL()
 	if err != nil {
-		return "", nil, err
+		return "", nil, fmt.Errorf("submission url: %w", err)
 	}
 
 	u, err := url.Parse(surl)
 	if err != nil {
-		return "", nil, errors.Wrap(err, "parsing submission url")
+		return "", nil, fmt.Errorf("parsing submission url: %w", err)
 	}
 	tlsConfig, _, err := c.brokerTLSConfig(u)
 	if err != nil {
-		return "", nil, errors.Wrapf(err, "creating TLS config for (%s - %s)", c.broker.CID, surl)
+		return "", nil, fmt.Errorf("creating TLS config for (%s - %s): %w", c.broker.CID, surl, err)
 	}
 
 	return surl, tlsConfig, nil
 }
 
-// CheckPeriod returns check bundle period (intetrval between when broker should make request)
+// CheckPeriod returns check bundle period (intetrval between when broker should make request).
 func (c *Check) CheckPeriod() (uint, error) {
 	c.Lock()
 	defer c.Unlock()
 
 	if c.checkBundle == nil {
-		return 0, errors.New("check bundle uninitialized")
+		return 0, errCheckNotInitialized
 	}
 
-	return c.checkBundle.Period()
+	period, err := c.checkBundle.Period()
+	if err != nil {
+		return 0, fmt.Errorf("check period: %w", err)
+	}
+
+	return period, nil
 }
 
-// RefreshReverseConfig refreshes the check, broker and broker tls configurations
+// RefreshReverseConfig refreshes the check, broker and broker tls configurations.
 func (c *Check) RefreshReverseConfig() error {
 	if err := c.FetchCheckConfig(); err != nil {
 		return err
@@ -265,39 +274,39 @@ func (c *Check) RefreshReverseConfig() error {
 	return nil
 }
 
-// GetReverseConfigs returns the reverse connection configuration(s) to use for the check
+// GetReverseConfigs returns the reverse connection configuration(s) to use for the check.
 func (c *Check) GetReverseConfigs() (*ReverseConfigs, error) {
 	c.Lock()
 	defer c.Unlock()
 
 	if !c.reverse {
-		return nil, errors.New("agent not in reverse mode")
+		return nil, fmt.Errorf("agent not in reverse mode") //nolint:goerr113
 	}
 
 	if c.revConfigs == nil {
-		return nil, errors.New("invalid reverse config (nil)")
+		return nil, fmt.Errorf("invalid reverse config (nil)") //nolint:goerr113
 	}
 
 	return c.revConfigs, nil
 }
 
-// FetchCheckConfig re-loads the check using the API
+// FetchCheckConfig re-loads the check using the API.
 func (c *Check) FetchCheckConfig() error {
 	c.Lock()
 	defer c.Unlock()
 
 	if c.checkBundle == nil {
-		return errors.New("check bundle uninitialized")
+		return errCheckNotInitialized
 	}
 
 	checkCID, err := c.checkBundle.CheckCID(PrimaryCheckIndex)
 	if err != nil {
-		return err
+		return fmt.Errorf("check cid: %w", err)
 	}
 
 	check, err := c.client.FetchCheck(apiclient.CIDType(&checkCID))
 	if err != nil {
-		return errors.Wrapf(err, "unable to fetch check (%s)", checkCID)
+		return fmt.Errorf("unable to fetch check (%s): %w", checkCID, err)
 	}
 
 	if !check.Active {
@@ -314,18 +323,18 @@ func (c *Check) FetchCheckConfig() error {
 	return nil
 }
 
-// FetchBrokerConfig re-loads the broker using the API
+// FetchBrokerConfig re-loads the broker using the API.
 func (c *Check) FetchBrokerConfig() error {
 	c.Lock()
 	defer c.Unlock()
 
 	if c.checkConfig == nil {
-		return errors.New("check uninitialized")
+		return errCheckNotInitialized
 	}
 
 	broker, err := c.client.FetchBroker(apiclient.CIDType(&c.checkConfig.BrokerCID))
 	if err != nil {
-		return errors.Wrapf(err, "unable to fetch broker (%s)", c.checkConfig.BrokerCID)
+		return fmt.Errorf("unable to fetch broker (%s): %w", c.checkConfig.BrokerCID, err)
 	}
 
 	c.broker = broker

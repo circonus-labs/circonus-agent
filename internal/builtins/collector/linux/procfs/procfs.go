@@ -37,11 +37,15 @@ const (
 )
 
 var (
-	defaultExcludeRegex = regexp.MustCompile(fmt.Sprintf(regexPat, ""))
-	defaultIncludeRegex = regexp.MustCompile(fmt.Sprintf(regexPat, ".+"))
+	errInvalidMetric       = fmt.Errorf("invalid metric, nil")
+	errInvalidMetricNoName = fmt.Errorf("invalid metric, no name")
+	errInvalidMetricNoType = fmt.Errorf("invalid metric, no type")
+	errInvalidFile         = fmt.Errorf("invalid file, empty")
+	defaultExcludeRegex    = regexp.MustCompile(fmt.Sprintf(regexPat, ""))
+	defaultIncludeRegex    = regexp.MustCompile(fmt.Sprintf(regexPat, ".+"))
 )
 
-// New creates new ProcFS collector
+// New creates new ProcFS collector.
 func New(ctx context.Context) ([]collector.Collector, error) {
 	none := []collector.Collector{}
 

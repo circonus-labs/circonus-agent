@@ -21,7 +21,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// agentHostStats produces the internal agent host metrics
+// agentHostStats produces the internal agent host metrics.
 func (s *Server) agentHostStats(metrics cgm.Metrics, mtags []string) {
 
 	// uptime
@@ -83,7 +83,7 @@ func (s *Server) agentHostStats(metrics cgm.Metrics, mtags []string) {
 	// processes
 	{
 		memLimit := float32(viper.GetFloat64(config.KeyMemThreshold))
-		cpuLimit := float64(viper.GetFloat64(config.KeyCPUThreshold))
+		cpuLimit := viper.GetFloat64(config.KeyCPUThreshold)
 
 		// only do this if someone actually turns it on the default, -1=disabled
 		if memLimit < 0 && cpuLimit < 0 {

@@ -7,8 +7,7 @@ package connection
 
 import (
 	"context"
-
-	"github.com/pkg/errors"
+	"fmt"
 )
 
 func (c *Connection) newCommandProcessor(ctx context.Context, cmds <-chan command) <-chan command {
@@ -34,7 +33,7 @@ func (c *Connection) processCommand(cmd command) command {
 	}
 
 	if cmd.name == CommandReset {
-		cmd.err = errors.Errorf("received %s command from broker", cmd.name)
+		cmd.err = fmt.Errorf("received %s command from broker", cmd.name) //nolint:goerr113
 		cmd.ignore = false
 		cmd.reset = true
 		return cmd
@@ -42,18 +41,18 @@ func (c *Connection) processCommand(cmd command) command {
 
 	if cmd.name != CommandConnect {
 		cmd.ignore = true
-		cmd.err = errors.Errorf("unused/empty command (%s)", cmd.name)
+		cmd.err = fmt.Errorf("unused/empty command (%s)", cmd.name) //nolint:goerr113
 		return cmd
 	}
 
 	if len(cmd.request) == 0 {
-		cmd.err = errors.New("invalid connect command, 0 length request")
+		cmd.err = fmt.Errorf("invalid connect command, 0 length request") //nolint:goerr113
 		return cmd
 	}
 
 	metrics, err := c.fetchMetricData(&cmd.request, cmd.channelID)
 	if err != nil {
-		cmd.err = errors.Wrap(err, "fetching metrics")
+		cmd.err = fmt.Errorf("fetching metrics: %w", err)
 		return cmd
 	}
 

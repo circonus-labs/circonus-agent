@@ -7,6 +7,7 @@ package prometheus
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -23,14 +24,13 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
-// URLDef defines a url to fetch text formatted prom metrics from
+// URLDef defines a url to fetch text formatted prom metrics from.
 type URLDef struct {
 	ID   string `json:"id" toml:"id" yaml:"id"`
 	URL  string `json:"url" toml:"url" yaml:"url"`
@@ -38,7 +38,7 @@ type URLDef struct {
 	uttl time.Duration
 }
 
-// Prom defines prom collector
+// Prom defines prom collector.
 type Prom struct {
 	pkgID           string         // package prefix used for logging and errors
 	lastError       string         // last collection error
@@ -55,13 +55,20 @@ type Prom struct {
 	sync.Mutex
 }
 
-// promOptions defines what elements can be overridden in a config file
+// promOptions defines what elements can be overridden in a config file.
 type promOptions struct {
 	RunTTL string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 	URLs   []URLDef `json:"urls" toml:"urls" yaml:"urls"`
 }
 
-// New creates new prom collector
+var (
+	errInvalidMetric       = fmt.Errorf("invalid metric, nil")
+	errInvalidMetricNoName = fmt.Errorf("invalid metric, no name")
+	errInvalidMetricNoType = fmt.Errorf("invalid metric, no type")
+	errInvalidURLs         = fmt.Errorf("'urls' is REQUIRED in configuration")
+)
+
+// New creates new prom collector.
 func New(cfgBaseName string) (collector.Collector, error) {
 	c := Prom{
 		pkgID:           "builtins.prometheus",
@@ -87,13 +94,13 @@ func New(cfgBaseName string) (collector.Collector, error) {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil, nil // if none found, return nothing
 		}
-		return nil, errors.Wrapf(err, "%s config", c.pkgID)
+		return nil, fmt.Errorf("%s config: %w", c.pkgID, err)
 	}
 
 	c.logger.Debug().Str("base", cfgBaseName).Interface("config", opts).Msg("loaded config")
 
 	if len(opts.URLs) == 0 {
-		return nil, errors.New("'urls' is REQUIRED in configuration")
+		return nil, errInvalidURLs
 	}
 	for i, u := range opts.URLs {
 		if u.ID == "" {
@@ -127,7 +134,7 @@ func New(cfgBaseName string) (collector.Collector, error) {
 	if opts.RunTTL != "" {
 		dur, err := time.ParseDuration(opts.RunTTL)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
+			return nil, fmt.Errorf("%s parsing run_ttl: %w", c.pkgID, err)
 		}
 		c.runTTL = dur
 	}
@@ -135,7 +142,7 @@ func New(cfgBaseName string) (collector.Collector, error) {
 	return &c, nil
 }
 
-// Collect returns collector metrics
+// Collect returns collector metrics.
 func (c *Prom) Collect(ctx context.Context) error {
 	metrics := cgm.Metrics{}
 	c.Lock()
@@ -173,7 +180,7 @@ func (c *Prom) Collect(ctx context.Context) error {
 func (c *Prom) fetchPromMetrics(u URLDef, metrics *cgm.Metrics) error {
 	req, err := http.NewRequest("GET", u.URL, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("prepare reqeust: %w", err)
 	}
 
 	var ctx context.Context
@@ -210,7 +217,7 @@ func (c *Prom) fetchPromMetrics(u URLDef, metrics *cgm.Metrics) error {
 	select {
 	case <-ctx.Done():
 		<-ec
-		return ctx.Err()
+		return ctx.Err() //nolint:wrapcheck
 	case err := <-ec:
 		return err
 	}
@@ -223,7 +230,7 @@ func (c *Prom) parse(id string, data io.Reader, metrics *cgm.Metrics) error {
 
 	metricFamilies, err := parser.TextToMetricFamilies(data)
 	if err != nil {
-		return err
+		return fmt.Errorf("parser - metric families: %w", err)
 	}
 
 	pfx := ""
@@ -235,13 +242,13 @@ func (c *Prom) parse(id string, data io.Reader, metrics *cgm.Metrics) error {
 			switch mf.GetType() {
 			case dto.MetricType_SUMMARY:
 				_ = c.addMetric(metrics, pfx, metricName+"_count", tags, "n", float64(m.GetSummary().GetSampleCount()))
-				_ = c.addMetric(metrics, pfx, metricName+"_sum", tags, "n", float64(m.GetSummary().GetSampleSum()))
+				_ = c.addMetric(metrics, pfx, metricName+"_sum", tags, "n", m.GetSummary().GetSampleSum())
 				for qn, qv := range c.getQuantiles(m) {
 					_ = c.addMetric(metrics, pfx, metricName+"_"+qn, tags, "n", qv)
 				}
 			case dto.MetricType_HISTOGRAM:
 				_ = c.addMetric(metrics, pfx, metricName+"_count", tags, "n", float64(m.GetHistogram().GetSampleCount()))
-				_ = c.addMetric(metrics, pfx, metricName+"_sum", tags, "n", float64(m.GetHistogram().GetSampleSum()))
+				_ = c.addMetric(metrics, pfx, metricName+"_sum", tags, "n", m.GetHistogram().GetSampleSum())
 				for bn, bv := range c.getBuckets(m) {
 					_ = c.addMetric(metrics, pfx, metricName+"_"+bn, tags, "n", bv)
 				}

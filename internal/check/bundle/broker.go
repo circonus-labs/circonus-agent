@@ -6,6 +6,7 @@
 package bundle
 
 import (
+	"fmt"
 	"math/rand"
 	"net"
 	"reflect"
@@ -15,7 +16,6 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/go-apiclient"
-	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
@@ -23,15 +23,15 @@ import (
 // was not specified.
 func (cb *Bundle) selectBroker(checkType string, brokerList *[]apiclient.Broker) (*apiclient.Broker, error) {
 	if checkType == "" {
-		return nil, errors.New("invalid check type (empty)")
+		return nil, errInvalidCheckType
 	}
 
 	if brokerList == nil {
-		return nil, errors.New("invalid broker list (nil)")
+		return nil, errInvalidBrokerList
 	}
 
 	if len(*brokerList) == 0 {
-		return nil, errors.New("invalid broker list (empty)")
+		return nil, errInvalidBrokerListEmpty
 	}
 
 	validBrokers := make(map[string]apiclient.Broker)
@@ -67,7 +67,7 @@ func (cb *Bundle) selectBroker(checkType string, brokerList *[]apiclient.Broker)
 	}
 
 	if !haveEnterprise && viper.GetBool(config.KeyMultiAgent) {
-		return nil, errors.New("no enterprise brokers satisfy multi-agent requirements")
+		return nil, errIvalidEnterpriseForMultiAgent
 	}
 
 	if haveEnterprise { // eliminate non-enterprise brokers from valid brokers
@@ -79,7 +79,7 @@ func (cb *Bundle) selectBroker(checkType string, brokerList *[]apiclient.Broker)
 	}
 
 	if len(validBrokers) == 0 {
-		return nil, errors.Errorf("found %d broker(s), zero are valid", len(*brokerList))
+		return nil, fmt.Errorf("%d broker(s): %w", len(*brokerList), errNoValidBrokersFound)
 	}
 
 	var selectedBroker apiclient.Broker
@@ -95,7 +95,7 @@ func (cb *Bundle) selectBroker(checkType string, brokerList *[]apiclient.Broker)
 	return &selectedBroker, nil
 }
 
-// Is the broker valid (active, supports check type, and reachable)
+// Is the broker valid (active, supports check type, and reachable).
 func (cb *Bundle) isValidBroker(broker *apiclient.Broker, checkType string) (time.Duration, bool) {
 	if broker == nil {
 		return 0, false
@@ -209,7 +209,7 @@ func (cb *Bundle) isValidBroker(broker *apiclient.Broker, checkType string) (tim
 	return connDuration, valid
 }
 
-// brokerSupportsCheckType verifies a broker supports the check type to be used
+// brokerSupportsCheckType verifies a broker supports the check type to be used.
 func brokerSupportsCheckType(checkType string, details *apiclient.BrokerDetail) bool {
 	if checkType == "" {
 		return false
@@ -218,7 +218,7 @@ func brokerSupportsCheckType(checkType string, details *apiclient.BrokerDetail) 
 		return false
 	}
 
-	baseType := string(checkType)
+	baseType := checkType
 
 	if idx := strings.Index(baseType, ":"); idx > 0 {
 		baseType = baseType[0:idx]

@@ -7,7 +7,7 @@ package statsd
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
@@ -235,11 +235,11 @@ func TestParseMetric(t *testing.T) {
 		{"test:1|ms", nil},
 		{"test:foo|s", nil},
 		{"test:bar|t", nil},
-		{"invalid-format", errors.New("invalid metric format 'invalid-format', ignoring")},
-		{":invalid-no-name|t", errors.New("invalid metric format ':invalid-no-name|t', ignoring")},
-		{"invalid-no-value:|t", errors.New("invalid metric format 'invalid-no-value:|t', ignoring")},
-		{"invalid-rate:1|c|@t", errors.New("invalid metric format 'invalid-rate:1|c|@t', ignoring")},
-		{"test:1.2|c", errors.New(`invalid counter value: strconv.ParseUint: parsing "1.2": invalid syntax`)},
+		{"invalid-format", fmt.Errorf("invalid metric format 'invalid-format', ignoring")},                    //nolint:goerr113
+		{":invalid-no-name|t", fmt.Errorf("invalid metric format ':invalid-no-name|t', ignoring")},            //nolint:goerr113
+		{"invalid-no-value:|t", fmt.Errorf("invalid metric format 'invalid-no-value:|t', ignoring")},          //nolint:goerr113
+		{"invalid-rate:1|c|@t", fmt.Errorf("invalid metric format 'invalid-rate:1|c|@t', ignoring")},          //nolint:goerr113
+		{"test:1.2|c", fmt.Errorf(`invalid counter value: strconv.ParseUint: parsing "1.2": invalid syntax`)}, //nolint:goerr113
 		{"test:0|c", nil},
 		{"test:1|c|@.1", nil},
 		{"test:0|g", nil},
@@ -248,9 +248,9 @@ func TestParseMetric(t *testing.T) {
 		{"test:1.0|g", nil},
 		{"test:-1.0|g", nil},
 		{"test:-1|g", nil},
-		{"test:1.0.0|g", errors.New(`invalid gauge value: strconv.ParseFloat: parsing "1.0.0": invalid syntax`)},
-		{"test:-1-|g", errors.New(`invalid gauge value: strconv.ParseInt: parsing "-1-": invalid syntax`)},
-		{"test:1a|g", errors.New(`invalid gauge value: strconv.ParseUint: parsing "1a": invalid syntax`)},
+		{"test:1.0.0|g", fmt.Errorf(`invalid gauge value: strconv.ParseFloat: parsing "1.0.0": invalid syntax`)}, //nolint:goerr113
+		{"test:-1-|g", fmt.Errorf(`invalid gauge value: strconv.ParseInt: parsing "-1-": invalid syntax`)},       //nolint:goerr113
+		{"test:1a|g", fmt.Errorf(`invalid gauge value: strconv.ParseUint: parsing "1a": invalid syntax`)},        //nolint:goerr113
 		{"test:1|h", nil},
 		{"test:1|ms", nil},
 		{"test:1.0|h", nil},
@@ -262,11 +262,11 @@ func TestParseMetric(t *testing.T) {
 		{"test:1|c|#c:v", nil},
 		{"test:1|c|@.1|#c:v", nil},
 		{"test:1|c|#c1:v1,c2:v2", nil},
-		{"invalid-rate-format:1|c|x", errors.New(`invalid metric format 'invalid-rate-format:1|c|x', ignoring`)},
-		{"invalid-tag-format:1|c|c:v", errors.New(`invalid metric format 'invalid-tag-format:1|c|c:v', ignoring`)},
-		{"test:1.0a|h", errors.New(`invalid histogram value: strconv.ParseFloat: parsing "1.0a": invalid syntax`)},
-		{"test:1.0a|ms", errors.New(`invalid histogram value: strconv.ParseFloat: parsing "1.0a": invalid syntax`)},
-		{"test:1|q", errors.New("invalid metric type (q)")},
+		{"invalid-rate-format:1|c|x", fmt.Errorf(`invalid metric format 'invalid-rate-format:1|c|x', ignoring`)},    //nolint:goerr113
+		{"invalid-tag-format:1|c|c:v", fmt.Errorf(`invalid metric format 'invalid-tag-format:1|c|c:v', ignoring`)},  //nolint:goerr113
+		{"test:1.0a|h", fmt.Errorf(`invalid histogram value: strconv.ParseFloat: parsing "1.0a": invalid syntax`)},  //nolint:goerr113
+		{"test:1.0a|ms", fmt.Errorf(`invalid histogram value: strconv.ParseFloat: parsing "1.0a": invalid syntax`)}, //nolint:goerr113
+		{"test:1|q", fmt.Errorf("invalid metric type (q)")},                                                         //nolint:goerr113
 	}
 
 	for _, mt := range mtests {

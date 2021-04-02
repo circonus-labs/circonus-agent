@@ -19,7 +19,6 @@ package connection
 // 	"github.com/circonus-labs/circonus-agent/internal/check"
 // 	"github.com/circonus-labs/circonus-agent/internal/config"
 // 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
-// 	"github.com/pkg/errors"
 // 	"github.com/rs/zerolog"
 // 	"github.com/spf13/viper"
 // )

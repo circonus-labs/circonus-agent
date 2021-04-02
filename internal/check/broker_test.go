@@ -6,6 +6,7 @@
 package check
 
 import (
+	"errors"
 	"net/url"
 	"testing"
 
@@ -36,7 +37,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error")
 		}
-		if err.Error() != "broker not initialized" {
+		if !errors.Is(err, errBrokerNotInitialized) {
 			t.Fatalf("unexpected error (%s)", err)
 		}
 	}
@@ -55,7 +56,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error")
 		}
-		if err.Error() != "unable to match reverse URL host (1.2.3.4) to broker" {
+		if !errors.Is(err, errBrokerMatchRevURLHost) {
 			t.Fatalf("unexpected error (%s)", err)
 		}
 	}
@@ -70,7 +71,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error")
 		}
-		if err.Error() != "reading specified broker-ca-file (testdata/missingca.crt): open testdata/missingca.crt: no such file or directory" {
+		if err.Error() != "read file: open testdata/missingca.crt: no such file or directory" {
 			t.Fatalf("unexpected error (%s)", err)
 		}
 	}

@@ -10,6 +10,7 @@ package procfs
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -20,12 +21,11 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
-// common defines ProcFS metrics common elements
+// common defines ProcFS metrics common elements.
 type common struct {
 	id              string         // OPT id of the collector (used as metric name prefix)
 	pkgID           string         // package prefix used for logging and errors
@@ -62,14 +62,14 @@ func newCommon(id, procFSPath, procFile string, baseTags cgm.Tags) common {
 	}
 }
 
-// Collect returns collector metrics
+// Collect returns collector metrics.
 func (c *common) Collect(ctx context.Context) error {
 	c.Lock()
 	defer c.Unlock()
 	return collector.ErrNotImplemented
 }
 
-// Flush returns last metrics collected
+// Flush returns last metrics collected.
 func (c *common) Flush() cgm.Metrics {
 	c.Lock()
 	defer c.Unlock()
@@ -79,14 +79,14 @@ func (c *common) Flush() cgm.Metrics {
 	return c.lastMetrics
 }
 
-// ID returns the id of the instance
+// ID returns the id of the instance.
 func (c *common) ID() string {
 	c.Lock()
 	defer c.Unlock()
 	return c.id
 }
 
-// Inventory returns collector stats for /inventory endpoint
+// Inventory returns collector stats for /inventory endpoint.
 func (c *common) Inventory() collector.InventoryStats {
 	c.Lock()
 	defer c.Unlock()
@@ -99,12 +99,12 @@ func (c *common) Inventory() collector.InventoryStats {
 	}
 }
 
-// Logger returns collector's instance of logger
+// Logger returns collector's instance of logger.
 func (c *common) Logger() zerolog.Logger {
 	return c.logger
 }
 
-// cleanName is used to clean the metric name
+// cleanName is used to clean the metric name.
 func (c *common) cleanName(name string) string {
 	// metric names are not dynamic for linux procfs - reintroduce cleaner if
 	// procfs sources used return dirty dynamic names.
@@ -113,18 +113,18 @@ func (c *common) cleanName(name string) string {
 	return name
 }
 
-// addMetric to internal buffer if metric is active
+// addMetric to internal buffer if metric is active.
 func (c *common) addMetric(metrics *cgm.Metrics, prefix string, mname, mtype string, mval interface{}, mtags tags.Tags) error {
 	if metrics == nil {
-		return errors.New("invalid metric submission")
+		return errInvalidMetric
 	}
 
 	if mname == "" {
-		return errors.New("invalid metric, no name")
+		return errInvalidMetricNoName
 	}
 
 	if mtype == "" {
-		return errors.New("invalid metric, no type")
+		return errInvalidMetricNoType
 	}
 
 	// cleanup the raw metric name, if needed
@@ -148,7 +148,7 @@ func (c *common) addMetric(metrics *cgm.Metrics, prefix string, mname, mtype str
 	return nil
 }
 
-// setStatus is used in Collect to set the collector status
+// setStatus is used in Collect to set the collector status.
 func (c *common) setStatus(metrics cgm.Metrics, err error) {
 	c.Lock()
 	if err == nil {
@@ -170,12 +170,12 @@ func (c *common) setStatus(metrics cgm.Metrics, err error) {
 
 func (c *common) readFile(file string) ([]string, error) {
 	if file == "" {
-		return nil, errors.New("invalid file (empty)")
+		return nil, errInvalidFile
 	}
 
 	f, err := os.Open(file)
 	if err != nil {
-		return nil, errors.Wrapf(err, "opening file (%s)", file)
+		return nil, fmt.Errorf("opening file: %w", err)
 	}
 
 	var lines []string
@@ -184,8 +184,8 @@ func (c *common) readFile(file string) ([]string, error) {
 		lines = append(lines, s.Text())
 	}
 	if err := s.Err(); err != nil {
-		return lines, errors.Wrapf(err, "scanning file (%s) [close:%v]", file, f.Close())
+		return lines, fmt.Errorf("scanner: %w [close:%v]", err, f.Close())
 	}
 
-	return lines, f.Close()
+	return lines, f.Close() //nolint:wrapcheck
 }

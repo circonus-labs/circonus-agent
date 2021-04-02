@@ -21,8 +21,8 @@ func TestMetrics(t *testing.T) {
 		expectedErr string
 		shouldErr   bool
 	}{
-		{"invalid (plugin id)", "[invalid]", "", "invalid plugin id ([invalid])", true},
-		{"invalid (json/parse)", "", "invalid", "parsing metrics: invalid character 'i' looking for beginning of value", true},
+		{"invalid (plugin id)", "[invalid]", "", "[invalid]: invalid plugin ID", true},
+		{"invalid (json/parse)", "", "invalid", "json parse - metrics: invalid character 'i' looking for beginning of value", true},
 		{"valid", "", `{"foo":{"_type":"n", "_value":3.12}}`, "", false},
 		{"valid (plugin id)", "bar", "{\"bar`test\":{\"_type\":\"i\", \"_value\":1}}", "", false},
 	}
