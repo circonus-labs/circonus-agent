@@ -218,6 +218,9 @@ const (
 	// KeyShowConfig - show configuration and exit
 	KeyShowConfig = "show-config"
 
+	// KeyGenerateConfig - generate temporary config file in given format and exit
+	KeyGenerateConfig = "generate-config"
+
 	// KeyShowVersion - show version information and exit
 	KeyShowVersion = "version"
 
@@ -444,6 +447,38 @@ func ShowConfig(w io.Writer) error {
 	format := viper.GetString(KeyShowConfig)
 
 	// log.Debug().Str("format", format).Msg("show-config")
+
+	switch format {
+	case "json":
+		data, err = json.MarshalIndent(cfg, " ", "  ")
+	case "yaml":
+		data, err = yaml.Marshal(cfg)
+	case "toml":
+		data, err = toml.Marshal(*cfg)
+	default:
+		return errors.Errorf("unknown config format '%s'", format)
+	}
+
+	if err != nil {
+		return errors.Wrapf(err, "formatting config (%s)", format)
+	}
+
+	fmt.Fprintln(w, string(data))
+	return nil
+}
+
+// GenerateConfig creates a temp config file in etc/
+func GenerateConfig(w io.Writer) error {
+	var cfg *Config
+	var err error
+	var data []byte
+
+	cfg, err = getConfig()
+	if err != nil {
+		return err
+	}
+
+	format := viper.GetString(KeyGenerateConfig)
 
 	switch format {
 	case "json":

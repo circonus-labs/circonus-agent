@@ -68,6 +68,38 @@ func TestShowConfig(t *testing.T) {
 	}
 }
 
+func TestGenerateConfig(t *testing.T) {
+	t.Log("Testing ShowConfig")
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+
+	t.Log("YAML")
+	{
+		viper.Set(KeyGenerateConfig, "yaml")
+		err := GenerateConfig(ioutil.Discard)
+		if err != nil {
+			t.Fatalf("expected no error, got %s", err)
+		}
+	}
+
+	t.Log("TOML")
+	{
+		viper.Set(KeyGenerateConfig, "toml")
+		err := GenerateConfig(ioutil.Discard)
+		if err != nil {
+			t.Fatalf("expected no error, got %s", err)
+		}
+	}
+
+	t.Log("JSON")
+	{
+		viper.Set(KeyGenerateConfig, "json")
+		err := GenerateConfig(ioutil.Discard)
+		if err != nil {
+			t.Fatalf("expected no error, got %s", err)
+		}
+	}
+}
+
 func TestGetConfig(t *testing.T) {
 	t.Log("Testing getConfig")
 	zerolog.SetGlobalLevel(zerolog.Disabled)
