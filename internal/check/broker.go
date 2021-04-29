@@ -61,7 +61,10 @@ func (c *Check) brokerTLSConfig(reverseURL *url.URL) (*tls.Config, string, error
 				opts.Intermediates.AddCert(cert)
 			}
 			_, err := cs.PeerCertificates[0].Verify(opts)
-			return fmt.Errorf("verify peer cert: %w", err)
+			if err != nil {
+				return fmt.Errorf("verify peer cert: %w", err)
+			}
+			return nil
 		},
 	}
 
@@ -82,6 +85,9 @@ func (c *Check) getBrokerCN(reverseURL *url.URL) (string, error) {
 	cn := ""
 
 	for _, detail := range c.broker.Details {
+		if detail.Status != StatusActive {
+			continue
+		}
 		// certs are generated against the CN (in theory)
 		// 1. find the right broker instance with matching IP or external hostname
 		// 2. set the tls.Config.ServerName to whatever that instance's CN is currently
