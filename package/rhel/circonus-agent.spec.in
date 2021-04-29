@@ -86,7 +86,7 @@ exit 0
 %attr(0755, root, root) /etc/init.d/circonus-agent
 %endif
 %{app_dir}/CHANGELOG.md
-%{app_dir}/etc
+%attr(0750,nobody,nobody) %{app_dir}/etc
 %{app_dir}/LICENSE
 %{app_dir}/plugins
 %{app_dir}/README.md

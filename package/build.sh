@@ -482,6 +482,8 @@ make_package() {
                 $RM -f $deb_file
             fi
 
+            chown nobody:nobody $dir_install_agent/etc && chmod 0750 $dir_install_agent/etc
+
             # when snapshots are used, the embedded Version field in the deb needs
             # to start with a number. fudge it since these are !!ONLY!! for testing.
             [[ "$agent_version" == "snapshot" ]] && stripped_ver="1.${agent_version}"
@@ -508,6 +510,7 @@ make_package() {
             ;;
         *)
             pushd $dir_install >/dev/null
+            chown nobody:nobody $dir_install_agent/etc && chmod 0750 $dir_install_agent/etc
             echo "making tgz for $os_name"
             local pkg="${dir_build}/circonus-agent-${stripped_ver}-1.${os_name}_${os_arch}.tgz"
             $TAR czf $pkg .
