@@ -264,7 +264,7 @@ func TestFlush(t *testing.T) {
 		if metrics == nil {
 			t.Fatal("expected metrics")
 		}
-		if len(*metrics) > 0 {
+		if len(*metrics) > 0 { //nolint:staticcheck
 			t.Fatalf("expected empty metrics, got %#v", *metrics)
 		}
 	}
