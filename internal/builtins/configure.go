@@ -9,6 +9,7 @@ package builtins
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector/generic"
 	appstats "github.com/maier/go-appstats"
@@ -21,7 +22,7 @@ func (b *Builtins) configure(ctx context.Context) error {
 	l.Debug().Msg("calling generic.New")
 	collectors, err := generic.New()
 	if err != nil {
-		return err
+		return fmt.Errorf("generic collectors: %w", err)
 	}
 	for _, c := range collectors {
 		b.logger.Info().Str("id", c.ID()).Msg("enabled builtin")

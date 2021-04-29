@@ -8,6 +8,7 @@ package builtins
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -16,13 +17,12 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	appstats "github.com/maier/go-appstats"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
 
-// Builtins defines the internal metric collector manager
+// Builtins defines the internal metric collector manager.
 type Builtins struct {
 	collectors map[string]collector.Collector
 	logger     zerolog.Logger
@@ -30,7 +30,7 @@ type Builtins struct {
 	sync.Mutex
 }
 
-// New creates a new builtins manager
+// New creates a new builtins manager.
 func New(ctx context.Context) (*Builtins, error) {
 	b := Builtins{
 		collectors: make(map[string]collector.Collector),
@@ -46,7 +46,7 @@ func New(ctx context.Context) (*Builtins, error) {
 
 	err := b.configure(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "configuring builtins")
+		return nil, fmt.Errorf("configure builtins: %w", err)
 	}
 
 	// prom applies to all platforms
@@ -67,7 +67,7 @@ func New(ctx context.Context) (*Builtins, error) {
 	return &b, nil
 }
 
-// Run triggers internal collectors to gather metrics
+// Run triggers internal collectors to gather metrics.
 func (b *Builtins) Run(ctx context.Context, id string) error {
 	b.Lock()
 
@@ -143,7 +143,7 @@ func (b *Builtins) Run(ctx context.Context, id string) error {
 	return nil
 }
 
-// IsBuiltin determines if an id is a builtin or not
+// IsBuiltin determines if an id is a builtin or not.
 func (b *Builtins) IsBuiltin(id string) bool {
 	if id == "" {
 		return false
@@ -161,7 +161,7 @@ func (b *Builtins) IsBuiltin(id string) bool {
 	return ok
 }
 
-// Flush returns current metrics for all collectors
+// Flush returns current metrics for all collectors.
 func (b *Builtins) Flush(id string) *cgm.Metrics {
 	b.Lock()
 	defer b.Unlock()

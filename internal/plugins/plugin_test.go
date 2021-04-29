@@ -7,6 +7,7 @@ package plugins
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path"
 	"runtime"
@@ -16,7 +17,6 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 )
 
@@ -69,7 +69,7 @@ func TestParsePluginOutput(t *testing.T) {
 	t.Log("blank")
 	{
 		p.metrics = nil
-		expectedErr := errors.Errorf("zero lines of output")
+		expectedErr := fmt.Errorf("zero lines of output") //nolint:goerr113
 		err := p.parsePluginOutput([]string{})
 		if err == nil {
 			t.Fatalf("expected error")
@@ -84,7 +84,7 @@ func TestParsePluginOutput(t *testing.T) {
 
 	t.Log("invalid json metric")
 	{
-		expectedErr := errors.Errorf("parsing json: unexpected end of JSON input")
+		expectedErr := fmt.Errorf("json parse: unexpected end of JSON input") //nolint:goerr113
 		err := p.parsePluginOutput([]string{"{"})
 		if err == nil {
 			t.Fatalf("expected error")
@@ -175,15 +175,10 @@ func TestExec(t *testing.T) {
 	t.Log("already running")
 	{
 		p.running = true
-		// this error has been removed to declutter log
-		// expectedErr := errors.Errorf("already running")
 		err := p.exec()
 		if err != nil {
 			t.Fatalf("expected NO error, got (%v)", err)
 		}
-		// if err.Error() != expectedErr.Error() {
-		// 	t.Fatalf("expected (%s) got (%s)", expectedErr, err)
-		// }
 		p.running = false
 	}
 
@@ -191,7 +186,7 @@ func TestExec(t *testing.T) {
 	{
 		p.lastEnd = time.Now()
 		p.runTTL = 5 * time.Minute
-		expectedErr := errors.Errorf("TTL not expired")
+		expectedErr := fmt.Errorf("TTL not expired") //nolint:goerr113
 		err := p.exec()
 		if err == nil {
 			t.Fatalf("expected error")

@@ -17,18 +17,17 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/shirou/gopsutil/cpu"
 )
 
-// CPU metrics from psutils
+// CPU metrics from psutils.
 type CPU struct {
 	gencommon
 	reportAllCPUs bool // OPT report all cpus (vs just total) may be overridden in config file
 }
 
-// cpuOptions defines what elements can be overridden in a config file
+// cpuOptions defines what elements can be overridden in a config file.
 type cpuOptions struct {
 	// common
 	ID     string `json:"id" toml:"id" yaml:"id"`
@@ -38,7 +37,7 @@ type cpuOptions struct {
 	AllCPU string `json:"report_all_cpus" toml:"report_all_cpus" yaml:"report_all_cpus"`
 }
 
-// NewCPUCollector creates new psutils cpu collector
+// NewCPUCollector creates new psutils cpu collector.
 func NewCPUCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector.Collector, error) {
 	c := CPU{}
 	c.id = NameCPU
@@ -54,7 +53,7 @@ func NewCPUCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector
 			return &c, nil
 		}
 		c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-		return nil, errors.Wrapf(err, "%s config", c.pkgID)
+		return nil, fmt.Errorf("%s config: %w", c.pkgID, err)
 	}
 
 	c.logger.Debug().Interface("config", opts).Msg("loaded config")
@@ -62,7 +61,7 @@ func NewCPUCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector
 	if opts.AllCPU != "" {
 		rpt, err := strconv.ParseBool(opts.AllCPU)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing report_all_cpus", c.pkgID)
+			return nil, fmt.Errorf("%s parsing report_all_cpus: %w", c.pkgID, err)
 		}
 		c.reportAllCPUs = rpt
 	}
@@ -74,7 +73,7 @@ func NewCPUCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector
 	if opts.RunTTL != "" {
 		dur, err := time.ParseDuration(opts.RunTTL)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
+			return nil, fmt.Errorf("%s parsing run_ttl: %w", c.pkgID, err)
 		}
 		c.runTTL = dur
 	}
@@ -82,7 +81,7 @@ func NewCPUCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector
 	return &c, nil
 }
 
-// Collect cpu metrics
+// Collect cpu metrics.
 func (c *CPU) Collect(ctx context.Context) error {
 	c.Lock()
 	if c.runTTL > time.Duration(0) {

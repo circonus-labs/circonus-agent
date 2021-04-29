@@ -7,6 +7,7 @@ package generic
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"strings"
 	"time"
@@ -15,25 +16,24 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/shirou/gopsutil/load"
 )
 
-// Load metrics
+// Load metrics.
 type Load struct {
 	gencommon
 }
 
-// loadOptions defines what elements can be overridden in a config file
+// loadOptions defines what elements can be overridden in a config file.
 type loadOptions struct {
 	// common
 	ID     string `json:"id" toml:"id" yaml:"id"`
 	RunTTL string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
-// NewLoadCollector creates new psutils collector
+// NewLoadCollector creates new psutils collector.
 func NewLoadCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector.Collector, error) {
 	c := Load{}
 	c.id = NameLoad
@@ -48,7 +48,7 @@ func NewLoadCollector(cfgBaseName string, parentLogger zerolog.Logger) (collecto
 			return &c, nil
 		}
 		c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-		return nil, errors.Wrapf(err, "%s config", c.pkgID)
+		return nil, fmt.Errorf("%s config: %w", c.pkgID, err)
 	}
 
 	c.logger.Debug().Interface("config", opts).Msg("loaded config")
@@ -60,7 +60,7 @@ func NewLoadCollector(cfgBaseName string, parentLogger zerolog.Logger) (collecto
 	if opts.RunTTL != "" {
 		dur, err := time.ParseDuration(opts.RunTTL)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
+			return nil, fmt.Errorf("%s parsing run_ttl: %w", c.pkgID, err)
 		}
 		c.runTTL = dur
 	}
@@ -68,7 +68,7 @@ func NewLoadCollector(cfgBaseName string, parentLogger zerolog.Logger) (collecto
 	return &c, nil
 }
 
-// Collect load metrics
+// Collect load metrics.
 func (c *Load) Collect(ctx context.Context) error {
 	c.Lock()
 	if c.runTTL > time.Duration(0) {
@@ -116,10 +116,10 @@ func (c *Load) Collect(ctx context.Context) error {
 
 	{ // units:processes
 		tagList := tags.Tags{tagUnitsProcesses}
-		// TODO: there is misc.ProcsTotal in a future release (probably 2.19.05 based on commits/PRs)
-		_ = c.addMetric(&metrics, "total", "i", misc.ProcsRunning+misc.ProcsBlocked, tagList)
+		_ = c.addMetric(&metrics, "created", "i", misc.ProcsCreated, tagList)
 		_ = c.addMetric(&metrics, "running", "i", misc.ProcsRunning, tagList)
 		_ = c.addMetric(&metrics, "blocked", "i", misc.ProcsBlocked, tagList)
+		_ = c.addMetric(&metrics, "total", "i", misc.ProcsTotal, tagList)
 	}
 	{ // units:switches
 		tagList := tags.Tags{tags.Tag{Category: "units", Value: "switches"}}

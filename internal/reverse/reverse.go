@@ -8,13 +8,14 @@ package reverse
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/check"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/reverse/connection"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
@@ -29,10 +30,10 @@ type Reverse struct {
 
 func New(parentLogger zerolog.Logger, chk *check.Check, agentAddress string) (*Reverse, error) {
 	if chk == nil {
-		return nil, errors.New("invalid check (nil")
+		return nil, fmt.Errorf("invalid check (nil") //nolint:goerr113
 	}
 	if agentAddress == "" {
-		return nil, errors.New("invalid agent address (empty)")
+		return nil, fmt.Errorf("invalid agent address (empty)") //nolint:goerr113
 	}
 
 	r := &Reverse{
@@ -47,13 +48,13 @@ func New(parentLogger zerolog.Logger, chk *check.Check, agentAddress string) (*R
 
 	cfgs, err := r.chk.GetReverseConfigs()
 	if err != nil {
-		return nil, errors.Wrap(err, "getting reverse configurations")
+		return nil, fmt.Errorf("getting reverse configurations: %w", err)
 	}
 	r.configs = cfgs
 
 	cm, err := chk.CheckMeta()
 	if err != nil {
-		return nil, errors.Wrap(err, "setting up reverse")
+		return nil, fmt.Errorf("setting up reverse: %w", err)
 	}
 	r.logger = parentLogger.With().
 		Str("pkg", "reverse").
@@ -65,17 +66,17 @@ func New(parentLogger zerolog.Logger, chk *check.Check, agentAddress string) (*R
 	return r, nil
 }
 
-// Start reverse connection(s) to the broker(s)
+// Start reverse connection(s) to the broker(s).
 func (r *Reverse) Start(ctx context.Context) error {
 	if !r.enabled {
 		r.logger.Info().Msg("disabled, not starting")
 		return nil
 	}
 	if r.configs == nil {
-		return errors.New("invalid reverse configurations (nil)")
+		return fmt.Errorf("invalid reverse configurations (nil)") //nolint:goerr113
 	}
 	if len(*r.configs) == 0 {
-		return errors.New("invalid reverse configurations (zero)")
+		return fmt.Errorf("invalid reverse configurations (zero)") //nolint:goerr113
 	}
 
 	lastRefresh := time.Now()
@@ -98,12 +99,12 @@ func (r *Reverse) Start(ctx context.Context) error {
 			if err := r.chk.RefreshReverseConfig(); err != nil {
 				r.logger.Error().Err(err).Msg("refreshing reverse configuration")
 				cancel()
-				return err
+				return fmt.Errorf("refresh reverse config: %w", err)
 			}
 			cfgs, err := r.chk.GetReverseConfigs()
 			if err != nil {
 				cancel()
-				return errors.Wrap(err, "getting reverse configurations")
+				return fmt.Errorf("get reverse configurations: %w", err)
 			}
 			r.configs = cfgs
 			refreshCheck = false
@@ -123,7 +124,7 @@ func (r *Reverse) Start(ctx context.Context) error {
 			// 	refreshCheck = true
 			// 	continue
 			// }
-			return err
+			return fmt.Errorf("find primary broker: %w", err)
 		}
 
 		r.logger.Debug().Msg("set broker config")
@@ -143,7 +144,7 @@ func (r *Reverse) Start(ctx context.Context) error {
 		rc, err := connection.New(r.logger, r.agentAddress, &cfg)
 		if err != nil {
 			cancel()
-			return err
+			return fmt.Errorf("new conn: %w", err)
 		}
 
 		var wg sync.WaitGroup

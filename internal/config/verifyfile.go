@@ -6,15 +6,19 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+)
 
-	"github.com/pkg/errors"
+var (
+	errEmptyFileName  = fmt.Errorf("invalid file name (empty)")
+	errNotRegularFile = fmt.Errorf("not a regular file")
 )
 
 func verifyFile(fileName string) (string, error) {
 	if fileName == "" {
-		return "", errors.New("invalid file name (empty)")
+		return "", errEmptyFileName
 	}
 
 	var absFileName string
@@ -23,25 +27,25 @@ func verifyFile(fileName string) (string, error) {
 
 	absFileName, err = filepath.Abs(fileName)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("abs path: %w", err)
 	}
 
 	fileName = absFileName
 
 	fi, err = os.Stat(fileName)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("stat file: %w", err)
 	}
 
 	if !fi.Mode().IsRegular() {
-		return "", errors.Errorf("%s: not a regular file", fileName)
+		return "", fmt.Errorf("%s: %w", fileName, errNotRegularFile)
 	}
 
 	// also try opening, to verify permissions
 	// if last directory on path is not accessible to user, stat doesn't return EPERM
 	f, err := os.Open(fileName)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("open file %w", err)
 	}
 	f.Close()
 

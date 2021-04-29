@@ -13,11 +13,9 @@ import (
 	"math"
 	"net"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
-// sendMetricData frames and sends data (in chunks <= maxPayloadLen) to broker
+// sendMetricData frames and sends data (in chunks <= maxPayloadLen) to broker.
 func (c *Connection) sendMetricData(r io.Writer, channelID uint16, data *[]byte, cmdStart time.Time) error {
 	sendStart := time.Now()
 	empty := []byte("{}")
@@ -46,7 +44,7 @@ func (c *Connection) sendMetricData(r io.Writer, channelID uint16, data *[]byte,
 
 		sent, err := r.Write(frame)
 		if err != nil {
-			return errors.Wrap(err, "writing metric data")
+			return fmt.Errorf("writing metric data: %w", err)
 		}
 		offset += sent
 		sentBytes = offset
@@ -64,12 +62,12 @@ func (c *Connection) sendMetricData(r io.Writer, channelID uint16, data *[]byte,
 	return nil
 }
 
-// fetchMetricData sends the command arguments to the local agent
+// fetchMetricData sends the command arguments to the local agent.
 func (c *Connection) fetchMetricData(request *[]byte, channelID uint16) (*[]byte, error) {
 	fetchStart := time.Now()
 	conn, err := net.DialTimeout("tcp", c.agentAddress, DialerTimeoutSeconds*time.Second)
 	if err != nil {
-		return nil, errors.Wrap(err, "connecting to agent for metrics")
+		return nil, fmt.Errorf("connecting to agent for metrics: %w", err)
 	}
 	defer conn.Close()
 
@@ -85,7 +83,7 @@ func (c *Connection) fetchMetricData(request *[]byte, channelID uint16) (*[]byte
 
 	numBytes, err := conn.Write(*request)
 	if err != nil {
-		return nil, errors.Wrap(err, "writing metric request")
+		return nil, fmt.Errorf("writing metric request: %w", err)
 	}
 	if numBytes != len(*request) {
 		c.logger.Warn().
@@ -96,7 +94,7 @@ func (c *Connection) fetchMetricData(request *[]byte, channelID uint16) (*[]byte
 
 	data, err := ioutil.ReadAll(conn)
 	if err != nil {
-		return nil, errors.Wrap(err, "reading metric data")
+		return nil, fmt.Errorf("reading metric data: %w", err)
 	}
 
 	c.logger.Debug().Uint16("channel_id", channelID).Str("duration", time.Since(fetchStart).String()).Int("bytes", len(data)).Msg("fetched metrics")

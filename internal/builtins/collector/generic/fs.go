@@ -18,12 +18,11 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/shirou/gopsutil/disk"
 )
 
-// FS metrics from the Linux ProcFS
+// FS metrics from the Linux ProcFS.
 type FS struct {
 	includeFS     *regexp.Regexp
 	excludeFS     *regexp.Regexp
@@ -32,7 +31,7 @@ type FS struct {
 	allFSDevices bool
 }
 
-// fsOptions defines what elements can be overridden in a config file
+// fsOptions defines what elements can be overridden in a config file.
 type fsOptions struct {
 	// common
 	ID     string `json:"id" toml:"id" yaml:"id"`
@@ -45,7 +44,7 @@ type fsOptions struct {
 	ExcludeFSType     []string `json:"exclude_fs_type" toml:"exclude_fs_type" yaml:"exclude_fs_type"`
 }
 
-// NewFSCollector creates new psutils disk collector
+// NewFSCollector creates new psutils disk collector.
 func NewFSCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector.Collector, error) {
 	c := FS{}
 	c.id = NameFS
@@ -65,7 +64,7 @@ func NewFSCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector.
 			return &c, nil
 		}
 		c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-		return nil, errors.Wrapf(err, "%s config", c.pkgID)
+		return nil, fmt.Errorf("%s config: %w", c.pkgID, err)
 	}
 
 	c.logger.Debug().Str("base", cfgBaseName).Interface("config", opts).Msg("loaded config")
@@ -73,7 +72,7 @@ func NewFSCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector.
 	if opts.IncludeRegexFS != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, opts.IncludeRegexFS))
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s compiling include FS regex", c.pkgID)
+			return nil, fmt.Errorf("%s compiling include FS regex: %w", c.pkgID, err)
 		}
 		c.includeFS = rx
 	}
@@ -81,7 +80,7 @@ func NewFSCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector.
 	if opts.ExcludeRegexFS != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, opts.ExcludeRegexFS))
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s compiling exclude FS regex", c.pkgID)
+			return nil, fmt.Errorf("%s compiling exclude FS regex: %w", c.pkgID, err)
 		}
 		c.excludeFS = rx
 	}
@@ -95,7 +94,7 @@ func NewFSCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector.
 	if opts.IncludeAllDevices != "" {
 		rpt, err := strconv.ParseBool(opts.IncludeAllDevices)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing include_all_devices", c.pkgID)
+			return nil, fmt.Errorf("%s parsing include_all_devices: %w", c.pkgID, err)
 		}
 		c.allFSDevices = rpt
 	}
@@ -107,7 +106,7 @@ func NewFSCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector.
 	if opts.RunTTL != "" {
 		dur, err := time.ParseDuration(opts.RunTTL)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
+			return nil, fmt.Errorf("%s parsing run_ttl: %w", c.pkgID, err)
 		}
 		c.runTTL = dur
 	}
@@ -115,7 +114,7 @@ func NewFSCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector.
 	return &c, nil
 }
 
-// Collect disk fs metrics
+// Collect disk fs metrics.
 func (c *FS) Collect(ctx context.Context) error {
 	c.Lock()
 	if c.runTTL > time.Duration(0) {

@@ -6,6 +6,7 @@
 package bundle
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 
@@ -71,7 +72,7 @@ func TestFetchCheck(t *testing.T) {
 			t.Fatal("expected error")
 		}
 
-		if err.Error() != "invalid cid (empty)" {
+		if !errors.Is(err, errInvalidCID) {
 			t.Fatalf("unexpected error return (%s)", err)
 		}
 	}
@@ -86,7 +87,7 @@ func TestFetchCheck(t *testing.T) {
 			t.Fatal("expected error")
 		}
 
-		if err.Error() != "invalid cid (abc)" {
+		if !errors.Is(err, errInvalidCID) {
 			t.Fatalf("unexpected error return (%s)", err)
 		}
 	}
@@ -182,7 +183,7 @@ func TestFindCheck(t *testing.T) {
 			t.Fatal("expected found == 0")
 		}
 
-		if err.Error() != `no check bundles matched criteria ((active:1)(type:"`+defaults.CheckType+`")(target:"not_found"))` {
+		if err.Error() != `criteria - (active:1)(type:"`+defaults.CheckType+`")(target:"not_found"): no check bundles matched` {
 			t.Fatalf("unexpected error return (%s)", err)
 		}
 	}

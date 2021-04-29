@@ -6,11 +6,15 @@
 package config
 
 import (
+	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
+)
+
+var (
+	errInvalidReverseCID = fmt.Errorf("invalid reverse check cid")
 )
 
 func validateReverseOptions() error {
@@ -34,10 +38,10 @@ func validateReverseOptions() error {
 		// or, long form: with '/check_bundle/' prefix (e.g. --cid "/check_bundle/123")
 		ok, err := IsValidCheckID(cid)
 		if err != nil {
-			return errors.Wrap(err, "reverse Check ID")
+			return fmt.Errorf("reverse Check ID: %w", err)
 		}
 		if !ok {
-			return errors.Errorf("invalid Reverse Check ID (%s)", cid)
+			return fmt.Errorf("(%s): %w", cid, errInvalidReverseCID)
 		}
 		log.Debug().Str("cid", cid).Msg("reverse, specified cid")
 	}

@@ -21,17 +21,16 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 )
 
-// NetSocket metrics from the Linux ProcFS
+// NetSocket metrics from the Linux ProcFS.
 type NetSocket struct {
 	include *regexp.Regexp
 	exclude *regexp.Regexp
 	common
 }
 
-// netSocketOptions defines what elements can be overridden in a config file
+// netSocketOptions defines what elements can be overridden in a config file.
 type netSocketOptions struct {
 	// common
 	ID         string `json:"id" toml:"id" yaml:"id"`
@@ -43,7 +42,7 @@ type netSocketOptions struct {
 	ExcludeRegex string `json:"exclude_regex" toml:"exclude_regex" yaml:"exclude_regex"`
 }
 
-// NewNetSocketCollector creates new procfs if collector
+// NewNetSocketCollector creates new procfs if collector.
 func NewNetSocketCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
 	procFile := filepath.Join("net", "dev")
 
@@ -56,7 +55,7 @@ func NewNetSocketCollector(cfgBaseName, procFSPath string) (collector.Collector,
 
 	if cfgBaseName == "" {
 		if _, err := os.Stat(c.file); os.IsNotExist(err) {
-			return nil, errors.Wrap(err, c.pkgID)
+			return nil, fmt.Errorf("%s procfile: %w", c.pkgID, err)
 		}
 		return &c, nil
 	}
@@ -66,7 +65,7 @@ func NewNetSocketCollector(cfgBaseName, procFSPath string) (collector.Collector,
 	if err != nil {
 		if !strings.Contains(err.Error(), "no config found matching") {
 			c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-			return nil, errors.Wrapf(err, "%s config", c.pkgID)
+			return nil, fmt.Errorf("%s config: %w", c.pkgID, err)
 		}
 	} else {
 		c.logger.Debug().Str("base", cfgBaseName).Interface("config", opts).Msg("loaded config")
@@ -75,7 +74,7 @@ func NewNetSocketCollector(cfgBaseName, procFSPath string) (collector.Collector,
 	if opts.IncludeRegex != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, opts.IncludeRegex))
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s compiling include regex", c.pkgID)
+			return nil, fmt.Errorf("%s compile include rx: %w", c.pkgID, err)
 		}
 		c.include = rx
 	}
@@ -83,7 +82,7 @@ func NewNetSocketCollector(cfgBaseName, procFSPath string) (collector.Collector,
 	if opts.ExcludeRegex != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, opts.ExcludeRegex))
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s compiling exclude regex", c.pkgID)
+			return nil, fmt.Errorf("%s compile exclude rx: %w", c.pkgID, err)
 		}
 		c.exclude = rx
 	}
@@ -100,19 +99,19 @@ func NewNetSocketCollector(cfgBaseName, procFSPath string) (collector.Collector,
 	if opts.RunTTL != "" {
 		dur, err := time.ParseDuration(opts.RunTTL)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
+			return nil, fmt.Errorf("%s parsing run_ttl: %w", c.pkgID, err)
 		}
 		c.runTTL = dur
 	}
 
 	if _, err := os.Stat(c.file); os.IsNotExist(err) {
-		return nil, errors.Wrap(err, c.pkgID)
+		return nil, fmt.Errorf("%s procfile: %w", c.pkgID, err)
 	}
 
 	return &c, nil
 }
 
-// Collect metrics from the procfs resource
+// Collect metrics from the procfs resource.
 func (c *NetSocket) Collect(ctx context.Context) error {
 	metrics := cgm.Metrics{}
 
@@ -148,7 +147,7 @@ func (c *NetSocket) Collect(ctx context.Context) error {
 // 	val  string
 // }
 
-// sockstatCollect gets metrics from /proc/net/sockstat and /proc/net/sockstat6
+// sockstatCollect gets metrics from /proc/net/sockstat and /proc/net/sockstat6.
 func (c *NetSocket) sockstatCollect(metrics *cgm.Metrics) error {
 
 	tagUnitsConnections := tags.Tag{Category: "units", Value: "connections"}
@@ -161,7 +160,7 @@ func (c *NetSocket) sockstatCollect(metrics *cgm.Metrics) error {
 		sockstatFile := strings.ReplaceAll(c.file, "dev", "sockstat")
 		lines, err := c.readFile(sockstatFile)
 		if err != nil {
-			return errors.Wrapf(err, "parsing %s", c.file)
+			return fmt.Errorf("%s read file: %w", c.pkgID, err)
 		}
 
 		/*
@@ -176,7 +175,7 @@ func (c *NetSocket) sockstatCollect(metrics *cgm.Metrics) error {
 		// stats := make(map[string][]rawSocketStat)
 
 		for _, l := range lines {
-			line := strings.TrimSpace(string(l))
+			line := strings.TrimSpace(l)
 			fields := strings.Fields(line)
 
 			statType := strings.ToLower(strings.ReplaceAll(fields[0], ":", ""))
@@ -409,7 +408,7 @@ func (c *NetSocket) sockstatCollect(metrics *cgm.Metrics) error {
 		sockstatFile := strings.ReplaceAll(c.file, "dev", "sockstat6")
 		lines, err := c.readFile(sockstatFile)
 		if err != nil {
-			return errors.Wrapf(err, "parsing %s", c.file)
+			return fmt.Errorf("%s read file: %w", c.pkgID, err)
 		}
 
 		/*
@@ -423,7 +422,7 @@ func (c *NetSocket) sockstatCollect(metrics *cgm.Metrics) error {
 		// stats := make(map[string][]rawSocketStat)
 
 		for _, l := range lines {
-			line := strings.TrimSpace(string(l))
+			line := strings.TrimSpace(l)
 			fields := strings.Fields(line)
 
 			statType := strings.ToLower(strings.ReplaceAll(fields[0], ":", ""))

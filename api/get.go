@@ -7,42 +7,41 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 func (c *Client) get(ctx context.Context, reqpath string) ([]byte, error) {
 	if reqpath == "" {
-		return nil, errors.New("invalid request path (empty)")
+		return nil, errInvalidRequestPath
 	}
 
 	au, err := c.agentURL.Parse(reqpath)
 	if err != nil {
-		return nil, errors.Wrap(err, "creating request url")
+		return nil, fmt.Errorf("creating request URL: %w", err)
 	}
 
 	client := &http.Client{}
 	req, err := http.NewRequestWithContext(ctx, "GET", au.String(), nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "preparing request")
+		return nil, fmt.Errorf("preparing reqeust: %w", err)
 	}
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "request")
+		return nil, fmt.Errorf("do request (%s): %w", au.String(), err)
 	}
 
 	defer resp.Body.Close()
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "reading response")
+		return nil, fmt.Errorf("reading response: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("%s - %s - %s", resp.Status, au.String(), strings.TrimSpace(string(data)))
+		return nil, fmt.Errorf("%s - %s - %s: %w", resp.Status, au.String(), strings.TrimSpace(string(data)), errInvalidHTTPResponse)
 	}
 
 	return data, nil

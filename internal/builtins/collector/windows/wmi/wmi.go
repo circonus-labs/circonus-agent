@@ -16,7 +16,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/StackExchange/wmi"
+	// "github.com/StackExchange/wmi".
+	"github.com/bi-zone/wmi"
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
@@ -27,7 +28,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// wmicommon defines WMI metrics common elements
+// wmicommon defines WMI metrics common elements.
 type wmicommon struct {
 	id              string         // id of the collector (used as metric name prefix)
 	pkgID           string         // package prefix used for logging and errors
@@ -55,6 +56,9 @@ const (
 )
 
 var (
+	errInvalidMetric       = fmt.Errorf("invalid metric, nil")
+	errInvalidMetricNoName = fmt.Errorf("invalid metric, no name")
+	errInvalidMetricNoType = fmt.Errorf("invalid metric, no type")
 	defaultExcludeRegex    = regexp.MustCompile(fmt.Sprintf(regexPat, ``))
 	defaultIncludeRegex    = regexp.MustCompile(fmt.Sprintf(regexPat, `.+`))
 	defaultMetricNameRegex = regexp.MustCompile(`[^a-zA-Z0-9.-_:` + metricNameSeparator + `]`)
@@ -64,15 +68,16 @@ func initialize() error {
 	// This initialization prevents a memory leak on WMF 5+. See
 	// https://github.com/martinlindhe/wmi_exporter/issues/77 and
 	// linked issues for details.
-	s, err := wmi.InitializeSWbemServices(wmi.DefaultClient)
+	// s, err := wmi.InitializeSWbemServices(wmi.DefaultClient)
+	s, err := wmi.NewSWbemServices()
 	if err != nil {
-		return err
+		return fmt.Errorf("init SWbemSvc: %w", err)
 	}
 	wmi.DefaultClient.SWbemServicesClient = s
 	return nil
 }
 
-// New creates new WMI collector
+// New creates new WMI collector.
 func New() ([]collector.Collector, error) {
 	none := []collector.Collector{}
 	l := log.With().Str("pkg", pkgName).Logger()

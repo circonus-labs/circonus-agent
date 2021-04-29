@@ -23,14 +23,14 @@ import (
 // ID and Inventory are generic and do not need to be overridden unless the
 // collector implementation requires it.
 
-// Collect metrics
+// Collect metrics.
 func (c *common) Collect(ctx context.Context) error {
 	c.Lock()
 	defer c.Unlock()
 	return collector.ErrNotImplemented
 }
 
-// Flush returns last metrics collected
+// Flush returns last metrics collected.
 func (c *common) Flush() cgm.Metrics {
 	c.Lock()
 	defer c.Unlock()
@@ -41,14 +41,14 @@ func (c *common) Flush() cgm.Metrics {
 	return *metrics
 }
 
-// ID returns id of collector
+// ID returns id of collector.
 func (c *common) ID() string {
 	c.Lock()
 	defer c.Unlock()
 	return c.id
 }
 
-// Inventory returns collector stats for /inventory endpoint
+// Inventory returns collector stats for /inventory endpoint.
 func (c *common) Inventory() collector.InventoryStats {
 	c.Lock()
 	defer c.Unlock()
@@ -61,7 +61,7 @@ func (c *common) Inventory() collector.InventoryStats {
 	}
 }
 
-// Logger returns collector's instance of logger
+// Logger returns collector's instance of logger.
 func (c *common) Logger() zerolog.Logger {
 	return c.logger
 }

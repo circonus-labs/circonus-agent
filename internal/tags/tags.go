@@ -19,36 +19,36 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Tag aliases cgm's Tag to centralize definition
+// Tag aliases cgm's Tag to centralize definition.
 type Tag = cgm.Tag
 
-// Tags aliases cgm's Tags to centralize definition
+// Tags aliases cgm's Tags to centralize definition.
 type Tags = cgm.Tags
 
-// TaggedMetric definefs a tagged metric
+// TaggedMetric definefs a tagged metric.
 type TaggedMetric struct {
 	Value interface{} `json:"_value"`
 	Tags  *Tags       `json:"_tags"`
 	Type  string      `json:"_type"`
 }
 
-// TaggedMetrics is a list of metrics with tags
+// TaggedMetrics is a list of metrics with tags.
 type TaggedMetrics map[string]TaggedMetric
 
-// JSONMetric defines an individual metric received in JSON
+// JSONMetric defines an individual metric received in JSON.
 type JSONMetric struct {
 	Value interface{} `json:"_value"`
 	Type  string      `json:"_type"`
 	Tags  []string    `json:"_tags"`
 }
 
-// JSONMetrics holds list of JSON metrics received at /write receiver interface
+// JSONMetrics holds list of JSON metrics received at /write receiver interface.
 type JSONMetrics map[string]JSONMetric
 
 const (
-	// Delimiter defines character separating category from value in a tag e.g. location:london
+	// Delimiter defines character separating category from value in a tag e.g. location:london.
 	Delimiter = ":"
-	// Separator defines character separating tags in a list e.g. os:centos,location:sfo
+	// Separator defines character separating tags in a list e.g. os:centos,location:sfo.
 	Separator       = ","
 	replacementChar = "_"
 
@@ -57,13 +57,14 @@ const (
 )
 
 var (
-	valid    = regexp.MustCompile(`^[^:,]+:[^:,]+(,[^:,]+:[^:,]+)*$`)
-	cleaner  = regexp.MustCompile(`[\[\]'"` + "`]")
-	baseTags *[]string
+	valid               = regexp.MustCompile(`^[^:,]+:[^:,]+(,[^:,]+:[^:,]+)*$`)
+	cleaner             = regexp.MustCompile(`[\[\]'"` + "`]")
+	baseTags            *[]string
+	errInvalidTagFormat = fmt.Errorf("invalid tag format")
 )
 
 // GetBaseTags returns the check.tags as a list if check.metric_streamtags is true
-// ensuring that all metrics have, at a minimum, the same base set of tags
+// ensuring that all metrics have, at a minimum, the same base set of tags.
 func GetBaseTags() []string {
 	if baseTags != nil {
 		return *baseTags
@@ -107,7 +108,7 @@ func GetBaseTags() []string {
 	return *baseTags
 }
 
-// FromString convert old style tag string spec "cat:val,cat:val,..." into a Tags structure
+// FromString convert old style tag string spec "cat:val,cat:val,..." into a Tags structure.
 func FromString(tags string) Tags {
 	if tags == "" || !valid.MatchString(tags) {
 		return Tags{}
@@ -116,7 +117,7 @@ func FromString(tags string) Tags {
 	return FromList(tagList)
 }
 
-// FromList convert old style list of tags []string{"cat:val","cat:val",...} into a Tags structure
+// FromList convert old style list of tags []string{"cat:val","cat:val",...} into a Tags structure.
 func FromList(tagList []string) Tags {
 	if len(tagList) == 0 {
 		return Tags{}
@@ -144,7 +145,7 @@ func PrepStreamTags(tagList string) (string, error) {
 	}
 
 	if !valid.MatchString(tagList) {
-		return "", fmt.Errorf("invalid tag format")
+		return "", errInvalidTagFormat
 	}
 
 	t := strings.Split(cleaner.ReplaceAllString(tagList, replacementChar), Separator)

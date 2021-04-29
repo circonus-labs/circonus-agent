@@ -14,7 +14,7 @@ import (
 	"github.com/shirou/gopsutil/mem"
 )
 
-// agentHostStats produces the internal agent host metrics
+// agentHostStats produces the internal agent host metrics.
 func (s *Server) agentHostStats(metrics cgm.Metrics, mtags []string) {
 	///
 	// NOTE: host/process packages have an error on openbsd at the moment

@@ -7,6 +7,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -31,16 +32,17 @@ func TestGet(t *testing.T) {
 		t.Fatalf("unexpected error (%s)", err)
 	}
 
-	tests := []struct {
-		name        string
-		rpath       string
-		expectedErr string
-		shouldErr   bool
+	tests := []struct { //nolint:govet
+		name           string
+		rpath          string
+		expectedErr    error
+		expectedErrStr string
+		shouldErr      bool
 	}{
-		{"invalid path (empty)", "", "invalid request path (empty)", true},
-		{"invalid path (bad)", "/%/%", `creating request url: parse "/%/%": invalid URL escape "%/%"`, true},
-		{"invalid path (not found)", "/not_found", "404 Not Found - " + ts.URL + "/not_found - Not Found", true},
-		{"valid", "/valid", "", false},
+		{"invalid path (empty)", "", errInvalidRequestPath, "", true},
+		{"invalid path (bad)", "/%/%", nil, `creating request URL: parse "/%/%": invalid URL escape "%/%"`, true},
+		{"invalid path (not found)", "/not_found", errInvalidHTTPResponse, "", true}, // "404 Not Found - " + ts.URL + "/not_found - Not Found", true},
+		{"valid", "/valid", nil, "", false},
 	}
 
 	for _, test := range tests {
@@ -49,15 +51,20 @@ func TestGet(t *testing.T) {
 		_, err := c.get(context.Background(), test.rpath)
 
 		if test.shouldErr {
-			if err == nil {
+			switch {
+			case err == nil:
 				t.Fatal("expected error")
+			case test.expectedErr != nil:
+				if !errors.Is(err, test.expectedErr) {
+					// if err.Error() != test.expectedErr {
+					t.Fatalf("unexpected error (%s)", err)
+				}
+			case test.expectedErrStr != "":
+				if err.Error() != test.expectedErrStr {
+					t.Fatalf("unexpected error (%s)", err)
+				}
 			}
-			if err.Error() != test.expectedErr {
-				t.Fatalf("unexpected error (%s)", err)
-			}
-			continue
-		}
-		if err != nil {
+		} else if err != nil {
 			t.Fatalf("expected no error, got (%s)", err)
 		}
 	}

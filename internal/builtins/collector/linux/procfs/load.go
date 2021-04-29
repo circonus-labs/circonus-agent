@@ -9,6 +9,7 @@ package procfs
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -19,16 +20,15 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 )
 
-// Load metrics from the Linux ProcFS (actually from unix.Sysinfo call)
+// Load metrics from the Linux ProcFS (actually from unix.Sysinfo call).
 type Load struct {
 	processStatsFile string
 	common
 }
 
-// loadOptions defines what elements can be overridden in a config file
+// loadOptions defines what elements can be overridden in a config file.
 type loadOptions struct {
 	// common
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
@@ -39,7 +39,7 @@ type loadOptions struct {
 	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
 }
 
-// NewLoadCollector creates new procfs load collector
+// NewLoadCollector creates new procfs load collector.
 func NewLoadCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
 	loadFile := "loadavg"
 	statFile := "stat"
@@ -52,7 +52,7 @@ func NewLoadCollector(cfgBaseName, procFSPath string) (collector.Collector, erro
 
 	if cfgBaseName == "" {
 		if _, err := os.Stat(c.file); os.IsNotExist(err) {
-			return nil, errors.Wrap(err, c.pkgID)
+			return nil, fmt.Errorf("%s procfile: %w", c.pkgID, err)
 		}
 		return &c, nil
 	}
@@ -62,7 +62,7 @@ func NewLoadCollector(cfgBaseName, procFSPath string) (collector.Collector, erro
 	if err != nil {
 		if !strings.Contains(err.Error(), "no config found matching") {
 			c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-			return nil, errors.Wrapf(err, "%s config", c.pkgID)
+			return nil, fmt.Errorf("%s config: %w", c.pkgID, err)
 		}
 	} else {
 		c.logger.Debug().Interface("config", opts).Msg("loaded config")
@@ -81,19 +81,19 @@ func NewLoadCollector(cfgBaseName, procFSPath string) (collector.Collector, erro
 	if opts.RunTTL != "" {
 		dur, err := time.ParseDuration(opts.RunTTL)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
+			return nil, fmt.Errorf("%s parsing run_ttl: %w", c.pkgID, err)
 		}
 		c.runTTL = dur
 	}
 
 	if _, err := os.Stat(c.file); os.IsNotExist(err) {
-		return nil, errors.Wrap(err, c.pkgID)
+		return nil, fmt.Errorf("%s procfile: %w", c.pkgID, err)
 	}
 
 	return &c, nil
 }
 
-// Collect metrics from the procfs resource
+// Collect metrics from the procfs resource.
 func (c *Load) Collect(ctx context.Context) error {
 	metrics := cgm.Metrics{}
 
@@ -126,7 +126,7 @@ func (c *Load) Collect(ctx context.Context) error {
 		lines, err := c.readFile(c.file)
 		if err != nil {
 			c.setStatus(metrics, err)
-			return errors.Wrap(err, c.pkgID)
+			return fmt.Errorf("%s read file: %w", c.pkgID, err)
 		}
 
 		for _, line := range lines {
@@ -168,7 +168,7 @@ func (c *Load) Collect(ctx context.Context) error {
 		lines, err := c.readFile(c.processStatsFile)
 		if err != nil {
 			c.setStatus(metrics, err)
-			return errors.Wrap(err, c.pkgID)
+			return fmt.Errorf("%s read file: %w", c.pkgID, err)
 		}
 
 		for _, line := range lines {
@@ -193,7 +193,7 @@ func (c *Load) Collect(ctx context.Context) error {
 
 			if lineErr != nil {
 				c.setStatus(metrics, err)
-				return errors.Wrapf(err, "%s parsing %s", c.pkgID, fields[0])
+				return fmt.Errorf("%s parsing %s: %w", c.pkgID, fields[0], err)
 			}
 		}
 

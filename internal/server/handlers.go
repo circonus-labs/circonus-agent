@@ -38,7 +38,7 @@ const (
 )
 
 // run handles requests to execute plugins and return metrics emitted
-// handles /, /run, or /run/plugin_name
+// handles /, /run, or /run/plugin_name.
 func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 	runStart := time.Now()
 	id := ""
@@ -106,7 +106,7 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 	s.encodeResponse(&metrics, w, r, runStart)
 }
 
-// GetMetrics collects metrics from the various conduits and returns them for disposition
+// GetMetrics collects metrics from the various conduits and returns them for disposition.
 func (s *Server) GetMetrics(conduits []string, id string) cgm.Metrics {
 	includeAgentMetrics := false
 	// default to all conduits if list is empty
@@ -323,7 +323,7 @@ func (s *Server) encodeResponse(m *cgm.Metrics, w http.ResponseWriter, r *http.R
 	}
 }
 
-// inventory returns the current, active plugin inventory
+// inventory returns the current, active plugin inventory.
 func (s *Server) inventory(w http.ResponseWriter) {
 	inventory := s.plugins.Inventory()
 	if inventory == nil {
@@ -335,7 +335,7 @@ func (s *Server) inventory(w http.ResponseWriter) {
 	_, _ = w.Write(inventory)
 }
 
-// socketHandler gates /write for the socket server only
+// socketHandler gates /write for the socket server only.
 func (s *Server) socketHandler(w http.ResponseWriter, r *http.Request) {
 	if !writePathRx.MatchString(r.URL.Path) {
 		_ = appstats.IncrementInt("requests_bad")
@@ -411,7 +411,7 @@ func (s *Server) promReceiver(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// promOutput returns the last metrics in prom format
+// promOutput returns the last metrics in prom format.
 func (s *Server) promOutput(w http.ResponseWriter) {
 	s.logger.Debug().Str("in", "prom output").Msg("start")
 

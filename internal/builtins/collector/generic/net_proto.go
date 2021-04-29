@@ -7,6 +7,7 @@ package generic
 
 import (
 	"context"
+	"fmt"
 	"runtime"
 	"strings"
 	"time"
@@ -15,18 +16,17 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/shirou/gopsutil/net"
 )
 
-// Proto metrics
+// Proto metrics.
 type Proto struct {
 	protocols []string
 	gencommon
 }
 
-// protoOptions defines what elements can be overridden in a config file
+// protoOptions defines what elements can be overridden in a config file.
 type protoOptions struct {
 	// common
 	ID     string `json:"id" toml:"id" yaml:"id"`
@@ -36,7 +36,11 @@ type protoOptions struct {
 	Protocols []string `json:"protocols" toml:"protocols" yaml:"protocols"` // default: empty (equates to all: ip,icmp,icmpmsg,tcp,udp,udplite)
 }
 
-// NewNetProtoCollector creates new psutils collector
+var (
+	errNoProtoMetrics = fmt.Errorf("no network protocol metrics available")
+)
+
+// NewNetProtoCollector creates new psutils collector.
 func NewNetProtoCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector.Collector, error) {
 	c := Proto{}
 	c.id = NameProto
@@ -51,7 +55,7 @@ func NewNetProtoCollector(cfgBaseName string, parentLogger zerolog.Logger) (coll
 			return &c, nil
 		}
 		c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-		return nil, errors.Wrapf(err, "%s config", c.pkgID)
+		return nil, fmt.Errorf("%s config: %w", c.pkgID, err)
 	}
 
 	c.logger.Debug().Str("base", cfgBaseName).Interface("config", opts).Msg("loaded config")
@@ -67,7 +71,7 @@ func NewNetProtoCollector(cfgBaseName string, parentLogger zerolog.Logger) (coll
 	if opts.RunTTL != "" {
 		dur, err := time.ParseDuration(opts.RunTTL)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
+			return nil, fmt.Errorf("%s parsing run_ttl: %w", c.pkgID, err)
 		}
 		c.runTTL = dur
 	}
@@ -75,7 +79,7 @@ func NewNetProtoCollector(cfgBaseName string, parentLogger zerolog.Logger) (coll
 	return &c, nil
 }
 
-// Collect metrics
+// Collect metrics.
 func (c *Proto) Collect(ctx context.Context) error {
 	c.Lock()
 	if c.runTTL > time.Duration(0) {
@@ -109,7 +113,7 @@ func (c *Proto) Collect(ctx context.Context) error {
 	}
 
 	if len(counters) == 0 {
-		return errors.New("no network protocol metrics available")
+		return errNoProtoMetrics
 	}
 
 	if runtime.GOOS == "linux" {
@@ -161,7 +165,7 @@ func (c *Proto) Collect(ctx context.Context) error {
 }
 
 const (
-	// repeated metric names
+	// repeated metric names.
 	metricInCsumErrors = "InCsumErrors"
 	metricInErrors     = "InErrors"
 	metricOutDatagrams = "OutDatagrams"

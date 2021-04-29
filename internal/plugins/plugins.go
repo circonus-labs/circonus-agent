@@ -8,6 +8,7 @@ package plugins
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -20,13 +21,12 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/maier/go-appstats"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
 
-// Plugins defines plugin manager
+// Plugins defines plugin manager.
 type Plugins struct {
 	active        map[string]*plugin
 	plugList      []string
@@ -38,7 +38,7 @@ type Plugins struct {
 	sync.RWMutex
 }
 
-// Plugin defines a specific plugin
+// Plugin defines a specific plugin.
 type plugin struct {
 	cmd             *exec.Cmd
 	command         string
@@ -67,7 +67,7 @@ const (
 	nullMetricValue = "[[null]]"
 )
 
-// New returns a new instance of the plugins manager
+// New returns a new instance of the plugins manager.
 func New(ctx context.Context, defaultPluginPath string) (*Plugins, error) {
 	p := Plugins{
 		ctx:           ctx,
@@ -86,7 +86,7 @@ func New(ctx context.Context, defaultPluginPath string) (*Plugins, error) {
 	}
 
 	if pluginDir != "" && len(pluginList) > 0 {
-		return nil, errors.New("invalid configuration cannot specify plugin-dir AND plugin-list")
+		return nil, fmt.Errorf("invalid configuration cannot specify plugin-dir AND plugin-list") //nolint:goerr113
 	}
 
 	if pluginDir == "" {
@@ -98,10 +98,9 @@ func New(ctx context.Context, defaultPluginPath string) (*Plugins, error) {
 		return &p, nil
 	}
 
-	errMsg := "Invalid plugin directory"
 	absDir, err := filepath.Abs(pluginDir)
 	if err != nil {
-		return nil, errors.Wrap(err, errMsg)
+		return nil, fmt.Errorf("invalid plugin directory: %w", err)
 	}
 
 	pluginDir = absDir
@@ -113,18 +112,18 @@ func New(ctx context.Context, defaultPluginPath string) (*Plugins, error) {
 			p.pluginDir = ""
 			return &p, nil
 		}
-		return nil, errors.Wrap(err, errMsg)
+		return nil, fmt.Errorf("invalid plugin directory: %w", err)
 	}
 
 	if !fi.Mode().IsDir() {
-		return nil, errors.Errorf(errMsg+" (%s) not a directory", pluginDir)
+		return nil, fmt.Errorf("invalid plugin directory: %s not a directory", pluginDir) //nolint:goerr113
 	}
 
 	// also try opening, to verify permissions
 	// if last dir on path is not accessible to user, stat doesn't return EPERM
 	f, err := os.Open(pluginDir)
 	if err != nil {
-		return nil, errors.Wrap(err, errMsg)
+		return nil, fmt.Errorf("invalid plugin directory: %w", err)
 	}
 	f.Close()
 
@@ -133,7 +132,7 @@ func New(ctx context.Context, defaultPluginPath string) (*Plugins, error) {
 	return &p, nil
 }
 
-// Flush plugin metrics
+// Flush plugin metrics.
 func (p *Plugins) Flush(pluginName string) *cgm.Metrics {
 	p.RLock()
 	defer p.RUnlock()
@@ -158,13 +157,13 @@ func (p *Plugins) Flush(pluginName string) *cgm.Metrics {
 	return &metrics
 }
 
-// Stop any long running plugins
+// Stop any long running plugins.
 func (p *Plugins) Stop() error {
 	p.logger.Info().Msg("stopping")
 	return nil
 }
 
-// Run one or all plugins
+// Run one or all plugins.
 func (p *Plugins) Run(pluginName string) error {
 	p.Lock()
 
@@ -218,7 +217,7 @@ func (p *Plugins) Run(pluginName string) error {
 		if numFound == 0 {
 			p.logger.Error().Str("id", pluginName).Msg("invalid/unknown")
 			p.running = false
-			return errors.Errorf("invalid plugin (%s)", pluginName)
+			return fmt.Errorf("invalid plugin (%s)", pluginName) //nolint:goerr113
 		}
 	} else {
 		p.logger.Debug().Str("plugin(s)", strings.Join(p.plugList, ",")).Msg("running")
@@ -247,7 +246,7 @@ func (p *Plugins) Run(pluginName string) error {
 	return nil
 }
 
-// IsValid determines if a specific plugin is valid
+// IsValid determines if a specific plugin is valid.
 func (p *Plugins) IsValid(pluginName string) bool {
 	if pluginName == "" {
 		return false
@@ -266,7 +265,7 @@ func (p *Plugins) IsValid(pluginName string) bool {
 	return false
 }
 
-// IsInternal checks to see if the plugin is one of the internal plugins (write|statsd)
+// IsInternal checks to see if the plugin is one of the internal plugins (write|statsd).
 func (p *Plugins) IsInternal(pluginName string) bool {
 	if pluginName == "" {
 		return false
@@ -276,7 +275,7 @@ func (p *Plugins) IsInternal(pluginName string) bool {
 	return reserved
 }
 
-// Inventory returns list of active plugins
+// Inventory returns list of active plugins.
 func (p *Plugins) Inventory() []byte {
 	p.Lock()
 	defer p.Unlock()

@@ -7,6 +7,7 @@ package generic
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"runtime"
 	"strings"
@@ -16,24 +17,23 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/shirou/gopsutil/mem"
 )
 
-// VM metrics
+// VM metrics.
 type VM struct {
 	gencommon
 }
 
-// vmOptions defines what elements can be overridden in a config file
+// vmOptions defines what elements can be overridden in a config file.
 type vmOptions struct {
 	// common
 	ID     string `json:"id" toml:"id" yaml:"id"`
 	RunTTL string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
-// NewVMCollector creates new psutils collector
+// NewVMCollector creates new psutils collector.
 func NewVMCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector.Collector, error) {
 	c := VM{}
 	c.id = NameVM
@@ -48,7 +48,7 @@ func NewVMCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector.
 			return &c, nil
 		}
 		c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-		return nil, errors.Wrapf(err, "%s config", c.pkgID)
+		return nil, fmt.Errorf("%s config: %w", c.pkgID, err)
 	}
 
 	c.logger.Debug().Str("base", cfgBaseName).Interface("config", opts).Msg("loaded config")
@@ -60,7 +60,7 @@ func NewVMCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector.
 	if opts.RunTTL != "" {
 		dur, err := time.ParseDuration(opts.RunTTL)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
+			return nil, fmt.Errorf("%s parsing run_ttl: %w", c.pkgID, err)
 		}
 		c.runTTL = dur
 	}
@@ -68,7 +68,7 @@ func NewVMCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector.
 	return &c, nil
 }
 
-// Collect memory metrics
+// Collect memory metrics.
 func (c *VM) Collect(ctx context.Context) error {
 	c.Lock()
 	if c.runTTL > time.Duration(0) {

@@ -38,7 +38,7 @@ func init() {
 	histogramRxNames = histogramRx.SubexpNames()
 }
 
-// logshim is used to satisfy apiclient Logger interface (avoiding ptr receiver issue)
+// logshim is used to satisfy apiclient Logger interface (avoiding ptr receiver issue).
 type logshim struct {
 	logh zerolog.Logger
 }
@@ -79,13 +79,13 @@ func initCGM() error {
 	return nil
 }
 
-// Flush returns current metrics
+// Flush returns current metrics.
 func Flush() *cgm.Metrics {
 	_ = initCGM()
 	return metrics.FlushMetrics()
 }
 
-// Parse handles incoming PUT/POST requests
+// Parse handles incoming PUT/POST requests.
 func Parse(id string, data io.Reader) error {
 	if err := initCGM(); err != nil {
 		return err
@@ -219,7 +219,7 @@ func parseInt64(metricName string, metric tags.JSONMetric) *int64 {
 	case string:
 		v, err := strconv.ParseInt(metric.Value.(string), 10, 64)
 		if err == nil {
-			v2 := int64(v)
+			v2 := v
 			return &v2
 		}
 		logger.Error().
@@ -245,7 +245,7 @@ func parseUint64(metricName string, metric tags.JSONMetric) *uint64 {
 	case string:
 		v, err := strconv.ParseUint(metric.Value.(string), 10, 64)
 		if err == nil {
-			v2 := uint64(v)
+			v2 := v
 			return &v2
 		}
 		logger.Error().
@@ -273,7 +273,7 @@ func parseFloat(metricName string, metric tags.JSONMetric) (*float64, bool) {
 	case string:
 		v, err := strconv.ParseFloat(metric.Value.(string), 64)
 		if err == nil {
-			v2 := float64(v)
+			v2 := v
 			return &v2, false
 		}
 		logger.Error().
@@ -318,7 +318,7 @@ func parseHistogram(metricName string, metric tags.JSONMetric) *[]histSample {
 							Msg("parsing histogram sample")
 						continue
 					}
-					ret = append(ret, histSample{bucket: false, value: float64(v2)})
+					ret = append(ret, histSample{bucket: false, value: v2})
 					continue
 				}
 

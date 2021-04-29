@@ -20,13 +20,12 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/go-apiclient"
 	apiconf "github.com/circonus-labs/go-apiclient/config"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
 
-// Bundle exposes the check bundle management interface
+// Bundle exposes the check bundle management interface.
 type Bundle struct {
 	statusActiveBroker    string
 	bundle                *apiclient.CheckBundle
@@ -37,7 +36,31 @@ type Bundle struct {
 	sync.Mutex
 }
 
-var ErrUninitialized = errors.New("uninitialized check bundle")
+var (
+	// broker errors.
+
+	errInvalidCheckType              = fmt.Errorf("invalid check type (empty)")
+	errInvalidBrokerList             = fmt.Errorf("invalid broker list (nil)")
+	errInvalidBrokerListEmpty        = fmt.Errorf("invalid broker list (empty)")
+	errIvalidEnterpriseForMultiAgent = fmt.Errorf("no enterprise brokers satisfy multi-agent requirements")
+	errNoValidBrokersFound           = fmt.Errorf("no valid brokers found")
+
+	// bundle errors.
+
+	ErrUninitialized           = fmt.Errorf("uninitialized check bundle")
+	errInvalidCheckBundle      = fmt.Errorf("invalid check bundle (nil)")
+	errInvalidReverseRules     = fmt.Errorf("invalid check bundle (0 reverse urls)")
+	errNoChecksInBundle        = fmt.Errorf("no checks found in check bundle")
+	errInvalidCheckIndex       = fmt.Errorf("invalid check index")
+	errInvalidCheckBundleState = fmt.Errorf("invalid Check object state, bundle is nil")
+	errInvalidCID              = fmt.Errorf("invalid CID")
+	errInvalidTarget           = fmt.Errorf("invalid check bundle target (empty)")
+	errNoBundlesMatched        = fmt.Errorf("no check bundles matched")
+
+	// other errors.
+
+	errInvalidClient = fmt.Errorf("invalid client (nil)")
+)
 
 type ErrNotActive struct {
 	Err      string
@@ -70,7 +93,7 @@ const (
 func New(client API) (*Bundle, error) {
 
 	if client == nil {
-		return nil, errors.New("invalid client (nil)")
+		return nil, errInvalidClient
 	}
 
 	cb := Bundle{
@@ -98,7 +121,7 @@ func New(client API) (*Bundle, error) {
 
 	// initialize the check bundle
 	if err := cb.initCheckBundle(cid, isCreate); err != nil {
-		return nil, errors.Wrap(err, "initializing check bundle")
+		return nil, fmt.Errorf("initializing check bundle: %w", err)
 	}
 
 	// ensure a) the global check bundle id is set and b) it is set correctly
@@ -111,7 +134,7 @@ func New(client API) (*Bundle, error) {
 	return &cb, nil
 }
 
-// CID returns the check bundle cid
+// CID returns the check bundle cid.
 func (cb *Bundle) CID() (string, error) {
 	cb.Lock()
 	defer cb.Unlock()
@@ -123,7 +146,7 @@ func (cb *Bundle) CID() (string, error) {
 	return "", ErrUninitialized
 }
 
-// Period returns check bundle period (intetrval between when broker should make requests)
+// Period returns check bundle period (intetrval between when broker should make requests).
 func (cb *Bundle) Period() (uint, error) {
 	cb.Lock()
 	defer cb.Unlock()
@@ -135,13 +158,13 @@ func (cb *Bundle) Period() (uint, error) {
 	return 0, ErrUninitialized
 }
 
-// SubmissionURL returns the submission url (derived from mtev_reverse)
+// SubmissionURL returns the submission url (derived from mtev_reverse).
 func (cb *Bundle) SubmissionURL() (string, error) {
 	if cb.bundle == nil {
-		return "", errors.New("invalid check bundle (nil)")
+		return "", errInvalidCheckBundle
 	}
 	if len(cb.bundle.ReverseConnectURLs) == 0 {
-		return "", errors.New("invalid check bundle (0 reverse urls)")
+		return "", errInvalidReverseRules
 	}
 
 	// submission url from mtev_reverse url, given:
@@ -158,7 +181,7 @@ func (cb *Bundle) SubmissionURL() (string, error) {
 	return submissionURL, nil
 }
 
-// Refresh re-loads the check bundle using the API (sets metric states if check bundle is managed)
+// Refresh re-loads the check bundle using the API (sets metric states if check bundle is managed).
 func (cb *Bundle) Refresh() error {
 	cb.Lock()
 	defer cb.Unlock()
@@ -171,7 +194,7 @@ func (cb *Bundle) Refresh() error {
 
 	b, err := cb.fetchCheckBundle(viper.GetString(config.KeyCheckBundleID))
 	if err != nil {
-		return errors.Wrap(err, "refresh check, fetching check")
+		return fmt.Errorf("refresh check, fetching check: %w", err)
 	}
 
 	cb.bundle = b
@@ -179,7 +202,8 @@ func (cb *Bundle) Refresh() error {
 	return nil
 }
 
-// CheckCID returns the check cid at the passed index within the check bundle's checks array or an error if bundle not initialized
+// CheckCID returns the check cid at the passed index within the check bundle's
+// checks array or an error if bundle not initialized.
 func (cb *Bundle) CheckCID(idx uint) (string, error) {
 	cb.Lock()
 	defer cb.Unlock()
@@ -188,29 +212,41 @@ func (cb *Bundle) CheckCID(idx uint) (string, error) {
 		return "", ErrUninitialized
 	}
 	if len(cb.bundle.Checks) == 0 {
-		return "", errors.New("no checks found in check bundle")
+		return "", errNoChecksInBundle
 	}
 	if int(idx) > len(cb.bundle.Checks) {
-		return "", errors.Errorf("invalid check index (%d>%d)", idx, len(cb.bundle.Checks))
+		return "", fmt.Errorf("index(%d) checks(%d): %w", idx, len(cb.bundle.Checks), errInvalidCheckIndex)
 	}
 
 	return cb.bundle.Checks[idx], nil
 }
 
 // initCheck initializes the check for the agent.
-// 1. fetch a check explicitly provided via CID
-// 2. search for a check matching the current system
-// 3. create a check for the system if --check-create specified
+// 1. load a saved check bundle
+// 2. fetch a check explicitly provided via CID
+// 3. search for a check matching the current system
+// 4. create a check for the system if --check-create specified
 // if fetched, found, or created - set Check.bundle
-// otherwise, return an error
+// otherwise, return an error.
 func (cb *Bundle) initCheckBundle(cid string, create bool) error {
 	var bundle *apiclient.CheckBundle
 
-	// if explicit cid configured, attempt to fetch check bundle using cid
+	{
+		// first, try to load a previously saved bundle
+		// NOTE: takes precedence over configured check bundle cid
+		b, loaded := cb.loadBundle()
+		if loaded {
+			// set cid to loaded cid so bundle can be
+			// refreshed and verified to be active
+			cid = b.CID
+		}
+	}
+
+	// if explicit cid loaded or configured, attempt to fetch check bundle using cid
 	if cid != "" {
 		b, err := cb.fetchCheckBundle(cid)
 		if err != nil {
-			return errors.Wrapf(err, "fetching check for cid %s", cid)
+			return fmt.Errorf("fetching check for cid %s: %w", cid, err)
 		}
 		bundle = b
 	} else {
@@ -218,20 +254,20 @@ func (cb *Bundle) initCheckBundle(cid string, create bool) error {
 		b, found, err := cb.findCheckBundle()
 		if err != nil {
 			if !create || found != 0 {
-				return errors.Wrap(err, "unable to find a check for this system")
+				return fmt.Errorf("unable to find a check for this system: %w", err)
 			}
 			cb.logger.Info().Msg("no existing check found, creating")
 			// attempt to create if not found and create flag ON
 			b, err = cb.createCheckBundle()
 			if err != nil {
-				return errors.Wrap(err, "creating new check for this system")
+				return fmt.Errorf("creating new check for this system: %w", err)
 			}
 		}
 		bundle = b
 	}
 
 	if bundle == nil {
-		return errors.New("invalid Check object state, bundle is nil")
+		return errInvalidCheckBundleState
 	}
 
 	if bundle.Status != StatusActive {
@@ -248,21 +284,21 @@ func (cb *Bundle) initCheckBundle(cid string, create bool) error {
 		cb.logger.Info().Str("cid", bundle.CID).Msg("updating check bundle")
 		b, err := cb.updateCheckBundle(bundle)
 		if err != nil {
-			return errors.Wrap(err, "updating check bundle")
+			return fmt.Errorf("updating check bundle: %w", err)
 		}
 		bundle = b
 	case viper.GetBool(config.KeyCheckUpdateMetricFilters):
 		cb.logger.Info().Str("cid", bundle.CID).Msg("updating check bundle metric filters and host tags")
 		b, err := cb.updateCheckBundleMetricFilters(bundle)
 		if err != nil {
-			return errors.Wrap(err, "updating check bundle metric filters")
+			return fmt.Errorf("updating check bundle metric filters: %w", err)
 		}
 		bundle = b
 	default:
 		cb.logger.Info().Str("cid", bundle.CID).Msg("updating check bundle host tags")
 		b, err := cb.updateCheckBundleTags(bundle)
 		if err != nil {
-			return errors.Wrap(err, "updating check bundle tags")
+			return fmt.Errorf("updating check bundle tags: %w", err)
 		}
 		bundle = b
 	}
@@ -270,12 +306,16 @@ func (cb *Bundle) initCheckBundle(cid string, create bool) error {
 	cb.bundle = bundle
 	cb.logger.Info().Str("cid", cb.bundle.CID).Str("name", cb.bundle.DisplayName).Msg("using check bundle")
 
+	// try to save the bundle to enable --check-delete
+	// this will save a created check, an updated check, a found check, etc.
+	cb.saveBundle(bundle)
+
 	return nil
 }
 
 func (cb *Bundle) fetchCheckBundle(cid string) (*apiclient.CheckBundle, error) {
 	if cid == "" {
-		return nil, errors.New("invalid cid (empty)")
+		return nil, fmt.Errorf("empty: %w", errInvalidCID)
 	}
 
 	if ok, _ := regexp.MatchString(`^[0-9]+$`, cid); ok {
@@ -283,12 +323,12 @@ func (cb *Bundle) fetchCheckBundle(cid string) (*apiclient.CheckBundle, error) {
 	}
 
 	if ok, _ := regexp.MatchString(`^/check_bundle/[0-9]+$`, cid); !ok {
-		return nil, errors.Errorf("invalid cid (%s)", cid)
+		return nil, fmt.Errorf("cid %s: %w", cid, errInvalidCID)
 	}
 
 	bundle, err := cb.client.FetchCheckBundle(apiclient.CIDType(&cid))
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to retrieve check bundle (%s)", cid)
+		return nil, fmt.Errorf("unable to retrieve check bundle (%s): %w", cid, err)
 	}
 
 	if bundle.Status != StatusActive {
@@ -306,19 +346,19 @@ func (cb *Bundle) fetchCheckBundle(cid string) (*apiclient.CheckBundle, error) {
 func (cb *Bundle) findCheckBundle() (*apiclient.CheckBundle, int, error) {
 	target := viper.GetString(config.KeyCheckTarget)
 	if target == "" {
-		return nil, -1, errors.New("invalid check bundle target (empty)")
+		return nil, -1, errInvalidTarget
 	}
 
 	criteria := apiclient.SearchQueryType(fmt.Sprintf(`(active:1)(type:"`+defaults.CheckType+`")(target:"%s")`, target))
 	bundles, err := cb.client.SearchCheckBundles(&criteria, nil)
 	if err != nil {
-		return nil, -1, errors.Wrap(err, "searching for check bundle")
+		return nil, -1, fmt.Errorf("searching for check bundle: %w", err)
 	}
 
 	found := len(*bundles)
 
 	if found == 0 {
-		return nil, found, errors.Errorf("no check bundles matched criteria (%s)", string(criteria))
+		return nil, found, fmt.Errorf("criteria - %s: %w", string(criteria), errNoBundlesMatched)
 	}
 
 	if found > 1 {
@@ -338,7 +378,7 @@ func (cb *Bundle) findCheckBundle() (*apiclient.CheckBundle, int, error) {
 				Int("matched", matched).
 				Str("criteria", string(criteria)).
 				Msgf("multiple check bundles found, none created by (%s)", release.NAME)
-			return nil, matched, errors.Errorf("multiple check bundles (%d) found matching criteria (%s), none created by (%s)", found, string(criteria), release.NAME)
+			return nil, matched, fmt.Errorf("multiple check bundles (%d) found matching criteria (%s), none created by (%s)", found, string(criteria), release.NAME) //nolint:goerr113
 		}
 		if matched == 1 {
 			cb.logger.Warn().
@@ -349,7 +389,7 @@ func (cb *Bundle) findCheckBundle() (*apiclient.CheckBundle, int, error) {
 				Msgf("multiple check bundles found, using one created by (%s)", release.NAME)
 			return &(*bundles)[idx], matched, nil
 		}
-		return nil, found, errors.Errorf("multiple check bundles (%d) found matching criteria (%s) created by (%s)", matched, string(criteria), release.NAME)
+		return nil, found, fmt.Errorf("multiple check bundles (%d) found matching criteria (%s) created by (%s)", matched, string(criteria), release.NAME) //nolint:goerr113
 	}
 
 	// search does not always return a valid mtev_reverse url (e.g. mtev_reverse://:43191/ no host/ip)
@@ -359,7 +399,7 @@ func (cb *Bundle) findCheckBundle() (*apiclient.CheckBundle, int, error) {
 	// cb.logger.Debug().Str("cid", cid).Msg("fetching check bundle found by search")
 	b, err := cb.fetchCheckBundle(cid)
 	if err != nil {
-		return nil, 0, errors.Errorf("unable to retrieve check bundle by id (%s): %s", cid, err)
+		return nil, 0, fmt.Errorf("unable to retrieve check bundle by id (%s): %w", cid, err)
 	}
 	// cb.logger.Debug().Interface("search", *bundles).Interface("fetch", b).Msg("bundles")
 
@@ -382,14 +422,14 @@ func (cb *Bundle) createCheckBundle() (*apiclient.CheckBundle, error) {
 		ta, err := config.ParseListen(serverList[0])
 		if err != nil {
 			cb.logger.Error().Err(err).Str("addr", serverList[0]).Msg("resolving address")
-			return nil, errors.Wrap(err, "parsing listen address")
+			return nil, fmt.Errorf("parsing listen address: %w", err)
 		}
 		targetAddr = ta.String()
 	}
 
 	target := viper.GetString(config.KeyCheckTarget)
 	if target == "" {
-		return nil, errors.New("invalid check bundle target (empty)")
+		return nil, errInvalidTarget
 	}
 
 	if targetAddr[0:1] == ":" && !viper.GetBool(config.KeyReverse) {
@@ -426,7 +466,7 @@ func (cb *Bundle) createCheckBundle() (*apiclient.CheckBundle, error) {
 	{ // get metric filter configuration
 		filters, err := cb.getMetricFilters()
 		if err != nil {
-			return nil, errors.Wrap(err, "getting metric filters")
+			return nil, fmt.Errorf("getting metric filters: %w", err)
 		}
 		cfg.MetricFilters = filters
 	}
@@ -435,12 +475,12 @@ func (cb *Bundle) createCheckBundle() (*apiclient.CheckBundle, error) {
 	if brokerCID == "" || strings.ToLower(brokerCID) == "select" {
 		brokerList, err := cb.client.FetchBrokers()
 		if err != nil {
-			return nil, errors.Wrap(err, "select broker")
+			return nil, fmt.Errorf("select broker: %w", err)
 		}
 
 		broker, err := cb.selectBroker(defaults.CheckType, brokerList)
 		if err != nil {
-			return nil, errors.Wrap(err, "selecting broker to create check bundle")
+			return nil, fmt.Errorf("selecting broker to create check bundle: %w", err)
 		}
 
 		brokerCID = broker.CID
@@ -454,13 +494,13 @@ func (cb *Bundle) createCheckBundle() (*apiclient.CheckBundle, error) {
 
 	bundle, err := cb.client.CreateCheckBundle(cfg)
 	if err != nil {
-		return nil, errors.Wrap(err, "creating check bundle")
+		return nil, fmt.Errorf("creating check bundle: %w", err)
 	}
 
 	return bundle, nil
 }
 
-// updateCheckBundle will update all check bundle settings/tags/filters controlled by agent
+// updateCheckBundle will update all check bundle settings/tags/filters controlled by agent.
 func (cb *Bundle) updateCheckBundle(cfg *apiclient.CheckBundle) (*apiclient.CheckBundle, error) {
 
 	// this is an explicit update - all configurable values will be overwritten with their configuration settings
@@ -479,14 +519,14 @@ func (cb *Bundle) updateCheckBundle(cfg *apiclient.CheckBundle) (*apiclient.Chec
 		ta, err := config.ParseListen(serverList[0])
 		if err != nil {
 			cb.logger.Error().Err(err).Str("addr", serverList[0]).Msg("resolving address")
-			return nil, errors.Wrap(err, "parsing listen address")
+			return nil, fmt.Errorf("parsing listen address: %w", err)
 		}
 		targetAddr = ta.String()
 	}
 
 	target := viper.GetString(config.KeyCheckTarget)
 	if target == "" {
-		return nil, errors.New("invalid check bundle target (empty)")
+		return nil, errInvalidTarget
 	}
 
 	if targetAddr[0:1] == ":" && !viper.GetBool(config.KeyReverse) {
@@ -521,7 +561,7 @@ func (cb *Bundle) updateCheckBundle(cfg *apiclient.CheckBundle) (*apiclient.Chec
 	{ // get metric filter configuration
 		filters, err := cb.getMetricFilters()
 		if err != nil {
-			return nil, errors.Wrap(err, "getting metric filters")
+			return nil, fmt.Errorf("getting metric filters: %w", err)
 		}
 		cfg.MetricFilters = filters
 	}
@@ -536,7 +576,7 @@ func (cb *Bundle) updateCheckBundle(cfg *apiclient.CheckBundle) (*apiclient.Chec
 
 	bundle, err := cb.client.UpdateCheckBundle(cfg)
 	if err != nil {
-		return nil, errors.Wrap(err, "updating check bundle")
+		return nil, fmt.Errorf("updating check bundle: %w", err)
 	}
 
 	return bundle, nil
@@ -552,12 +592,12 @@ func (cb *Bundle) getMetricFilters() ([][]string, error) {
 		data, err := ioutil.ReadFile(mff)
 		if err != nil {
 			if !os.IsNotExist(err) {
-				return nil, errors.Wrapf(err, "reading %s", mff)
+				return nil, fmt.Errorf("reading %s: %w", mff, err)
 			}
 		} else {
 			var filters MetricFilterFile
 			if err := json.Unmarshal(data, &filters); err != nil {
-				return nil, errors.Wrap(err, "parsing metric filters")
+				return nil, fmt.Errorf("json parse - metric filters file: %w", err)
 			}
 			cb.logger.Debug().Interface("filters", filters).Str("file", mff).Msg("using metric filter file")
 			return filters.Filters, nil
@@ -567,7 +607,7 @@ func (cb *Bundle) getMetricFilters() ([][]string, error) {
 	if viper.GetString(config.KeyCheckMetricFilters) != "" {
 		var filters [][]string
 		if err := json.Unmarshal([]byte(viper.GetString(config.KeyCheckMetricFilters)), &filters); err != nil {
-			return nil, errors.Wrap(err, "parsing check bundle metric filters")
+			return nil, fmt.Errorf("json parse - metric filters cfg: %w", err)
 		}
 		cb.logger.Debug().Interface("filters", filters).Msg("using metric filters option")
 		return filters, nil
@@ -577,27 +617,27 @@ func (cb *Bundle) getMetricFilters() ([][]string, error) {
 	return defaults.CheckMetricFilters, nil
 }
 
-// updateCheckBundleMetricFilters only (forced); then merge/update tags
+// updateCheckBundleMetricFilters only (forced); then merge/update tags.
 func (cb *Bundle) updateCheckBundleMetricFilters(cfg *apiclient.CheckBundle) (*apiclient.CheckBundle, error) {
 
 	// this is an explicit, forced update and bundle metric filters will be overwritten with configured filters
 
 	filters, err := cb.getMetricFilters()
 	if err != nil {
-		return nil, errors.Wrap(err, "getting metric filters")
+		return nil, fmt.Errorf("getting metric filters: %w", err)
 	}
 	cfg.MetricFilters = filters
 
 	cb.logger.Info().Interface("filters", filters).Msg("updating check bundle metric filters")
 	bundle, err := cb.client.UpdateCheckBundle(cfg)
 	if err != nil {
-		return nil, errors.Wrap(err, "updating metric filters")
+		return nil, fmt.Errorf("updating metric filters: %w", err)
 	}
 
 	return cb.updateCheckBundleTags(bundle)
 }
 
-// updateCheckBundleTags only, merge w/user-added; update any host tags where value has changed
+// updateCheckBundleTags only, merge w/user-added; update any host tags where value has changed.
 func (cb *Bundle) updateCheckBundleTags(cfg *apiclient.CheckBundle) (*apiclient.CheckBundle, error) {
 
 	// this is a passive update, so tags are merged with user tags and any host tags are updated to new values if they've changed
@@ -648,10 +688,43 @@ func (cb *Bundle) updateCheckBundleTags(cfg *apiclient.CheckBundle) (*apiclient.
 	if updateCheck {
 		bundle, err := cb.client.UpdateCheckBundle(cfg)
 		if err != nil {
-			return nil, errors.Wrap(err, "updating check bundle")
+			return nil, fmt.Errorf("updating check bundle: %w", err)
 		}
 		return bundle, nil
 	}
 
 	return cfg, nil
+}
+
+// saveBundle stores the bundle in a json file in etc/check_bundle.json if it is writeable
+// the presence of this file allows --check-delete to work.
+func (cb *Bundle) saveBundle(bundle *apiclient.CheckBundle) {
+	data, err := json.Marshal(bundle)
+	if err != nil {
+		cb.logger.Error().Err(err).Msg("marshaling check bundle")
+		return
+	}
+	if err := os.WriteFile(defaults.CheckBundleFile, data, 0600); err != nil {
+		cb.logger.Error().Err(err).Msg("saving check bundle, --check-delete is disabled")
+	}
+}
+
+// loadBundle reads a previously saved check bundle and uses it.
+func (cb *Bundle) loadBundle() (*apiclient.CheckBundle, bool) {
+	bundleFile := defaults.CheckBundleFile
+	var bundle apiclient.CheckBundle
+	data, err := os.ReadFile(bundleFile)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			cb.logger.Warn().Err(err).Str("bundle_file", bundleFile).Msg("loading check bundle")
+		}
+		return nil, false
+	}
+
+	if err := json.Unmarshal(data, &bundle); err != nil {
+		cb.logger.Warn().Err(err).Str("bundle_file", bundleFile).Msg("parsing check bundle")
+		return nil, false
+	}
+
+	return &bundle, true
 }

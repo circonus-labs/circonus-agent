@@ -16,19 +16,18 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/shirou/gopsutil/net"
 )
 
-// IF metrics
+// IF metrics.
 type IF struct {
 	include *regexp.Regexp
 	exclude *regexp.Regexp
 	gencommon
 }
 
-// ifOptions defines what elements can be overridden in a config file
+// ifOptions defines what elements can be overridden in a config file.
 type ifOptions struct {
 	// common
 	ID     string `json:"id" toml:"id" yaml:"id"`
@@ -39,7 +38,7 @@ type ifOptions struct {
 	ExcludeRegex string `json:"exclude_regex" toml:"exclude_regex" yaml:"exclude_regex"`
 }
 
-// NewNetIFCollector creates new psutils collector
+// NewNetIFCollector creates new psutils collector.
 func NewNetIFCollector(cfgBaseName string, parentLogger zerolog.Logger) (collector.Collector, error) {
 	c := IF{}
 	c.id = NameIF
@@ -57,7 +56,7 @@ func NewNetIFCollector(cfgBaseName string, parentLogger zerolog.Logger) (collect
 			return &c, nil
 		}
 		c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-		return nil, errors.Wrapf(err, "%s config", c.pkgID)
+		return nil, fmt.Errorf("%s config: %w", c.pkgID, err)
 	}
 
 	c.logger.Debug().Str("base", cfgBaseName).Interface("config", opts).Msg("loaded config")
@@ -65,7 +64,7 @@ func NewNetIFCollector(cfgBaseName string, parentLogger zerolog.Logger) (collect
 	if opts.IncludeRegex != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, opts.IncludeRegex))
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s compiling include regex", c.pkgID)
+			return nil, fmt.Errorf("%s compiling include regex: %w", c.pkgID, err)
 		}
 		c.include = rx
 	}
@@ -73,7 +72,7 @@ func NewNetIFCollector(cfgBaseName string, parentLogger zerolog.Logger) (collect
 	if opts.ExcludeRegex != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, opts.ExcludeRegex))
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s compiling exclude regex", c.pkgID)
+			return nil, fmt.Errorf("%s compiling exclude regex: %w", c.pkgID, err)
 		}
 		c.exclude = rx
 	}
@@ -85,7 +84,7 @@ func NewNetIFCollector(cfgBaseName string, parentLogger zerolog.Logger) (collect
 	if opts.RunTTL != "" {
 		dur, err := time.ParseDuration(opts.RunTTL)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
+			return nil, fmt.Errorf("%s parsing run_ttl: %w", c.pkgID, err)
 		}
 		c.runTTL = dur
 	}
@@ -93,7 +92,7 @@ func NewNetIFCollector(cfgBaseName string, parentLogger zerolog.Logger) (collect
 	return &c, nil
 }
 
-// Collect metrics
+// Collect metrics.
 func (c *IF) Collect(ctx context.Context) error {
 	c.Lock()
 	if c.runTTL > time.Duration(0) {

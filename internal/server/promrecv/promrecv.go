@@ -34,7 +34,7 @@ var (
 	logger        = log.With().Str("pkg", "promrecv").Logger()
 )
 
-// logshim is used to satisfy apiclient Logger interface (avoiding ptr receiver issue)
+// logshim is used to satisfy apiclient Logger interface (avoiding ptr receiver issue).
 type logshim struct {
 	logh zerolog.Logger
 }
@@ -78,14 +78,14 @@ func initCGM() error {
 	return nil
 }
 
-// Flush returns current metrics
+// Flush returns current metrics.
 func Flush() *cgm.Metrics {
 	_ = initCGM()
 
 	return metrics.FlushMetrics()
 }
 
-// Parse handles incoming PUT/POST requests
+// Parse handles incoming PUT/POST requests.
 func Parse(data io.Reader) error {
 	if err := initCGM(); err != nil {
 		return err
@@ -97,7 +97,7 @@ func Parse(data io.Reader) error {
 
 	metricFamilies, err := parser.TextToMetricFamilies(data)
 	if err != nil {
-		return err
+		return fmt.Errorf("parse - text to metric families: %w", err)
 	}
 
 	for mn, mf := range metricFamilies {
@@ -107,13 +107,13 @@ func Parse(data io.Reader) error {
 			switch {
 			case mf.GetType() == dto.MetricType_SUMMARY:
 				metrics.Gauge(metricName+"_count", float64(m.GetSummary().GetSampleCount()))
-				metrics.Gauge(metricName+"_sum", float64(m.GetSummary().GetSampleSum()))
+				metrics.Gauge(metricName+"_sum", m.GetSummary().GetSampleSum())
 				for qn, qv := range getQuantiles(m) {
 					metrics.GaugeWithTags(metricName+"_"+qn, tags, qv)
 				}
 			case mf.GetType() == dto.MetricType_HISTOGRAM:
 				metrics.Gauge(metricName+"_count", float64(m.GetHistogram().GetSampleCount()))
-				metrics.Gauge(metricName+"_sum", float64(m.GetHistogram().GetSampleSum()))
+				metrics.Gauge(metricName+"_sum", m.GetHistogram().GetSampleSum())
 				for bn, bv := range getBuckets(m) {
 					metrics.GaugeWithTags(metricName+"_"+bn, tags, bv)
 				}

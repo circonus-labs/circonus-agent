@@ -14,29 +14,29 @@ import (
 	"strings"
 	"time"
 
-	"github.com/StackExchange/wmi"
+	// "github.com/StackExchange/wmi".
+	"github.com/bi-zone/wmi"
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
 
-// Win32_PerfFormattedData_PerfOS_PagingFile defines the metrics to collect
+// Win32_PerfFormattedData_PerfOS_PagingFile defines the metrics to collect.
 type Win32_PerfFormattedData_PerfOS_PagingFile struct { //nolint: golint
 	Name         string
 	PercentUsage uint32
 }
 
-// PagingFile metrics from the Windows Management Interface (wmi)
+// PagingFile metrics from the Windows Management Interface (wmi).
 type PagingFile struct {
 	include *regexp.Regexp
 	exclude *regexp.Regexp
 	wmicommon
 }
 
-// pagingFileOptions defines what elements can be overridden in a config file
+// pagingFileOptions defines what elements can be overridden in a config file.
 type pagingFileOptions struct {
 	ID              string `json:"id" toml:"id" yaml:"id"`
 	IncludeRegex    string `json:"include_regex" toml:"include_regex" yaml:"include_regex"`
@@ -46,7 +46,7 @@ type pagingFileOptions struct {
 	RunTTL          string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
-// NewPagingFileCollector creates new wmi collector
+// NewPagingFileCollector creates new wmi collector.
 func NewPagingFileCollector(cfgBaseName string) (collector.Collector, error) {
 	c := PagingFile{}
 	c.id = "paging_file"
@@ -70,7 +70,7 @@ func NewPagingFileCollector(cfgBaseName string) (collector.Collector, error) {
 			return &c, nil
 		}
 		c.logger.Debug().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-		return nil, errors.Wrapf(err, "%s config", c.pkgID)
+		return nil, fmt.Errorf("%s config: %w", c.pkgID, err)
 	}
 
 	c.logger.Debug().Interface("config", cfg).Msg("loaded config")
@@ -79,7 +79,7 @@ func NewPagingFileCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.IncludeRegex != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, cfg.IncludeRegex))
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s compiling include regex", c.pkgID)
+			return nil, fmt.Errorf("%s compiling include regex: %w", c.pkgID, err)
 		}
 		c.include = rx
 	}
@@ -88,7 +88,7 @@ func NewPagingFileCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.ExcludeRegex != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, cfg.ExcludeRegex))
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s compiling exclude regex", c.pkgID)
+			return nil, fmt.Errorf("%s compiling exclude regex: %w", c.pkgID, err)
 		}
 		c.exclude = rx
 	}
@@ -100,7 +100,7 @@ func NewPagingFileCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.MetricNameRegex != "" {
 		rx, err := regexp.Compile(cfg.MetricNameRegex)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s compile metric_name_regex", c.pkgID)
+			return nil, fmt.Errorf("%s compile metric_name_regex: %w", c.pkgID, err)
 		}
 		c.metricNameRegex = rx
 	}
@@ -112,7 +112,7 @@ func NewPagingFileCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.RunTTL != "" {
 		dur, err := time.ParseDuration(cfg.RunTTL)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
+			return nil, fmt.Errorf("%s parsing run_ttl: %w", c.pkgID, err)
 		}
 		c.runTTL = dur
 	}
@@ -120,7 +120,7 @@ func NewPagingFileCollector(cfgBaseName string) (collector.Collector, error) {
 	return &c, nil
 }
 
-// Collect metrics from the wmi resource
+// Collect metrics from the wmi resource.
 func (c *PagingFile) Collect(ctx context.Context) error {
 	metrics := cgm.Metrics{}
 
@@ -148,7 +148,7 @@ func (c *PagingFile) Collect(ctx context.Context) error {
 	if err := wmi.Query(qry, &dst); err != nil {
 		c.logger.Error().Err(err).Str("query", qry).Msg("wmi query error")
 		c.setStatus(metrics, err)
-		return errors.Wrap(err, c.pkgID)
+		return fmt.Errorf("wmi %s query: %w", c.pkgID, err)
 	}
 
 	metricType := "I"

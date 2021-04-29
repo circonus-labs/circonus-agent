@@ -7,7 +7,7 @@ package bundle
 
 import "github.com/circonus-labs/go-apiclient"
 
-// API interface abstraction of circonus api (for mocking)
+// API interface abstraction of circonus api (for mocking).
 type API interface {
 	CreateCheckBundle(cfg *apiclient.CheckBundle) (*apiclient.CheckBundle, error)
 	FetchBroker(cid apiclient.CIDType) (*apiclient.Broker, error)

@@ -20,7 +20,7 @@ func TestInventory(t *testing.T) {
 		expectedErr string
 		shouldErr   bool
 	}{
-		{"invalid (json/parse)", "invalid", "parsing inventory: invalid character 'i' looking for beginning of value", true},
+		{"invalid (json/parse)", "invalid", "json parse - inventory: invalid character 'i' looking for beginning of value", true},
 		{"valid", `[{"id":"test","name":"test","instance":""}]`, "", false},
 	}
 

@@ -48,7 +48,7 @@ type sslServer struct {
 	keyFile  string
 }
 
-// Server defines the listening servers
+// Server defines the listening servers.
 type Server struct {
 	check      *check.Check
 	group      *errgroup.Group
@@ -77,7 +77,7 @@ var (
 	lastMetricsmu   sync.Mutex
 )
 
-// New creates a new instance of the listening servers
+// New creates a new instance of the listening servers.
 func New(ctx context.Context, c *check.Check, b *builtins.Builtins, p *plugins.Plugins, ss *statsd.Server) (*Server, error) {
 	g, gctx := errgroup.WithContext(ctx)
 	s := Server{
@@ -163,7 +163,7 @@ func New(ctx context.Context, c *check.Check, b *builtins.Builtins, p *plugins.P
 
 			if _, serr := os.Stat(ua.String()); serr == nil || !os.IsNotExist(serr) {
 				s.logger.Error().Int("id", idx).Str("socket_file", ua.String()).Msg("already exists")
-				return nil, fmt.Errorf("Socket server file (%s) exists", ua.String())
+				return nil, fmt.Errorf("socket server file (%s) exists", ua.String()) //nolint:goerr113
 			}
 
 			ul, err := net.ListenUnix(ua.Network(), ua)
@@ -187,15 +187,15 @@ func New(ctx context.Context, c *check.Check, b *builtins.Builtins, p *plugins.P
 // Initially, this is the first server address.
 func (s *Server) GetReverseAgentAddress() (string, error) {
 	if len(s.svrHTTP) == 0 {
-		return "", fmt.Errorf("No listen servers defined")
+		return "", fmt.Errorf("no listen servers defined") //nolint:goerr113
 	}
 	return s.svrHTTP[0].address.String(), nil
 }
 
-// Start main listening server(s)
+// Start main listening server(s).
 func (s *Server) Start() error {
 	if len(s.svrHTTP) == 0 && s.svrHTTPS == nil && len(s.svrSockets) > 0 {
-		return fmt.Errorf("No servers defined")
+		return fmt.Errorf("no servers defined") //nolint:goerr113
 	}
 
 	s.group.Go(s.startHTTPS)
@@ -219,10 +219,10 @@ func (s *Server) Start() error {
 		s.Stop()
 	}()
 
-	return s.group.Wait()
+	return s.group.Wait() //nolint:wrapcheck
 }
 
-// Stop the servers in an orderly, graceful fashion
+// Stop the servers in an orderly, graceful fashion.
 func (s *Server) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

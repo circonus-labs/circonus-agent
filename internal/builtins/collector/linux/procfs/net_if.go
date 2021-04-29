@@ -21,17 +21,16 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 )
 
-// NetIF metrics from the Linux ProcFS
+// NetIF metrics from the Linux ProcFS.
 type NetIF struct {
 	include *regexp.Regexp
 	exclude *regexp.Regexp
 	common
 }
 
-// netIFOptions defines what elements can be overridden in a config file
+// netIFOptions defines what elements can be overridden in a config file.
 type netIFOptions struct {
 	// common
 	ID         string `json:"id" toml:"id" yaml:"id"`
@@ -43,7 +42,7 @@ type netIFOptions struct {
 	ExcludeRegex string `json:"exclude_regex" toml:"exclude_regex" yaml:"exclude_regex"`
 }
 
-// NewNetIFCollector creates new procfs if collector
+// NewNetIFCollector creates new procfs if collector.
 func NewNetIFCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
 	procFile := filepath.Join("net", "dev")
 
@@ -56,7 +55,7 @@ func NewNetIFCollector(cfgBaseName, procFSPath string) (collector.Collector, err
 
 	if cfgBaseName == "" {
 		if _, err := os.Stat(c.file); os.IsNotExist(err) {
-			return nil, errors.Wrap(err, c.pkgID)
+			return nil, fmt.Errorf("%s procfile: %w", c.pkgID, err)
 		}
 		return &c, nil
 	}
@@ -66,7 +65,7 @@ func NewNetIFCollector(cfgBaseName, procFSPath string) (collector.Collector, err
 	if err != nil {
 		if !strings.Contains(err.Error(), "no config found matching") {
 			c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-			return nil, errors.Wrapf(err, "%s config", c.pkgID)
+			return nil, fmt.Errorf("%s config: %w", c.pkgID, err)
 		}
 	} else {
 		c.logger.Debug().Str("base", cfgBaseName).Interface("config", opts).Msg("loaded config")
@@ -75,7 +74,7 @@ func NewNetIFCollector(cfgBaseName, procFSPath string) (collector.Collector, err
 	if opts.IncludeRegex != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, opts.IncludeRegex))
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s compiling include regex", c.pkgID)
+			return nil, fmt.Errorf("%s compile include rx: %w", c.pkgID, err)
 		}
 		c.include = rx
 	}
@@ -83,7 +82,7 @@ func NewNetIFCollector(cfgBaseName, procFSPath string) (collector.Collector, err
 	if opts.ExcludeRegex != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, opts.ExcludeRegex))
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s compiling exclude regex", c.pkgID)
+			return nil, fmt.Errorf("%s compile exclude rx: %w", c.pkgID, err)
 		}
 		c.exclude = rx
 	}
@@ -100,19 +99,19 @@ func NewNetIFCollector(cfgBaseName, procFSPath string) (collector.Collector, err
 	if opts.RunTTL != "" {
 		dur, err := time.ParseDuration(opts.RunTTL)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
+			return nil, fmt.Errorf("%s parsing run_ttl: %w", c.pkgID, err)
 		}
 		c.runTTL = dur
 	}
 
 	if _, err := os.Stat(c.file); os.IsNotExist(err) {
-		return nil, errors.Wrap(err, c.pkgID)
+		return nil, fmt.Errorf("%s procfile: %w", c.pkgID, err)
 	}
 
 	return &c, nil
 }
 
-// Collect metrics from the procfs resource
+// Collect metrics from the procfs resource.
 func (c *NetIF) Collect(ctx context.Context) error {
 	metrics := cgm.Metrics{}
 
@@ -137,14 +136,14 @@ func (c *NetIF) Collect(ctx context.Context) error {
 
 	if err := c.ifCollect(&metrics); err != nil {
 		c.setStatus(metrics, err)
-		return errors.Wrap(err, c.pkgID)
+		return fmt.Errorf("%s ifCollect: %w", c.pkgID, err)
 	}
 
 	c.setStatus(metrics, nil)
 	return nil
 }
 
-// ifCollect gets metrics from /proc/net/dev
+// ifCollect gets metrics from /proc/net/dev.
 func (c *NetIF) ifCollect(metrics *cgm.Metrics) error {
 	unitBytesTag := tags.Tag{Category: "units", Value: "bytes"}
 	unitPacketsTag := tags.Tag{Category: "units", Value: "packets"}
@@ -198,7 +197,7 @@ func (c *NetIF) ifCollect(metrics *cgm.Metrics) error {
 
 	lines, err := c.readFile(c.file)
 	if err != nil {
-		return errors.Wrapf(err, "parsing %s", c.file)
+		return fmt.Errorf("%s read file: %w", c.pkgID, err)
 	}
 	for _, line := range lines {
 		if strings.Contains(line, "|") {

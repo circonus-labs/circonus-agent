@@ -18,7 +18,6 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/circonus-labs/circonus-agent/internal/release"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -27,7 +26,7 @@ import (
 
 var cfgFile string
 
-// RootCmd represents the base command when called without any subcommands
+// RootCmd represents the base command when called without any subcommands.
 var RootCmd = &cobra.Command{
 	Use:   release.NAME,
 	Short: "Circonus Host Agent",
@@ -1344,6 +1343,21 @@ func init() {
 		}
 	}
 
+	{
+		const (
+			key          = config.KeyCheckDelete
+			longOpt      = "check-delete"
+			description  = "If agent had write access to etc/ when it created its check, it can delete it with the saved check"
+			defaultValue = defaults.CheckDelete
+		)
+
+		RootCmd.Flags().Bool(longOpt, defaultValue, description)
+		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
+			bindFlagError(longOpt, err)
+		}
+		viper.SetDefault(key, defaultValue)
+	}
+
 	//
 	// Hidden, deprecated flags so old configs don't break - the flags are just ignored
 	//
@@ -1410,7 +1424,7 @@ func init() {
 
 }
 
-// initLogging initializes zerolog
+// initLogging initializes zerolog.
 func initLogging(cmd *cobra.Command, args []string) error {
 	//
 	// Enable formatted output
@@ -1450,7 +1464,7 @@ func initLogging(cmd *cobra.Command, args []string) error {
 		case "disabled":
 			zerolog.SetGlobalLevel(zerolog.Disabled)
 		default:
-			return errors.Errorf("Unknown log level (%s)", level)
+			return fmt.Errorf("Unknown log level (%s)", level) //nolint:goerr113
 		}
 
 		log.Debug().Str("log-level", level).Msg("Logging level")

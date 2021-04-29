@@ -9,6 +9,7 @@ package procfs
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -19,15 +20,14 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 )
 
-// VM metrics from the Linux ProcFS
+// VM metrics from the Linux ProcFS.
 type VM struct {
 	common
 }
 
-// vmOptions defines what elements can be overridden in a config file
+// vmOptions defines what elements can be overridden in a config file.
 type vmOptions struct {
 	// common
 	ID         string `json:"id" toml:"id" yaml:"id"`
@@ -35,7 +35,7 @@ type vmOptions struct {
 	RunTTL     string `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
-// NewVMCollector creates new procfs vm collector
+// NewVMCollector creates new procfs vm collector.
 func NewVMCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
 	procFile := "meminfo"
 
@@ -45,7 +45,7 @@ func NewVMCollector(cfgBaseName, procFSPath string) (collector.Collector, error)
 
 	if cfgBaseName == "" {
 		if _, err := os.Stat(c.file); err != nil {
-			return nil, errors.Wrap(err, c.pkgID)
+			return nil, fmt.Errorf("%s procfile: %w", c.pkgID, err)
 		}
 		return &c, nil
 	}
@@ -55,7 +55,7 @@ func NewVMCollector(cfgBaseName, procFSPath string) (collector.Collector, error)
 	if err != nil {
 		if !strings.Contains(err.Error(), "no config found matching") {
 			c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-			return nil, errors.Wrapf(err, "%s config", c.pkgID)
+			return nil, fmt.Errorf("%s config: %w", c.pkgID, err)
 		}
 	} else {
 		c.logger.Debug().Str("base", cfgBaseName).Interface("config", opts).Msg("loaded config")
@@ -73,19 +73,19 @@ func NewVMCollector(cfgBaseName, procFSPath string) (collector.Collector, error)
 	if opts.RunTTL != "" {
 		dur, err := time.ParseDuration(opts.RunTTL)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
+			return nil, fmt.Errorf("%s parsing run_ttl: %w", c.pkgID, err)
 		}
 		c.runTTL = dur
 	}
 
 	if _, err := os.Stat(c.file); os.IsNotExist(err) {
-		return nil, errors.Wrap(err, c.pkgID)
+		return nil, fmt.Errorf("%s procfile: %w", c.pkgID, err)
 	}
 
 	return &c, nil
 }
 
-// Collect metrics from the procfs resource
+// Collect metrics from the procfs resource.
 func (c *VM) Collect(ctx context.Context) error {
 	metrics := cgm.Metrics{}
 
@@ -110,12 +110,12 @@ func (c *VM) Collect(ctx context.Context) error {
 
 	if err := c.parseMemstats(&metrics); err != nil {
 		c.setStatus(metrics, err)
-		return errors.Wrap(err, c.pkgID)
+		return fmt.Errorf("%s parseMemstats: %w", c.pkgID, err)
 	}
 
 	if err := c.parseVMstats(&metrics); err != nil {
 		c.setStatus(metrics, err)
-		return errors.Wrap(err, c.pkgID)
+		return fmt.Errorf("%s parseVMstats: %w", c.pkgID, err)
 	}
 
 	c.setStatus(metrics, nil)
@@ -125,7 +125,7 @@ func (c *VM) Collect(ctx context.Context) error {
 func (c *VM) parseMemstats(metrics *cgm.Metrics) error {
 	lines, err := c.readFile(c.file)
 	if err != nil {
-		return errors.Wrapf(err, "parsing %s", c.file)
+		return fmt.Errorf("%s read file: %w", c.pkgID, err)
 	}
 
 	var memTotal, memFree, memCached, memBuffers, memSReclaimable, memShared, swapTotal, swapFree uint64
@@ -134,7 +134,7 @@ func (c *VM) parseMemstats(metrics *cgm.Metrics) error {
 	tagUnitsHugePages := tags.Tag{Category: "units", Value: "hugepages"}
 
 	for _, l := range lines {
-		line := strings.TrimSpace(string(l))
+		line := strings.TrimSpace(l)
 		fields := strings.Fields(line)
 
 		if len(fields) < 2 {
@@ -273,13 +273,13 @@ func (c *VM) parseVMstats(metrics *cgm.Metrics) error {
 	file := strings.ReplaceAll(c.file, "meminfo", "vmstat")
 	lines, err := c.readFile(file)
 	if err != nil {
-		return errors.Wrapf(err, "parsing %s", file)
+		return fmt.Errorf("%s read file: %w", c.pkgID, err)
 	}
 
 	var pgFaults, pgMajorFaults, pgScan, pgSwap uint64
 
 	for _, l := range lines {
-		line := strings.TrimSpace(string(l))
+		line := strings.TrimSpace(l)
 		fields := strings.Fields(line)
 
 		if len(fields) != 2 {

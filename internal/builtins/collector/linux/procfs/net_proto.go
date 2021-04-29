@@ -21,17 +21,16 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 )
 
-// NetProto metrics from the Linux ProcFS
+// NetProto metrics from the Linux ProcFS.
 type NetProto struct {
 	include *regexp.Regexp
 	exclude *regexp.Regexp
 	common
 }
 
-// netProtoOptions defines what elements can be overridden in a config file
+// netProtoOptions defines what elements can be overridden in a config file.
 type netProtoOptions struct {
 	// common
 	ID         string `json:"id" toml:"id" yaml:"id"`
@@ -43,7 +42,7 @@ type netProtoOptions struct {
 	ExcludeRegex string `json:"exclude_regex" toml:"exclude_regex" yaml:"exclude_regex"`
 }
 
-// NewNetProtoCollector creates new procfs network protocol collector
+// NewNetProtoCollector creates new procfs network protocol collector.
 func NewNetProtoCollector(cfgBaseName, procFSPath string) (collector.Collector, error) {
 	procFile := filepath.Join("net", "snmp")
 
@@ -56,7 +55,7 @@ func NewNetProtoCollector(cfgBaseName, procFSPath string) (collector.Collector, 
 
 	if cfgBaseName == "" {
 		if _, err := os.Stat(c.file); os.IsNotExist(err) {
-			return nil, errors.Wrap(err, c.pkgID)
+			return nil, fmt.Errorf("%s procfile: %w", c.pkgID, err)
 		}
 		return &c, nil
 	}
@@ -66,7 +65,7 @@ func NewNetProtoCollector(cfgBaseName, procFSPath string) (collector.Collector, 
 	if err != nil {
 		if !strings.Contains(err.Error(), "no config found matching") {
 			c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-			return nil, errors.Wrapf(err, "%s config", c.pkgID)
+			return nil, fmt.Errorf("%s config: %w", c.pkgID, err)
 		}
 	} else {
 		c.logger.Debug().Str("base", cfgBaseName).Interface("config", opts).Msg("loaded config")
@@ -75,7 +74,7 @@ func NewNetProtoCollector(cfgBaseName, procFSPath string) (collector.Collector, 
 	if opts.IncludeRegex != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, opts.IncludeRegex))
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s compiling include regex", c.pkgID)
+			return nil, fmt.Errorf("%s compile include rx: %w", c.pkgID, err)
 		}
 		c.include = rx
 	}
@@ -83,7 +82,7 @@ func NewNetProtoCollector(cfgBaseName, procFSPath string) (collector.Collector, 
 	if opts.ExcludeRegex != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, opts.ExcludeRegex))
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s compiling exclude regex", c.pkgID)
+			return nil, fmt.Errorf("%s compile exclude rx: %w", c.pkgID, err)
 		}
 		c.exclude = rx
 	}
@@ -100,19 +99,19 @@ func NewNetProtoCollector(cfgBaseName, procFSPath string) (collector.Collector, 
 	if opts.RunTTL != "" {
 		dur, err := time.ParseDuration(opts.RunTTL)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
+			return nil, fmt.Errorf("%s parsing run_ttl: %w", c.pkgID, err)
 		}
 		c.runTTL = dur
 	}
 
 	if _, err := os.Stat(c.file); os.IsNotExist(err) {
-		return nil, errors.Wrap(err, c.pkgID)
+		return nil, fmt.Errorf("%s read file: %w", c.pkgID, err)
 	}
 
 	return &c, nil
 }
 
-// Collect metrics from the procfs resource
+// Collect metrics from the procfs resource.
 func (c *NetProto) Collect(ctx context.Context) error {
 	metrics := cgm.Metrics{}
 
@@ -137,7 +136,7 @@ func (c *NetProto) Collect(ctx context.Context) error {
 
 	if err := c.snmpCollect(&metrics); err != nil {
 		c.setStatus(metrics, err)
-		return errors.Wrap(err, c.pkgID)
+		return fmt.Errorf("%s snmpCollect: %w", c.pkgID, err)
 	}
 
 	c.setStatus(metrics, nil)
@@ -149,7 +148,7 @@ type rawSNMPStat struct {
 	val  string
 }
 
-// snmpCollect gets metrics from /proc/net/snmp and /proc/net/snmp6
+// snmpCollect gets metrics from /proc/net/snmp and /proc/net/snmp6.
 func (c *NetProto) snmpCollect(metrics *cgm.Metrics) error {
 
 	stats := make(map[string][]rawSNMPStat)
@@ -172,7 +171,7 @@ func (c *NetProto) snmpCollect(metrics *cgm.Metrics) error {
 		*/
 		lines, err := c.readFile(c.file)
 		if err != nil {
-			return errors.Wrapf(err, "parsing %s", c.file)
+			return fmt.Errorf("%s read file: %w", c.pkgID, err)
 		}
 		for _, line := range lines {
 			fields := strings.Fields(line)
@@ -204,7 +203,7 @@ func (c *NetProto) snmpCollect(metrics *cgm.Metrics) error {
 		snmp6File := c.file + "6"
 		lines, err := c.readFile(snmp6File)
 		if err != nil {
-			return errors.Wrapf(err, "parsing %s", snmp6File)
+			return fmt.Errorf("%s read file: %w", c.pkgID, err)
 		}
 		for _, line := range lines {
 			fields := strings.Fields(line)
@@ -264,7 +263,7 @@ func (c *NetProto) snmpCollect(metrics *cgm.Metrics) error {
 }
 
 const (
-	// repeated metric names
+	// repeated metric names.
 	metricInCsumErrors = "InCsumErrors"
 	metricInErrors     = "InErrors"
 	metricOutDatagrams = "OutDatagrams"

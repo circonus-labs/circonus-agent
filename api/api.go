@@ -6,31 +6,30 @@
 package api
 
 import (
+	"fmt"
 	"net/url"
 	"regexp"
-
-	"github.com/pkg/errors"
 )
 
-// Client defines the circonus-agent api client configuration
+// Client defines the circonus-agent api client configuration.
 type Client struct {
 	agentURL *url.URL
 	pidVal   *regexp.Regexp
 }
 
-// Metric defines an individual metric
+// Metric defines an individual metric.
 type Metric struct {
 	Value interface{} `json:"_value"`
 	Type  string      `json:"_type"`
 }
 
-// Metrics holds host metrics
+// Metrics holds host metrics.
 type Metrics map[string]Metric
 
-// Inventory defines list of active plugins
+// Inventory defines list of active plugins.
 type Inventory []Plugin
 
-// Plugin defines an active plugin
+// Plugin defines an active plugin.
 type Plugin struct {
 	ID              string   `json:"id"` // combination of name`instance
 	Name            string   `json:"name"`
@@ -43,15 +42,25 @@ type Plugin struct {
 	Args            []string `json:"args"`
 }
 
-// New creates a new circonus-agent api client
+var (
+	errInvalidAgentURL     = fmt.Errorf("invalid agent URL (empty)")
+	errInvalidRequestPath  = fmt.Errorf("invalid request path (empty)")
+	errInvalidHTTPResponse = fmt.Errorf("invalid HTTP response")
+	errInvalidPluginID     = fmt.Errorf("invalid plugin ID")
+	errInvalidGroupID      = fmt.Errorf("invalid group id (empty)")
+	errInvalidMetrics      = fmt.Errorf("invalid metrics (nil)")
+	errInvalidMetricList   = fmt.Errorf("invalid metrics (none)")
+)
+
+// New creates a new circonus-agent api client.
 func New(agentURL string) (*Client, error) {
 	if agentURL == "" {
-		return nil, errors.New("invalid agent URL (empty)")
+		return nil, errInvalidAgentURL
 	}
 
 	u, err := url.Parse(agentURL)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("url parse: %w", err)
 
 	}
 	pv := regexp.MustCompile("^[a-zA-Z0-9_-`]+$") // e.g. pluginName or pluginName`instanceID

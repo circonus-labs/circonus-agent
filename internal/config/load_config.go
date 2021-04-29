@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	toml "github.com/pelletier/go-toml"
-	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -33,7 +32,7 @@ func (e *FileNotFoundErr) Error() string {
 func LoadConfigFile(base string, target interface{}) error {
 
 	if base == "" {
-		return errors.Errorf("invalid config file (empty)")
+		return fmt.Errorf("invalid config file (empty)") //nolint:goerr113
 	}
 
 	extensions := []string{".json", ".toml", ".yaml"}
@@ -46,30 +45,29 @@ func LoadConfigFile(base string, target interface{}) error {
 		}
 		data, err := ioutil.ReadFile(cfg)
 		if err != nil {
-			return errors.Wrapf(err, "reading configuration file (%s)", cfg)
+			return fmt.Errorf("reading configuration file (%s): %w", cfg, err)
 		}
-		parseErrMsg := fmt.Sprintf("parsing configuration file (%s)", cfg)
 		switch ext {
 		case ".json":
 			if err := json.Unmarshal(data, target); err != nil {
-				return errors.Wrap(err, parseErrMsg)
+				return fmt.Errorf("parsing configuration file (%s): %w", cfg, err)
 			}
 			loaded = true
 		case ".toml":
 			if err := toml.Unmarshal(data, target); err != nil {
-				return errors.Wrap(err, parseErrMsg)
+				return fmt.Errorf("parsing configuration file (%s): %w", cfg, err)
 			}
 			loaded = true
 		case ".yaml":
 			if err := yaml.Unmarshal(data, target); err != nil {
-				return errors.Wrap(err, parseErrMsg)
+				return fmt.Errorf("parsing configuration file (%s): %w", cfg, err)
 			}
 			loaded = true
 		}
 	}
 
 	if !loaded {
-		return errors.Wrapf(os.ErrNotExist, "no config found matching (%s%s)", base, strings.Join(extensions, "|"))
+		return fmt.Errorf("no config found matching (%s%s): %w", base, strings.Join(extensions, "|"), os.ErrNotExist)
 	}
 
 	return nil

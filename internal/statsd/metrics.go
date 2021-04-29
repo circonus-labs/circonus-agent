@@ -19,7 +19,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// processPacket parses a packet for metrics
+// processPacket parses a packet for metrics.
 func (s *Server) processPacket(pkt []byte) {
 	if len(pkt) == 0 {
 		return
@@ -36,7 +36,7 @@ func (s *Server) processPacket(pkt []byte) {
 }
 
 // getMetricDestination determines "where" a metric should be sent (host or group)
-// and cleans up the metric name if it matches a host|group prefix
+// and cleans up the metric name if it matches a host|group prefix.
 func (s *Server) getMetricDestination(metricName string) (string, string) {
 	if s.hostPrefix == "" && s.groupPrefix == "" { // no host/group prefixes - send all metrics to host
 		return destHost, metricName
@@ -85,7 +85,7 @@ func (s *Server) parseMetric(metric string) error {
 	metricTagSpec := ""
 
 	if !s.metricRegex.MatchString(metric) {
-		return fmt.Errorf("invalid metric format '%s', ignoring", metric)
+		return fmt.Errorf("invalid metric format '%s', ignoring", metric) //nolint:goerr113
 	}
 
 	for _, match := range s.metricRegex.FindAllStringSubmatch(metric, -1) {
@@ -108,7 +108,7 @@ func (s *Server) parseMetric(metric string) error {
 	}
 
 	if metricName == "" || metricValue == "" {
-		return fmt.Errorf("empty metric name (%s) or metric value (%s) - metricRegex failed, check", metricName, metricValue)
+		return fmt.Errorf("empty metric name (%s) or metric value (%s) - metricRegex failed, check", metricName, metricValue) //nolint:goerr113
 	}
 
 	if metricRate != "" {
@@ -118,7 +118,7 @@ func (s *Server) parseMetric(metric string) error {
 		}
 		sampleRate = r
 		if sampleRate == 0.0 {
-			return fmt.Errorf("invalid sample rate %f", sampleRate)
+			return fmt.Errorf("invalid sample rate %f", sampleRate) //nolint:goerr113
 		}
 	}
 
@@ -136,7 +136,7 @@ func (s *Server) parseMetric(metric string) error {
 	}
 
 	if dest == nil {
-		return fmt.Errorf("invalid metric destination (%s)->(%s)", metric, metricDest)
+		return fmt.Errorf("invalid metric destination (%s)->(%s)", metric, metricDest) //nolint:goerr113
 	}
 
 	// add stream tags to metric name
@@ -237,7 +237,7 @@ func (s *Server) parseMetric(metric string) error {
 	case "t": // text (circonus)
 		dest.SetTextWithTags(metricName, metricTags, metricValue)
 	default:
-		return fmt.Errorf("invalid metric type (%s)", metricType)
+		return fmt.Errorf("invalid metric type (%s)", metricType) //nolint:goerr113
 	}
 
 	return nil

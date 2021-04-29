@@ -8,8 +8,7 @@ package api
 import (
 	"context"
 	"encoding/json"
-
-	"github.com/pkg/errors"
+	"fmt"
 )
 
 // Metrics retrieves metrics from one or all plugins
@@ -28,7 +27,7 @@ func (c *Client) MetricsWithContext(ctx context.Context, pluginID string) (*Metr
 	pid := ""
 	if pluginID != "" {
 		if !c.pidVal.MatchString(pluginID) {
-			return nil, errors.Errorf("invalid plugin id (%s)", pluginID)
+			return nil, fmt.Errorf("%s: %w", pluginID, errInvalidPluginID)
 		}
 		pid = pluginID
 	}
@@ -44,7 +43,7 @@ func (c *Client) MetricsWithContext(ctx context.Context, pluginID string) (*Metr
 
 	var v Metrics
 	if err := json.Unmarshal(data, &v); err != nil {
-		return nil, errors.Wrap(err, "parsing metrics")
+		return nil, fmt.Errorf("json parse - metrics: %w", err)
 	}
 
 	return &v, nil

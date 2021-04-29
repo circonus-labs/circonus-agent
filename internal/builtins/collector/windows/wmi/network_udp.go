@@ -9,21 +9,22 @@ package wmi
 
 import (
 	"context"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/StackExchange/wmi"
+	// "github.com/StackExchange/wmi".
+	"github.com/bi-zone/wmi"
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
 
-// Win32_PerfRawData_Tcpip_UDPv4 defines the metrics to collect
+// Win32_PerfRawData_Tcpip_UDPv4 defines the metrics to collect.
 type Win32_PerfRawData_Tcpip_UDPv4 struct { //nolint: golint
 	DatagramsNoPortPersec   uint32
 	DatagramsPersec         uint32
@@ -32,7 +33,7 @@ type Win32_PerfRawData_Tcpip_UDPv4 struct { //nolint: golint
 	DatagramsSentPersec     uint32
 }
 
-// Win32_PerfRawData_Tcpip_UDPv6 defines the metrics to collect
+// Win32_PerfRawData_Tcpip_UDPv6 defines the metrics to collect.
 type Win32_PerfRawData_Tcpip_UDPv6 struct { //nolint: golint
 	DatagramsNoPortPersec   uint32
 	DatagramsPersec         uint32
@@ -41,14 +42,14 @@ type Win32_PerfRawData_Tcpip_UDPv6 struct { //nolint: golint
 	DatagramsSentPersec     uint32
 }
 
-// NetUDP metrics from the Windows Management Interface (wmi)
+// NetUDP metrics from the Windows Management Interface (wmi).
 type NetUDP struct {
 	wmicommon
 	ipv4Enabled bool
 	ipv6Enabled bool
 }
 
-// NetUDPOptions defines what elements can be overridden in a config file
+// NetUDPOptions defines what elements can be overridden in a config file.
 type NetUDPOptions struct {
 	ID              string `json:"id" toml:"id" yaml:"id"`
 	MetricNameRegex string `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
@@ -58,7 +59,7 @@ type NetUDPOptions struct {
 	EnableIPv6      string `json:"enable_ipv6" toml:"enable_ipv6" yaml:"enable_ipv6"`
 }
 
-// NewNetUDPCollector creates new wmi collector
+// NewNetUDPCollector creates new wmi collector.
 func NewNetUDPCollector(cfgBaseName string) (collector.Collector, error) {
 	c := NetUDP{}
 	c.id = "net_udp"
@@ -82,7 +83,7 @@ func NewNetUDPCollector(cfgBaseName string) (collector.Collector, error) {
 			return &c, nil
 		}
 		c.logger.Debug().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-		return nil, errors.Wrapf(err, "%s config", c.pkgID)
+		return nil, fmt.Errorf("%s config: %w", c.pkgID, err)
 	}
 
 	c.logger.Debug().Interface("config", cfg).Msg("loaded config")
@@ -90,7 +91,7 @@ func NewNetUDPCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.EnableIPv4 != "" {
 		ipv4, err := strconv.ParseBool(cfg.EnableIPv4)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing enable_ipv4", c.pkgID)
+			return nil, fmt.Errorf("%s parsing enable_ipv4: %w", c.pkgID, err)
 		}
 		c.ipv4Enabled = ipv4
 	}
@@ -98,7 +99,7 @@ func NewNetUDPCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.EnableIPv6 != "" {
 		ipv6, err := strconv.ParseBool(cfg.EnableIPv6)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing enable_ipv6", c.pkgID)
+			return nil, fmt.Errorf("%s parsing enable_ipv6: %w", c.pkgID, err)
 		}
 		c.ipv6Enabled = ipv6
 	}
@@ -110,7 +111,7 @@ func NewNetUDPCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.MetricNameRegex != "" {
 		rx, err := regexp.Compile(cfg.MetricNameRegex)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s compile metric_name_regex", c.pkgID)
+			return nil, fmt.Errorf("%s compile metric_name_regex: %w", c.pkgID, err)
 		}
 		c.metricNameRegex = rx
 	}
@@ -122,7 +123,7 @@ func NewNetUDPCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.RunTTL != "" {
 		dur, err := time.ParseDuration(cfg.RunTTL)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s parsing run_ttl", c.pkgID)
+			return nil, fmt.Errorf("%s parsing run_ttl: %w", c.pkgID, err)
 		}
 		c.runTTL = dur
 	}
@@ -130,7 +131,7 @@ func NewNetUDPCollector(cfgBaseName string) (collector.Collector, error) {
 	return &c, nil
 }
 
-// Collect metrics from the wmi resource
+// Collect metrics from the wmi resource.
 func (c *NetUDP) Collect(ctx context.Context) error {
 	metrics := cgm.Metrics{}
 
@@ -162,7 +163,7 @@ func (c *NetUDP) Collect(ctx context.Context) error {
 		if err := wmi.Query(qry, &dst); err != nil {
 			c.logger.Error().Err(err).Str("query", qry).Msg("wmi query error")
 			c.setStatus(metrics, err)
-			return errors.Wrap(err, c.pkgID)
+			return fmt.Errorf("wmi %s query: %w", c.pkgID, err)
 		}
 
 		if len(dst) > 1 {
@@ -186,7 +187,7 @@ func (c *NetUDP) Collect(ctx context.Context) error {
 		if err := wmi.Query(qry, &dst); err != nil {
 			c.logger.Error().Err(err).Str("query", qry).Msg("wmi query error")
 			c.setStatus(metrics, err)
-			return errors.Wrap(err, c.pkgID)
+			return fmt.Errorf("wmi %s query: %w", c.pkgID, err)
 		}
 
 		if len(dst) > 1 {

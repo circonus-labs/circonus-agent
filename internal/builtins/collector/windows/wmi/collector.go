@@ -16,7 +16,6 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 )
 
@@ -27,14 +26,14 @@ import (
 // ID and Inventory are generic and do not need to be overridden unless the
 // collector implementation requires it.
 
-// Collect metrics
+// Collect metrics.
 func (c *wmicommon) Collect(ctx context.Context) error {
 	c.Lock()
 	defer c.Unlock()
 	return collector.ErrNotImplemented
 }
 
-// Flush returns last metrics collected
+// Flush returns last metrics collected.
 func (c *wmicommon) Flush() cgm.Metrics {
 	c.Lock()
 	defer c.Unlock()
@@ -44,14 +43,14 @@ func (c *wmicommon) Flush() cgm.Metrics {
 	return c.lastMetrics
 }
 
-// ID returns id of collector
+// ID returns id of collector.
 func (c *wmicommon) ID() string {
 	c.Lock()
 	defer c.Unlock()
 	return c.id
 }
 
-// Inventory returns collector stats for /inventory endpoint
+// Inventory returns collector stats for /inventory endpoint.
 func (c *wmicommon) Inventory() collector.InventoryStats {
 	c.Lock()
 	defer c.Unlock()
@@ -64,28 +63,28 @@ func (c *wmicommon) Inventory() collector.InventoryStats {
 	}
 }
 
-// Logger returns collector's instance of logger
+// Logger returns collector's instance of logger.
 func (c *wmicommon) Logger() zerolog.Logger {
 	return c.logger
 }
 
-// cleanName is used to clean the metric name
+// cleanName is used to clean the metric name.
 func (c *wmicommon) cleanName(name string) string {
 	return c.metricNameRegex.ReplaceAllString(name, c.metricNameChar)
 }
 
-// addMetric to internal buffer if metric is active
+// addMetric to internal buffer if metric is active.
 func (c *wmicommon) addMetric(metrics *cgm.Metrics, pfx, mname, mtype string, mval interface{}, mtags cgm.Tags) error {
 	if metrics == nil {
-		return errors.New("invalid metric submission")
+		return errInvalidMetric
 	}
 
 	if mname == "" {
-		return errors.New("invalid metric, no name")
+		return errInvalidMetricNoName
 	}
 
 	if mtype == "" {
-		return errors.New("invalid metric, no type")
+		return errInvalidMetricNoType
 	}
 
 	var tagList cgm.Tags
@@ -106,7 +105,7 @@ func (c *wmicommon) addMetric(metrics *cgm.Metrics, pfx, mname, mtype string, mv
 	return nil
 }
 
-// setStatus is used in Collect to set the collector status
+// setStatus is used in Collect to set the collector status.
 func (c *wmicommon) setStatus(metrics cgm.Metrics, err error) {
 	c.Lock()
 	if err == nil {

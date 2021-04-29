@@ -7,26 +7,25 @@ package check
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 func (c *Check) setReverseConfigs() error {
 	c.revConfigs = nil
 	if c.broker == nil {
-		return errors.New("broker is uninitialized")
+		return errBrokerNotInitialized
 	}
 	if c.checkConfig == nil {
-		return errors.New("check is uninitialized")
+		return errCheckNotInitialized
 	}
 
 	if len(c.checkConfig.ReverseURLs) == 0 {
-		return errors.New("no reverse URLs found in check")
+		return fmt.Errorf("no reverse URLs found in check") //nolint:goerr113
 	}
 
 	cfgs := make(ReverseConfigs)
@@ -37,17 +36,17 @@ func (c *Check) setReverseConfigs() error {
 		// Using raw tls connections, the url protocol is not germane.
 		reverseURL, err := url.Parse(strings.ReplaceAll(rURL, "mtev_reverse", "https"))
 		if err != nil {
-			return errors.Wrapf(err, "parsing check reverse URL (%s)", rURL)
+			return fmt.Errorf("parsing check reverse URL (%s): %w", rURL, err)
 		}
 
 		brokerAddr, err := net.ResolveTCPAddr("tcp", reverseURL.Host)
 		if err != nil {
-			return errors.Wrapf(err, "invalid reverse service address (%s)", rURL)
+			return fmt.Errorf("invalid reverse service address (%s): %w", rURL, err)
 		}
 
 		tlsConfig, cn, err := c.brokerTLSConfig(reverseURL)
 		if err != nil {
-			return errors.Wrapf(err, "creating TLS config for (%s - %s)", c.broker.CID, rURL)
+			return fmt.Errorf("creating TLS config for (%s - %s): %w", c.broker.CID, rURL, err)
 		}
 
 		cfgs[cn] = ReverseConfig{
@@ -115,7 +114,7 @@ func (c *Check) FindPrimaryBrokerInstance(ctx context.Context, cfgs *ReverseConf
 		req, err := http.NewRequestWithContext(ctx, "GET", ownerReqURL, nil)
 		if err != nil {
 			c.logger.Warn().Err(err).Str("url", ownerReqURL).Msg("creating check owner request")
-			return "", err
+			return "", fmt.Errorf("new request: %w", err)
 		}
 		req.Header.Add("Accept", "application/json")
 
@@ -127,7 +126,7 @@ func (c *Check) FindPrimaryBrokerInstance(ctx context.Context, cfgs *ReverseConf
 					continue
 				}
 			}
-			return "", err
+			return "", fmt.Errorf("do request: %w", err)
 		}
 		resp.Body.Close() // we only care about headers
 

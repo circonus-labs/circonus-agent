@@ -7,6 +7,7 @@ package agent
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 
@@ -26,7 +27,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// Agent holds the main circonus-agent process
+// Agent holds the main circonus-agent process.
 type Agent struct {
 	group        *errgroup.Group
 	groupCtx     context.Context
@@ -42,7 +43,7 @@ type Agent struct {
 	logger       zerolog.Logger
 }
 
-// New returns a new agent instance
+// New returns a new agent instance.
 func New() (*Agent, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	g, gctx := errgroup.WithContext(ctx)
@@ -58,53 +59,53 @@ func New() (*Agent, error) {
 
 	err = config.Validate()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("config validate: %w", err)
 	}
 
 	a.check, err = check.New(nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("init check: %w", err)
 	}
 
 	a.builtins, err = builtins.New(a.groupCtx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("init builtins: %w", err)
 	}
 
 	a.plugins, err = plugins.New(a.groupCtx, defaults.PluginPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("init plugins: %w", err)
 	}
 	if err = a.plugins.Scan(a.builtins); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("scan plugins: %w", err)
 	}
 
 	a.statsdServer, err = statsd.New(a.groupCtx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("init statsd: %w", err)
 	}
 
 	a.listenServer, err = server.New(a.groupCtx, a.check, a.builtins, a.plugins, a.statsdServer)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("init server: %w", err)
 	}
 
 	agentAddress, err := a.listenServer.GetReverseAgentAddress()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("agent addr: %w", err)
 	}
 
 	if viper.GetBool(config.KeyReverse) {
 		a.reverseConn, err = reverse.New(a.logger, a.check, agentAddress)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("init reverse: %w", err)
 		}
 	}
 
 	if viper.GetBool(config.KeyMultiAgent) {
 		a.submitter, err = multiagent.New(a.logger, a.check, a.listenServer)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("init multi-agent: %w", err)
 		}
 	}
 
@@ -113,18 +114,24 @@ func New() (*Agent, error) {
 	return &a, nil
 }
 
-// Start the agent
+// Start the agent.
 func (a *Agent) Start() error {
 	a.group.Go(a.handleSignals)
 	a.group.Go(a.statsdServer.Start)
 	if viper.GetBool(config.KeyReverse) {
 		a.group.Go(func() error {
-			return a.reverseConn.Start(a.groupCtx)
+			if err := a.reverseConn.Start(a.groupCtx); err != nil {
+				return fmt.Errorf("start reverse: %w", err)
+			}
+			return nil
 		})
 	}
 	if viper.GetBool(config.KeyMultiAgent) {
 		a.group.Go(func() error {
-			return a.submitter.Start(a.groupCtx)
+			if err := a.submitter.Start(a.groupCtx); err != nil {
+				return fmt.Errorf("start submitter: %w", err)
+			}
+			return nil
 		})
 	}
 	a.group.Go(a.listenServer.Start)
@@ -134,10 +141,13 @@ func (a *Agent) Start() error {
 		Str("name", release.NAME).
 		Str("ver", release.VERSION).Msg("Starting wait")
 
-	return a.group.Wait()
+	if err := a.group.Wait(); err != nil {
+		return fmt.Errorf("start agent: %w", err)
+	}
+	return nil
 }
 
-// Stop cleans up and shuts down the Agent
+// Stop cleans up and shuts down the Agent.
 func (a *Agent) Stop() {
 	a.stopSignalHandler()
 	a.groupCancel()
@@ -148,7 +158,7 @@ func (a *Agent) Stop() {
 		Str("ver", release.VERSION).Msg("Stopped")
 }
 
-// stopSignalHandler disables the signal handler
+// stopSignalHandler disables the signal handler.
 func (a *Agent) stopSignalHandler() {
 	signal.Stop(a.signalCh)
 	signal.Reset() // so a second ctrl-c will force immediate stop

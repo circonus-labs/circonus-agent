@@ -21,11 +21,10 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	"github.com/maier/go-appstats"
-	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
-// Scan the plugin directory for new/updated plugins
+// Scan the plugin directory for new/updated plugins.
 func (p *Plugins) Scan(b *builtins.Builtins) error {
 	p.Lock()
 	defer p.Unlock()
@@ -53,11 +52,11 @@ func (p *Plugins) Scan(b *builtins.Builtins) error {
 
 	if p.pluginDir != "" {
 		if err := p.scanPluginDirectory(b); err != nil {
-			return errors.Wrap(err, "plugin directory scan")
+			return fmt.Errorf("plugin directory scan: %w", err)
 		}
 	} else if len(pluginList) > 0 {
 		if err := p.verifyPluginList(pluginList); err != nil {
-			return errors.Wrap(err, "verifying plugin list")
+			return fmt.Errorf("verifying plugin list: %w", err)
 		}
 	}
 
@@ -70,10 +69,10 @@ func (p *Plugins) Scan(b *builtins.Builtins) error {
 	return nil
 }
 
-// verifyPluginList checks supplied list of plugin commands
+// verifyPluginList checks supplied list of plugin commands.
 func (p *Plugins) verifyPluginList(l []string) error {
 	if len(l) == 0 {
-		return errors.New("invalid plugin list (empty)")
+		return fmt.Errorf("invalid plugin list (empty)") //nolint:goerr113
 	}
 
 	ttlRx := regexp.MustCompile(`_ttl(.+)$`)
@@ -172,24 +171,24 @@ func (p *Plugins) verifyPluginList(l []string) error {
 	return nil
 }
 
-// scanPluginDirectory finds and loads plugins
+// scanPluginDirectory finds and loads plugins.
 func (p *Plugins) scanPluginDirectory(b *builtins.Builtins) error {
 	if p.pluginDir == "" {
-		return errors.New("invalid plugin directory (none)")
+		return fmt.Errorf("invalid plugin directory (none)") //nolint:goerr113
 	}
 
 	p.logger.Info().Str("dir", p.pluginDir).Msg("scanning")
 
 	f, err := os.Open(p.pluginDir)
 	if err != nil {
-		return errors.Wrap(err, "open plugin directory")
+		return fmt.Errorf("open plugin directory: %w", err)
 	}
 
 	defer f.Close()
 
 	files, err := f.Readdir(-1)
 	if err != nil {
-		return errors.Wrap(err, "reading plugin directory")
+		return fmt.Errorf("reading plugin directory: %w", err)
 	}
 
 	ttlRx := regexp.MustCompile(`_ttl(.+)$`)

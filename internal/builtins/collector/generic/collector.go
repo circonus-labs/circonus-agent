@@ -14,11 +14,10 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 )
 
-// gencommon defines psutils metrics common elements
+// gencommon defines psutils metrics common elements.
 type gencommon struct {
 	id              string         // OPT id of the collector (used as metric name prefix)
 	pkgID           string         // package prefix used for logging and errors
@@ -34,14 +33,14 @@ type gencommon struct {
 	sync.Mutex
 }
 
-// Collect returns collector metrics
+// Collect returns collector metrics.
 func (c *gencommon) Collect(ctx context.Context) error {
 	c.Lock()
 	defer c.Unlock()
 	return collector.ErrNotImplemented
 }
 
-// Flush returns last metrics collected
+// Flush returns last metrics collected.
 func (c *gencommon) Flush() cgm.Metrics {
 	c.Lock()
 	defer c.Unlock()
@@ -51,7 +50,7 @@ func (c *gencommon) Flush() cgm.Metrics {
 	return c.lastMetrics
 }
 
-// ID returns the id of the instance
+// ID returns the id of the instance.
 func (c *gencommon) ID() string {
 	c.Lock()
 	defer c.Unlock()
@@ -61,7 +60,7 @@ func (c *gencommon) ID() string {
 	return c.id
 }
 
-// TTL return run TTL if set
+// TTL return run TTL if set.
 func (c *gencommon) TTL() string {
 	c.Lock()
 	defer c.Unlock()
@@ -71,7 +70,7 @@ func (c *gencommon) TTL() string {
 	return c.runTTL.String()
 }
 
-// Inventory returns collector stats for /inventory endpoint
+// Inventory returns collector stats for /inventory endpoint.
 func (c *gencommon) Inventory() collector.InventoryStats {
 	c.Lock()
 	defer c.Unlock()
@@ -84,23 +83,23 @@ func (c *gencommon) Inventory() collector.InventoryStats {
 	}
 }
 
-// Logger returns collector's instance of logger
+// Logger returns collector's instance of logger.
 func (c *gencommon) Logger() zerolog.Logger {
 	return c.logger
 }
 
-// addMetric to internal buffer if metric is active
+// addMetric to internal buffer if metric is active.
 func (c *gencommon) addMetric(metrics *cgm.Metrics, mname, mtype string, mval interface{}, mtags tags.Tags) error {
 	if metrics == nil {
-		return errors.New("invalid metric submission")
+		return errInvalidMetric
 	}
 
 	if mname == "" {
-		return errors.New("invalid metric, no name")
+		return errInvalidMetricNoName
 	}
 
 	if mtype == "" {
-		return errors.New("invalid metric, no type")
+		return errInvalidMetricNoType
 	}
 
 	var tagList tags.Tags
@@ -118,7 +117,7 @@ func (c *gencommon) addMetric(metrics *cgm.Metrics, mname, mtype string, mval in
 	return nil
 }
 
-// setStatus is used in Collect to set the collector status
+// setStatus is used in Collect to set the collector status.
 func (c *gencommon) setStatus(metrics cgm.Metrics, err error) {
 	c.Lock()
 	if err == nil {

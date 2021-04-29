@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -24,13 +25,12 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
 
-// GPU metrics from the Windows Management Interface (wmi)
+// GPU metrics from the Windows Management Interface (wmi).
 type GPU struct {
 	exePath      string
 	exeArgs      []string
@@ -40,7 +40,7 @@ type GPU struct {
 	interval time.Duration
 }
 
-// gpuOptions defines what elements can be overridden in a config file
+// gpuOptions defines what elements can be overridden in a config file.
 type gpuOptions struct {
 	ID       string      `json:"id" toml:"id" yaml:"id"`
 	ExePath  string      `mapstructure:"exe_path" json:"exe_path" toml:"exe_path" yaml:"exe_path"`
@@ -62,7 +62,7 @@ type gpuMeta struct {
 	TagName string `mapstructure:"tag_name" json:"tag_name" toml:"tag_name" yaml:"tag_name"`
 }
 
-// logshim is used to satisfy apiclient Logger interface (avoiding ptr receiver issue)
+// logshim is used to satisfy apiclient Logger interface (avoiding ptr receiver issue).
 type logshim struct {
 	logh zerolog.Logger
 }
@@ -71,7 +71,7 @@ func (l logshim) Printf(fmt string, v ...interface{}) {
 	l.logh.Printf(fmt, v...)
 }
 
-// NewGPUCollector creates new wmi collector
+// NewGPUCollector creates new wmi collector.
 func NewGPUCollector(cfgBaseName string) (collector.Collector, error) {
 	c := GPU{}
 	c.id = "gpu"
@@ -233,7 +233,7 @@ func NewGPUCollector(cfgBaseName string) (collector.Collector, error) {
 
 	hm, err := cgm.NewCirconusMetrics(cmc)
 	if err != nil {
-		return nil, errors.Wrap(err, "nvidia cgm")
+		return nil, fmt.Errorf("nvidia cgm: %w", err)
 	}
 
 	c.common.metrics = hm
@@ -250,7 +250,7 @@ func NewGPUCollector(cfgBaseName string) (collector.Collector, error) {
 			// return &c, nil
 		} else {
 			c.logger.Debug().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-			return nil, errors.Wrapf(err, "%s config", c.pkgID)
+			return nil, fmt.Errorf("%s config: %w", c.pkgID, err)
 		}
 	}
 
@@ -268,7 +268,7 @@ func NewGPUCollector(cfgBaseName string) (collector.Collector, error) {
 		if cfg.Interval != "" {
 			d, err := time.ParseDuration(cfg.Interval)
 			if err != nil {
-				return nil, errors.Wrapf(err, "%s parsing interval", cfg.Interval)
+				return nil, fmt.Errorf("parsing interval: %w", err)
 			}
 			c.interval = d
 		}
@@ -322,20 +322,20 @@ func (gpu *GPU) tagMetadata() error {
 
 	out, err := exec.Command(gpu.exePath, cmdArgs...).Output() //nolint:gosec
 	if err != nil {
-		return errors.Wrap(err, "getting gpu metadata")
+		return fmt.Errorf("getting gpu metadata: %w", err)
 	}
 
 	r := csv.NewReader(bytes.NewBuffer(out))
 	records, err := r.ReadAll()
 	if err != nil {
-		return errors.Wrap(err, "parsing gpu metadata")
+		return fmt.Errorf("parsing gpu metadata: %w", err)
 	}
 
 	if len(records) != 1 {
-		return errors.Errorf("invalid metadata %v", records)
+		return fmt.Errorf("invalid metadata %v", records) //nolint:goerr113
 	}
 	if len(records[0]) != len(tagNames) {
-		return errors.Errorf("metadata mismatch expected %d, got %d", len(tagNames), len(records))
+		return fmt.Errorf("metadata mismatch expected %d, got %d", len(tagNames), len(records)) //nolint:goerr113
 	}
 
 	tagList := make([]tags.Tag, len(tagNames))
@@ -348,7 +348,7 @@ func (gpu *GPU) tagMetadata() error {
 	return nil
 }
 
-// Collect starts the background process if it is not running
+// Collect starts the background process if it is not running.
 func (gpu *GPU) Collect(ctx context.Context) error {
 
 	gpu.Lock()
@@ -412,8 +412,8 @@ func (gpu *GPU) Collect(ctx context.Context) error {
 			if errOut.Len() > 0 {
 				stderr = strings.ReplaceAll(errOut.String(), "\n", "")
 			}
-			var exiterr exec.ExitError
-			if errors.As(err, exiterr) {
+			var exiterr *exec.ExitError
+			if errors.As(err, &exiterr) {
 				// if exiterr, ok := err.(*exec.ExitError); ok {
 				errMsg := fmt.Sprintf("%s %s", stderr, exiterr.Stderr)
 				gpu.logger.Error().
@@ -447,11 +447,11 @@ func (gpu *GPU) parseOutput(line string) error {
 
 	records, err := r.ReadAll()
 	if err != nil {
-		return errors.Wrap(err, "parsing csv")
+		return fmt.Errorf("parsing csv: %w", err)
 	}
 
 	if len(records) == 0 {
-		return fmt.Errorf("no metrics found in line (%s)", line)
+		return fmt.Errorf("no metrics found in line (%s)", line) //nolint:goerr113
 	}
 
 	for lineID, record := range records {
@@ -470,11 +470,11 @@ func (gpu *GPU) parseOutput(line string) error {
 				metricName = metric.ArgName
 			}
 			origValue := strings.TrimSpace(record[i])
-			if string(metric.MetricType[:1]) != "t" && origValue == "Not Available" {
+			if metric.MetricType[:1] != "t" && origValue == "Not Available" {
 				// gpu.logger.Warn().Str("name", metricName).Str("value", origValue).Msg("ignoring")
 				continue
 			}
-			if string(metric.MetricType[:1]) != "t" && origValue == "N/A" {
+			if metric.MetricType[:1] != "t" && origValue == "N/A" {
 				// gpu.logger.Warn().Str("name", metricName).Str("value", origValue).Msg("ignoring")
 				continue
 			}
