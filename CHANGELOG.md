@@ -1,3 +1,17 @@
+# v2.4.1
+
+* add: `--check-delete` option
+* add: check bundle config caching
+* upd: etc owned by agent user for check bundle caching
+* upd: turn on prerelease (allow time for os specific packages to be built and uploaded)
+* fix: fix: error wrap when nil on verify
+* upd: verify broker instance is active when setting cn for tls config
+* upd: no windows arm
+* fix: lint issues
+* upd: stricter linting
+* upd: lint ver (1.39)
+* upd: dependencies
+
 # v2.4.0
 
 * add: simple installer (deprecate cosi)
