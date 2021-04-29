@@ -5,17 +5,17 @@ require (
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/alecthomas/units v0.0.0-20210208195552-ff826a37aa15
 	github.com/bi-zone/wmi v1.1.4
-	github.com/circonus-labs/circonus-gometrics/v3 v3.4.0
-	github.com/circonus-labs/go-apiclient v0.7.13
+	github.com/circonus-labs/circonus-gometrics/v3 v3.4.2
+	github.com/circonus-labs/go-apiclient v0.7.14
 	github.com/gojuno/minimock/v3 v3.0.8
 	github.com/google/uuid v1.2.0
 	github.com/hashicorp/go-hclog v0.10.1 // indirect
-	github.com/hashicorp/go-retryablehttp v0.6.8
+	github.com/hashicorp/go-retryablehttp v0.7.0
 	github.com/maier/go-appstats v0.2.0
 	github.com/onsi/ginkgo v1.14.0 // indirect
-	github.com/pelletier/go-toml v1.8.1
+	github.com/pelletier/go-toml v1.9.0
 	github.com/prometheus/client_model v0.2.0
-	github.com/prometheus/common v0.20.0
+	github.com/prometheus/common v0.23.0
 	github.com/rs/zerolog v1.21.0
 	github.com/shirou/gopsutil v3.21.3+incompatible
 	github.com/spf13/afero v1.2.2 // indirect
@@ -25,7 +25,7 @@ require (
 	github.com/spf13/viper v1.7.1
 	github.com/tklauser/go-sysconf v0.3.5 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210331175145-43e1dd70ce54
+	golang.org/x/sys v0.0.0-20210426230700-d19ff857e887
 	gopkg.in/ini.v1 v1.51.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 )
