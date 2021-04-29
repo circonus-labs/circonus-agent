@@ -222,15 +222,27 @@ func (cb *Bundle) CheckCID(idx uint) (string, error) {
 }
 
 // initCheck initializes the check for the agent.
-// 1. fetch a check explicitly provided via CID
-// 2. search for a check matching the current system
-// 3. create a check for the system if --check-create specified
+// 1. load a saved check bundle
+// 2. fetch a check explicitly provided via CID
+// 3. search for a check matching the current system
+// 4. create a check for the system if --check-create specified
 // if fetched, found, or created - set Check.bundle
 // otherwise, return an error.
 func (cb *Bundle) initCheckBundle(cid string, create bool) error {
 	var bundle *apiclient.CheckBundle
 
-	// if explicit cid configured, attempt to fetch check bundle using cid
+	{
+		// first, try to load a previously saved bundle
+		// NOTE: takes precedence over configured check bundle cid
+		b, loaded := cb.loadBundle()
+		if loaded {
+			// set cid to loaded cid so bundle can be
+			// refreshed and verified to be active
+			cid = b.CID
+		}
+	}
+
+	// if explicit cid loaded or configured, attempt to fetch check bundle using cid
 	if cid != "" {
 		b, err := cb.fetchCheckBundle(cid)
 		if err != nil {
@@ -293,6 +305,10 @@ func (cb *Bundle) initCheckBundle(cid string, create bool) error {
 
 	cb.bundle = bundle
 	cb.logger.Info().Str("cid", cb.bundle.CID).Str("name", cb.bundle.DisplayName).Msg("using check bundle")
+
+	// try to save the bundle to enable --check-delete
+	// this will save a created check, an updated check, a found check, etc.
+	cb.saveBundle(bundle)
 
 	return nil
 }
@@ -678,4 +694,37 @@ func (cb *Bundle) updateCheckBundleTags(cfg *apiclient.CheckBundle) (*apiclient.
 	}
 
 	return cfg, nil
+}
+
+// saveBundle stores the bundle in a json file in etc/check_bundle.json if it is writeable
+// the presence of this file allows --check-delete to work.
+func (cb *Bundle) saveBundle(bundle *apiclient.CheckBundle) {
+	data, err := json.Marshal(bundle)
+	if err != nil {
+		cb.logger.Error().Err(err).Msg("marshaling check bundle")
+		return
+	}
+	if err := os.WriteFile(defaults.CheckBundleFile, data, 0600); err != nil {
+		cb.logger.Error().Err(err).Msg("saving check bundle, --check-delete is disabled")
+	}
+}
+
+// loadBundle reads a previously saved check bundle and uses it.
+func (cb *Bundle) loadBundle() (*apiclient.CheckBundle, bool) {
+	bundleFile := defaults.CheckBundleFile
+	var bundle apiclient.CheckBundle
+	data, err := os.ReadFile(bundleFile)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			cb.logger.Warn().Err(err).Str("bundle_file", bundleFile).Msg("loading check bundle")
+		}
+		return nil, false
+	}
+
+	if err := json.Unmarshal(data, &bundle); err != nil {
+		cb.logger.Warn().Err(err).Str("bundle_file", bundleFile).Msg("parsing check bundle")
+		return nil, false
+	}
+
+	return &bundle, true
 }

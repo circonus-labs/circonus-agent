@@ -1343,6 +1343,21 @@ func init() {
 		}
 	}
 
+	{
+		const (
+			key          = config.KeyCheckDelete
+			longOpt      = "check-delete"
+			description  = "If agent had write access to etc/ when it created its check, it can delete it with the saved check"
+			defaultValue = defaults.CheckDelete
+		)
+
+		RootCmd.Flags().Bool(longOpt, defaultValue, description)
+		if err := viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt)); err != nil {
+			bindFlagError(longOpt, err)
+		}
+		viper.SetDefault(key, defaultValue)
+	}
+
 	//
 	// Hidden, deprecated flags so old configs don't break - the flags are just ignored
 	//

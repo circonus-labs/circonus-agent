@@ -352,6 +352,10 @@ const (
 	// KeyCheckMetricStreamtags specifies whether to use stream tags (if stream tags are enabled, check tags are added to all metrics by default).
 	KeyCheckMetricStreamtags = "check.metric_streamtags"
 
+	// KeyCheckDelete will allow the agent to delete its check if it had write access to etc/ when it created
+	// its check so that it could save the check definition.
+	KeyCheckDelete = "check.delete"
+
 	// Cluster mode.
 	KeyCluster = "cluster"
 	// Cluster mode enabled.

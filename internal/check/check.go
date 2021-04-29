@@ -9,15 +9,18 @@ package check
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
 	"net/url"
+	"os"
 	"sync"
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/check/bundle"
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/circonus-labs/go-apiclient"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -182,6 +185,20 @@ func New(apiClient API) (*Check, error) {
 
 	c.client = apiClient
 
+	//
+	// delete check (if possible)
+	//
+	if viper.GetBool(config.KeyCheckDelete) {
+		if err := c.DeleteCheck(); err != nil {
+			c.logger.Fatal().Err(err).Msg("--check-delete")
+		}
+		c.logger.Info().Msg("check deleted, exiting")
+		os.Exit(0)
+	}
+
+	//
+	// setup check
+	//
 	b, err := bundle.New(c.client)
 	if err != nil {
 		return nil, fmt.Errorf("new bundle: %w", err)
@@ -355,4 +372,42 @@ func (c *Check) loadAPICAfile(file string) *x509.CertPool {
 		return nil
 	}
 	return cp
+}
+
+// DeleteCheck will attempt to delete a check bundle created by the agent.
+//   1. The `etc/` directory must be writeable by the user running the agent.
+//   2. The agent, when creating a check, will save the check object to `etc/check_bundle.json`.
+//   3. The agent, when --check-delete is passed, will attempt to read this file and delete the check bundle.
+func (c *Check) DeleteCheck() error {
+
+	bundleFile := defaults.CheckBundleFile
+	if _, err := os.Stat(bundleFile); os.IsNotExist(err) {
+		c.logger.Error().Str("bundle_file", bundleFile).Msg("not found, unable to delete check")
+		return fmt.Errorf("unable to delete check bundle: %w", err)
+	}
+
+	data, err := os.ReadFile(bundleFile)
+	if err != nil {
+		c.logger.Error().Err(err).Str("bundle_file", bundleFile).Msg("unable to open")
+		return fmt.Errorf("unable to delete check bundle: %w", err)
+	}
+	var bundle apiclient.CheckBundle
+	if err := json.Unmarshal(data, &bundle); err != nil {
+		c.logger.Error().Err(err).Str("bundle_file", bundleFile).Msg("unable to decode file")
+		return fmt.Errorf("unable to delete check bundle: %w", err)
+	}
+
+	if _, err := c.client.DeleteCheckBundleByCID(&bundle.CID); err != nil {
+		c.logger.Error().Err(err).Str("bundle_id", bundle.CID).Msg("unable to delete bundle")
+		return fmt.Errorf("unable to delete check bundle: %w", err)
+	}
+
+	// remove the bundle file if check deleted; to avoid trying to use a deleted check if the
+	// agent were to be re-started...even though this is technically only for automation
+	if err := os.Remove(bundleFile); err != nil {
+		c.logger.Error().Err(err).Str("bundle_file", bundleFile).Msg("unable to delete bundle file")
+		return fmt.Errorf("unable to delete check bundle: %w", err)
+	}
+
+	return nil
 }

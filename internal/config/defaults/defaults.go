@@ -130,6 +130,9 @@ const (
 	// CheckTags to use if creating a check (comma separated list).
 	CheckTags = ""
 
+	// CheckDelete can delete the created check if the agent had write access to etc/ when it created the check.
+	CheckDelete = false
+
 	// Cluster mode enabled.
 	ClusterEnabled = false
 	// Cluster mode enable builtins (host filesystems must be mounted in container and corresponding
@@ -210,6 +213,8 @@ var (
 	StatsdConf = "" // (e.g. /opt/circonus/agent/etc/statsd.json)
 
 	CheckType = ""
+
+	CheckBundleFile = ""
 )
 
 func init() {
@@ -236,6 +241,7 @@ func init() {
 	SSLCertFile = filepath.Join(EtcPath, release.NAME+".pem")
 	SSLKeyFile = filepath.Join(EtcPath, release.NAME+".key")
 	CheckMetricFilterFile = filepath.Join(EtcPath, "metric_filters.json")
+	CheckBundleFile = filepath.Join(EtcPath, "check_bundle.json")
 
 	CheckTarget, err = os.Hostname()
 	if err != nil {
