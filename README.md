@@ -316,3 +316,18 @@ See [Allow/Deny Filters](https://docs.circonus.com/circonus/checks/create/#allow
   ]
 }
 ```
+
+# Automation
+
+For automated provision/teardown a new command line option has been added `--check-delete` -- only applies to checks created by the agent.
+
+## Provision
+
+1. install agent
+2. ensure the `etc/` directory where the agent is installed is writeable by the user running the agent
+3. start agent - it will cache a copy of the check (if created) so that `--check-delete` functions
+
+## Teardown
+
+1. stop the agent
+2. run the agent `sbin/circonus-agentd --check-delete`
