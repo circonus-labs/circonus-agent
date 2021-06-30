@@ -9,6 +9,7 @@ import (
 	"expvar"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/maier/go-appstats"
@@ -16,7 +17,7 @@ import (
 )
 
 func (s *Server) router(w http.ResponseWriter, r *http.Request) {
-	_ = appstats.IncrementInt("requests_total")
+	_ = appstats.IncrementInt("server.requests_total")
 
 	s.logger.Debug().Str("method", r.Method).Str("url", r.URL.String()).Msg("request")
 
@@ -31,6 +32,9 @@ func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "not allowed when multi-agent enabled", http.StatusForbidden)
 				return
 			}
+			if err := appstats.SetString("server.last_run_request", time.Now().String()); err != nil {
+				s.logger.Warn().Err(err).Msg("setting app stat - last_run_request")
+			}
 			s.run(w, r)
 		case inventoryPathRx.MatchString(r.URL.Path): // plugin inventory
 			s.inventory(w)
@@ -39,7 +43,7 @@ func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 		case promPathRx.MatchString(r.URL.Path): // output prom format...
 			s.promOutput(w)
 		default:
-			_ = appstats.IncrementInt("requests_bad")
+			_ = appstats.IncrementInt("server.requests_bad")
 			s.logger.Warn().Str("method", r.Method).Str("url", r.URL.String()).Msg("not found")
 			http.NotFound(w, r)
 		}
@@ -52,12 +56,12 @@ func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 		case promPathRx.MatchString(r.URL.Path):
 			s.promReceiver(w, r)
 		default:
-			_ = appstats.IncrementInt("requests_bad")
+			_ = appstats.IncrementInt("server.requests_bad")
 			s.logger.Warn().Str("method", r.Method).Str("url", r.URL.String()).Msg("not found")
 			http.NotFound(w, r)
 		}
 	default:
-		_ = appstats.IncrementInt("requests_bad")
+		_ = appstats.IncrementInt("server.requests_bad")
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
