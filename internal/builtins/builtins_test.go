@@ -294,7 +294,7 @@ func TestFlush(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		if b == nil {
+		if b == nil { //nolint:staticcheck
 			t.Fatal("expected a builtins instance")
 		}
 
