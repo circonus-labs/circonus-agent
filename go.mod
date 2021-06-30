@@ -15,7 +15,7 @@ require (
 	github.com/pelletier/go-toml v1.9.3
 	github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/common v0.23.0
-	github.com/rs/zerolog v1.21.0
+	github.com/rs/zerolog v1.23.0
 	github.com/shirou/gopsutil/v3 v3.21.5
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
