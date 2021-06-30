@@ -5,8 +5,8 @@ require (
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/alecthomas/units v0.0.0-20210208195552-ff826a37aa15
 	github.com/bi-zone/wmi v1.1.4
-	github.com/circonus-labs/circonus-gometrics/v3 v3.4.2
-	github.com/circonus-labs/go-apiclient v0.7.14
+	github.com/circonus-labs/circonus-gometrics/v3 v3.4.5
+	github.com/circonus-labs/go-apiclient v0.7.15
 	github.com/gojuno/minimock/v3 v3.0.8
 	github.com/google/uuid v1.2.0
 	github.com/hashicorp/go-hclog v0.10.1 // indirect
