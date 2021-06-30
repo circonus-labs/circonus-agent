@@ -19,21 +19,22 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/check"
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/maier/go-appstats"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
 
 type Connection struct {
-	State           string
-	agentAddress    string
+	sync.Mutex
 	LastRequestTime *time.Time
 	revConfig       check.ReverseConfig
+	State           string
+	agentAddress    string
 	logger          zerolog.Logger
 	delay           time.Duration
 	commTimeouts    int
 	connAttempts    int
 	maxConnRetry    int
-	sync.Mutex
 }
 
 // command contains details of the command received from the broker.
@@ -138,6 +139,9 @@ func (c *Connection) Start(ctx context.Context) error {
 	for {
 		conn, cerr := c.connect(ctx)
 		if cerr != nil {
+			if aerr := appstats.SetString("reverse.last_connect_error", time.Now().String()); aerr != nil {
+				c.logger.Warn().Err(aerr).Msg("setting app stat - last_connect_error")
+			}
 			if cerr.retry {
 				c.logger.Warn().Err(cerr.err).Msg("retrying")
 				continue
@@ -176,6 +180,9 @@ func (c *Connection) Start(ctx context.Context) error {
 			if result.err != nil {
 				switch {
 				case result.reset:
+					if aerr := appstats.SetString("reverse.last_connect_reset", time.Now().String()); aerr != nil {
+						c.logger.Warn().Err(aerr).Msg("setting app stat - last_connect_reset")
+					}
 					c.logger.Warn().Err(result.err).Int("timeouts", c.commTimeouts).Msg("resetting connection")
 				case result.fatal:
 					c.logger.Error().Err(result.err).Interface("result", result).Msg("fatal error, exiting")
@@ -263,6 +270,10 @@ func (c *Connection) connect(ctx context.Context) (*tls.Conn, *connError) {
 			c.Unlock()
 			return nil, &connError{retry: false, err: fmt.Errorf("max connection attempts (%d), check refresh", c.connAttempts)} //nolint:goerr113
 		}
+
+		if err := appstats.SetString("reverse.last_conn_retry", time.Now().String()); err != nil {
+			c.logger.Warn().Err(err).Msg("setting app stat - last_conn_retry")
+		}
 	}
 	c.Unlock()
 
@@ -294,6 +305,10 @@ func (c *Connection) connect(ctx context.Context) (*tls.Conn, *connError) {
 	if _, err := fmt.Fprintf(conn, "%s HTTP/1.1\r\n\r\n", introReq); err != nil {
 		c.logger.Error().Err(err).Msg("sending intro")
 		return nil, &connError{retry: true, err: fmt.Errorf("unable to write intro to %s: %w", revHost, err)}
+	}
+
+	if err := appstats.SetString("reverse.last_connect", time.Now().String()); err != nil {
+		c.logger.Warn().Err(err).Msg("setting app stat - last_connect")
 	}
 
 	c.Lock()
