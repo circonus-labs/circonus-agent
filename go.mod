@@ -13,7 +13,7 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.0
 	github.com/maier/go-appstats v0.2.0
 	github.com/onsi/ginkgo v1.14.0 // indirect
-	github.com/pelletier/go-toml v1.9.0
+	github.com/pelletier/go-toml v1.9.3
 	github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/common v0.23.0
 	github.com/rs/zerolog v1.21.0
