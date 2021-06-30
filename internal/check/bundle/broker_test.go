@@ -25,11 +25,11 @@ func TestBundle_isValidBroker(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	type fields struct { //nolint:govet
+	type fields struct {
 		statusActiveBroker    string
+		logger                zerolog.Logger
 		brokerMaxResponseTime time.Duration
 		brokerMaxRetries      int
-		logger                zerolog.Logger
 	}
 	type args struct {
 		broker    *apiclient.Broker
@@ -43,18 +43,18 @@ func TestBundle_isValidBroker(t *testing.T) {
 		logger:                log.With().Logger(),
 	}
 
-	tests := []struct { //nolint:govet
+	tests := []struct {
+		args           args
 		name           string
 		fields         fields
-		args           args
 		want           time.Duration
 		want1          bool
 		needTestServer bool
 	}{
-		{"bad broker (nil)", defaultFields, args{broker: nil, checkType: ""}, 0, false, false},
-		{"bad check type (empty)", defaultFields, args{broker: &testBroker, checkType: ""}, 0, false, false},
-		{"can't reach", defaultFields, args{broker: &testBroker, checkType: "json"}, 0, false, false},
-		{"valid", defaultFields, args{broker: &testBroker, checkType: "json"}, time.Millisecond * 100, true, true},
+		{args{broker: nil, checkType: ""}, "bad broker (nil)", defaultFields, 0, false, false},
+		{args{broker: &testBroker, checkType: ""}, "bad check type (empty)", defaultFields, 0, false, false},
+		{args{broker: &testBroker, checkType: "json"}, "can't reach", defaultFields, 0, false, false},
+		{args{broker: &testBroker, checkType: "json"}, "valid", defaultFields, time.Millisecond * 100, true, true},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -109,11 +109,11 @@ func TestBundle_isValidBroker(t *testing.T) {
 
 func Test_brokerSupportsCheckType(t *testing.T) {
 	defaultDetails := &apiclient.BrokerDetail{Modules: []string{"json", "httptrap"}}
-	type args struct { //nolint:govet
-		checkType string
+	type args struct {
 		details   *apiclient.BrokerDetail
+		checkType string
 	}
-	tests := []struct { //nolint:govet
+	tests := []struct {
 		name string
 		args args
 		want bool
@@ -155,11 +155,11 @@ func TestBundle_selectBroker(t *testing.T) {
 		},
 	}
 
-	type fields struct { //nolint:govet
+	type fields struct {
 		statusActiveBroker    string
+		logger                zerolog.Logger
 		brokerMaxResponseTime time.Duration
 		brokerMaxRetries      int
-		logger                zerolog.Logger
 	}
 
 	defaultFields := fields{
@@ -169,23 +169,23 @@ func TestBundle_selectBroker(t *testing.T) {
 		logger:                log.With().Logger(),
 	}
 
-	type args struct { //nolint:govet
-		checkType  string
+	type args struct {
 		brokerList *[]apiclient.Broker
+		checkType  string
 	}
-	tests := []struct { //nolint:govet
+	tests := []struct {
+		want           *apiclient.Broker
+		args           args
 		name           string
 		fields         fields
-		args           args
-		want           *apiclient.Broker
 		wantErr        bool
 		needTestServer bool
 	}{
-		{"invalid check type (empty)", defaultFields, args{checkType: "", brokerList: nil}, nil, true, false},
-		{"invalid broker list (nil)", defaultFields, args{checkType: defaults.CheckType, brokerList: nil}, nil, true, false},
-		{"invalid broker list (empty)", defaultFields, args{checkType: defaults.CheckType, brokerList: &[]apiclient.Broker{}}, nil, true, false},
-		{"no valid broker", defaultFields, args{checkType: defaults.CheckType, brokerList: &noValidBrokers}, nil, true, false},
-		{"valid", defaultFields, args{checkType: defaults.CheckType, brokerList: &noValidBrokers}, nil, false, true},
+		{name: "invalid check type (empty)", fields: defaultFields, args: args{checkType: "", brokerList: nil}, want: nil, wantErr: true, needTestServer: false},
+		{name: "invalid broker list (nil)", fields: defaultFields, args: args{checkType: defaults.CheckType, brokerList: nil}, want: nil, wantErr: true, needTestServer: false},
+		{name: "invalid broker list (empty)", fields: defaultFields, args: args{checkType: defaults.CheckType, brokerList: &[]apiclient.Broker{}}, want: nil, wantErr: true, needTestServer: false},
+		{name: "no valid broker", fields: defaultFields, args: args{checkType: defaults.CheckType, brokerList: &noValidBrokers}, want: nil, wantErr: true, needTestServer: false},
+		{name: "valid", fields: defaultFields, args: args{checkType: defaults.CheckType, brokerList: &noValidBrokers}, want: nil, wantErr: false, needTestServer: true},
 	}
 	for _, tt := range tests {
 		tt := tt
