@@ -9,8 +9,8 @@ src_dir="~/godev/src/github.com/circonus-labs/circonus-agent/package"
 
 for dist in $distros; do
     cmd="cd $src_dir && ./build.sh"
-    [[ $dist == "fb11" ]] && { tmp="/usr/local/bin/bash -l -c 'cd $src_dir && cp build.sh ~/. && ~/build.sh'"; cmd=$tmp; }
-    [[ $dist == "fb12" ]] && { tmp="/usr/local/bin/bash -l -c 'cd $src_dir && cp build.sh ~/. && ~/build.sh'"; cmd=$tmp; }
+    [[ $dist == "fb11" ]] && { tmp="/usr/local/bin/bash -l -c 'cd $src_dir && cp build.sh /home/vagrant/. && /home/vagrant/build.sh'"; cmd=$tmp; }
+    [[ $dist == "fb12" ]] && { tmp="/usr/local/bin/bash -l -c 'cd $src_dir && cp build.sh /home/vagrant/. && /home/vagrant/build.sh'"; cmd=$tmp; }
     vagrant up $dist
     vagrant ssh $dist --command="${cmd}"
     vagrant halt $dist
