@@ -13,6 +13,8 @@ linters-settings:
   govet:
     check-shadowing: true
     enable-all: true
+    disable:
+      - fieldalignment
   golint:
     min-confidence: 0.8
   gofmt:
