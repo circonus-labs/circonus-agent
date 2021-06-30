@@ -18,7 +18,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/rs/zerolog"
-	"github.com/shirou/gopsutil/mem"
+	"github.com/shirou/gopsutil/v3/mem"
 )
 
 // VM metrics.
@@ -162,18 +162,18 @@ func (c *VM) Collect(ctx context.Context) error {
 			tagList := tags.Tags{tagUnitsBytes}
 			_ = c.addMetric(&metrics, "buffers", "L", vm.Buffers, tagList)
 			_ = c.addMetric(&metrics, "cached", "L", vm.Cached, tagList)
-			_ = c.addMetric(&metrics, "writeback", "L", vm.Writeback, tagList)
+			_ = c.addMetric(&metrics, "writeback", "L", vm.WriteBack, tagList)
 			_ = c.addMetric(&metrics, "dirty", "L", vm.Dirty, tagList)
 			_ = c.addMetric(&metrics, "commit_limit", "L", vm.CommitLimit, tagList)
 			_ = c.addMetric(&metrics, "committed_as", "L", vm.CommittedAS, tagList)
-			_ = c.addMetric(&metrics, "vm_alloc_total", "L", vm.VMallocTotal, tagList)
-			_ = c.addMetric(&metrics, "vm_alloc_used", "L", vm.VMallocUsed, tagList)
-			_ = c.addMetric(&metrics, "vm_alloc_chunk", "L", vm.VMallocChunk, tagList)
+			_ = c.addMetric(&metrics, "vm_alloc_total", "L", vm.VmallocTotal, tagList)
+			_ = c.addMetric(&metrics, "vm_alloc_used", "L", vm.VmallocUsed, tagList)
+			_ = c.addMetric(&metrics, "vm_alloc_chunk", "L", vm.VmallocChunk, tagList)
 			_ = c.addMetric(&metrics, "huge_page_size", "L", vm.HugePageSize, tagList)
-			_ = c.addMetric(&metrics, "writeback_tmp", "L", vm.WritebackTmp, tagList)
+			_ = c.addMetric(&metrics, "writeback_tmp", "L", vm.WriteBackTmp, tagList)
 			_ = c.addMetric(&metrics, "shared", "L", vm.Shared, tagList)
 			_ = c.addMetric(&metrics, "slab", "L", vm.Slab, tagList)
-			_ = c.addMetric(&metrics, "slab_reclaimable", "L", vm.SReclaimable, tagList)
+			_ = c.addMetric(&metrics, "slab_reclaimable", "L", vm.Sreclaimable, tagList)
 			_ = c.addMetric(&metrics, "page_tables", "L", vm.PageTables, tagList)
 			_ = c.addMetric(&metrics, "high_total", "L", vm.HighTotal, tagList)
 			_ = c.addMetric(&metrics, "high_free", "L", vm.HighFree, tagList)

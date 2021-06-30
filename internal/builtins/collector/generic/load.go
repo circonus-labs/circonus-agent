@@ -18,7 +18,7 @@ import (
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/shirou/gopsutil/load"
+	"github.com/shirou/gopsutil/v3/load"
 )
 
 // Load metrics.
@@ -116,7 +116,7 @@ func (c *Load) Collect(ctx context.Context) error {
 
 	{ // units:processes
 		tagList := tags.Tags{tagUnitsProcesses}
-		_ = c.addMetric(&metrics, "created", "i", misc.ProcsCreated, tagList)
+		// _ = c.addMetric(&metrics, "created", "i", misc.ProcsCreated, tagList)
 		_ = c.addMetric(&metrics, "running", "i", misc.ProcsRunning, tagList)
 		_ = c.addMetric(&metrics, "blocked", "i", misc.ProcsBlocked, tagList)
 		_ = c.addMetric(&metrics, "total", "i", misc.ProcsTotal, tagList)

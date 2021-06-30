@@ -20,16 +20,16 @@ func TestNewCPUCollector(t *testing.T) {
 
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	tests := []struct { //nolint:govet
+	tests := []struct {
 		id          string
 		cfgFile     string
-		shouldFail  bool
 		expectedErr string
+		shouldFail  bool
 	}{
-		{"no config", "", true, "builtins.generic.cpu config: invalid config file (empty)"},
-		{"missing config", filepath.Join("testdata", "missing"), false, ""},
-		{"bad syntax", filepath.Join("testdata", "bad_syntax"), true, "builtins.generic.cpu config: parsing configuration file (testdata/bad_syntax.json): invalid character ',' looking for beginning of value"},
-		{"no settings", filepath.Join("testdata", "config_no_settings"), false, ""},
+		{"no config", "", "builtins.generic.cpu config: invalid config file (empty)", true},
+		{"missing config", filepath.Join("testdata", "missing"), "", false},
+		{"bad syntax", filepath.Join("testdata", "bad_syntax"), "builtins.generic.cpu config: parsing configuration file (testdata/bad_syntax.json): invalid character ',' looking for beginning of value", true},
+		{"no settings", filepath.Join("testdata", "config_no_settings"), "", false},
 	}
 
 	for _, test := range tests {
