@@ -13,20 +13,16 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.0
 	github.com/maier/go-appstats v0.2.0
 	github.com/onsi/ginkgo v1.14.0 // indirect
-	github.com/pelletier/go-toml v1.9.0
+	github.com/pelletier/go-toml v1.9.3
 	github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/common v0.23.0
 	github.com/rs/zerolog v1.21.0
 	github.com/shirou/gopsutil v3.21.3+incompatible
-	github.com/spf13/afero v1.2.2 // indirect
-	github.com/spf13/cast v1.3.1 // indirect
 	github.com/spf13/cobra v1.1.3
-	github.com/spf13/jwalterweatherman v1.1.0 // indirect
-	github.com/spf13/viper v1.7.1
+	github.com/spf13/viper v1.8.1
 	github.com/tklauser/go-sysconf v0.3.5 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210426230700-d19ff857e887
-	gopkg.in/ini.v1 v1.51.1 // indirect
+	golang.org/x/sys v0.0.0-20210510120138-977fb7262007
 	gopkg.in/yaml.v2 v2.4.0
 )
 
