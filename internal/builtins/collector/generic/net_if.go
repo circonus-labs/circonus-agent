@@ -113,7 +113,7 @@ func (c *IF) Collect(ctx context.Context) error {
 	c.Unlock()
 
 	metrics := cgm.Metrics{}
-	ifaces, err := net.IOCounters(true)
+	ifaces, err := net.IOCountersWithContext(ctx, true)
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting network interface metrics")
 		c.setStatus(metrics, nil)

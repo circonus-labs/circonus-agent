@@ -102,7 +102,7 @@ func (c *CPU) Collect(ctx context.Context) error {
 	c.Unlock()
 
 	metrics := cgm.Metrics{}
-	pcts, err := cpu.Percent(time.Duration(0), c.reportAllCPUs)
+	pcts, err := cpu.PercentWithContext(ctx, time.Duration(0), c.reportAllCPUs)
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting metrics, cpu%")
 	} else {
@@ -128,7 +128,7 @@ func (c *CPU) Collect(ctx context.Context) error {
 		}
 	}
 
-	ts, err := cpu.Times(c.reportAllCPUs)
+	ts, err := cpu.TimesWithContext(ctx, c.reportAllCPUs)
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting metrics, cpu times")
 		c.setStatus(metrics, nil)

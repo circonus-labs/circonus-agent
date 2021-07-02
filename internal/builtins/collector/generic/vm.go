@@ -95,7 +95,7 @@ func (c *VM) Collect(ctx context.Context) error {
 	tagUnitsPercent := tags.Tag{Category: "units", Value: "percent"}
 
 	metrics := cgm.Metrics{}
-	swap, err := mem.SwapMemoryWithContext(context.Background())
+	swap, err := mem.SwapMemoryWithContext(ctx)
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting swap memory metrics")
 	} else {
@@ -124,7 +124,7 @@ func (c *VM) Collect(ctx context.Context) error {
 		}
 	}
 
-	vm, err := mem.VirtualMemory()
+	vm, err := mem.VirtualMemoryWithContext(ctx)
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting virtual memory metrics")
 		c.setStatus(metrics, nil)

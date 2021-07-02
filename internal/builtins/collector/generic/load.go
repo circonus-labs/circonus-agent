@@ -107,7 +107,7 @@ func (c *Load) Collect(ctx context.Context) error {
 		}
 	}
 
-	misc, err := load.Misc()
+	misc, err := load.MiscWithContext(ctx)
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting misc load metrics")
 		c.setStatus(metrics, nil)

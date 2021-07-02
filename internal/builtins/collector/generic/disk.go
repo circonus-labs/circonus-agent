@@ -96,7 +96,7 @@ func (c *Disk) Collect(ctx context.Context) error {
 	c.Unlock()
 
 	metrics := cgm.Metrics{}
-	ios, err := disk.IOCounters(c.ioDevices...)
+	ios, err := disk.IOCountersWithContext(ctx, c.ioDevices...)
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting disk io counter metrics")
 		c.setStatus(metrics, nil)
