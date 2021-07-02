@@ -1,3 +1,28 @@
+# v2.4.2
+
+* fix!: error handling on read timemout (reverse)
+* upd!: dependencies (apiclient, cgm) -- for performance optimized openhistogram
+* doc: note for automation with --check-delete
+* add: last conn/retry/err stats
+* add: last run req stat
+* upd: disable fieldalignment (automated lint)
+* wip: nfpm
+* upd: explict paths for fb
+* upd: remove transitory downloads
+* upd: ownership for etc dir fb tgz
+* add: dependabot.yml
+* upd: build(deps): bump github.com/pelletier/go-toml from 1.9.0 to 1.9.3
+* fix: lint issues
+* upd: build(deps): bump github.com/rs/zerolog from 1.21.0 to 1.23.0
+* upd: build(deps): bump github.com/spf13/viper from 1.7.1 to 1.8.1
+* upd: dep (bytefmt) and tidy after dp prs
+* upd: build(deps): bump github.com/shirou/gopsutil/v3 from 3.21.5 to 3.21.6
+* upd: build(deps): bump github.com/spf13/cobra from 1.1.3 to 1.2.0
+* upd: use WithContext calls (generic collectors)
+* upd: default collectors for darwin
+* upd: tidy (go.sum)
+* fix: remove redundant 'v' in version output
+
 # v2.4.1
 
 * add: `--check-delete` option
