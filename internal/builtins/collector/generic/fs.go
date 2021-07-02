@@ -19,7 +19,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/rs/zerolog"
-	"github.com/shirou/gopsutil/disk"
+	"github.com/shirou/gopsutil/v3/disk"
 )
 
 // FS metrics from the Linux ProcFS.
@@ -135,7 +135,7 @@ func (c *FS) Collect(ctx context.Context) error {
 	c.Unlock()
 
 	metrics := cgm.Metrics{}
-	partitions, err := disk.Partitions(c.allFSDevices)
+	partitions, err := disk.PartitionsWithContext(ctx, c.allFSDevices)
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting disk filesystem/partition metrics")
 		c.setStatus(metrics, nil)
@@ -161,7 +161,7 @@ func (c *FS) Collect(ctx context.Context) error {
 
 		l.Debug().Msg("filesystem")
 
-		usage, err := disk.Usage(partition.Mountpoint)
+		usage, err := disk.UsageWithContext(ctx, partition.Mountpoint)
 		if err != nil {
 			l.Warn().Err(err).Msg("collecting disk usage")
 			continue

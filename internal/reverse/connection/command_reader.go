@@ -7,6 +7,7 @@ package connection
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -38,7 +39,8 @@ func (c *Connection) readCommand(r io.Reader) command {
 		// so that a request to stop will only block for a short period of time
 		reset := true
 		ignore := false
-		if ne, ok := err.(*net.OpError); ok { //nolint:errorlint
+		var ne *net.OpError
+		if errors.As(err, &ne) {
 			if ne.Timeout() {
 				c.Lock()
 				c.commTimeouts++
@@ -79,7 +81,8 @@ func (c *Connection) readCommand(r io.Reader) command {
 			// so that a request to stop will only block for a short period of time
 			reset := true
 			ignore := false
-			if ne, ok := err.(*net.OpError); ok { //nolint:errorlint
+			var ne *net.OpError
+			if errors.As(err, &ne) {
 				if ne.Timeout() {
 					c.Lock()
 					c.commTimeouts++

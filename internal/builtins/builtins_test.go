@@ -19,14 +19,14 @@ import (
 // fake collector stub
 
 type foo struct {
-	lastMetrics     cgm.Metrics
-	id              string
-	lastError       error
+	sync.Mutex
 	lastEnd         time.Time
 	lastStart       time.Time
+	lastError       error
+	lastMetrics     cgm.Metrics
+	id              string
 	logger          zerolog.Logger
 	lastRunDuration time.Duration
-	sync.Mutex
 }
 
 func newFoo() collector.Collector {
@@ -261,7 +261,7 @@ func TestFlush(t *testing.T) {
 		}
 
 		metrics := b.Flush("")
-		if metrics == nil {
+		if metrics == nil { //nolint:staticcheck
 			t.Fatal("expected metrics")
 		}
 		if len(*metrics) > 0 { //nolint:staticcheck
@@ -280,10 +280,10 @@ func TestFlush(t *testing.T) {
 		}
 
 		metrics := b.Flush("foo")
-		if metrics == nil {
+		if metrics == nil { //nolint:staticcheck
 			t.Fatal("expected metrics")
 		}
-		if len(*metrics) > 0 {
+		if len(*metrics) > 0 { //nolint:staticcheck
 			t.Fatalf("expected empty metrics, got %#v", *metrics)
 		}
 	}
@@ -294,7 +294,7 @@ func TestFlush(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		if b == nil {
+		if b == nil { //nolint:staticcheck
 			t.Fatal("expected a builtins instance")
 		}
 
@@ -302,10 +302,10 @@ func TestFlush(t *testing.T) {
 		_ = b.collectors["foo"].Collect(context.Background())
 
 		metrics := b.Flush("foo")
-		if metrics == nil {
+		if metrics == nil { //nolint:staticcheck
 			t.Fatal("expected metrics")
 		}
-		if len(*metrics) == 0 {
+		if len(*metrics) == 0 { //nolint:staticcheck
 			t.Fatalf("expected at least 1 metric, got %#v", *metrics)
 		}
 	}

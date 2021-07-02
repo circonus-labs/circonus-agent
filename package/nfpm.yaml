@@ -1,0 +1,65 @@
+# nfpm example config file
+#
+# check https://nfpm.goreleaser.com/configuration for detailed usage
+#
+name: "circonus-agent"
+arch: "amd64"
+platform: "linux"
+version: "${AGENT_VER}"
+section: "default"
+priority: "extra"
+# replaces:
+# - foobar
+provides:
+- circonus-agent
+# depends:
+# - foo
+# - bar
+# recommends:
+# - whatever
+# suggests:
+# - something-else
+# conflicts:
+# - nad
+# - not-bar
+maintainer: "Circonus <support@circonus.com>"
+description: |
+  Circonus Agent daemon to collect metrics.
+  Both system and application metrics. It inventories all 
+  executable programs in its plugins directory and executes 
+  them upon external request, returning results in JSON 
+  format which is consumed by a Circonus Broker.
+vendor: "Circonus, Inc."
+homepage: "https://github.com/circonus-labs/circonus-agent"
+license: "BSD"
+# changelog: "changelog.yaml"
+contents:
+# logwatch
+- src: /tmp/agent-install/opt/circonus/logwatch/
+  dst: /opt/circonus/logwatch
+# agent
+- src: /tmp/agent-install/opt/circonus/agent/
+  dst: /opt/circonus/agent
+# agent systemd
+- src: /tmp/agent-install/lib/systemd/system/circonus-agent.service
+  dst: /lib/systemd/system/circonus-agent.service
+
+# - src: ./foo
+#   dst: /usr/local/bin/foo
+# - src: ./bar
+#   dst: /usr/local/bin/bar
+# - src: ./foobar.conf
+#   dst: /etc/foobar.conf
+#   type: config
+# - src: /usr/local/bin/foo
+#   dst: /sbin/foo
+#   type: symlink
+overrides:
+  rpm:
+    scripts:
+      postinstall: ./rpm/postinstall.sh
+      preremove: ./rpm/preremove.sh
+  deb:
+    scripts:
+      postinstall: ./deb/postinstall.sh
+      preremove: ./deb/preremove.sh

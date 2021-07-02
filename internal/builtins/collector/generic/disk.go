@@ -16,7 +16,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/rs/zerolog"
-	"github.com/shirou/gopsutil/disk"
+	"github.com/shirou/gopsutil/v3/disk"
 )
 
 // Disk metrics from the Linux ProcFS.
@@ -96,7 +96,7 @@ func (c *Disk) Collect(ctx context.Context) error {
 	c.Unlock()
 
 	metrics := cgm.Metrics{}
-	ios, err := disk.IOCounters(c.ioDevices...)
+	ios, err := disk.IOCountersWithContext(ctx, c.ioDevices...)
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting disk io counter metrics")
 		c.setStatus(metrics, nil)

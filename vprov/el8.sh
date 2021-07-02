@@ -4,6 +4,8 @@
 
 go_base_url="$1"
 go_ver="$2"
+nfpm_ver="$3"
+nfpm_base_url="$4"
 go_install=0
 
 echo "Installing needed packages (e.g. git, go, etc.)"

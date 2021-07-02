@@ -41,7 +41,7 @@ in JSON format.`,
 		// show version and exit
 		//
 		if viper.GetBool(config.KeyShowVersion) {
-			fmt.Printf("%s v%s - commit: %s, date: %s, tag: %s\n", release.NAME, release.VERSION, release.COMMIT, release.DATE, release.TAG)
+			fmt.Printf("%s %s - commit: %s, date: %s, tag: %s\n", release.NAME, release.VERSION, release.COMMIT, release.DATE, release.TAG)
 			return
 		}
 

@@ -23,13 +23,13 @@ func TestNew(t *testing.T) {
 	type args struct {
 		client API
 	}
-	tests := []struct { //nolint:govet
-		name    string
+	tests := []struct {
 		args    args
 		want    *Bundle
+		name    string
 		wantErr bool
 	}{
-		{"invalid (nil client)", args{client: nil}, nil, true},
+		{name: "invalid (nil client)", args: args{client: nil}, want: nil, wantErr: true},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -318,14 +318,14 @@ func TestBundle_Period(t *testing.T) {
 	type fields struct {
 		bundle *apiclient.CheckBundle
 	}
-	tests := []struct { //nolint:govet
-		name    string
+	tests := []struct {
 		fields  fields
+		name    string
 		want    uint
 		wantErr bool
 	}{
-		{"nil bundle", fields{}, 0, true},
-		{"valid bundle", fields{bundle: &testCheckBundle}, 60, false},
+		{name: "nil bundle", fields: fields{}, want: 0, wantErr: true},
+		{name: "valid bundle", fields: fields{bundle: &testCheckBundle}, want: 60, wantErr: false},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -387,17 +387,17 @@ func TestBundle_CheckCID(t *testing.T) {
 	type args struct {
 		idx uint
 	}
-	tests := []struct { //nolint:govet
-		name    string
+	tests := []struct {
 		fields  fields
-		args    args
+		name    string
 		want    string
+		args    args
 		wantErr bool
 	}{
-		{"invalid (nil bundle)", fields{bundle: nil}, args{idx: 0}, "", true},
-		{"invalid (no checks in bundle)", fields{bundle: &apiclient.CheckBundle{}}, args{idx: 0}, "", true},
-		{"invalid (idx out of range)", fields{bundle: &tb}, args{idx: 10}, "", true},
-		{"valid", fields{bundle: &tb}, args{idx: 0}, testCheckBundle.Checks[0], false},
+		{name: "invalid (nil bundle)", fields: fields{bundle: nil}, args: args{idx: 0}, want: "", wantErr: true},
+		{name: "invalid (no checks in bundle)", fields: fields{bundle: &apiclient.CheckBundle{}}, args: args{idx: 0}, want: "", wantErr: true},
+		{name: "invalid (idx out of range)", fields: fields{bundle: &tb}, args: args{idx: 10}, want: "", wantErr: true},
+		{name: "valid", fields: fields{bundle: &tb}, args: args{idx: 0}, want: testCheckBundle.Checks[0], wantErr: false},
 	}
 	for _, tt := range tests {
 		tt := tt

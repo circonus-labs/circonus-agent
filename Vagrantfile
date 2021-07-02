@@ -7,6 +7,8 @@
 
 go_ver = `go version`.chomp.split(' ')[2]
 go_url_base = 'https://dl.google.com/go'
+nfpm_ver = `nfpm -v | head -1`.chomp.split(' ')[4]
+nfpm_url_base = 'https://github.com/goreleaser/nfpm/releases/download'
 agent_src_path = '/home/vagrant/godev/src/github.com/circonus-labs/circonus-agent'
 
 #
@@ -26,7 +28,7 @@ Vagrant.configure('2') do |config|
         end
         el8.vm.synced_folder '.', agent_src_path, owner: 'vagrant', group: 'vagrant'
         el8.vm.network 'private_network', ip: '192.168.100.200'
-        el8.vm.provision 'shell', path: 'vprov/el8.sh', args: [go_url_base, go_ver]
+        el8.vm.provision 'shell', path: 'vprov/el8.sh', args: [go_url_base, go_ver, nfpm_ver, nfpm_url_base]
         el8.vbguest.auto_update = false
     end
     #
@@ -42,7 +44,7 @@ Vagrant.configure('2') do |config|
         end
         el7.vm.synced_folder '.', agent_src_path, owner: 'vagrant', group: 'vagrant'
         el7.vm.network 'private_network', ip: '192.168.100.200'
-        el7.vm.provision 'shell', path: 'vprov/el7.sh', args: [go_url_base, go_ver]
+        el7.vm.provision 'shell', path: 'vprov/el7.sh', args: [go_url_base, go_ver, nfpm_ver, nfpm_url_base]
         el7.vbguest.auto_update = true
     end
     #
@@ -58,7 +60,7 @@ Vagrant.configure('2') do |config|
         end
         el6.vm.synced_folder '.', agent_src_path, owner: 'vagrant', group: 'vagrant'
         el6.vm.network 'private_network', ip: '192.168.100.200'
-        el6.vm.provision 'shell', path: 'vprov/el6.sh', args: [go_url_base, go_ver]
+        el6.vm.provision 'shell', path: 'vprov/el6.sh', args: [go_url_base, go_ver, nfpm_ver, nfpm_url_base]
         el6.vbguest.auto_update = false
     end
     #
@@ -74,7 +76,7 @@ Vagrant.configure('2') do |config|
         end
         u20.vm.synced_folder '.', agent_src_path, owner: 'vagrant', group: 'vagrant'
         u20.vm.network 'private_network', ip: '192.168.100.200'
-        u20.vm.provision 'shell', path: 'vprov/u20.sh', args: [go_url_base, go_ver]
+        u20.vm.provision 'shell', path: 'vprov/u20.sh', args: [go_url_base, go_ver, nfpm_ver, nfpm_url_base]
         u20.vbguest.auto_update = false
     end
     #
@@ -90,7 +92,7 @@ Vagrant.configure('2') do |config|
         end
         u18.vm.synced_folder '.', agent_src_path, owner: 'vagrant', group: 'vagrant'
         u18.vm.network 'private_network', ip: '192.168.100.200'
-        u18.vm.provision 'shell', path: 'vprov/u18.sh', args: [go_url_base, go_ver]
+        u18.vm.provision 'shell', path: 'vprov/u18.sh', args: [go_url_base, go_ver, nfpm_ver, nfpm_url_base]
         u18.vbguest.auto_update = true
     end
     #
@@ -106,7 +108,7 @@ Vagrant.configure('2') do |config|
         end
         u16.vm.synced_folder '.', agent_src_path, owner: 'vagrant', group: 'vagrant'
         u16.vm.network 'private_network', ip: '192.168.100.200'
-        u16.vm.provision 'shell', path: 'vprov/u16.sh', args: [go_url_base, go_ver]
+        u16.vm.provision 'shell', path: 'vprov/u16.sh', args: [go_url_base, go_ver, nfpm_ver, nfpm_url_base]
         u16.vbguest.auto_update = true
     end
     #
@@ -122,7 +124,7 @@ Vagrant.configure('2') do |config|
         end
         u14.vm.synced_folder '.', agent_src_path, owner: 'vagrant', group: 'vagrant'
         u14.vm.network 'private_network', ip: '192.168.100.200'
-        u14.vm.provision 'shell', path: 'vprov/u14.sh', args: [go_url_base, go_ver]
+        u14.vm.provision 'shell', path: 'vprov/u14.sh', args: [go_url_base, go_ver, nfpm_ver, nfpm_url_base]
         u14.vbguest.auto_update = true
     end
 

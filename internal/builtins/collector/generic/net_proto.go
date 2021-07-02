@@ -17,7 +17,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/rs/zerolog"
-	"github.com/shirou/gopsutil/net"
+	"github.com/shirou/gopsutil/v3/net"
 )
 
 // Proto metrics.
@@ -105,7 +105,7 @@ func (c *Proto) Collect(ctx context.Context) error {
 	//
 
 	metrics := cgm.Metrics{}
-	counters, err := net.ProtoCounters(c.protocols)
+	counters, err := net.ProtoCountersWithContext(ctx, c.protocols)
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("collecting network protocol metrics")
 		c.setStatus(metrics, nil)

@@ -93,7 +93,8 @@ dir_logwatch_build="${dir_build}/${logwatch_name}"
 : ${TAR:="tar"}
 : ${TR:="tr"}
 : ${UNAME:="uname"}
-for cmd in $CP $CURL $GIT $GO $MKDIR $RM $SED $TAR $TR $UNAME; do
+: ${SUDO:="sudo"}
+for cmd in $CP $CURL $GIT $GO $MKDIR $RM $SED $TAR $TR $UNAME $SUDO; do
     [[ -z "$(type -P $cmd)" ]] && { echo "unable to find '${cmd}' command in [$PATH]"; exit 1; }
 done
 : ${FPM:="/usr/local/bin/fpm"}  # only used by Ubuntu builds
@@ -166,7 +167,7 @@ echo "Building circonus-agent package for ${os_name} ${os_arch}"
 echo
 
 [[ -d $dir_build ]] || { echo "-creating build directory"; $MKDIR -p $dir_build; }
-[[ -d $dir_install ]] && { echo "-cleaning previous install directory"; $RM -rf $dir_install; }
+[[ -d $dir_install ]] && { echo "-cleaning previous install directory"; $SUDO $RM -rf $dir_install; }
 [[ -d $dir_install ]] || { echo "-creating install directory"; $MKDIR -p $dir_install; }
 
 ##
@@ -228,6 +229,7 @@ install_agent() {
     echo "-unpacking $agent_tgz into $dir_install_agent"
     [[ -d $dir_install_agent ]] || $MKDIR -p $dir_install_agent
     $TAR -xf $agent_tgz -C $dir_install_agent
+    $RM $agent_tgz
     popd >/dev/null
 }
 
@@ -381,6 +383,7 @@ install_logwatch() {
         echo "-unpacking $logwatch_tgz into $dir_install_logwatch"
         [[ -d $dir_install_logwatch ]] || $MKDIR -p $dir_install_logwatch
         $TAR -xf $logwatch_tgz -C $dir_install_logwatch
+        $RM $logwatch_tgz
         popd >/dev/null
     fi
 }
@@ -482,7 +485,8 @@ make_package() {
                 $RM -f $deb_file
             fi
 
-            chown nobody:nobody $dir_install_agent/etc && chmod 0750 $dir_install_agent/etc
+            #TODO: switch to NFPM for rpm/deb packages
+            #chmod 0750 $dir_install_agent/etc && $SUDO chown nobody:nobody $dir_install_agent/etc
 
             # when snapshots are used, the embedded Version field in the deb needs
             # to start with a number. fudge it since these are !!ONLY!! for testing.
@@ -510,12 +514,12 @@ make_package() {
             ;;
         *)
             pushd $dir_install >/dev/null
-            chown nobody:nobody $dir_install_agent/etc && chmod 0750 $dir_install_agent/etc
+            chmod 0750 $dir_install_agent/etc && $SUDO chown nobody:nobody $dir_install_agent/etc
             echo "making tgz for $os_name"
             local pkg="${dir_build}/circonus-agent-${stripped_ver}-1.${os_name}_${os_arch}.tgz"
-            $TAR czf $pkg .
-            $CP $CP_ARGS $pkg $dir_publish
-            $RM $pkg
+            $SUDO $TAR czf $pkg .
+            $SUDO $CP $CP_ARGS $pkg $dir_publish
+            $SUDO $RM $pkg
             popd >/dev/null
             ;;
     esac

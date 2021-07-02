@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	"github.com/shirou/gopsutil/host"
+	"github.com/shirou/gopsutil/v3/host"
 	"github.com/spf13/viper"
 )
 
