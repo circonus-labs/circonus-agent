@@ -278,6 +278,16 @@ func init() {
 			"wmi/udp", // ipv4 and ipv6
 			"wmi/system",
 		}
+	case "darwin":
+		Collectors = []string{
+			// "generic/cpu",
+			// "generic/disk",
+			"generic/fs",
+			"generic/if",
+			"generic/load",
+			// "generic/proto",
+			"generic/vm",
+		}
 	default:
 		Collectors = []string{
 			"generic/cpu",
