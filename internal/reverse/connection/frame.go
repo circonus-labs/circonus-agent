@@ -111,7 +111,7 @@ func readBytes(r io.Reader, size int64) ([]byte, error) {
 
 	n, err := lr.Read(buff[:cap(buff)])
 	if n == 0 && err != nil {
-		return nil, fmt.Errorf("read: %w", err)
+		return nil, err //nolint:wrapcheck
 	}
 
 	// dealing with expected sizes
