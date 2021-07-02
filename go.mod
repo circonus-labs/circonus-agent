@@ -16,10 +16,9 @@ require (
 	github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/common v0.29.0
 	github.com/rs/zerolog v1.23.0
-	github.com/shirou/gopsutil/v3 v3.21.5
-	github.com/spf13/cobra v1.2.0
+	github.com/shirou/gopsutil/v3 v3.21.6
+	github.com/spf13/cobra v1.1.3
 	github.com/spf13/viper v1.8.1
-	github.com/tklauser/go-sysconf v0.3.5 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c
 	gopkg.in/yaml.v2 v2.4.0
