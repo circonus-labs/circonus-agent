@@ -12,7 +12,7 @@ require (
 	github.com/hashicorp/go-hclog v0.10.1 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.0
 	github.com/maier/go-appstats v0.2.0
-	github.com/pelletier/go-toml v1.9.3
+	github.com/pelletier/go-toml v1.9.4
 	github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/common v0.29.0
 	github.com/rs/zerolog v1.23.0
