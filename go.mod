@@ -14,7 +14,7 @@ require (
 	github.com/maier/go-appstats v0.2.0
 	github.com/pelletier/go-toml v1.9.4
 	github.com/prometheus/client_model v0.2.0
-	github.com/prometheus/common v0.29.0
+	github.com/prometheus/common v0.30.0
 	github.com/rs/zerolog v1.24.0
 	github.com/shirou/gopsutil/v3 v3.21.6
 	github.com/spf13/cobra v1.2.1
