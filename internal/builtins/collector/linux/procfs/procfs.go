@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 //
 
+//go:build linux
 // +build linux
 
 // Package procfs builtin linux-specific collector for /proc filesystem (replaces old nad shell plugins)

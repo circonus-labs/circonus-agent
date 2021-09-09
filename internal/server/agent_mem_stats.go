@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 //
 
+//go:build !windows && !illumos && !solaris
 // +build !windows,!illumos,!solaris
 
 package server
