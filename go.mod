@@ -14,13 +14,13 @@ require (
 	github.com/maier/go-appstats v0.2.0
 	github.com/pelletier/go-toml v1.9.4
 	github.com/prometheus/client_model v0.2.0
-	github.com/prometheus/common v0.29.0
+	github.com/prometheus/common v0.30.0
 	github.com/rs/zerolog v1.24.0
-	github.com/shirou/gopsutil/v3 v3.21.6
+	github.com/shirou/gopsutil/v3 v3.21.8
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/viper v1.8.1
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c
+	golang.org/x/sys v0.0.0-20210816074244-15123e1e1f71
 	gopkg.in/yaml.v2 v2.4.0
 )
 
