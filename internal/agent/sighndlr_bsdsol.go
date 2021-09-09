@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 //
 
+//go:build freebsd || openbsd || solaris || darwin
 // +build freebsd openbsd solaris darwin
 
 // Signal handling for FreeBSD, OpenBSD, Darwin, and Solaris

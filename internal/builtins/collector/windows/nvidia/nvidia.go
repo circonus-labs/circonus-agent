@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 //
 
+//go:build windows
 // +build windows
 
 // Package nvidia collects GPU metrics using nvidia-smi.exe
