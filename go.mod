@@ -8,7 +8,7 @@ require (
 	github.com/circonus-labs/circonus-gometrics/v3 v3.4.5
 	github.com/circonus-labs/go-apiclient v0.7.15
 	github.com/gojuno/minimock/v3 v3.0.9
-	github.com/google/uuid v1.2.0
+	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-hclog v0.10.1 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.0
 	github.com/maier/go-appstats v0.2.0
