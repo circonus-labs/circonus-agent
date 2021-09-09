@@ -40,6 +40,8 @@ builds:
               goarch: arm
             - goos: windows
               goarch: arm
+            - goos: windows
+              goarch: arm64
 
 
         ldflags: 
