@@ -1,4 +1,4 @@
-# 2.4.3
+# v2.4.3
 
 * fix: downgrade gopsutil v3.21.8 - build fail - see gopsutil PR 1142
 * upd: golint deprecated, replaced by revive
