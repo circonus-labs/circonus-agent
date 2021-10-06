@@ -26,7 +26,7 @@ import (
 )
 
 // Win32_PerfRawData_Tcpip_TCPv4 defines the metrics to collect.
-type Win32_PerfRawData_Tcpip_TCPv4 struct { //nolint: golint
+type Win32_PerfRawData_Tcpip_TCPv4 struct { //nolint: revive
 	ConnectionFailures          uint32
 	ConnectionsActive           uint32
 	ConnectionsEstablished      uint32
@@ -39,7 +39,7 @@ type Win32_PerfRawData_Tcpip_TCPv4 struct { //nolint: golint
 }
 
 // Win32_PerfRawData_Tcpip_TCPv6 defines the metrics to collect.
-type Win32_PerfRawData_Tcpip_TCPv6 struct { //nolint: golint
+type Win32_PerfRawData_Tcpip_TCPv6 struct { //nolint: revive
 	ConnectionFailures          uint32
 	ConnectionsActive           uint32
 	ConnectionsEstablished      uint32

@@ -54,7 +54,7 @@ type genericDiskMetrics struct {
 
 // Win32_PerfFormattedData_PerfDisk_LogicalDisk defines the metrics to collect
 // https://technet.microsoft.com/en-ca/aa394261(v=vs.71)
-type Win32_PerfFormattedData_PerfDisk_LogicalDisk struct { //nolint: golint
+type Win32_PerfFormattedData_PerfDisk_LogicalDisk struct { //nolint: revive
 	Name                    string
 	AvgDiskBytesPerRead     uint64
 	AvgDiskBytesPerTransfer uint64
@@ -82,7 +82,7 @@ type Win32_PerfFormattedData_PerfDisk_LogicalDisk struct { //nolint: golint
 }
 
 // Win32_PerfFormattedData_PerfDisk_PhysicalDisk defines the metrics to collect.
-type Win32_PerfFormattedData_PerfDisk_PhysicalDisk struct { //nolint: golint
+type Win32_PerfFormattedData_PerfDisk_PhysicalDisk struct { //nolint: revive
 	Name                    string
 	AvgDiskBytesPerRead     uint64
 	AvgDiskBytesPerTransfer uint64

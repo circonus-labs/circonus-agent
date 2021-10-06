@@ -32,9 +32,12 @@ linters:
   enable:
     - deadcode
     - errcheck
+    - exportloopref
     - gocritic
+    - godot
+    - godox
+    - goerr113
     - gofmt
-    - golint
     - gosec
     - gosimple
     - govet
@@ -42,22 +45,20 @@ linters:
     - megacheck
     - misspell
     - prealloc
+    - predeclared
+    - revive
     - staticcheck
     - structcheck
     - typecheck
     - unparam
     - unused
     - varcheck
-    #- gci
-    - godot
-    - godox
-    - goerr113
-    - predeclared
     - unconvert
     - wrapcheck
   disable:
-    - scopelint
-  #  - prealloc
+    - scopelint # deprecated, replaced by 
+    - golint # deprecated, replaced by revive
+    - gci
   disable-all: false
   presets:
     - bugs

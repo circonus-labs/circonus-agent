@@ -1,3 +1,15 @@
+# 2.4.3
+
+* fix: downgrade gopsutil v3.21.8 - build fail - see gopsutil PR 1142
+* upd: golint deprecated, replaced by revive
+* upd: all deps
+* upd: go1.17 build tags
+* upd: disable gci, conflict on import organization
+* upd: ignore windows arm64
+* upd: for dependencies, releaser, linter, and go1.17
+* build(deps): bump github.com/rs/zerolog from 1.24.0 to 1.25.0
+* build(deps): bump github.com/circonus-labs/circonus-gometrics/v3 from 3.4.5 to 3.4.6
+
 # v2.4.2
 
 * fix!: error handling on read timemout (reverse)

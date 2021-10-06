@@ -52,8 +52,8 @@ const (
 	Separator       = ","
 	replacementChar = "_"
 
-	MAX_TAGS            = 256  //nolint: golint
-	MAX_METRIC_NAME_LEN = 4096 //nolint: golint
+	MAX_TAGS            = 256  //nolint: revive
+	MAX_METRIC_NAME_LEN = 4096 //nolint: revive
 )
 
 var (

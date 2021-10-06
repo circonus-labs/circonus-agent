@@ -26,7 +26,7 @@ import (
 
 // Win32_PerfFormattedData_PerfProc_Process defines the metrics to collect
 // https://technet.microsoft.com/en-ca/aa394277(v=vs.71)
-type Win32_PerfFormattedData_PerfProc_Process struct { //nolint: golint
+type Win32_PerfFormattedData_PerfProc_Process struct { //nolint: revive
 	Name                    string
 	ElapsedTime             uint64
 	IODataBytesPersec       uint64
