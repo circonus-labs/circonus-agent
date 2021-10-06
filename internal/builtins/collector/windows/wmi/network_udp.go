@@ -26,7 +26,7 @@ import (
 )
 
 // Win32_PerfRawData_Tcpip_UDPv4 defines the metrics to collect.
-type Win32_PerfRawData_Tcpip_UDPv4 struct { //nolint: golint
+type Win32_PerfRawData_Tcpip_UDPv4 struct { //nolint: revive
 	DatagramsNoPortPersec   uint32
 	DatagramsPersec         uint32
 	DatagramsReceivedErrors uint32
@@ -35,7 +35,7 @@ type Win32_PerfRawData_Tcpip_UDPv4 struct { //nolint: golint
 }
 
 // Win32_PerfRawData_Tcpip_UDPv6 defines the metrics to collect.
-type Win32_PerfRawData_Tcpip_UDPv6 struct { //nolint: golint
+type Win32_PerfRawData_Tcpip_UDPv6 struct { //nolint: revive
 	DatagramsNoPortPersec   uint32
 	DatagramsPersec         uint32
 	DatagramsReceivedErrors uint32

@@ -24,7 +24,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-//nolint:golint // ignore underscore in names, needed for wmi pkg
+//nolint:revive // ignore underscore in names, needed for wmi pkg
 type Win32_PerfFormattedData_PerfOS_System struct {
 	Caption                     string
 	Description                 string

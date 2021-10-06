@@ -26,7 +26,7 @@ import (
 
 // Win32_PerfFormattedData_PerfOS_Cache defines the metrics to collect
 // https://wutils.com/wmi/root/cimv2/win32_perfformatteddata_perfos_cache/
-type Win32_PerfFormattedData_PerfOS_Cache struct { //nolint: golint
+type Win32_PerfFormattedData_PerfOS_Cache struct { //nolint: revive
 	AsyncCopyReadsPersec         uint32
 	AsyncDataMapsPersec          uint32
 	AsyncFastReadsPersec         uint32

@@ -25,7 +25,7 @@ import (
 )
 
 // Win32_PerfFormattedData_PerfOS_Objects defines the metrics to collect.
-type Win32_PerfFormattedData_PerfOS_Objects struct { //nolint: golint
+type Win32_PerfFormattedData_PerfOS_Objects struct { //nolint: revive
 	Events     uint32
 	Mutexes    uint32
 	Processes  uint32
