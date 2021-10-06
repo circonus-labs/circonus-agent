@@ -119,7 +119,7 @@ release:
         owner: circonus-labs
         name: circonus-agent
 
-    prerelease: true
+    prerelease: false
 
 checksum:
     name_template: "{{.ProjectName}}_checksums.txt"
