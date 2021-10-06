@@ -1,3 +1,12 @@
+# 2.4.3
+
+* fix: downgrade gopsutil v3.21.8 - build fail - see gopsutil PR 1142
+* upd: golint deprecated, replaced by revive
+* upd: all deps
+* upd: go1.17 build tags
+* upd: disable gci, conflict on import organization
+* upd: ignore windows arm64
+
 # v2.4.2
 
 * fix!: error handling on read timemout (reverse)
