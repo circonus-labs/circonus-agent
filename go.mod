@@ -6,7 +6,6 @@ require (
 	github.com/bi-zone/wmi v1.1.4
 	github.com/circonus-labs/circonus-gometrics/v3 v3.4.6
 	github.com/circonus-labs/go-apiclient v0.7.15
-	github.com/fatih/color v1.12.0 // indirect
 	github.com/gojuno/minimock/v3 v3.0.10
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
@@ -17,8 +16,8 @@ require (
 	github.com/prometheus/common v0.32.1
 	github.com/rs/zerolog v1.25.0
 	github.com/shirou/gopsutil/v3 v3.22.1
-	github.com/spf13/cobra v1.2.1
-	github.com/spf13/viper v1.9.0
+	github.com/spf13/cobra v1.3.0
+	github.com/spf13/viper v1.10.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20220111092808-5a964db01320
 	gopkg.in/yaml.v2 v2.4.0
