@@ -11,15 +11,15 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.0
 	github.com/maier/go-appstats v0.2.0
-	github.com/pelletier/go-toml v1.9.4
+	github.com/pelletier/go-toml v1.9.5
 	github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/common v0.32.1
 	github.com/rs/zerolog v1.26.1
 	github.com/shirou/gopsutil/v3 v3.22.1
 	github.com/spf13/cobra v1.3.0
-	github.com/spf13/viper v1.10.1
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20220111092808-5a964db01320
+	github.com/spf13/viper v1.12.0
+	golang.org/x/sync v0.0.0-20220513210516-0976fa681c29
+	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a
 	gopkg.in/yaml.v2 v2.4.0
 )
 
