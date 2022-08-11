@@ -7,7 +7,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -292,7 +292,7 @@ func (s *Submitter) sendMetrics(ctx context.Context) error {
 		return fmt.Errorf("http do: %w", err)
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		s.logger.Error().Err(err).Msg("reading body")
 		return fmt.Errorf("read response: %w", err)

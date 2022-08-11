@@ -8,7 +8,7 @@ package server
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -158,7 +158,7 @@ func TestRouter(t *testing.T) {
 			w := httptest.NewRecorder()
 			s.router(w, req)
 			resp := w.Result()
-			body, berr := ioutil.ReadAll(resp.Body)
+			body, berr := io.ReadAll(resp.Body)
 			if berr != nil {
 				t.Fatalf("expected no error, got (%s)", berr)
 			}
