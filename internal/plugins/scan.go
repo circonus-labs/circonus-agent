@@ -8,7 +8,6 @@ package plugins
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -286,7 +285,7 @@ func (p *Plugins) scanPluginDirectory(b *builtins.Builtins) error {
 
 		// check for config file
 		cfgFile := filepath.Join(p.pluginDir, fmt.Sprintf("%s.json", fileBase))
-		if data, err := ioutil.ReadFile(cfgFile); err != nil {
+		if data, err := os.ReadFile(cfgFile); err != nil {
 			if !os.IsNotExist(err) {
 				p.logger.Warn().
 					Err(err).
