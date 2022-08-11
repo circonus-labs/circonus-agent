@@ -7,6 +7,9 @@
 %define		_prefix		/opt/circonus
 %define     app_dir     %{_prefix}/agent
 
+# prevent /usr/lib/.build-id links from being created
+%define _build_id_links none
+
 %if 0%{?el8}
 # perl and python are *optional*, not required
 # rpmbuild autoreq will include by default because of scripts with perl|python shebang
