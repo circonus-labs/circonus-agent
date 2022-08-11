@@ -27,19 +27,19 @@ func TestNew(t *testing.T) {
 	t.Log("Testing New")
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	tests := []struct { //nolint:govet
+	tests := []struct {
 		id         string
 		defaultDir string
 		dir        string
+		errMsg     string
 		list       []string
 		shouldFail bool
-		errMsg     string
 	}{
-		{"invalid - both dir/list specified", "testdata", "testdata", []string{path.Join("testdata", "test.sh")}, true, "invalid configuration cannot specify plugin-dir AND plugin-list"},
-		{"invalid - not a dir", "testdata", path.Join("testdata", "test.sh"), []string{}, true, "invalid plugin directory:"},
-		{"valid - no dir/list, default to dir", "testdata", "", []string{}, false, ""},
-		{"valid - dir", "", "testdata", []string{}, false, ""},
-		{"valid - list", "", "", []string{path.Join("testdata", "test.sh")}, false, ""},
+		{id: "invalid - both dir/list specified", defaultDir: "testdata", dir: "testdata", list: []string{path.Join("testdata", "test.sh")}, shouldFail: true, errMsg: "invalid configuration cannot specify plugin-dir AND plugin-list"},
+		{id: "invalid - not a dir", defaultDir: "testdata", dir: path.Join("testdata", "test.sh"), list: []string{}, shouldFail: true, errMsg: "invalid plugin directory:"},
+		{id: "valid - no dir/list, default to dir", defaultDir: "testdata", dir: "", list: []string{}, shouldFail: false, errMsg: ""},
+		{id: "valid - dir", defaultDir: "", dir: "testdata", list: []string{}, shouldFail: false, errMsg: ""},
+		{id: "valid - list", defaultDir: "", dir: "", list: []string{path.Join("testdata", "test.sh")}, shouldFail: false, errMsg: ""},
 	}
 
 	for _, test := range tests {
