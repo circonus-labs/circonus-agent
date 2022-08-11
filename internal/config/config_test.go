@@ -6,7 +6,7 @@
 package config
 
 import (
-	"io/ioutil"
+	"io"
 	"testing"
 
 	"github.com/rs/zerolog"
@@ -43,7 +43,7 @@ func TestShowConfig(t *testing.T) {
 	t.Log("YAML")
 	{
 		viper.Set(KeyShowConfig, "yaml")
-		err := ShowConfig(ioutil.Discard)
+		err := ShowConfig(io.Discard)
 		if err != nil {
 			t.Fatalf("expected no error, got %s", err)
 		}
@@ -52,7 +52,7 @@ func TestShowConfig(t *testing.T) {
 	t.Log("TOML")
 	{
 		viper.Set(KeyShowConfig, "toml")
-		err := ShowConfig(ioutil.Discard)
+		err := ShowConfig(io.Discard)
 		if err != nil {
 			t.Fatalf("expected no error, got %s", err)
 		}
@@ -61,7 +61,7 @@ func TestShowConfig(t *testing.T) {
 	t.Log("JSON")
 	{
 		viper.Set(KeyShowConfig, "json")
-		err := ShowConfig(ioutil.Discard)
+		err := ShowConfig(io.Discard)
 		if err != nil {
 			t.Fatalf("expected no error, got %s", err)
 		}

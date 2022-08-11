@@ -8,7 +8,6 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -43,7 +42,7 @@ func LoadConfigFile(base string, target interface{}) error {
 		if _, err := os.Stat(cfg); os.IsNotExist(err) {
 			continue
 		}
-		data, err := ioutil.ReadFile(cfg)
+		data, err := os.ReadFile(cfg)
 		if err != nil {
 			return fmt.Errorf("reading configuration file (%s): %w", cfg, err)
 		}
