@@ -10,8 +10,8 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/url"
+	"os"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/spf13/viper"
@@ -113,7 +113,7 @@ func (c *Check) fetchBrokerCA() ([]byte, error) {
 	// use local file if specified
 	file := viper.GetString(config.KeyReverseBrokerCAFile)
 	if file != "" {
-		cert, err := ioutil.ReadFile(file)
+		cert, err := os.ReadFile(file)
 		if err != nil {
 			return nil, fmt.Errorf("read file: %w", err)
 		}

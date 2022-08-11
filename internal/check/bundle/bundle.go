@@ -8,7 +8,6 @@ package bundle
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"regexp"
 	"strings"
@@ -589,7 +588,7 @@ type MetricFilterFile struct {
 func (cb *Bundle) getMetricFilters() ([][]string, error) {
 	mff := viper.GetString(config.KeyCheckMetricFilterFile)
 	if mff != "" {
-		data, err := ioutil.ReadFile(mff)
+		data, err := os.ReadFile(mff)
 		if err != nil {
 			if !os.IsNotExist(err) {
 				return nil, fmt.Errorf("reading %s: %w", mff, err)
