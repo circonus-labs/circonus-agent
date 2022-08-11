@@ -5,6 +5,5 @@
 
 /*
 Package api provides the definition of the agent API
-
 */
 package api
