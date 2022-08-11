@@ -1,3 +1,21 @@
+# v2.5.0
+
+* fix: prevent `/usr/lib/.build-id` links from being created
+* fix: ioutil deprecation
+* fix: G112 add ReadHeaderTimeout to http.Server
+* fix: gofmt certain files due to comment format
+* fix: struct alignment in some test files for generated test snippets
+* fix: pass context to fetchPromMetrics
+* build(deps): bump github.com/shirou/gopsutil/v3 from 3.22.1 to 3.22.7
+* build(deps): bump github.com/circonus-labs/go-apiclient from 0.7.15 to 0.7.17
+* build(deps): bump github.com/prometheus/common from 0.32.1 to 0.37.0
+* build(deps): bump github.com/spf13/cobra from 1.3.0 to 1.5.0
+* build(deps): bump github.com/spf13/viper from 1.10.1 to 1.12.0
+* build(deps): bump github.com/hashicorp/go-retryablehttp from 0.7.0 to 0.7.1
+* build(deps): bump github.com/rs/zerolog from 1.25.0 to 1.26.1
+* fix: add `v` to version (changelog)
+* upd: set prerelease false (goreleaser)
+
 # v2.4.3
 
 * fix: downgrade gopsutil v3.21.8 - build fail - see gopsutil PR 1142
