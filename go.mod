@@ -5,11 +5,11 @@ require (
 	github.com/alecthomas/units v0.0.0-20210927113745-59d0afb8317a
 	github.com/bi-zone/wmi v1.1.4
 	github.com/circonus-labs/circonus-gometrics/v3 v3.4.6
-	github.com/circonus-labs/go-apiclient v0.7.15
+	github.com/circonus-labs/go-apiclient v0.7.17
 	github.com/gojuno/minimock/v3 v3.0.10
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/hashicorp/go-retryablehttp v0.7.0
+	github.com/hashicorp/go-retryablehttp v0.7.1
 	github.com/maier/go-appstats v0.2.0
 	github.com/pelletier/go-toml v1.9.4
 	github.com/prometheus/client_model v0.2.0
