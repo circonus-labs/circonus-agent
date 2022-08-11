@@ -8,7 +8,7 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"regexp"
 
@@ -89,7 +89,7 @@ func loadCosiAPIConfig() (*APIConfig, error) {
 
 // loadCosiV1Config loads (currently, only api) portion of cosi configuration.
 func loadCosiV1Config(cfgFile string) (*APIConfig, error) {
-	data, err := ioutil.ReadFile(cfgFile)
+	data, err := os.ReadFile(cfgFile)
 	if err != nil {
 		return nil, fmt.Errorf("unable to access cosi config: %w", err)
 	}
@@ -143,7 +143,7 @@ func loadCosiV2Config(cfgFile string) (*APIConfig, error) {
 
 // loadChecKConfig loads (currently, only cid) portion of a cosi check config.
 func loadCheckConfig(cfgFile string) (string, error) {
-	data, err := ioutil.ReadFile(cfgFile)
+	data, err := os.ReadFile(cfgFile)
 	if err != nil {
 		return "", fmt.Errorf("unable to access cosi check config: %w", err)
 	}

@@ -9,7 +9,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"net"
 	"time"
@@ -92,7 +91,7 @@ func (c *Connection) fetchMetricData(request *[]byte, channelID uint16) (*[]byte
 			Msg("Mismatch")
 	}
 
-	data, err := ioutil.ReadAll(conn)
+	data, err := io.ReadAll(conn)
 	if err != nil {
 		return nil, fmt.Errorf("reading metric data: %w", err)
 	}

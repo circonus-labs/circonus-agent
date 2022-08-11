@@ -11,7 +11,6 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -362,7 +361,7 @@ func (c *Check) FetchBrokerConfig() error {
 
 func (c *Check) loadAPICAfile(file string) *x509.CertPool {
 	cp := x509.NewCertPool()
-	cert, err := ioutil.ReadFile(file)
+	cert, err := os.ReadFile(file)
 	if err != nil {
 		c.logger.Error().Err(err).Str("file", file).Msg("unable to load api ca file")
 		return nil
@@ -375,9 +374,9 @@ func (c *Check) loadAPICAfile(file string) *x509.CertPool {
 }
 
 // DeleteCheck will attempt to delete a check bundle created by the agent.
-//   1. The `etc/` directory must be writeable by the user running the agent.
-//   2. The agent, when creating a check, will save the check object to `etc/check_bundle.json`.
-//   3. The agent, when --check-delete is passed, will attempt to read this file and delete the check bundle.
+//  1. The `etc/` directory must be writeable by the user running the agent.
+//  2. The agent, when creating a check, will save the check object to `etc/check_bundle.json`.
+//  3. The agent, when --check-delete is passed, will attempt to read this file and delete the check bundle.
 func (c *Check) DeleteCheck() error {
 
 	bundleFile := defaults.CheckBundleFile

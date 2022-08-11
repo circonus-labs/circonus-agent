@@ -106,8 +106,9 @@ func New(ctx context.Context, c *check.Check, b *builtins.Builtins, p *plugins.P
 			svr := httpServer{
 				address: ta,
 				server: &http.Server{
-					Addr:    ta.String(),
-					Handler: http.HandlerFunc(s.router),
+					Addr:              ta.String(),
+					Handler:           http.HandlerFunc(s.router),
+					ReadHeaderTimeout: 2 * time.Second,
 				},
 			}
 			svr.server.SetKeepAlivesEnabled(false)
@@ -144,6 +145,7 @@ func New(ctx context.Context, c *check.Check, b *builtins.Builtins, p *plugins.P
 				Addr:    ta.String(),
 				Handler: http.HandlerFunc(s.router),
 				// Handler: httpgzip.NewHandler(http.HandlerFunc(s.router), []string{"application/json"}),
+				ReadHeaderTimeout: 2 * time.Second,
 			},
 		}
 
@@ -175,7 +177,10 @@ func New(ctx context.Context, c *check.Check, b *builtins.Builtins, p *plugins.P
 			s.svrSockets = append(s.svrSockets, &socketServer{
 				address:  ua,
 				listener: ul,
-				server:   &http.Server{Handler: http.HandlerFunc(s.socketHandler)},
+				server: &http.Server{
+					ReadHeaderTimeout: 2 * time.Second,
+					Handler:           http.HandlerFunc(s.socketHandler),
+				},
 			})
 		}
 	}

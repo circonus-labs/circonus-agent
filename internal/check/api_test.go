@@ -3,7 +3,7 @@ package check
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/circonus-labs/go-apiclient"
@@ -22,25 +22,25 @@ var (
 )
 
 func init() {
-	if data, err := ioutil.ReadFile("testdata/check1234.json"); err != nil {
+	if data, err := os.ReadFile("testdata/check1234.json"); err != nil {
 		panic(err)
 	} else if err := json.Unmarshal(data, &testCheck); err != nil {
 		panic(err)
 	}
 
-	if data, err := ioutil.ReadFile("testdata/checkbundle1234.json"); err != nil {
+	if data, err := os.ReadFile("testdata/checkbundle1234.json"); err != nil {
 		panic(err)
 	} else if err := json.Unmarshal(data, &testCheckBundle); err != nil {
 		panic(err)
 	}
 
-	if data, err := ioutil.ReadFile("testdata/broker1234.json"); err != nil {
+	if data, err := os.ReadFile("testdata/broker1234.json"); err != nil {
 		panic(err)
 	} else if err := json.Unmarshal(data, &testBroker); err != nil {
 		panic(err)
 	}
 
-	if data, err := ioutil.ReadFile("testdata/ca.crt"); err != nil {
+	if data, err := os.ReadFile("testdata/ca.crt"); err != nil {
 		panic(err)
 	} else {
 		cacert.Contents = string(data)

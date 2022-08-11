@@ -9,7 +9,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"strings"
 	"testing"
 
@@ -58,7 +58,7 @@ func TestParse(t *testing.T) {
 	t.Log("\tinvalid json (no data)")
 	{
 		data := []byte{}
-		r := ioutil.NopCloser(bytes.NewReader(data))
+		r := io.NopCloser(bytes.NewReader(data))
 		expectedErr := fmt.Errorf("parsing json for test: EOF") //nolint:goerr113
 		err := Parse("test", r)
 		if err == nil {
@@ -72,7 +72,7 @@ func TestParse(t *testing.T) {
 	t.Log("\tinvalid json (blank)")
 	{
 		data := []byte("")
-		r := ioutil.NopCloser(bytes.NewReader(data))
+		r := io.NopCloser(bytes.NewReader(data))
 		expectedErr := fmt.Errorf("parsing json for test: EOF") //nolint:goerr113
 		err := Parse("test", r)
 		if err == nil {
@@ -86,7 +86,7 @@ func TestParse(t *testing.T) {
 	t.Log("\tinvalid json (syntax)")
 	{
 		data := []byte("{")
-		r := ioutil.NopCloser(bytes.NewReader(data))
+		r := io.NopCloser(bytes.NewReader(data))
 		expectedErr := fmt.Errorf("parsing json for test: unexpected EOF") //nolint:goerr113
 		err := Parse("test", r)
 		if err == nil {
@@ -100,7 +100,7 @@ func TestParse(t *testing.T) {
 	t.Log("\tinvalid json (syntax)")
 	{
 		data := []byte(`{"test": }`)
-		r := ioutil.NopCloser(bytes.NewReader(data))
+		r := io.NopCloser(bytes.NewReader(data))
 		expectedErr := fmt.Errorf("id:test - offset 10 -- invalid character '}' looking for beginning of value") //nolint:goerr113
 		err := Parse("test", r)
 		if err == nil {
@@ -114,7 +114,7 @@ func TestParse(t *testing.T) {
 	t.Log("\tno metrics")
 	{
 		data := []byte("{}")
-		r := ioutil.NopCloser(bytes.NewReader(data))
+		r := io.NopCloser(bytes.NewReader(data))
 		err := Parse("test", r)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
@@ -135,7 +135,7 @@ func TestParse(t *testing.T) {
 	t.Log("\ttype 'i' int32")
 	{
 		data := []byte(`{"test": {"_type": "i", "_value": 1}}`)
-		r := ioutil.NopCloser(bytes.NewReader(data))
+		r := io.NopCloser(bytes.NewReader(data))
 		err := Parse("testg", r)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
@@ -153,7 +153,7 @@ func TestParse(t *testing.T) {
 	t.Log("\ttype 'I' uint32")
 	{
 		data := []byte(`{"test": {"_type": "I", "_value": 1}}`)
-		r := ioutil.NopCloser(bytes.NewReader(data))
+		r := io.NopCloser(bytes.NewReader(data))
 		err := Parse("testg", r)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
@@ -171,7 +171,7 @@ func TestParse(t *testing.T) {
 	t.Log("\ttype 'l' int64")
 	{
 		data := []byte(`{"test": {"_type": "l", "_value": 1}}`)
-		r := ioutil.NopCloser(bytes.NewReader(data))
+		r := io.NopCloser(bytes.NewReader(data))
 		err := Parse("testg", r)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
@@ -189,7 +189,7 @@ func TestParse(t *testing.T) {
 	t.Log("\ttype 'L' uint64")
 	{
 		data := []byte(`{"test": {"_type": "L", "_value": 1}}`)
-		r := ioutil.NopCloser(bytes.NewReader(data))
+		r := io.NopCloser(bytes.NewReader(data))
 		err := Parse("testg", r)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
@@ -207,7 +207,7 @@ func TestParse(t *testing.T) {
 	t.Log("\ttype 'n' float")
 	{
 		data := []byte(`{"test": {"_type": "n", "_value": 1}}`)
-		r := ioutil.NopCloser(bytes.NewReader(data))
+		r := io.NopCloser(bytes.NewReader(data))
 		err := Parse("testg", r)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
@@ -225,7 +225,7 @@ func TestParse(t *testing.T) {
 	t.Log("\ttype 'n' float (histogram numeric samples)")
 	{
 		data := []byte(`{"test": {"_type": "n", "_value": [1]}}`)
-		r := ioutil.NopCloser(bytes.NewReader(data))
+		r := io.NopCloser(bytes.NewReader(data))
 		err := Parse("testg", r)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
@@ -247,7 +247,7 @@ func TestParse(t *testing.T) {
 	t.Log("\ttype 'n' float (histogram encoded samples)")
 	{
 		data := []byte(`{"test": {"_type": "n", "_value": ["H[1.2]=1"]}}`)
-		r := ioutil.NopCloser(bytes.NewReader(data))
+		r := io.NopCloser(bytes.NewReader(data))
 		err := Parse("testg", r)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
@@ -269,7 +269,7 @@ func TestParse(t *testing.T) {
 	t.Log("\ttype 'h' float")
 	{
 		data := []byte(`{"test": {"_type": "h", "_value": 1}}`)
-		r := ioutil.NopCloser(bytes.NewReader(data))
+		r := io.NopCloser(bytes.NewReader(data))
 		err := Parse("testg", r)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
@@ -287,7 +287,7 @@ func TestParse(t *testing.T) {
 	t.Log("\ttype 'h' float (histogram numeric samples)")
 	{
 		data := []byte(`{"test": {"_type": "h", "_value": [1]}}`)
-		r := ioutil.NopCloser(bytes.NewReader(data))
+		r := io.NopCloser(bytes.NewReader(data))
 		err := Parse("testg", r)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
@@ -309,7 +309,7 @@ func TestParse(t *testing.T) {
 	t.Log("\ttype 'h' float (histogram encoded samples)")
 	{
 		data := []byte(`{"test": {"_type": "h", "_value": ["H[1.2]=1"]}}`)
-		r := ioutil.NopCloser(bytes.NewReader(data))
+		r := io.NopCloser(bytes.NewReader(data))
 		err := Parse("testg", r)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
@@ -331,7 +331,7 @@ func TestParse(t *testing.T) {
 	t.Log("\ttype 's' string")
 	{
 		data := []byte(`{"test": {"_type": "s", "_value": "foo"}}`)
-		r := ioutil.NopCloser(bytes.NewReader(data))
+		r := io.NopCloser(bytes.NewReader(data))
 		err := Parse("testg", r)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
@@ -349,7 +349,7 @@ func TestParse(t *testing.T) {
 	t.Log("\ttype 'z' invalid type")
 	{
 		data := []byte(`{"test": {"_type": "z", "_value": null}}`)
-		r := ioutil.NopCloser(bytes.NewReader(data))
+		r := io.NopCloser(bytes.NewReader(data))
 		err := Parse("testg", r)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
@@ -364,7 +364,7 @@ func TestParse(t *testing.T) {
 	t.Log("\twith tags")
 	{
 		data := []byte(`{"test": {"_tags": ["c1:v1","c2:v2"], "_type": "n", "_value": 1}}`)
-		r := ioutil.NopCloser(bytes.NewReader(data))
+		r := io.NopCloser(bytes.NewReader(data))
 		err := Parse("testg", r)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
@@ -408,16 +408,16 @@ func TestParseInt32(t *testing.T) {
 
 	metricType := "i"
 
-	tt := []struct { //nolint:govet
-		Description string
+	tt := []struct {
 		Value       interface{}
+		Description string
 		Expect      int32
 		ShouldFail  bool
 	}{
-		{"valid", 1, int32(1), false},
-		{"valid, string", fmt.Sprintf("%v", 1), int32(1), false},
-		{"bad conversion", fmt.Sprintf("%v", "1a"), 0, true},
-		{"bad data type", []int{1}, 0, true},
+		{Description: "valid", Value: 1, Expect: int32(1), ShouldFail: false},
+		{Description: "valid, string", Value: fmt.Sprintf("%v", 1), Expect: int32(1), ShouldFail: false},
+		{Description: "bad conversion", Value: fmt.Sprintf("%v", "1a"), Expect: 0, ShouldFail: true},
+		{Description: "bad data type", Value: []int{1}, Expect: 0, ShouldFail: true},
 	}
 
 	for _, test := range tt {
@@ -445,16 +445,16 @@ func TestParseUint32(t *testing.T) {
 
 	metricType := "I"
 
-	tt := []struct { //nolint:govet
-		Description string
+	tt := []struct {
 		Value       interface{}
+		Description string
 		Expect      uint32
 		ShouldFail  bool
 	}{
-		{"valid", 1, uint32(1), false},
-		{"valid, string", fmt.Sprintf("%v", 1), uint32(1), false},
-		{"bad conversion", fmt.Sprintf("%v", "1a"), 0, true},
-		{"bad data type", []int{1}, 0, true},
+		{Description: "valid", Value: 1, Expect: uint32(1), ShouldFail: false},
+		{Description: "valid, string", Value: fmt.Sprintf("%v", 1), Expect: uint32(1), ShouldFail: false},
+		{Description: "bad conversion", Value: fmt.Sprintf("%v", "1a"), Expect: 0, ShouldFail: true},
+		{Description: "bad data type", Value: []int{1}, Expect: 0, ShouldFail: true},
 	}
 
 	for _, test := range tt {
@@ -482,16 +482,16 @@ func TestParseInt64(t *testing.T) {
 
 	metricType := "l"
 
-	tt := []struct { //nolint:govet
-		Description string
+	tt := []struct {
 		Value       interface{}
+		Description string
 		Expect      int64
 		ShouldFail  bool
 	}{
-		{"valid", 1, int64(1), false},
-		{"valid, string", fmt.Sprintf("%v", 1), int64(1), false},
-		{"bad conversion", fmt.Sprintf("%v", "1a"), 0, true},
-		{"bad data type", []int{1}, 0, true},
+		{Description: "valid", Value: 1, Expect: int64(1), ShouldFail: false},
+		{Description: "valid, string", Value: fmt.Sprintf("%v", 1), Expect: int64(1), ShouldFail: false},
+		{Description: "bad conversion", Value: fmt.Sprintf("%v", "1a"), Expect: 0, ShouldFail: true},
+		{Description: "bad data type", Value: []int{1}, Expect: 0, ShouldFail: true},
 	}
 
 	for _, test := range tt {
@@ -519,16 +519,16 @@ func TestParseUint64(t *testing.T) {
 
 	metricType := "L"
 
-	tt := []struct { //nolint:govet
-		Description string
+	tt := []struct {
 		Value       interface{}
+		Description string
 		Expect      uint64
 		ShouldFail  bool
 	}{
-		{"valid", 1, uint64(1), false},
-		{"valid, string", fmt.Sprintf("%v", 1), uint64(1), false},
-		{"bad conversion", fmt.Sprintf("%v", "1a"), 0, true},
-		{"bad data type", []int{1}, 0, true},
+		{Description: "valid", Value: 1, Expect: uint64(1), ShouldFail: false},
+		{Description: "valid, string", Value: fmt.Sprintf("%v", 1), Expect: uint64(1), ShouldFail: false},
+		{Description: "bad conversion", Value: fmt.Sprintf("%v", "1a"), Expect: 0, ShouldFail: true},
+		{Description: "bad data type", Value: []int{1}, Expect: 0, ShouldFail: true},
 	}
 
 	for _, test := range tt {
@@ -556,18 +556,18 @@ func TestParseFloat(t *testing.T) {
 
 	metricType := "n"
 
-	tt := []struct { //nolint:govet
-		Description string
+	tt := []struct {
 		Value       interface{}
+		Description string
 		Expect      float64
 		ShouldFail  bool
 	}{
-		{"valid1", 1, float64(1), false},
-		{"valid2", 1.2, float64(1.2), false},
-		{"valid, string1", fmt.Sprintf("%v", 1), float64(1), false},
-		{"valid, string2", fmt.Sprintf("%v", 1.2), float64(1.2), false},
-		{"bad conversion", fmt.Sprintf("%v", "1a"), 0, true},
-		{"bad data type", true, 0, true},
+		{Description: "valid1", Value: 1, Expect: float64(1), ShouldFail: false},
+		{Description: "valid2", Value: 1.2, Expect: float64(1.2), ShouldFail: false},
+		{Description: "valid, string1", Value: fmt.Sprintf("%v", 1), Expect: float64(1), ShouldFail: false},
+		{Description: "valid, string2", Value: fmt.Sprintf("%v", 1.2), Expect: float64(1.2), ShouldFail: false},
+		{Description: "bad conversion", Value: fmt.Sprintf("%v", "1a"), Expect: 0, ShouldFail: true},
+		{Description: "bad data type", Value: true, Expect: 0, ShouldFail: true},
 	}
 
 	for _, test := range tt {

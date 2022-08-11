@@ -11,7 +11,6 @@ package procfs
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -314,7 +313,7 @@ func (c *Disk) getSectorSize(dev string) uint64 {
 
 	c.logger.Debug().Str("fn", fn).Msg("checking for sector size")
 
-	data, err := ioutil.ReadFile(fn)
+	data, err := os.ReadFile(fn)
 	if err != nil {
 		c.logger.Debug().Err(err).Str("device", dev).Msg("reading block size, using default")
 		c.sectorSizeCache[dev] = c.sectorSizeDefault

@@ -45,14 +45,14 @@ func TestCheck_CheckMeta(t *testing.T) {
 	type fields struct {
 		checkBundle *bundle.Bundle
 	}
-	tests := []struct { //nolint:govet
-		name    string
+	tests := []struct {
 		fields  fields
 		want    *Meta
+		name    string
 		wantErr bool
 	}{
-		{"nil checkbundle", fields{}, nil, true},
-		{"checkbundle (nil bundle)", fields{checkBundle: &bundle.Bundle{}}, nil, true},
+		{name: "nil checkbundle", fields: fields{}, want: nil, wantErr: true},
+		{name: "checkbundle (nil bundle)", fields: fields{checkBundle: &bundle.Bundle{}}, want: nil, wantErr: true},
 	}
 	for _, tt := range tests {
 		tt := tt

@@ -140,9 +140,7 @@ type Config struct {
 	DebugAPI         bool       `mapstructure:"debug_api" json:"debug_api" yaml:"debug_api" toml:"debug_api"`
 }
 
-//
 // NOTE: adding a Key* MUST be reflected in the Config structures above.
-//
 const (
 	// KeyAPICAFile custom ca for circonus api (e.g. inside).
 	KeyAPICAFile = "api.ca_file"

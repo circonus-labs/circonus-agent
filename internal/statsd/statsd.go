@@ -11,8 +11,8 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
+	"os"
 	"regexp"
 	"strconv"
 	"sync"
@@ -321,8 +321,9 @@ func (l logshim) Printf(msgfmt string, v ...interface{}) {
 
 // initGroupMetrics initializes the group metric circonus-gometrics instance
 // NOTE: Group metrics are sent directly to circonus, to an existing HTTPTRAP
-//       check created manually or by cosi - the group check is intended to be
-//       used by multiple systems.
+//
+//	check created manually or by cosi - the group check is intended to be
+//	used by multiple systems.
 func (s *Server) initGroupMetrics() error {
 	if s.groupCID == "" {
 		s.logger.Info().Msg("group check disabled")
@@ -343,7 +344,7 @@ func (s *Server) initGroupMetrics() error {
 	cmc.CheckManager.Check.ID = s.groupCID
 
 	if s.apiCAFile != "" {
-		cert, err := ioutil.ReadFile(s.apiCAFile)
+		cert, err := os.ReadFile(s.apiCAFile)
 		if err != nil {
 			return fmt.Errorf("read file: %w", err)
 		}

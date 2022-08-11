@@ -9,7 +9,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"testing"
 
 	"github.com/rs/zerolog"
@@ -108,7 +108,7 @@ func TestParse(t *testing.T) {
 	t.Log("\tno data")
 	{
 		data := []byte{}
-		r := ioutil.NopCloser(bytes.NewReader(data))
+		r := io.NopCloser(bytes.NewReader(data))
 		err := Parse(r)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
@@ -118,7 +118,7 @@ func TestParse(t *testing.T) {
 	t.Log("\tblank/empty data")
 	{
 		data := []byte("")
-		r := ioutil.NopCloser(bytes.NewReader(data))
+		r := io.NopCloser(bytes.NewReader(data))
 		err := Parse(r)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
@@ -128,7 +128,7 @@ func TestParse(t *testing.T) {
 	t.Log("\tvalid data")
 	{
 		data := []byte(promData)
-		r := ioutil.NopCloser(bytes.NewReader(data))
+		r := io.NopCloser(bytes.NewReader(data))
 		err := Parse(r)
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)

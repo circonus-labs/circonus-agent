@@ -16,8 +16,10 @@ import (
 // buildFrame creates a frame to send to broker.
 // recipe:
 // bytes 1-6 header
-//      2 bytes channel id and command flag
-//      4 bytes length of data
+//
+//	2 bytes channel id and command flag
+//	4 bytes length of data
+//
 // bytes 7-n are data, where 0 < n <= maxPayloadLen.
 func buildFrame(channelID uint16, isCommand bool, payload []byte) []byte {
 	frame := make([]byte, len(payload)+6)

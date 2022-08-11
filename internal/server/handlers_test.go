@@ -10,7 +10,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -289,7 +289,7 @@ func TestPromReceiver(t *testing.T) {
 
 	t.Logf("PUT /prom -> %d", http.StatusNoContent)
 	{
-		r := ioutil.NopCloser(bytes.NewReader([]byte(promData)))
+		r := io.NopCloser(bytes.NewReader([]byte(promData)))
 		req := httptest.NewRequest("PUT", "/prom", r)
 		w := httptest.NewRecorder()
 
@@ -456,7 +456,7 @@ func TestPromOutput(t *testing.T) {
 		}
 
 		expect := "gtest`mtest 1"
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		if !strings.Contains(string(body), expect) {
 			resp.Body.Close()
 			t.Fatalf("expected (%s) got (%s)", expect, string(body))
