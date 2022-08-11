@@ -167,7 +167,7 @@ func (c *Prom) Collect(ctx context.Context) error {
 
 	for _, u := range c.urls {
 		c.logger.Debug().Str("id", u.ID).Str("url", u.URL).Msg("prom fetch request")
-		err := c.fetchPromMetrics(u, &metrics)
+		err := c.fetchPromMetrics(ctx, u, &metrics)
 		if err != nil {
 			c.logger.Error().Err(err).Interface("url", u).Msg("fetching prom metrics")
 		}
@@ -177,7 +177,7 @@ func (c *Prom) Collect(ctx context.Context) error {
 	return nil
 }
 
-func (c *Prom) fetchPromMetrics(u URLDef, metrics *cgm.Metrics) error {
+func (c *Prom) fetchPromMetrics(pctx context.Context, u URLDef, metrics *cgm.Metrics) error {
 	req, err := http.NewRequest("GET", u.URL, nil)
 	if err != nil {
 		return fmt.Errorf("prepare reqeust: %w", err)
@@ -187,9 +187,9 @@ func (c *Prom) fetchPromMetrics(u URLDef, metrics *cgm.Metrics) error {
 	var cancel context.CancelFunc
 
 	if u.uttl > time.Duration(0) {
-		ctx, cancel = context.WithTimeout(context.Background(), u.uttl)
+		ctx, cancel = context.WithTimeout(pctx, u.uttl)
 	} else {
-		ctx, cancel = context.WithCancel(context.Background())
+		ctx, cancel = context.WithCancel(pctx)
 	}
 
 	req = req.WithContext(ctx)
