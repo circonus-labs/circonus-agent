@@ -9,9 +9,9 @@ require (
 	github.com/gojuno/minimock/v3 v3.0.10
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/hashicorp/go-retryablehttp v0.7.0
+	github.com/hashicorp/go-retryablehttp v0.7.1
 	github.com/maier/go-appstats v0.2.0
-	github.com/pelletier/go-toml v1.9.4
+	github.com/pelletier/go-toml v1.9.5
 	github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/common v0.32.1
 	github.com/rs/zerolog v1.26.1
