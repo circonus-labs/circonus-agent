@@ -29,7 +29,7 @@ Vagrant.configure('2') do |config|
         el8.vm.synced_folder '.', agent_src_path, owner: 'vagrant', group: 'vagrant'
         el8.vm.network 'private_network', ip: '192.168.100.200'
         el8.vm.provision 'shell', path: 'vprov/el8.sh', args: [go_url_base, go_ver, nfpm_ver, nfpm_url_base]
-        el8.vbguest.auto_update = false
+        el8.vbguest.auto_update = true
     end
     #
     # el7 builder
@@ -242,5 +242,10 @@ Vagrant.configure('2') do |config|
     #         end
     #     end
     # end
+
+    config.trigger.after :up do |trigger|
+        trigger.info = "checking Go version"
+        trigger.run_remote = {path: 'vprov/check_go.sh', args: [go_url_base, go_ver]}
+    end
 
 end

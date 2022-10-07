@@ -166,6 +166,7 @@ echo
 echo "Building circonus-agent package for ${os_name} ${os_arch}"
 echo
 
+[[ -d $dir_build ]] && { echo "-cleaning previous build directory"; $SUDO $RM -rf $dir_build; }
 [[ -d $dir_build ]] || { echo "-creating build directory"; $MKDIR -p $dir_build; }
 [[ -d $dir_install ]] && { echo "-cleaning previous install directory"; $SUDO $RM -rf $dir_install; }
 [[ -d $dir_install ]] || { echo "-creating install directory"; $MKDIR -p $dir_install; }
@@ -183,7 +184,8 @@ fetch_agent_repo() {
     else
         pushd $dir_build >/dev/null
         echo "-cloning agent repo"
-        local url_repo=${url_agent_repo/#https/git}
+        #local url_repo=${url_agent_repo/#https/git}
+        local url_repo=$url_agent_repo
         $GIT clone $url_repo
         popd >/dev/null
     fi
@@ -246,7 +248,8 @@ fetch_plugin_repo() {
     else
         pushd $dir_build >/dev/null
         echo "-cloning plugin repo"
-        local url_repo=${url_plugin_repo/#https/git}
+        #local url_repo=${url_plugin_repo/#https/git}
+        local url_repo=$url_plugin_repo
         $GIT clone $url_repo
         popd >/dev/null
     fi
@@ -342,7 +345,8 @@ fetch_logwatch_repo() {
     else
         pushd $dir_build >/dev/null
         echo "-cloning logwatch repo"
-        local url_repo=${url_logwatch_repo/#https/git}
+        #local url_repo=${url_logwatch_repo/#https/git}
+        local url_repo=$url_logwatch_repo
         $GIT clone $url_repo
         popd >/dev/null
     fi
