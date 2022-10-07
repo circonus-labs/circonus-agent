@@ -222,13 +222,13 @@ __get_os_sig() {
             if [[ -z "$el" ]]; then
                 fail "Unsupported ${release_rpm}, unable to derive 'el' version"
             fi
-            sig="${el}"
+            sig="${el}."
             log "\tDerived ${sig} from '${release_rpm}'"
         elif [[ -f $lsb_release ]]; then
             log "\tLSB found, using '${lsb_release}' for OS detection."
             source $lsb_release
             if [[ "ubuntu" == "${DISTRIB_ID,,}" ]]; then
-                sig="${DISTRIB_ID,,}.${DISTRIB_RELEASE:-}"
+                sig="${DISTRIB_ID,,}.${DISTRIB_RELEASE:-}_"
                 log "\tDerived ${sig} from ${lsb_release}"
             fi
         fi
@@ -259,7 +259,7 @@ ca_install() {
 
     __ca_init "$@"
 
-    pkg_file="circonus-agent-${ca_version}-1.${ca_os_sig}_${pkg_arch}"
+    pkg_file="circonus-agent-${ca_version}-1.${ca_os_sig}${pkg_arch}"
     pkg_url="https://github.com/circonus-labs/circonus-agent/releases/download/v${ca_version}/"
 
     log "Installing Circonus Agent v${ca_version} for ${ca_os_sig} ${pkg_arch}"
