@@ -5,7 +5,7 @@ require (
 	github.com/alecthomas/units v0.0.0-20210927113745-59d0afb8317a
 	github.com/bi-zone/wmi v1.1.4
 	github.com/circonus-labs/circonus-gometrics/v3 v3.4.6
-	github.com/circonus-labs/go-apiclient v0.7.18
+	github.com/circonus-labs/go-apiclient v0.7.19
 	github.com/gojuno/minimock/v3 v3.0.10
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
