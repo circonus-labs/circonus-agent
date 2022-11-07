@@ -8,7 +8,6 @@ require (
 	github.com/circonus-labs/go-apiclient v0.7.18
 	github.com/gojuno/minimock/v3 v3.0.10
 	github.com/google/uuid v1.3.0
-	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.1
 	github.com/maier/go-appstats v0.2.0
 	github.com/pelletier/go-toml v1.9.5
@@ -17,9 +16,9 @@ require (
 	github.com/rs/zerolog v1.28.0
 	github.com/shirou/gopsutil/v3 v3.22.7
 	github.com/spf13/cobra v1.5.0
-	github.com/spf13/viper v1.12.0
-	golang.org/x/sync v0.0.0-20220513210516-0976fa681c29
-	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a
+	github.com/spf13/viper v1.14.0
+	golang.org/x/sync v0.1.0
+	golang.org/x/sys v0.0.0-20220908164124-27713097b956
 	gopkg.in/yaml.v2 v2.4.0
 )
 
