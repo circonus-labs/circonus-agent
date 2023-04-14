@@ -9,6 +9,7 @@ import (
 	"expvar"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/config"
@@ -42,6 +43,8 @@ func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 			expvar.Handler().ServeHTTP(w, r)
 		case promPathRx.MatchString(r.URL.Path): // output prom format...
 			s.promOutput(w)
+		case strings.HasPrefix(r.URL.Path, "/options"):
+			s.handleOptions(w, r)
 		default:
 			_ = appstats.IncrementInt("server.requests_bad")
 			s.logger.Warn().Str("method", r.Method).Str("url", r.URL.String()).Msg("not found")
