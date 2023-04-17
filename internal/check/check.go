@@ -284,10 +284,7 @@ func (c *Check) RefreshReverseConfig() error {
 	if err := c.FetchBrokerConfig(); err != nil {
 		return err
 	}
-	if err := c.setReverseConfigs(); err != nil {
-		return err
-	}
-	return nil
+	return c.setReverseConfigs()
 }
 
 // GetReverseConfigs returns the reverse connection configuration(s) to use for the check.
