@@ -100,7 +100,7 @@ type StatsDGroup struct {
 type StatsD struct {
 	Group              StatsDGroup `json:"group" yaml:"group" toml:"group"`
 	Host               StatsDHost  `json:"host" yaml:"host" toml:"host"`
-	Addr               string      `join:"addr" yaml:"addr" toml:"addr"`
+	Addr               string      `json:"addr" yaml:"addr" toml:"addr"`
 	Port               string      `json:"port" yaml:"port" toml:"port"`
 	NPP                uint        `json:"npp" yaml:"npp" toml:"npp"`
 	PQS                uint        `json:"pqs" yaml:"pqs" toml:"pqs"`
