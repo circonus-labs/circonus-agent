@@ -180,6 +180,10 @@ func (c *NetInterface) Collect(ctx context.Context) error {
 	tagUnitsPackets := cgm.Tag{Category: "units", Value: "packets"}
 
 	for _, ifMetrics := range dst {
+		if done(ctx) {
+			return fmt.Errorf("context: %w", ctx.Err())
+		}
+
 		ifName := c.cleanName(ifMetrics.Name)
 		if c.exclude.MatchString(ifName) || !c.include.MatchString(ifName) {
 			continue

@@ -257,8 +257,12 @@ func (c *Disk) Collect(ctx context.Context) error {
 		}
 
 		for _, diskMetrics := range dst {
+			if done(ctx) {
+				return fmt.Errorf("context: %w", ctx.Err())
+			}
+
 			dm := diskMetrics
-			_ = c.emitLogicalDiskMetrics(&metrics, &dm)
+			_ = c.emitLogicalDiskMetrics(ctx, &metrics, &dm)
 		}
 	}
 
@@ -276,8 +280,12 @@ func (c *Disk) Collect(ctx context.Context) error {
 		}
 
 		for _, diskMetrics := range dst {
+			if done(ctx) {
+				return fmt.Errorf("context: %w", ctx.Err())
+			}
+
 			dm := diskMetrics
-			_ = c.emitPhysicalDiskMetrics(&metrics, &dm)
+			_ = c.emitPhysicalDiskMetrics(ctx, &metrics, &dm)
 		}
 	}
 
@@ -285,7 +293,7 @@ func (c *Disk) Collect(ctx context.Context) error {
 	return nil
 }
 
-func (c *Disk) emitLogicalDiskMetrics(metrics *cgm.Metrics, diskMetrics *Win32_PerfFormattedData_PerfDisk_LogicalDisk) error {
+func (c *Disk) emitLogicalDiskMetrics(ctx context.Context, metrics *cgm.Metrics, diskMetrics *Win32_PerfFormattedData_PerfDisk_LogicalDisk) error {
 	dm := genericDiskMetrics{
 		Name:                    diskMetrics.Name,
 		AvgDiskBytesPerRead:     diskMetrics.AvgDiskBytesPerRead,
@@ -312,10 +320,10 @@ func (c *Disk) emitLogicalDiskMetrics(metrics *cgm.Metrics, diskMetrics *Win32_P
 		PercentIdleTime:         diskMetrics.PercentIdleTime,
 		SplitIOPerSec:           diskMetrics.SplitIOPerSec,
 	}
-	return c.emitDiskMetrics(metrics, "logical", &dm)
+	return c.emitDiskMetrics(ctx, metrics, "logical", &dm)
 }
 
-func (c *Disk) emitPhysicalDiskMetrics(metrics *cgm.Metrics, diskMetrics *Win32_PerfFormattedData_PerfDisk_PhysicalDisk) error {
+func (c *Disk) emitPhysicalDiskMetrics(ctx context.Context, metrics *cgm.Metrics, diskMetrics *Win32_PerfFormattedData_PerfDisk_PhysicalDisk) error {
 	c.logger.Debug().Str("disk", diskMetrics.Name).Msg("physical disk metrics")
 	dm := genericDiskMetrics{
 		Name:                    diskMetrics.Name,
@@ -341,10 +349,10 @@ func (c *Disk) emitPhysicalDiskMetrics(metrics *cgm.Metrics, diskMetrics *Win32_
 		PercentIdleTime:         diskMetrics.PercentIdleTime,
 		SplitIOPerSec:           diskMetrics.SplitIOPerSec,
 	}
-	return c.emitDiskMetrics(metrics, "physical", &dm)
+	return c.emitDiskMetrics(ctx, metrics, "physical", &dm)
 }
 
-func (c *Disk) emitDiskMetrics(metrics *cgm.Metrics, diskType string, diskMetrics *genericDiskMetrics) error {
+func (c *Disk) emitDiskMetrics(ctx context.Context, metrics *cgm.Metrics, diskType string, diskMetrics *genericDiskMetrics) error {
 	tagUnitsBytes := cgm.Tag{Category: "units", Value: "bytes"}
 	tagUnitsMegabytes := cgm.Tag{Category: "units", Value: "megabytes"}
 	tagUnitsOperations := cgm.Tag{Category: "units", Value: "operations"}
@@ -386,6 +394,10 @@ func (c *Disk) emitDiskMetrics(metrics *cgm.Metrics, diskType string, diskMetric
 	var tagsMegabytes cgm.Tags
 	tagsMegabytes = append(tagsMegabytes, tagList...)
 	tagsMegabytes = append(tagsMegabytes, tagUnitsMegabytes)
+
+	if done(ctx) {
+		return fmt.Errorf("context: %w", ctx.Err())
+	}
 
 	_ = c.addMetric(metrics, "", "AvgDiskBytesPerRead"+metricSuffix, metricTypeUint64, diskMetrics.AvgDiskBytesPerRead, tagsBytes)          // uint64
 	_ = c.addMetric(metrics, "", "AvgDiskBytesPerTransfer"+metricSuffix, metricTypeUint64, diskMetrics.AvgDiskBytesPerTransfer, tagsBytes)  // uint64

@@ -183,6 +183,10 @@ func (c *NetTCP) Collect(ctx context.Context) error {
 		protoTag := cgm.Tag{Category: "network-proto", Value: "tcp4"}
 
 		for _, item := range dst {
+			if done(ctx) {
+				return fmt.Errorf("context: %w", ctx.Err())
+			}
+
 			_ = c.addMetric(&metrics, "", "ConnectionFailures", metricType, item.ConnectionFailures, cgm.Tags{protoTag, tagUnitsConnections})
 			_ = c.addMetric(&metrics, "", "ConnectionsActive", metricType, item.ConnectionsActive, cgm.Tags{protoTag, tagUnitsConnections})
 			_ = c.addMetric(&metrics, "", "ConnectionsEstablished", metricType, item.ConnectionsEstablished, cgm.Tags{protoTag, tagUnitsConnections})
@@ -211,6 +215,10 @@ func (c *NetTCP) Collect(ctx context.Context) error {
 		protoTag := cgm.Tag{Category: "network-proto", Value: "tcp6"}
 
 		for _, item := range dst {
+			if done(ctx) {
+				return fmt.Errorf("context: %w", ctx.Err())
+			}
+
 			_ = c.addMetric(&metrics, "", "ConnectionFailures", metricType, item.ConnectionFailures, cgm.Tags{protoTag, tagUnitsConnections})
 			_ = c.addMetric(&metrics, "", "ConnectionsActive", metricType, item.ConnectionsActive, cgm.Tags{protoTag, tagUnitsConnections})
 			_ = c.addMetric(&metrics, "", "ConnectionsEstablished", metricType, item.ConnectionsEstablished, cgm.Tags{protoTag, tagUnitsConnections})

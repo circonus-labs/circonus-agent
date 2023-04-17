@@ -199,6 +199,10 @@ func (c *NetIP) Collect(ctx context.Context) error {
 		protoTag := cgm.Tag{Category: "network-proto", Value: "ip4"}
 
 		for _, item := range dst {
+			if done(ctx) {
+				return fmt.Errorf("context: %w", ctx.Err())
+			}
+
 			_ = c.addMetric(&metrics, "", "DatagramsForwardedPersec", metricType, item.DatagramsForwardedPersec, cgm.Tags{protoTag, tagUnitsDatagrams})
 			_ = c.addMetric(&metrics, "", "DatagramsOutboundDiscarded", metricType, item.DatagramsOutboundDiscarded, cgm.Tags{protoTag, tagUnitsDatagrams})
 			_ = c.addMetric(&metrics, "", "DatagramsOutboundNoRoute", metricType, item.DatagramsOutboundNoRoute, cgm.Tags{protoTag, tagUnitsDatagrams})
@@ -235,6 +239,10 @@ func (c *NetIP) Collect(ctx context.Context) error {
 		protoTag := cgm.Tag{Category: "network-proto", Value: "ip6"}
 
 		for _, item := range dst {
+			if done(ctx) {
+				return fmt.Errorf("context: %w", ctx.Err())
+			}
+
 			_ = c.addMetric(&metrics, "", "DatagramsForwardedPersec", metricType, item.DatagramsForwardedPersec, cgm.Tags{protoTag, tagUnitsDatagrams})
 			_ = c.addMetric(&metrics, "", "DatagramsOutboundDiscarded", metricType, item.DatagramsOutboundDiscarded, cgm.Tags{protoTag, tagUnitsDatagrams})
 			_ = c.addMetric(&metrics, "", "DatagramsOutboundNoRoute", metricType, item.DatagramsOutboundNoRoute, cgm.Tags{protoTag, tagUnitsDatagrams})

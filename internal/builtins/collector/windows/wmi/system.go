@@ -154,6 +154,10 @@ func (c *System) Collect(ctx context.Context) error {
 	metricType := "L"
 	tagUnitsPercent := cgm.Tag{Category: "units", Value: "percent"}
 	for _, item := range dst {
+		if done(ctx) {
+			return fmt.Errorf("context: %w", ctx.Err())
+		}
+
 		_ = c.addMetric(&metrics, "", "AlignmentFixupsPerSec", metricType, item.AlignmentFixupsPerSec, cgm.Tags{})
 		_ = c.addMetric(&metrics, "", "ContextSwitchesPerSec", metricType, item.ContextSwitchesPerSec, cgm.Tags{})
 		_ = c.addMetric(&metrics, "", "ExceptionDispatchesPerSec", metricType, item.ExceptionDispatchesPerSec, cgm.Tags{})
