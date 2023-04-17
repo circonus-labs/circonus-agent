@@ -32,7 +32,7 @@ type foo struct {
 func newFoo() collector.Collector {
 	return &foo{id: "foo"}
 }
-func (f *foo) Collect(ctx context.Context) error {
+func (f *foo) Collect(_ context.Context) error {
 	f.Lock()
 	defer f.Unlock()
 	f.lastStart = time.Now()

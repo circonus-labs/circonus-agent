@@ -17,7 +17,6 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/shirou/gopsutil/v3/load"
 )
 
@@ -38,7 +37,7 @@ func NewLoadCollector(cfgBaseName string, parentLogger zerolog.Logger) (collecto
 	c := Load{}
 	c.id = NameLoad
 	c.pkgID = PackageName + "." + c.id
-	c.logger = log.With().Str("pkg", PackageName).Str("id", c.id).Logger()
+	c.logger = parentLogger.With().Str("pkg", PackageName).Str("id", c.id).Logger()
 	c.baseTags = tags.FromList(tags.GetBaseTags())
 
 	var opts loadOptions
