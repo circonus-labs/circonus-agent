@@ -131,6 +131,10 @@ func (c *Load) Collect(ctx context.Context) error {
 		}
 
 		for _, line := range lines {
+			if done(ctx) {
+				return fmt.Errorf("context: %w", ctx.Err())
+			}
+
 			fields := strings.Fields(line)
 
 			if len(fields) < 3 {
@@ -141,21 +145,21 @@ func (c *Load) Collect(ctx context.Context) error {
 			if v, err := strconv.ParseFloat(fields[0], 64); err != nil {
 				c.logger.Warn().Err(err).Msg("parsing 1min field")
 				continue
-			} else {
+			} else { //nolint:revive
 				_ = c.addMetric(&metrics, "", "load_1min", metricType, v, tagList)
 			}
 
 			if v, err := strconv.ParseFloat(fields[1], 64); err != nil {
 				c.logger.Warn().Err(err).Msg("parsing 5min field")
 				continue
-			} else {
+			} else { //nolint:revive
 				_ = c.addMetric(&metrics, "", "load_5min", metricType, v, tagList)
 			}
 
 			if v, err := strconv.ParseFloat(fields[2], 64); err != nil {
 				c.logger.Warn().Err(err).Msg("parsing 15min field")
 				continue
-			} else {
+			} else { //nolint:revive
 				_ = c.addMetric(&metrics, "", "load_15min", metricType, v, tagList)
 			}
 		}
@@ -173,6 +177,9 @@ func (c *Load) Collect(ctx context.Context) error {
 		}
 
 		for _, line := range lines {
+			if done(ctx) {
+				return fmt.Errorf("context: %w", ctx.Err())
+			}
 			var lineErr error
 			fields := strings.Fields(line)
 

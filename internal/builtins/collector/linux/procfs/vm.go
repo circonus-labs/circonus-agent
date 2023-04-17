@@ -109,12 +109,12 @@ func (c *VM) Collect(ctx context.Context) error {
 	c.lastStart = time.Now()
 	c.Unlock()
 
-	if err := c.parseMemstats(&metrics); err != nil {
+	if err := c.parseMemstats(ctx, &metrics); err != nil {
 		c.setStatus(metrics, err)
 		return fmt.Errorf("%s parseMemstats: %w", c.pkgID, err)
 	}
 
-	if err := c.parseVMstats(&metrics); err != nil {
+	if err := c.parseVMstats(ctx, &metrics); err != nil {
 		c.setStatus(metrics, err)
 		return fmt.Errorf("%s parseVMstats: %w", c.pkgID, err)
 	}
@@ -123,7 +123,7 @@ func (c *VM) Collect(ctx context.Context) error {
 	return nil
 }
 
-func (c *VM) parseMemstats(metrics *cgm.Metrics) error {
+func (c *VM) parseMemstats(ctx context.Context, metrics *cgm.Metrics) error {
 	lines, err := c.readFile(c.file)
 	if err != nil {
 		return fmt.Errorf("%s read file: %w", c.pkgID, err)
@@ -135,6 +135,10 @@ func (c *VM) parseMemstats(metrics *cgm.Metrics) error {
 	tagUnitsHugePages := tags.Tag{Category: "units", Value: "hugepages"}
 
 	for _, l := range lines {
+		if done(ctx) {
+			return fmt.Errorf("context: %w", ctx.Err())
+		}
+
 		line := strings.TrimSpace(l)
 		fields := strings.Fields(line)
 
@@ -270,7 +274,7 @@ func (c *VM) parseMemstats(metrics *cgm.Metrics) error {
 	return nil
 }
 
-func (c *VM) parseVMstats(metrics *cgm.Metrics) error {
+func (c *VM) parseVMstats(ctx context.Context, metrics *cgm.Metrics) error {
 	file := strings.ReplaceAll(c.file, "meminfo", "vmstat")
 	lines, err := c.readFile(file)
 	if err != nil {
@@ -280,6 +284,10 @@ func (c *VM) parseVMstats(metrics *cgm.Metrics) error {
 	var pgFaults, pgMajorFaults, pgScan, pgSwap uint64
 
 	for _, l := range lines {
+		if done(ctx) {
+			return fmt.Errorf("context: %w", ctx.Err())
+		}
+
 		line := strings.TrimSpace(l)
 		fields := strings.Fields(line)
 

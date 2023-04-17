@@ -135,7 +135,7 @@ func (c *NetSocket) Collect(ctx context.Context) error {
 	c.lastStart = time.Now()
 	c.Unlock()
 
-	if err := c.sockstatCollect(&metrics); err != nil {
+	if err := c.sockstatCollect(ctx, &metrics); err != nil {
 		c.logger.Warn().Err(err).Msg("sockstat")
 	}
 
@@ -149,7 +149,7 @@ func (c *NetSocket) Collect(ctx context.Context) error {
 // }
 
 // sockstatCollect gets metrics from /proc/net/sockstat and /proc/net/sockstat6.
-func (c *NetSocket) sockstatCollect(metrics *cgm.Metrics) error {
+func (c *NetSocket) sockstatCollect(ctx context.Context, metrics *cgm.Metrics) error {
 
 	tagUnitsConnections := tags.Tag{Category: "units", Value: "connections"}
 	metricType := "l" // int64
@@ -176,6 +176,9 @@ func (c *NetSocket) sockstatCollect(metrics *cgm.Metrics) error {
 		// stats := make(map[string][]rawSocketStat)
 
 		for _, l := range lines {
+			if done(ctx) {
+				return fmt.Errorf("context: %w", ctx.Err())
+			}
 			line := strings.TrimSpace(l)
 			fields := strings.Fields(line)
 

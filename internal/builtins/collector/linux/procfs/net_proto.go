@@ -135,7 +135,7 @@ func (c *NetProto) Collect(ctx context.Context) error {
 	c.lastStart = time.Now()
 	c.Unlock()
 
-	if err := c.snmpCollect(&metrics); err != nil {
+	if err := c.snmpCollect(ctx, &metrics); err != nil {
 		c.setStatus(metrics, err)
 		return fmt.Errorf("%s snmpCollect: %w", c.pkgID, err)
 	}
@@ -150,7 +150,7 @@ type rawSNMPStat struct {
 }
 
 // snmpCollect gets metrics from /proc/net/snmp and /proc/net/snmp6.
-func (c *NetProto) snmpCollect(metrics *cgm.Metrics) error {
+func (c *NetProto) snmpCollect(ctx context.Context, metrics *cgm.Metrics) error {
 
 	stats := make(map[string][]rawSNMPStat)
 
@@ -175,6 +175,10 @@ func (c *NetProto) snmpCollect(metrics *cgm.Metrics) error {
 			return fmt.Errorf("%s read file: %w", c.pkgID, err)
 		}
 		for _, line := range lines {
+			if done(ctx) {
+				return fmt.Errorf("context: %w", ctx.Err())
+			}
+
 			fields := strings.Fields(line)
 
 			proto := strings.ToLower(strings.ReplaceAll(fields[0], ":", ""))
@@ -207,6 +211,10 @@ func (c *NetProto) snmpCollect(metrics *cgm.Metrics) error {
 			return fmt.Errorf("%s read file: %w", c.pkgID, err)
 		}
 		for _, line := range lines {
+			if done(ctx) {
+				return fmt.Errorf("context: %w", ctx.Err())
+			}
+
 			fields := strings.Fields(line)
 			if len(fields) != 2 {
 				continue
@@ -231,7 +239,15 @@ func (c *NetProto) snmpCollect(metrics *cgm.Metrics) error {
 	}
 
 	for proto, protoStats := range stats {
+		if done(ctx) {
+			return fmt.Errorf("context: %w", ctx.Err())
+		}
+
 		for _, stat := range protoStats {
+			if done(ctx) {
+				return fmt.Errorf("context: %w", ctx.Err())
+			}
+
 			if stat.name == "" || stat.val == "" {
 				continue
 			}

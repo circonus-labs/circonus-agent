@@ -159,6 +159,10 @@ func (c *CPU) Collect(ctx context.Context) error {
 	_ = c.addMetric(&metrics, "", "num_cpu", "I", runtime.NumCPU(), tags.Tags{})
 
 	for _, line := range lines {
+		if done(ctx) {
+			return fmt.Errorf("context: %w", ctx.Err())
+		}
+
 		fields := strings.Fields(line)
 
 		switch fields[0] {
