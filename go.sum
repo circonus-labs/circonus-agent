@@ -94,8 +94,8 @@ github.com/circonus-labs/circonus-gometrics/v3 v3.4.6 h1:eSrULMsK5lm/tSCnZan1egA
 github.com/circonus-labs/circonus-gometrics/v3 v3.4.6/go.mod h1:57gznrTyBxQCsGYC/+3BN9POyrkEm4F3KsBTVQ5EQJk=
 github.com/circonus-labs/circonusllhist v0.1.3/go.mod h1:kMXHVDlOchFAehlya5ePtbp5jckzBHf4XRpQvBOLI+I=
 github.com/circonus-labs/go-apiclient v0.7.15/go.mod h1:RFgkvdYEkimzgu3V2vVYlS1bitjOz1SF6uw109ieNeY=
-github.com/circonus-labs/go-apiclient v0.7.18 h1:OrRHUwoFroEUN+3KylQkdQOaTN1s3SCFh9E6D7Eb9PQ=
-github.com/circonus-labs/go-apiclient v0.7.18/go.mod h1:NCu3kJ282ZGzr7vxzFH/S28y1nW9DZ37f8L7veDENFc=
+github.com/circonus-labs/go-apiclient v0.7.23 h1:Bk+l9qLUHPGYND8z8Zxw3+d913ZIybD4CH1y5xSdtCk=
+github.com/circonus-labs/go-apiclient v0.7.23/go.mod h1:arbbVvv/xFMvD1eSJqkS+Je1sN/JCpHtiL2GV6oA1Mg=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
 github.com/cncf/udpa/go v0.0.0-20200629203442-efcf912fb354/go.mod h1:WmhPx2Nbnhtbo57+VJT5O0JRkEi1Wbu0z5j0R8u5Hbk=
@@ -266,8 +266,8 @@ github.com/hashicorp/go-multierror v1.1.1/go.mod h1:iw975J/qwKPdAO1clOe2L8331t/9
 github.com/hashicorp/go-retryablehttp v0.5.3/go.mod h1:9B5zBasrRhHXnJnui7y6sL7es7NDiJgTc6Er0maI1Xs=
 github.com/hashicorp/go-retryablehttp v0.6.8/go.mod h1:vAew36LZh98gCBJNLH42IQ1ER/9wtLZZ8meHqQvEYWY=
 github.com/hashicorp/go-retryablehttp v0.7.0/go.mod h1:vAew36LZh98gCBJNLH42IQ1ER/9wtLZZ8meHqQvEYWY=
-github.com/hashicorp/go-retryablehttp v0.7.1 h1:sUiuQAnLlbvmExtFQs72iFW/HXeUn8Z1aJLQ4LJJbTQ=
-github.com/hashicorp/go-retryablehttp v0.7.1/go.mod h1:vAew36LZh98gCBJNLH42IQ1ER/9wtLZZ8meHqQvEYWY=
+github.com/hashicorp/go-retryablehttp v0.7.2 h1:AcYqCvkpalPnPF2pn0KamgwamS42TqUDDYFRKq/RAd0=
+github.com/hashicorp/go-retryablehttp v0.7.2/go.mod h1:Jy/gPYAdjqffZ/yFGCFV2doI5wjtH1ewM9u8iYVjtX8=
 github.com/hashicorp/go-rootcerts v1.0.2/go.mod h1:pqUvnprVnM5bf7AOirdbb01K4ccR319Vf4pU3K5EGc8=
 github.com/hashicorp/go-sockaddr v1.0.0/go.mod h1:7Xibr9yA9JjQq1JpNB2Vw7kxv8xerXegt+ozgdvDeDU=
 github.com/hashicorp/go-syslog v1.0.0/go.mod h1:qPfqrKkXGihmCqbJM2mZgkZGvKG1dFdvsLplgctolz4=
