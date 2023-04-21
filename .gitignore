@@ -70,3 +70,5 @@ internal/reverse-orig
 # build detritus
 .envrc
 console.log
+
+test/
