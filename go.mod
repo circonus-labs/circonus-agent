@@ -17,9 +17,9 @@ require (
 	github.com/prometheus/common v0.37.0
 	github.com/rs/zerolog v1.28.0
 	github.com/shirou/gopsutil/v3 v3.23.2
-	github.com/spf13/cobra v1.5.0
-	github.com/spf13/viper v1.12.0
-	golang.org/x/sync v0.0.0-20220513210516-0976fa681c29
+	github.com/spf13/cobra v1.6.1
+	github.com/spf13/viper v1.15.0
+	golang.org/x/sync v0.1.0
 	golang.org/x/sys v0.5.0
 	gopkg.in/yaml.v2 v2.4.0
 )
