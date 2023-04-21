@@ -1,3 +1,22 @@
+# v2.6.0
+
+* fix(receiver): add SerializeB64 handling for histograms to the `/write` endpoint
+* feat: `/options` endpoint to dynamically control log_level (e.g. turn debug on/off while running)
+* feat(statsd): explicit metric parsing debug option
+* fix: don't swallow sigpipe
+* fix(lint): unsed args (generic, linux, & windows)
+* chore: golangci-lint v1.52
+* fix(lint): exports annotated with json tag
+* fix(lint): redundant if-return
+* fix(lint): deprecated linters
+* fix: installer to correctly use `.` and `_` for rpm and deb urls
+* build(deps): bump github.com/rs/zerolog from 1.26.1 to 1.28.0
+* build(deps): bump github.com/circonus-labs/go-apiclient from 0.7.17 to 0.7.18
+* upd: clean build dir on start, always clone repo
+* add: trigger on after up to check Go version
+* add: generic Go version checker script
+* build(deps): bump golangci/golangci-lint-action from 3.1.0 to 3.2.0
+
 # v2.5.0
 
 * fix: prevent `/usr/lib/.build-id` links from being created
