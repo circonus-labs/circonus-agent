@@ -17,7 +17,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (b *Builtins) configure(ctx context.Context) error {
+func (b *Builtins) configure(_ context.Context) error {
 	l := log.With().Str("pkg", "builtins").Logger()
 
 	l.Debug().Msg("calling generic.New")

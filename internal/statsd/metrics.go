@@ -149,15 +149,17 @@ func (s *Server) parseMetric(metric string) error {
 	tagList = append(tagList, metricTagList...)
 	metricTags := tags.FromList(tagList)
 
-	s.logger.Debug().
-		Str("destination", metricDest).
-		Str("metric", metric).
-		Str("name", metricName).
-		Str("type", metricType).
-		Str("value", metricValue).
-		Float64("rate", sampleRate).
-		Strs("mtags", metricTagList).
-		Msg("parsed")
+	if s.debugMetricParsing {
+		s.logger.Debug().
+			Str("destination", metricDest).
+			Str("metric", metric).
+			Str("name", metricName).
+			Str("type", metricType).
+			Str("value", metricValue).
+			Float64("rate", sampleRate).
+			Strs("mtags", metricTagList).
+			Msg("parsed")
+	}
 
 	switch metricType {
 	case "c": // counter

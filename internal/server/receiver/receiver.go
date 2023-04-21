@@ -19,6 +19,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/release"
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
+	"github.com/openhistogram/circonusllhist"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
@@ -29,13 +30,15 @@ var (
 	metrics          *cgm.CirconusMetrics
 	baseTags         []string
 	histogramRx      *regexp.Regexp // encoded histogram regular express (e.g. coming from a cgm put to /write)
+	numFloatRx       *regexp.Regexp // is number or float
 	histogramRxNames []string
 	logger           = log.With().Str("pkg", "receiver").Logger()
 )
 
 func init() {
-	histogramRx = regexp.MustCompile(`^H\[(?P<bucket>[^\]]+)\]=(?P<count>[0-9]+)$`)
+	histogramRx = regexp.MustCompile(`H\[(?P<bucket>[^\]]+)\]=(?P<count>[0-9]+)`)
 	histogramRxNames = histogramRx.SubexpNames()
+	numFloatRx = regexp.MustCompile(`^[0-9][0-9]*(\.[0-9]+)?$`)
 }
 
 // logshim is used to satisfy apiclient Logger interface (avoiding ptr receiver issue).
@@ -132,22 +135,28 @@ func Parse(id string, data io.Reader) error {
 				metrics.AddGaugeWithTags(metricName, metricTags, *v)
 			}
 		case "h":
-			fallthrough
-		case "n":
-			v, isHist := parseFloat(metricName, metric)
-			if v != nil {
-				metrics.AddGaugeWithTags(metricName, metricTags, *v)
-			} else if isHist {
-				samples := parseHistogram(metricName, metric)
-				if samples != nil && len(*samples) > 0 {
-					for _, sample := range *samples {
-						if sample.bucket {
-							metrics.RecordCountForValueWithTags(metricName, metricTags, sample.value, sample.count)
-						} else {
-							metrics.RecordValueWithTags(metricName, metricTags, sample.value)
-						}
+			switch metric.Value.(type) { // nolint:gocritic
+			case string:
+				// convert to []interface{} which is what histogram parser expects
+				v := make([]interface{}, 1)
+				v[0] = metric.Value.(string)
+				metric.Value = v
+			default:
+			}
+			samples := parseHistogram(metricName, metric)
+			if samples != nil && len(*samples) > 0 {
+				for _, sample := range *samples {
+					if sample.bucket {
+						metrics.RecordCountForValueWithTags(metricName, metricTags, sample.value, sample.count)
+					} else {
+						metrics.RecordValueWithTags(metricName, metricTags, sample.value)
 					}
 				}
+			}
+		case "n":
+			v := parseFloat(metricName, metric)
+			if v != nil {
+				metrics.AddGaugeWithTags(metricName, metricTags, *v)
 			}
 		case "s":
 			metrics.SetTextWithTags(metricName, metricTags, fmt.Sprintf("%v", metric.Value))
@@ -263,18 +272,16 @@ func parseUint64(metricName string, metric tags.JSONMetric) *uint64 {
 	return nil
 }
 
-func parseFloat(metricName string, metric tags.JSONMetric) (*float64, bool) {
+func parseFloat(metricName string, metric tags.JSONMetric) *float64 {
 	switch t := metric.Value.(type) {
 	case float64:
 		v := metric.Value.(float64)
-		return &v, false
-	case []interface{}: // treat as histogram
-		return nil, true
+		return &v
 	case string:
 		v, err := strconv.ParseFloat(metric.Value.(string), 64)
 		if err == nil {
 			v2 := v
-			return &v2, false
+			return &v2
 		}
 		logger.Error().
 			Str("metric", metricName).
@@ -288,7 +295,7 @@ func parseFloat(metricName string, metric tags.JSONMetric) (*float64, bool) {
 			Str("type", fmt.Sprintf("%T", t)).
 			Msg("invalid value type for metric type")
 	}
-	return nil, false
+	return nil
 }
 
 type histSample struct {
@@ -307,7 +314,10 @@ func parseHistogram(metricName string, metric tags.JSONMetric) *[]histSample {
 				ret = append(ret, histSample{bucket: false, value: v.(float64)})
 			case string:
 				sv := v.(string)
-				if !strings.Contains(sv, "H[") {
+				switch {
+				case strings.Contains(sv, "H["):
+				// nothing, let the code below parse it
+				case numFloatRx.MatchString(sv):
 					v2, err := strconv.ParseFloat(sv, 64)
 					if err != nil {
 						logger.Error().
@@ -320,15 +330,29 @@ func parseHistogram(metricName string, metric tags.JSONMetric) *[]histSample {
 					}
 					ret = append(ret, histSample{bucket: false, value: v2})
 					continue
+				default:
+					// try to parse a serialized histogram
+					raw := []byte(`"` + sv + `"`)
+					var h circonusllhist.Histogram
+					if err := json.Unmarshal(raw, &h); err != nil {
+						logger.Error().
+							Str("metric", metricName).
+							Interface("value", v).
+							Int("position", idx).
+							Err(err).
+							Msg("parsing serialized histogram")
+						continue
+					}
+					sv = strings.Join(h.DecStrings(), " ")
 				}
 
 				//
 				// it's an encoded histogram sample H[value]=count
 				//
-				bucket := ""
-				count := ""
 				matches := histogramRx.FindAllStringSubmatch(sv, -1)
 				for _, match := range matches {
+					bucket := ""
+					count := ""
 					for idx, val := range match {
 						switch histogramRxNames[idx] {
 						case "bucket":
@@ -337,36 +361,36 @@ func parseHistogram(metricName string, metric tags.JSONMetric) *[]histSample {
 							count = val
 						}
 					}
+					if bucket == "" || count == "" {
+						logger.Error().
+							Str("metric", metricName).
+							Str("sample", sv).
+							Int("position", idx).
+							Msg("invalid encoded histogram sample")
+						continue
+					}
+					b, err := strconv.ParseFloat(bucket, 64)
+					if err != nil {
+						logger.Error().
+							Str("metric", metricName).
+							Str("sample", sv).
+							Int("position", idx).
+							Err(err).
+							Msg("encoded histogram sample, value parse")
+						continue
+					}
+					c, err := strconv.ParseInt(count, 10, 64)
+					if err != nil {
+						logger.Error().
+							Str("metric", metricName).
+							Str("sample", sv).
+							Int("position", idx).
+							Err(err).
+							Msg("encoded histogram sample, count parse")
+						continue
+					}
+					ret = append(ret, histSample{bucket: true, value: b, count: c})
 				}
-				if bucket == "" || count == "" {
-					logger.Error().
-						Str("metric", metricName).
-						Str("sample", sv).
-						Int("position", idx).
-						Msg("invalid encoded histogram sample")
-					continue
-				}
-				b, err := strconv.ParseFloat(bucket, 64)
-				if err != nil {
-					logger.Error().
-						Str("metric", metricName).
-						Str("sample", sv).
-						Int("position", idx).
-						Err(err).
-						Msg("encoded histogram sample, value parse")
-					continue
-				}
-				c, err := strconv.ParseInt(count, 10, 64)
-				if err != nil {
-					logger.Error().
-						Str("metric", metricName).
-						Str("sample", sv).
-						Int("position", idx).
-						Err(err).
-						Msg("encoded histogram sample, count parse")
-					continue
-				}
-				ret = append(ret, histSample{bucket: true, value: b, count: c})
 			default:
 				logger.Error().
 					Str("metric", metricName).

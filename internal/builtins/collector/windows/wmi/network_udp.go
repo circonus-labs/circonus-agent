@@ -174,6 +174,10 @@ func (c *NetUDP) Collect(ctx context.Context) error {
 		protoTag := cgm.Tag{Category: "network-proto", Value: "udp4"}
 
 		for _, item := range dst {
+			if done(ctx) {
+				return fmt.Errorf("context: %w", ctx.Err())
+			}
+
 			_ = c.addMetric(&metrics, "", "DatagramsNoPortPersec", metricType, item.DatagramsNoPortPersec, cgm.Tags{protoTag, tagUnitsDatagrams})
 			_ = c.addMetric(&metrics, "", "DatagramsPersec", metricType, item.DatagramsPersec, cgm.Tags{protoTag, tagUnitsDatagrams})
 			_ = c.addMetric(&metrics, "", "DatagramsReceivedErrors", metricType, item.DatagramsReceivedErrors, cgm.Tags{protoTag, tagUnitsDatagrams})
@@ -198,6 +202,10 @@ func (c *NetUDP) Collect(ctx context.Context) error {
 		protoTag := cgm.Tag{Category: "network-proto", Value: "udp6"}
 
 		for _, item := range dst {
+			if done(ctx) {
+				return fmt.Errorf("context: %w", ctx.Err())
+			}
+
 			_ = c.addMetric(&metrics, "", "DatagramsNoPortPersec", metricType, item.DatagramsNoPortPersec, cgm.Tags{protoTag, tagUnitsDatagrams})
 			_ = c.addMetric(&metrics, "", "DatagramsPersec", metricType, item.DatagramsPersec, cgm.Tags{protoTag, tagUnitsDatagrams})
 			_ = c.addMetric(&metrics, "", "DatagramsReceivedErrors", metricType, item.DatagramsReceivedErrors, cgm.Tags{protoTag, tagUnitsDatagrams})

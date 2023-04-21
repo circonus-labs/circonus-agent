@@ -164,6 +164,10 @@ func (c *Cache) Collect(ctx context.Context) error {
 	}
 
 	for _, item := range dst {
+		if done(ctx) {
+			return fmt.Errorf("context: %w", ctx.Err())
+		}
+
 		_ = c.addMetric(&metrics, "", "AsyncCopyReadsPersec", metricType, item.AsyncCopyReadsPersec, cgm.Tags{tagUnitsOperations})
 		_ = c.addMetric(&metrics, "", "AsyncDataMapsPersec", metricType, item.AsyncDataMapsPersec, cgm.Tags{tagUnitsOperations})
 		_ = c.addMetric(&metrics, "", "AsyncFastReadsPersec", metricType, item.AsyncFastReadsPersec, cgm.Tags{tagUnitsOperations})

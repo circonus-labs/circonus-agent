@@ -1425,7 +1425,7 @@ func init() {
 }
 
 // initLogging initializes zerolog.
-func initLogging(cmd *cobra.Command, args []string) error {
+func initLogging(_ *cobra.Command, _ []string) error {
 	//
 	// Enable formatted output
 	//

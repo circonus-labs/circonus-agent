@@ -30,7 +30,6 @@ linters-settings:
 
 linters:
   enable:
-    - deadcode
     - errcheck
     - exportloopref
     - gocritic
@@ -48,17 +47,18 @@ linters:
     - predeclared
     - revive
     - staticcheck
-    - structcheck
     - typecheck
     - unparam
     - unused
-    - varcheck
     - unconvert
     - wrapcheck
   disable:
     - scopelint # deprecated, replaced by 
     - golint # deprecated, replaced by revive
     - gci
+    - deadcode # deprecated, replaced by unused
+    - varcheck # deprecated, replaced by unused
+    - structcheck # deprecated, replaced by unused
   disable-all: false
   presets:
     - bugs

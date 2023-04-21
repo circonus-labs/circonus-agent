@@ -135,7 +135,7 @@ func (c *NetIF) Collect(ctx context.Context) error {
 	c.lastStart = time.Now()
 	c.Unlock()
 
-	if err := c.ifCollect(&metrics); err != nil {
+	if err := c.ifCollect(ctx, &metrics); err != nil {
 		c.setStatus(metrics, err)
 		return fmt.Errorf("%s ifCollect: %w", c.pkgID, err)
 	}
@@ -145,7 +145,7 @@ func (c *NetIF) Collect(ctx context.Context) error {
 }
 
 // ifCollect gets metrics from /proc/net/dev.
-func (c *NetIF) ifCollect(metrics *cgm.Metrics) error {
+func (c *NetIF) ifCollect(ctx context.Context, metrics *cgm.Metrics) error {
 	unitBytesTag := tags.Tag{Category: "units", Value: "bytes"}
 	unitPacketsTag := tags.Tag{Category: "units", Value: "packets"}
 	dirInTag := tags.Tag{Category: "direction", Value: "in"}
@@ -201,6 +201,9 @@ func (c *NetIF) ifCollect(metrics *cgm.Metrics) error {
 		return fmt.Errorf("%s read file: %w", c.pkgID, err)
 	}
 	for _, line := range lines {
+		if done(ctx) {
+			return fmt.Errorf("context: %w", ctx.Err())
+		}
 		if strings.Contains(line, "|") {
 			continue // skip header lines
 		}
@@ -219,6 +222,10 @@ func (c *NetIF) ifCollect(metrics *cgm.Metrics) error {
 		}
 
 		for _, s := range stats {
+			if done(ctx) {
+				return fmt.Errorf("context: %w", ctx.Err())
+			}
+
 			if len(fields) < s.idx {
 				c.logger.Warn().Err(err).Str("iface", iface).Int("idx", s.idx).Str("desc", s.desc).Msg("missing field")
 				continue

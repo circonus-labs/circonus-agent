@@ -222,9 +222,9 @@ func TestParse(t *testing.T) {
 		}
 	}
 
-	t.Log("\ttype 'n' float (histogram numeric samples)")
+	t.Log("\ttype 'n' float (string)")
 	{
-		data := []byte(`{"test": {"_type": "n", "_value": [1]}}`)
+		data := []byte(`{"test": {"_type": "n", "_value": "1.2"}}`)
 		r := io.NopCloser(bytes.NewReader(data))
 		err := Parse("testg", r)
 		if err != nil {
@@ -235,56 +235,12 @@ func TestParse(t *testing.T) {
 		if !ok {
 			t.Fatalf("expected metric 'testg`test', %#v", m)
 		}
-		if len(testMetric.Value.([]string)) == 0 {
-			t.Fatalf("expected at least 1 sample, got %#v", testMetric.Value)
-		}
-		expect := "[H[1.0e+00]=1]"
-		if !strings.Contains(fmt.Sprintf("%v", testMetric.Value), expect) {
-			t.Fatalf("expected (%v) got (%v)", expect, testMetric.Value)
-		}
-	}
-
-	t.Log("\ttype 'n' float (histogram encoded samples)")
-	{
-		data := []byte(`{"test": {"_type": "n", "_value": ["H[1.2]=1"]}}`)
-		r := io.NopCloser(bytes.NewReader(data))
-		err := Parse("testg", r)
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		m := metrics.FlushMetrics()
-		testMetric, ok := (*m)[metricName]
-		if !ok {
-			t.Fatalf("expected metric 'testg`test', %#v", m)
-		}
-		if len(testMetric.Value.([]string)) == 0 {
-			t.Fatalf("expected at least 1 sample, got %#v", testMetric.Value)
-		}
-		expect := "[H[1.2e+00]=1]"
-		if !strings.Contains(fmt.Sprintf("%v", testMetric.Value), expect) {
-			t.Fatalf("expected (%v) got (%v)", expect, testMetric.Value)
-		}
-	}
-
-	t.Log("\ttype 'h' float")
-	{
-		data := []byte(`{"test": {"_type": "h", "_value": 1}}`)
-		r := io.NopCloser(bytes.NewReader(data))
-		err := Parse("testg", r)
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		m := metrics.FlushMetrics()
-		testMetric, ok := (*m)[metricName]
-		if !ok {
-			t.Fatalf("expected metric 'testg`test', %#v", m)
-		}
-		if testMetric.Value.(float64) != float64(1) {
+		if testMetric.Value.(float64) != float64(1.2) {
 			t.Fatalf("expected 1 got %v", testMetric.Value)
 		}
 	}
 
-	t.Log("\ttype 'h' float (histogram numeric samples)")
+	t.Log("\ttype 'h' (bare number)")
 	{
 		data := []byte(`{"test": {"_type": "h", "_value": [1]}}`)
 		r := io.NopCloser(bytes.NewReader(data))
@@ -297,16 +253,51 @@ func TestParse(t *testing.T) {
 		if !ok {
 			t.Fatalf("expected metric 'testg`test', %#v", m)
 		}
-		if len(testMetric.Value.([]string)) == 0 {
-			t.Fatalf("expected at least 1 sample, got %#v", testMetric.Value)
-		}
-		expect := "[H[1.0e+00]=1]"
+		expect := "AAEKAAAB"
 		if !strings.Contains(fmt.Sprintf("%v", testMetric.Value), expect) {
 			t.Fatalf("expected (%v) got (%v)", expect, testMetric.Value)
 		}
 	}
 
-	t.Log("\ttype 'h' float (histogram encoded samples)")
+	t.Log("\ttype 'h' (quoted number)")
+	{
+		data := []byte(`{"test": {"_type": "h", "_value": ["1"]}}`)
+		r := io.NopCloser(bytes.NewReader(data))
+		err := Parse("testg", r)
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
+		m := metrics.FlushMetrics()
+		testMetric, ok := (*m)[metricName]
+		if !ok {
+			t.Fatalf("expected metric 'testg`test', %#v", m)
+		}
+		expect := "AAEKAAAB"
+		if !strings.Contains(fmt.Sprintf("%v", testMetric.Value), expect) {
+			t.Fatalf("expected (%v) got (%v)", expect, testMetric.Value)
+		}
+	}
+
+	t.Log("\ttype 'h' (histogram numeric samples)")
+	{
+		data := []byte(`{"test": {"_type": "h", "_value": [1,2]}}`)
+		r := io.NopCloser(bytes.NewReader(data))
+		err := Parse("testg", r)
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
+		m := metrics.FlushMetrics()
+		testMetric, ok := (*m)[metricName]
+		if !ok {
+			t.Fatalf("expected metric 'testg`test', %#v", m)
+		}
+		expect := "AAIKAAABFAAAAQ=="
+		if !strings.Contains(fmt.Sprintf("%v", testMetric.Value), expect) {
+			t.Fatalf("expected (%v) got (%v)", expect, testMetric.Value)
+		}
+	}
+
+	t.Log("\ttype 'h' (decstring encoded samples)")
 	{
 		data := []byte(`{"test": {"_type": "h", "_value": ["H[1.2]=1"]}}`)
 		r := io.NopCloser(bytes.NewReader(data))
@@ -319,10 +310,45 @@ func TestParse(t *testing.T) {
 		if !ok {
 			t.Fatalf("expected metric 'testg`test', %#v", m)
 		}
-		if len(testMetric.Value.([]string)) == 0 {
-			t.Fatalf("expected at least 1 sample, got %#v", testMetric.Value)
+		expect := "AAEMAAAB"
+		if !strings.Contains(fmt.Sprintf("%v", testMetric.Value), expect) {
+			t.Fatalf("expected (%v) got (%v)", expect, testMetric.Value)
 		}
-		expect := "[H[1.2e+00]=1]"
+	}
+
+	t.Log("\ttype 'h' (serializeb64 encoded sample, 1 in array)")
+	{
+		data := []byte(`{"test": {"_type": "h", "_value": ["AAIfAAABNAAAAQ=="]}}`)
+		r := io.NopCloser(bytes.NewReader(data))
+		err := Parse("testg", r)
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
+		m := metrics.FlushMetrics()
+		testMetric, ok := (*m)[metricName]
+		if !ok {
+			t.Fatalf("expected metric 'testg`test', %#v", m)
+		}
+		expect := "AAIfAAABNAAAAQ=="
+		if !strings.Contains(fmt.Sprintf("%v", testMetric.Value), expect) {
+			t.Fatalf("expected (%v) got (%v)", expect, testMetric.Value)
+		}
+	}
+
+	t.Log("\ttype 'h' (serializeb64 encoded as string)")
+	{
+		data := []byte(`{"test": {"_type": "h", "_value": "AAIfAAABNAAAAQ=="}}`)
+		r := io.NopCloser(bytes.NewReader(data))
+		err := Parse("testg", r)
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
+		m := metrics.FlushMetrics()
+		testMetric, ok := (*m)[metricName]
+		if !ok {
+			t.Fatalf("expected metric 'testg`test', %#v", m)
+		}
+		expect := "AAIfAAABNAAAAQ=="
 		if !strings.Contains(fmt.Sprintf("%v", testMetric.Value), expect) {
 			t.Fatalf("expected (%v) got (%v)", expect, testMetric.Value)
 		}
@@ -573,10 +599,7 @@ func TestParseFloat(t *testing.T) {
 	for _, test := range tt {
 		t.Logf("\ttesting %s (%#v)", test.Description, test.Value)
 		metric := createMetric(metricType, test.Value)
-		v, isHist := parseFloat("test", metric)
-		if isHist {
-			t.Fatal("not expecting histogram")
-		}
+		v := parseFloat("test", metric)
 		if test.ShouldFail {
 			if v != nil {
 				t.Fatalf("expected nil, got (%#v)", v)
@@ -606,14 +629,15 @@ func TestParseHistogram(t *testing.T) {
 	}{
 		{"valid1", []float64{1}, []histSample{{bucket: false, count: 0, value: 1}}, false},
 		{"valid2", []float64{1.2}, []histSample{{bucket: false, count: 0, value: 1.2}}, false},
-		{"valid hist", []string{"H[1.2]=1"}, []histSample{{bucket: true, count: 1, value: 1.2}}, false},
+		{"valid hist1", []string{"H[1.2]=1"}, []histSample{{bucket: true, count: 1, value: 1.2}}, false},
+		{"valid hist2", []string{"H[1.2]=1", "H[2.8]=3"}, []histSample{{bucket: true, count: 1, value: 1.2}, {bucket: true, count: 3, value: 2.8}}, false},
 		{"valid, string1", []string{fmt.Sprintf("%v", 1)}, []histSample{{bucket: false, count: 0, value: 1}}, false},
 		{"valid, string2", []string{fmt.Sprintf("%v", 1.2)}, []histSample{{bucket: false, count: 0, value: 1.2}}, false},
+		{"valid serializeb64 []", []string{"AAIfAAABNAAAAQ=="}, []histSample{{bucket: true, count: 1, value: 3.1}, {bucket: true, count: 1, value: 5.2}}, false},
 		{"bad conversion", []string{fmt.Sprintf("%v", "1a")}, []histSample{}, true},
 		{"bad data type - metric", true, []histSample{}, true},
 		{"bad data type - metric sample", []bool{true}, []histSample{}, true},
-		{"bad hist val", []string{"H[1.2b]=1"}, []histSample{}, true},
-		{"bad hist cnt", []string{"H[1.2]=1b"}, []histSample{}, true},
+		{"bad hist bucket", []string{"H[1.2b]=1"}, []histSample{}, true},
 	}
 
 	for _, test := range tt {

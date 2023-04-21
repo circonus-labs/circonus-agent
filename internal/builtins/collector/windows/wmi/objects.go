@@ -133,6 +133,10 @@ func (c *Objects) Collect(ctx context.Context) error {
 
 	metricType := "I"
 	for _, item := range dst {
+		if done(ctx) {
+			return fmt.Errorf("context: %w", ctx.Err())
+		}
+
 		_ = c.addMetric(&metrics, "", "Events", metricType, item.Events, cgm.Tags{})
 		_ = c.addMetric(&metrics, "", "Mutexes", metricType, item.Mutexes, cgm.Tags{})
 		_ = c.addMetric(&metrics, "", "Processes", metricType, item.Processes, cgm.Tags{})

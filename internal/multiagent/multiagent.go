@@ -37,11 +37,11 @@ type Metric struct {
 }
 
 type TrapResult struct {
-	CheckUUID  string
-	Error      string `json:"error,omitempty"`
-	SubmitUUID uuid.UUID
-	Filtered   uint64 `json:"filtered,omitempty"`
-	Stats      uint64 `json:"stats"`
+	CheckUUID  string    `json:"-"`
+	Error      string    `json:"error,omitempty"`
+	SubmitUUID uuid.UUID `json:"-"`
+	Filtered   uint64    `json:"filtered,omitempty"`
+	Stats      uint64    `json:"stats"`
 }
 
 type Submitter struct {

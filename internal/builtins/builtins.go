@@ -167,7 +167,7 @@ func (b *Builtins) Flush(id string) *cgm.Metrics {
 	defer b.Unlock()
 
 	if err := appstats.SetString("builtins.last_flush", time.Now().String()); err != nil {
-		b.logger.Warn().Err(err).Msg("setting app stat")
+		b.logger.Warn().Err(err).Str("id", id).Msg("setting app stat")
 	}
 
 	metrics := cgm.Metrics{}

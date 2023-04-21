@@ -34,7 +34,7 @@ type gencommon struct {
 }
 
 // Collect returns collector metrics.
-func (c *gencommon) Collect(ctx context.Context) error {
+func (c *gencommon) Collect(_ context.Context) error {
 	c.Lock()
 	defer c.Unlock()
 	return collector.ErrNotImplemented

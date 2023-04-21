@@ -98,13 +98,14 @@ type StatsDGroup struct {
 
 // StatsD defines the running config.statsd structure.
 type StatsD struct {
-	Group    StatsDGroup `json:"group" yaml:"group" toml:"group"`
-	Host     StatsDHost  `json:"host" yaml:"host" toml:"host"`
-	Addr     string      `join:"addr" yaml:"addr" toml:"addr"`
-	Port     string      `json:"port" yaml:"port" toml:"port"`
-	NPP      uint        `json:"npp" yaml:"npp" toml:"npp"`
-	PQS      uint        `json:"pqs" yaml:"pqs" toml:"pqs"`
-	Disabled bool        `json:"disabled" yaml:"disabled" toml:"disabled"`
+	Group              StatsDGroup `json:"group" yaml:"group" toml:"group"`
+	Host               StatsDHost  `json:"host" yaml:"host" toml:"host"`
+	Addr               string      `json:"addr" yaml:"addr" toml:"addr"`
+	Port               string      `json:"port" yaml:"port" toml:"port"`
+	NPP                uint        `json:"npp" yaml:"npp" toml:"npp"`
+	PQS                uint        `json:"pqs" yaml:"pqs" toml:"pqs"`
+	Disabled           bool        `json:"disabled" yaml:"disabled" toml:"disabled"`
+	DebugMetricParsing bool        `mapstructure:"debug_metric_parsing" json:"debug_metric_parsing" toml:"debug_metrics_parsing" yaml:"debug_metric_parsing"`
 }
 
 // Thresholds defines triggers used to include metrics.
@@ -156,7 +157,6 @@ const (
 
 	// KeyDebug enables debug messages.
 	KeyDebug = "debug"
-
 	// KeyDebugCGM enables debug messages for circonus-gometrics.
 	KeyDebugCGM = "debug_cgm"
 
@@ -271,6 +271,9 @@ const (
 
 	// KeyStatsdPQS sets packet queue size.
 	KeyStatsdPQS = "statsd.pqs"
+
+	// KeyStatsdDebugMetricParsing controls verbose logging of metric parsing results.
+	KeyStatsdDebugMetricParsing = "statsd.debug_metric_parsing"
 
 	// KeyCollectors defines the builtin collectors to enable.
 	KeyCollectors = "collectors"

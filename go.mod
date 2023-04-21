@@ -11,6 +11,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.1
 	github.com/maier/go-appstats v0.2.0
+	github.com/openhistogram/circonusllhist v0.3.0
 	github.com/pelletier/go-toml v1.9.5
 	github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/common v0.37.0

@@ -142,3 +142,12 @@ func New(ctx context.Context) ([]collector.Collector, error) {
 
 	return collectors, nil
 }
+
+func done(ctx context.Context) bool {
+	select {
+	case <-ctx.Done():
+		return true
+	default:
+		return false
+	}
+}

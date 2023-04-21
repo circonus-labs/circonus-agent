@@ -159,6 +159,10 @@ func (c *Processor) Collect(ctx context.Context) error {
 	metricType := "L"
 	tagUnitsPercent := cgm.Tag{Category: "units", Value: "percent"}
 	for _, item := range dst {
+		if done(ctx) {
+			return fmt.Errorf("context: %w", ctx.Err())
+		}
+
 		cpuID := c.cleanName(item.Name)
 
 		metricSuffix := ""

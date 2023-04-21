@@ -181,6 +181,9 @@ func (c *Disk) Collect(ctx context.Context) error {
 		return fmt.Errorf("%s read file: %w", c.pkgID, err)
 	}
 	for _, line := range lines {
+		if done(ctx) {
+			return fmt.Errorf("context: %w", ctx.Err())
+		}
 		fields := strings.Fields(line)
 
 		//  0 major                ignore
@@ -225,6 +228,9 @@ func (c *Disk) Collect(ctx context.Context) error {
 	mdrx := regexp.MustCompile(`^md[0-9]+`)
 	metricType := "L" // uint64
 	for devID, devStats := range stats {
+		if done(ctx) {
+			return fmt.Errorf("context: %w", ctx.Err())
+		}
 
 		if c.exclude.MatchString(devID) || !c.include.MatchString(devID) {
 			c.logger.Debug().Str("device", devID).Msg("excluded device name, ignoring")

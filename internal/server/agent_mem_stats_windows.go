@@ -13,7 +13,7 @@ import (
 )
 
 // agentMemoryStats produces the internal agent metrics.
-func (s *Server) agentMemoryStats(metrics cgm.Metrics, mtags []string) {
+func (s *Server) agentMemoryStats(_ cgm.Metrics, _ []string) {
 	// var mem syscall.Rusage
 	// if err := syscall.Getrusage(syscall.RUSAGE_SELF, &mem); err == nil {
 	// 	metrics[tags.MetricNameWithStreamTags("agent_max_rss", tags.FromList(ctags))] = cgm.Metric{Value: uint64(mem.Maxrss * 1024), Type: "L"} // maximum resident set size used (in kilobytes)

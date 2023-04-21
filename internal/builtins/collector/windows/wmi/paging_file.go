@@ -155,6 +155,10 @@ func (c *PagingFile) Collect(ctx context.Context) error {
 	metricType := "I"
 	tagUnitsPercent := cgm.Tag{Category: "units", Value: "percent"}
 	for _, item := range dst {
+		if done(ctx) {
+			return fmt.Errorf("context: %w", ctx.Err())
+		}
+
 		itemName := c.cleanName(item.Name)
 		if c.exclude.MatchString(itemName) || !c.include.MatchString(itemName) {
 			continue

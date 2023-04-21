@@ -9,6 +9,7 @@
 package wmi
 
 import (
+	"context"
 	"fmt"
 	"path"
 	"regexp"
@@ -217,4 +218,14 @@ func New() ([]collector.Collector, error) {
 	}
 
 	return collectors, nil
+}
+
+func done(ctx context.Context) bool {
+	select {
+	case <-ctx.Done():
+		return true
+	default:
+		return false
+	}
+
 }

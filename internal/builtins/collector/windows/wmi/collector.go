@@ -28,7 +28,7 @@ import (
 // collector implementation requires it.
 
 // Collect metrics.
-func (c *wmicommon) Collect(ctx context.Context) error {
+func (c *wmicommon) Collect(_ context.Context) error {
 	c.Lock()
 	defer c.Unlock()
 	return collector.ErrNotImplemented

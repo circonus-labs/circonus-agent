@@ -26,6 +26,7 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/tags"
 	cgm "github.com/circonus-labs/circonus-gometrics/v3"
 	appstats "github.com/maier/go-appstats"
+	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
 
@@ -502,5 +503,39 @@ func (s *Server) metricsToPromFormat(w io.Writer, prefix string, ts int64, val i
 		l.Warn().
 			Str("metric", fmt.Sprintf("#TYPE(%T) %v = %#v", t, prefix, val)).
 			Msg("unhandled export type")
+	}
+}
+
+func (s *Server) handleOptions(w http.ResponseWriter, r *http.Request) {
+	l := s.logger.With().Str("op", "options handler").Logger()
+	values := r.URL.Query()
+	for k, v := range values {
+		switch strings.ToLower(k) {
+		case "log_level":
+			if len(v) > 0 {
+				switch strings.ToLower(v[0]) {
+				case "debug":
+					zerolog.SetGlobalLevel(zerolog.DebugLevel)
+					_, _ = w.Write([]byte("log level set to " + zerolog.DebugLevel.String()))
+				case "info":
+					zerolog.SetGlobalLevel(zerolog.InfoLevel)
+					_, _ = w.Write([]byte("log level set to " + zerolog.InfoLevel.String()))
+				case "warn":
+					zerolog.SetGlobalLevel(zerolog.WarnLevel)
+					_, _ = w.Write([]byte("log level set to " + zerolog.WarnLevel.String()))
+				case "error":
+					zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+					_, _ = w.Write([]byte("log level set to " + zerolog.ErrorLevel.String()))
+				default:
+					l.Warn().Str("level", v[0]).Msg("unknown log level")
+					w.WriteHeader(http.StatusBadRequest)
+					_, _ = w.Write([]byte("unknown log level " + v[0]))
+				}
+			}
+		default:
+			l.Warn().Str("arg", k).Msg("unknown option")
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte("unknown option " + k))
+		}
 	}
 }

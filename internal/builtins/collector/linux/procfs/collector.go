@@ -64,7 +64,7 @@ func newCommon(id, procFSPath, procFile string, baseTags cgm.Tags) common {
 }
 
 // Collect returns collector metrics.
-func (c *common) Collect(ctx context.Context) error {
+func (c *common) Collect(_ context.Context) error {
 	c.Lock()
 	defer c.Unlock()
 	return collector.ErrNotImplemented
@@ -185,7 +185,7 @@ func (c *common) readFile(file string) ([]string, error) {
 		lines = append(lines, s.Text())
 	}
 	if err := s.Err(); err != nil {
-		return lines, fmt.Errorf("scanner: %w [close:%v]", err, f.Close())
+		return lines, fmt.Errorf("scanner: %w [close:%v]", err, f.Close()) //nolint:errorlint
 	}
 
 	return lines, f.Close() //nolint:wrapcheck

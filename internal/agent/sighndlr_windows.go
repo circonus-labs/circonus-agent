@@ -22,7 +22,7 @@ import (
 )
 
 func (a *Agent) signalNotifySetup() {
-	signal.Notify(a.signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE, syscall.SIGTRAP)
+	signal.Notify(a.signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGTRAP)
 }
 
 // handleSignals runs the signal handler thread.
@@ -39,7 +39,7 @@ func (a *Agent) handleSignals() error {
 			switch sig {
 			case os.Interrupt, syscall.SIGTERM:
 				a.Stop()
-			case syscall.SIGPIPE, syscall.SIGHUP:
+			case syscall.SIGHUP:
 				// Noop
 			case syscall.SIGTRAP:
 				stacklen := runtime.Stack(buf, true)

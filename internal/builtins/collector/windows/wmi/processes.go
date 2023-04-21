@@ -187,6 +187,10 @@ func (c *Processes) Collect(ctx context.Context) error {
 	tagUnitsOperations := cgm.Tag{Category: "units", Value: "operations"}
 	tagUnitsPercent := cgm.Tag{Category: "units", Value: "percent"}
 	for _, item := range dst {
+		if done(ctx) {
+			return fmt.Errorf("context: %w", ctx.Err())
+		}
+
 		itemName := c.cleanName(item.Name)
 		if c.exclude.MatchString(itemName) || !c.include.MatchString(itemName) {
 			continue

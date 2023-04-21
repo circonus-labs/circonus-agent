@@ -64,6 +64,7 @@ type Server struct {
 	enableUDPListener     bool // NOTE: defaults to TRUE; uses !disabled (not really a separate option)
 	enableTCPListener     bool // NOTE: defaults to FALSE
 	debugCGM              bool
+	debugMetricParsing    bool
 	groupMetricsmu        sync.Mutex
 	hostMetricsmu         sync.Mutex
 	sync.Mutex
@@ -97,27 +98,28 @@ func New(ctx context.Context) (*Server, error) {
 	g, gctx := errgroup.WithContext(ctx)
 
 	s = Server{
-		group:             g,
-		groupCtx:          gctx,
-		disabled:          viper.GetBool(config.KeyStatsdDisabled),
-		logger:            log.With().Str("pkg", "statsd").Logger(),
-		hostPrefix:        viper.GetString(config.KeyStatsdHostPrefix),
-		hostCategory:      viper.GetString(config.KeyStatsdHostCategory),
-		groupCID:          viper.GetString(config.KeyStatsdGroupCID),
-		groupPrefix:       viper.GetString(config.KeyStatsdGroupPrefix),
-		groupCounterOp:    viper.GetString(config.KeyStatsdGroupCounters),
-		groupGaugeOp:      viper.GetString(config.KeyStatsdGroupGauges),
-		groupSetOp:        viper.GetString(config.KeyStatsdGroupSets),
-		debugCGM:          viper.GetBool(config.KeyDebugCGM),
-		apiKey:            viper.GetString(config.KeyAPITokenKey),
-		apiApp:            viper.GetString(config.KeyAPITokenApp),
-		apiURL:            viper.GetString(config.KeyAPIURL),
-		apiCAFile:         viper.GetString(config.KeyAPICAFile),
-		baseTags:          tags.GetBaseTags(),
-		tcpConnections:    map[string]*net.TCPConn{},
-		tcpMaxConnections: viper.GetUint(config.KeyStatsdMaxTCPConns),
-		npp:               viper.GetUint(config.KeyStatsdNPP),
-		pqs:               viper.GetUint(config.KeyStatsdPQS),
+		group:              g,
+		groupCtx:           gctx,
+		disabled:           viper.GetBool(config.KeyStatsdDisabled),
+		logger:             log.With().Str("pkg", "statsd").Logger(),
+		hostPrefix:         viper.GetString(config.KeyStatsdHostPrefix),
+		hostCategory:       viper.GetString(config.KeyStatsdHostCategory),
+		groupCID:           viper.GetString(config.KeyStatsdGroupCID),
+		groupPrefix:        viper.GetString(config.KeyStatsdGroupPrefix),
+		groupCounterOp:     viper.GetString(config.KeyStatsdGroupCounters),
+		groupGaugeOp:       viper.GetString(config.KeyStatsdGroupGauges),
+		groupSetOp:         viper.GetString(config.KeyStatsdGroupSets),
+		debugCGM:           viper.GetBool(config.KeyDebugCGM),
+		debugMetricParsing: viper.GetBool(config.KeyStatsdDebugMetricParsing),
+		apiKey:             viper.GetString(config.KeyAPITokenKey),
+		apiApp:             viper.GetString(config.KeyAPITokenApp),
+		apiURL:             viper.GetString(config.KeyAPIURL),
+		apiCAFile:          viper.GetString(config.KeyAPICAFile),
+		baseTags:           tags.GetBaseTags(),
+		tcpConnections:     map[string]*net.TCPConn{},
+		tcpMaxConnections:  viper.GetUint(config.KeyStatsdMaxTCPConns),
+		npp:                viper.GetUint(config.KeyStatsdNPP),
+		pqs:                viper.GetUint(config.KeyStatsdPQS),
 	}
 
 	if s.npp == 0 {
@@ -336,8 +338,8 @@ func (s *Server) initGroupMetrics() error {
 	cmc := &cgm.Config{}
 	if s.debugCGM {
 		cmc.Debug = s.debugCGM
-		cmc.Log = logshim{logh: s.logger.With().Str("pkg", "cgm.statsd-group-check").Logger()}
 	}
+	cmc.Log = logshim{logh: s.logger.With().Str("pkg", "cgm.statsd-group-check").Logger()}
 	cmc.CheckManager.API.TokenKey = s.apiKey
 	cmc.CheckManager.API.TokenApp = s.apiApp
 	cmc.CheckManager.API.URL = s.apiURL

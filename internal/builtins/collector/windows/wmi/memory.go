@@ -164,6 +164,10 @@ func (c *Memory) Collect(ctx context.Context) error {
 	}
 
 	for _, item := range dst {
+		if done(ctx) {
+			return fmt.Errorf("context: %w", ctx.Err())
+		}
+
 		_ = c.addMetric(&metrics, "", "AvailableBytes", metricType, item.AvailableBytes, cgm.Tags{tagUnitsBytes})
 		_ = c.addMetric(&metrics, "", "CacheBytes", metricType, item.CacheBytes, cgm.Tags{tagUnitsBytes})
 		_ = c.addMetric(&metrics, "", "CacheFaultsPersec", metricType, item.CacheFaultsPersec, cgm.Tags{})
