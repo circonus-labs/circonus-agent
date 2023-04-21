@@ -143,7 +143,6 @@ func Parse(id string, data io.Reader) error {
 				metric.Value = v
 			default:
 			}
-			fmt.Printf("sending histogram: %v\n", metric)
 			samples := parseHistogram(metricName, metric)
 			if samples != nil && len(*samples) > 0 {
 				for _, sample := range *samples {
