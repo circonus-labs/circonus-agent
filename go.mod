@@ -13,7 +13,7 @@ require (
 	github.com/maier/go-appstats v0.2.0
 	github.com/openhistogram/circonusllhist v0.3.0
 	github.com/pelletier/go-toml v1.9.5
-	github.com/prometheus/client_model v0.2.0
+	github.com/prometheus/client_model v0.3.0
 	github.com/prometheus/common v0.37.0
 	github.com/rs/zerolog v1.28.0
 	github.com/shirou/gopsutil/v3 v3.23.2
