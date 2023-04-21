@@ -268,6 +268,8 @@ func (c *Prom) parse(id string, data io.Reader, metrics *cgm.Metrics) error {
 					}
 					_ = c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetUntyped().Value)
 				}
+			case dto.MetricType_GAUGE_HISTOGRAM:
+				// not currently supported
 			}
 		}
 	}
