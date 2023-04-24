@@ -2,7 +2,7 @@ module github.com/circonus-labs/circonus-agent
 
 require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20211005130812-5bb3c17173e5
-	github.com/alecthomas/units v0.0.0-20210927113745-59d0afb8317a
+	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137
 	github.com/bi-zone/wmi v1.1.4
 	github.com/circonus-labs/circonus-gometrics/v3 v3.4.6
 	github.com/circonus-labs/go-apiclient v0.7.23
@@ -14,7 +14,7 @@ require (
 	github.com/openhistogram/circonusllhist v0.3.0
 	github.com/pelletier/go-toml v1.9.5
 	github.com/prometheus/client_model v0.3.0
-	github.com/prometheus/common v0.37.0
+	github.com/prometheus/common v0.42.0
 	github.com/rs/zerolog v1.28.0
 	github.com/shirou/gopsutil/v3 v3.23.2
 	github.com/spf13/cobra v1.6.1
