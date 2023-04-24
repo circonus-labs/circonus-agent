@@ -6,7 +6,7 @@ require (
 	github.com/bi-zone/wmi v1.1.4
 	github.com/circonus-labs/circonus-gometrics/v3 v3.4.6
 	github.com/circonus-labs/go-apiclient v0.7.23
-	github.com/gojuno/minimock/v3 v3.0.10
+	github.com/gojuno/minimock/v3 v3.1.3
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.2
