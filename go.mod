@@ -17,7 +17,7 @@ require (
 	github.com/prometheus/common v0.42.0
 	github.com/rs/zerolog v1.29.1
 	github.com/shirou/gopsutil/v3 v3.23.3
-	github.com/spf13/cobra v1.6.1
+	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.15.0
 	golang.org/x/sync v0.1.0
 	golang.org/x/sys v0.7.0
