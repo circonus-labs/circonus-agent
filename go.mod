@@ -15,7 +15,7 @@ require (
 	github.com/pelletier/go-toml v1.9.5
 	github.com/prometheus/client_model v0.4.0
 	github.com/prometheus/common v0.44.0
-	github.com/rs/zerolog v1.29.1
+	github.com/rs/zerolog v1.30.0
 	github.com/shirou/gopsutil/v3 v3.23.5
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
