@@ -32,6 +32,8 @@ import (
 
 // Server defines a statsd server.
 type Server struct {
+	logger                zerolog.Logger
+	groupCtx              context.Context
 	tcpConnections        map[string]*net.TCPConn
 	group                 *errgroup.Group
 	udpAddress            *net.UDPAddr
@@ -42,32 +44,30 @@ type Server struct {
 	nameSpaceReplaceRx    *regexp.Regexp
 	udpListener           *net.UDPConn
 	tcpListener           *net.TCPListener
-	groupCtx              context.Context
-	hostPrefix            string
-	hostCategory          string
+	apiKey                string
 	groupCID              string
 	groupPrefix           string
 	groupCounterOp        string
 	groupGaugeOp          string
 	groupSetOp            string
-	apiKey                string
+	hostCategory          string
 	apiApp                string
 	apiURL                string
 	apiCAFile             string
-	metricRegexGroupNames []string
+	hostPrefix            string
 	baseTags              []string
-	logger                zerolog.Logger
+	metricRegexGroupNames []string
 	tcpMaxConnections     uint
 	npp                   uint
 	pqs                   uint
-	disabled              bool
-	enableUDPListener     bool // NOTE: defaults to TRUE; uses !disabled (not really a separate option)
-	enableTCPListener     bool // NOTE: defaults to FALSE
-	debugCGM              bool
-	debugMetricParsing    bool
 	groupMetricsmu        sync.Mutex
 	hostMetricsmu         sync.Mutex
 	sync.Mutex
+	disabled           bool
+	enableUDPListener  bool // NOTE: defaults to TRUE; uses !disabled (not really a separate option)
+	enableTCPListener  bool // NOTE: defaults to FALSE
+	debugCGM           bool
+	debugMetricParsing bool
 }
 
 const (
@@ -370,7 +370,7 @@ func (s *Server) initGroupMetrics() error {
 	return nil
 }
 
-// udpReader reads packets from the statsd udp listener, adds packets recevied to the queue.
+// udpReader reads packets from the statsd udp listener, adds packets received to the queue.
 func (s *Server) udpReader(packetCh chan<- []byte) error {
 	for {
 		if s.done() {
@@ -391,7 +391,7 @@ func (s *Server) udpReader(packetCh chan<- []byte) error {
 	}
 }
 
-// tcpHandler reads packets from the statsd tcp listener, adds packets recevied to the queue.
+// tcpHandler reads packets from the statsd tcp listener, adds packets received to the queue.
 func (s *Server) tcpHandler(packetCh chan<- []byte) error {
 	for {
 		if s.done() {
@@ -421,7 +421,7 @@ func (s *Server) tcpHandler(packetCh chan<- []byte) error {
 	}
 }
 
-// tcpReader reads packets from the statsd tcp listener, adds packets recevied to the queue.
+// tcpReader reads packets from the statsd tcp listener, adds packets received to the queue.
 func (s *Server) tcpReader(conn *net.TCPConn, packetCh chan<- []byte) error {
 	addr := conn.RemoteAddr().String()
 	defer func() {
