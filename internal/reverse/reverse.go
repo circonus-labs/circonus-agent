@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/check"
 	"github.com/circonus-labs/circonus-agent/internal/config"
@@ -21,10 +20,10 @@ import (
 )
 
 type Reverse struct {
-	agentAddress string
+	logger       zerolog.Logger
 	configs      *check.ReverseConfigs
 	chk          *check.Check
-	logger       zerolog.Logger
+	agentAddress string
 	enabled      bool
 }
 
@@ -79,7 +78,6 @@ func (r *Reverse) Start(ctx context.Context) error {
 		return fmt.Errorf("invalid reverse configurations (zero)") //nolint:goerr113
 	}
 
-	lastRefresh := time.Now()
 	refreshCheck := false
 	rctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -88,10 +86,6 @@ func (r *Reverse) Start(ctx context.Context) error {
 		case <-rctx.Done():
 			return nil
 		default:
-		}
-
-		if time.Since(lastRefresh) > 5*time.Minute {
-			refreshCheck = true
 		}
 
 		if refreshCheck {
@@ -119,11 +113,6 @@ func (r *Reverse) Start(ctx context.Context) error {
 				refreshCheck = true
 				continue
 			}
-			// if nferr, ok := errors.Cause(err).(*check.ErrNoOwnerFound); ok { //nolint:errorlint
-			// 	r.logger.Warn().Err(nferr).Msg("refreshing check bundle configuration")
-			// 	refreshCheck = true
-			// 	continue
-			// }
 			return fmt.Errorf("find primary broker: %w", err)
 		}
 
