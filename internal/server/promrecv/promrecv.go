@@ -66,7 +66,7 @@ func initCGM() error {
 
 	metrics = hm
 
-	// inintialize any options for the receiver
+	// initialize any options for the receiver
 	nameCleanerRx = regexp.MustCompile("[\r\n\"'`]") // used to strip unwanted characters
 
 	baseTags = tags.GetBaseTags()
@@ -101,7 +101,7 @@ func Parse(data io.Reader) error {
 	}
 
 	for mn, mf := range metricFamilies {
-		for _, m := range mf.Metric {
+		for _, m := range mf.GetMetric() {
 			metricName := nameCleanerRx.ReplaceAllString(mn, "")
 			tags := getLabels(m)
 			switch {
@@ -119,21 +119,21 @@ func Parse(data io.Reader) error {
 				}
 			default:
 				switch {
-				case m.Gauge != nil:
-					if m.GetGauge().Value != nil {
-						metrics.GaugeWithTags(metricName, tags, *m.GetGauge().Value)
+				case m.GetGauge() != nil:
+					if m.GetGauge().Value != nil { //nolint:protogetter
+						metrics.GaugeWithTags(metricName, tags, *m.GetGauge().Value) //nolint:protogetter
 					}
-				case m.Counter != nil:
-					if m.GetCounter().Value != nil {
-						metrics.GaugeWithTags(metricName, tags, *m.GetCounter().Value)
+				case m.GetCounter() != nil:
+					if m.GetCounter().Value != nil { //nolint:protogetter
+						metrics.GaugeWithTags(metricName, tags, *m.GetCounter().Value) //nolint:protogetter
 					}
-				case m.Untyped != nil:
-					if m.GetUntyped().Value != nil {
-						if *m.GetUntyped().Value == math.Inf(+1) {
+				case m.GetUntyped() != nil:
+					if m.GetUntyped().Value != nil { //nolint:protogetter
+						if *m.GetUntyped().Value == math.Inf(+1) { //nolint:protogetter
 							logger.Warn().Str("metric", metricName).Str("type", mf.GetType().String()).Str("value", (*m).GetUntyped().String()).Msg("cannot coerce +Inf to uint64")
 							continue
 						}
-						metrics.GaugeWithTags(metricName, tags, *m.GetUntyped().Value)
+						metrics.GaugeWithTags(metricName, tags, *m.GetUntyped().Value) //nolint:protogetter
 					}
 				}
 			}
@@ -144,11 +144,11 @@ func Parse(data io.Reader) error {
 }
 
 func getLabels(m *dto.Metric) tags.Tags {
-	labels := make([]string, 0, len(m.Label))
-	for _, label := range m.Label {
-		if label.Name != nil && label.Value != nil {
-			ln := nameCleanerRx.ReplaceAllString(*label.Name, "")
-			lv := nameCleanerRx.ReplaceAllString(*label.Value, "")
+	labels := make([]string, 0, len(m.GetLabel()))
+	for _, label := range m.GetLabel() {
+		if label.GetName() != "" && label.GetValue() != "" {
+			ln := nameCleanerRx.ReplaceAllString(label.GetName(), "")
+			lv := nameCleanerRx.ReplaceAllString(label.GetValue(), "")
 			labels = append(labels, ln+tags.Delimiter+lv) // stream tags take form cat:val
 		}
 	}
@@ -166,9 +166,9 @@ func getLabels(m *dto.Metric) tags.Tags {
 
 func getQuantiles(m *dto.Metric) map[string]float64 {
 	ret := make(map[string]float64)
-	for _, q := range m.GetSummary().Quantile {
-		if q.Value != nil && !math.IsNaN(*q.Value) {
-			ret[fmt.Sprint(*q.Quantile)] = *q.Value
+	for _, q := range m.GetSummary().GetQuantile() {
+		if q.Value != nil && !math.IsNaN(*q.Value) { //nolint:protogetter
+			ret[fmt.Sprint(*q.Quantile)] = *q.Value //nolint:protogetter
 		}
 	}
 	return ret
@@ -176,9 +176,9 @@ func getQuantiles(m *dto.Metric) map[string]float64 {
 
 func getBuckets(m *dto.Metric) map[string]uint64 {
 	ret := make(map[string]uint64)
-	for _, b := range m.GetHistogram().Bucket {
-		if b.CumulativeCount != nil {
-			ret[fmt.Sprint(*b.UpperBound)] = *b.CumulativeCount
+	for _, b := range m.GetHistogram().GetBucket() {
+		if b.CumulativeCount != nil { //nolint:protogetter
+			ret[fmt.Sprint(*b.UpperBound)] = *b.CumulativeCount //nolint:protogetter
 		}
 	}
 	return ret

@@ -28,18 +28,18 @@ import (
 
 // Check exposes the check bundle management interface.
 type Check struct {
+	logger                zerolog.Logger
+	client                API
 	checkConfig           *apiclient.Check
 	checkBundle           *bundle.Bundle
 	broker                *apiclient.Broker
-	statusActiveBroker    string
-	client                API
 	revConfigs            *ReverseConfigs
-	logger                zerolog.Logger
+	statusActiveBroker    string
 	brokerMaxResponseTime time.Duration
 	refreshTTL            time.Duration
 	brokerMaxRetries      int
-	reverse               bool
 	sync.Mutex
+	reverse bool
 }
 
 // Meta contains check id meta data.
@@ -259,7 +259,7 @@ func (c *Check) SubmissionURL() (string, *tls.Config, error) {
 	return surl, tlsConfig, nil
 }
 
-// CheckPeriod returns check bundle period (intetrval between when broker should make request).
+// CheckPeriod returns check bundle period (interval between when broker should make request).
 func (c *Check) CheckPeriod() (uint, error) {
 	c.Lock()
 	defer c.Unlock()
