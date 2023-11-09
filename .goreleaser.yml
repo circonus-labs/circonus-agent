@@ -107,20 +107,20 @@ dockers:
       - "--label=org.label-schema.version={{.Version}}"
       - "--label=org.label-schema.name={{.ProjectName}}"
 
-    - id: ca-arm64
-      goos: linux
-      goarch: arm64
-      goarm: ''
-      ids: ['circonus-agent']
-      image_templates:
-        - "circonus/{{.ProjectName}}:{{.Tag}}-arm64"
-        - "circonus/{{.ProjectName}}:latest-arm64"
-      skip_push: false
-      dockerfile: clusters/docker/arm64/Dockerfile
-      build_flag_templates:
-        - "--label=org.label-schema.schema-version=1.0"
-        - "--label=org.label-schema.version={{.Version}}"
-        - "--label=org.label-schema.name={{.ProjectName}}"
+  - id: ca-arm64
+    goos: linux
+    goarch: arm64
+    goarm: ''
+    ids: ['circonus-agent']
+    image_templates:
+      - "circonus/{{.ProjectName}}:{{.Tag}}-arm64"
+      - "circonus/{{.ProjectName}}:latest-arm64"
+    skip_push: false
+    dockerfile: clusters/docker/arm64/Dockerfile
+    build_flag_templates:
+      - "--label=org.label-schema.schema-version=1.0"
+      - "--label=org.label-schema.version={{.Version}}"
+      - "--label=org.label-schema.name={{.ProjectName}}"
 
 docker_manifests:
   - name_template: "circonus/{{.ProjectName}}:latest"
