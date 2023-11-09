@@ -40,20 +40,36 @@ type URLDef struct {
 
 // Prom defines prom collector.
 type Prom struct {
-	pkgID           string         // package prefix used for logging and errors
-	lastError       string         // last collection error
-	baseTags        []string       // base tags
-	urls            []URLDef       // prom URLs to collect metric from
-	lastEnd         time.Time      // last collection end time
-	lastMetrics     cgm.Metrics    // last metrics collected
-	lastStart       time.Time      // last collection start time
-	metricNameRegex *regexp.Regexp // OPT regex for cleaning names, may be overridden in config
-	logger          zerolog.Logger // collector logging instance
-	lastRunDuration time.Duration  // last collection duration
-	runTTL          time.Duration  // OPT ttl for collector (default is for every request)
-	running         bool           // is collector currently running
+	logger          zerolog.Logger
+	lastEnd         time.Time
+	lastStart       time.Time
+	metricNameRegex *regexp.Regexp
+	lastMetrics     cgm.Metrics
+	lastError       string
+	pkgID           string
+	urls            []URLDef
+	baseTags        []string
+	lastRunDuration time.Duration
+	runTTL          time.Duration
 	sync.Mutex
+	running bool
 }
+
+// type Prom struct {
+// 	pkgID           string         // package prefix used for logging and errors
+// 	lastError       string         // last collection error
+// 	baseTags        []string       // base tags
+// 	urls            []URLDef       // prom URLs to collect metric from
+// 	lastEnd         time.Time      // last collection end time
+// 	lastMetrics     cgm.Metrics    // last metrics collected
+// 	lastStart       time.Time      // last collection start time
+// 	metricNameRegex *regexp.Regexp // OPT regex for cleaning names, may be overridden in config
+// 	logger          zerolog.Logger // collector logging instance
+// 	lastRunDuration time.Duration  // last collection duration
+// 	runTTL          time.Duration  // OPT ttl for collector (default is for every request)
+// 	running         bool           // is collector currently running
+// 	sync.Mutex
+// }
 
 // promOptions defines what elements can be overridden in a config file.
 type promOptions struct {
@@ -180,7 +196,7 @@ func (c *Prom) Collect(ctx context.Context) error {
 func (c *Prom) fetchPromMetrics(pctx context.Context, u URLDef, metrics *cgm.Metrics) error {
 	req, err := http.NewRequest("GET", u.URL, nil)
 	if err != nil {
-		return fmt.Errorf("prepare reqeust: %w", err)
+		return fmt.Errorf("prepare request: %w", err)
 	}
 
 	var ctx context.Context
@@ -235,7 +251,7 @@ func (c *Prom) parse(id string, data io.Reader, metrics *cgm.Metrics) error {
 
 	pfx := ""
 	for mn, mf := range metricFamilies {
-		for _, m := range mf.Metric {
+		for _, m := range mf.GetMetric() {
 			metricName := mn
 			tags := c.getLabels(m)
 			tags = append(tags, cgm.Tag{Category: "prom_id", Value: id})
@@ -253,21 +269,16 @@ func (c *Prom) parse(id string, data io.Reader, metrics *cgm.Metrics) error {
 					_ = c.addMetric(metrics, pfx, metricName+"_"+bn, tags, "n", bv)
 				}
 			case dto.MetricType_COUNTER:
-				if m.GetCounter().Value != nil {
-					_ = c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetCounter().Value)
-				}
+				_ = c.addMetric(metrics, pfx, metricName, tags, "n", m.GetCounter().GetValue())
 			case dto.MetricType_GAUGE:
-				if m.GetGauge().Value != nil {
-					_ = c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetGauge().Value)
-				}
+				_ = c.addMetric(metrics, pfx, metricName, tags, "n", m.GetGauge().GetValue())
 			case dto.MetricType_UNTYPED:
-				if m.GetUntyped().Value != nil {
-					if *m.GetUntyped().Value == math.Inf(+1) {
-						c.logger.Warn().Str("metric", metricName).Str("type", mf.GetType().String()).Str("value", (*m).GetUntyped().String()).Msg("cannot coerce +Inf to uint64")
-						continue
-					}
-					_ = c.addMetric(metrics, pfx, metricName, tags, "n", *m.GetUntyped().Value)
+				v := m.GetUntyped().GetValue()
+				if v == math.Inf(+1) {
+					c.logger.Warn().Str("metric", metricName).Str("type", mf.GetType().String()).Str("value", (*m).GetUntyped().String()).Msg("cannot coerce +Inf to numeric")
+					continue
 				}
+				_ = c.addMetric(metrics, pfx, metricName, tags, "n", mf)
 			case dto.MetricType_GAUGE_HISTOGRAM:
 				// not currently supported
 			}
@@ -281,10 +292,10 @@ func (c *Prom) getLabels(m *dto.Metric) tags.Tags {
 	// Need to use cgm.Tags format and return a converted stream tags string
 	labels := []string{}
 
-	for _, label := range m.Label {
-		if label.Name != nil && label.Value != nil {
-			ln := c.metricNameRegex.ReplaceAllString(*label.Name, "")
-			lv := c.metricNameRegex.ReplaceAllString(*label.Value, "")
+	for _, label := range m.GetLabel() {
+		if label.GetName() != "" && label.GetValue() != "" {
+			ln := c.metricNameRegex.ReplaceAllString(label.GetName(), "")
+			lv := c.metricNameRegex.ReplaceAllString(label.GetValue(), "")
 			labels = append(labels, ln+tags.Delimiter+lv) // stream tags take form cat:val
 		}
 	}
@@ -302,9 +313,10 @@ func (c *Prom) getLabels(m *dto.Metric) tags.Tags {
 
 func (c *Prom) getQuantiles(m *dto.Metric) map[string]float64 {
 	ret := make(map[string]float64)
-	for _, q := range m.GetSummary().Quantile {
-		if q.Value != nil && !math.IsNaN(*q.Value) {
-			ret[fmt.Sprint(*q.Quantile)] = *q.Value
+	for _, q := range m.GetSummary().GetQuantile() {
+		v := q.GetValue()
+		if v != 0 && !math.IsNaN(v) {
+			ret[fmt.Sprint(q.GetQuantile())] = q.GetValue()
 		}
 	}
 	return ret
@@ -312,9 +324,9 @@ func (c *Prom) getQuantiles(m *dto.Metric) map[string]float64 {
 
 func (c *Prom) getBuckets(m *dto.Metric) map[string]uint64 {
 	ret := make(map[string]uint64)
-	for _, b := range m.GetHistogram().Bucket {
-		if b.CumulativeCount != nil {
-			ret[fmt.Sprint(*b.UpperBound)] = *b.CumulativeCount
+	for _, b := range m.GetHistogram().GetBucket() {
+		if b.CumulativeCount != nil { //nolint:protogetter
+			ret[fmt.Sprint(*b.UpperBound)] = *b.CumulativeCount //nolint:protogetter
 		}
 	}
 	return ret

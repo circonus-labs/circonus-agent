@@ -1,125 +1,180 @@
 project_name: circonus-agent
 
 before:
-    hooks:
-        - go mod tidy
-        - ./build_lint.sh
-        - ./build_plugins.sh
+  hooks:
+    - go mod tidy
+    - ./build_lint.sh
+    - ./build_plugins.sh
 
 builds:
-    -
-        id: circonus-agent
-        main: main.go
-        binary: sbin/circonus-agentd
-        env:
-            - CGO_ENABLED=0
-        flags: 
-            #- -a
-        goos:
-            - linux
-            - darwin
-            - windows
-            - freebsd
-            - openbsd
-            - solaris
-            - illumos
+  - id: circonus-agent
+    main: main.go
+    binary: sbin/circonus-agentd
+    env:
+      - CGO_ENABLED=0
+    flags: 
+      - -trimpath
+    goos:
+      - linux
+      - windows
+      - freebsd
+      - openbsd
+      - solaris
+      - illumos
+    goarch:
+      - amd64
+      - arm64
+      - arm
+    ignore:
+      -
+        goarch: 386
+      - goos: freebsd
+        goarch: arm
+      - goos: openbsd
+        goarch: arm64
+      - goos: openbsd
+        goarch: arm
+      - goos: windows
+        goarch: arm
+      - goos: windows
+        goarch: arm64
+    ldflags: 
+      - -s
+      - -w
+      - -extldflags "-static"
+      - -X github.com/circonus-labs/circonus-agent/internal/release.VERSION={{.Version}} 
+      - -X github.com/circonus-labs/circonus-agent/internal/release.COMMIT={{.ShortCommit}} 
+      - -X github.com/circonus-labs/circonus-agent/internal/release.DATE={{.Date}} 
+      - -X github.com/circonus-labs/circonus-agent/internal/release.TAG={{.Tag}}
 
-        goarch:
-            - amd64
-            - arm64
-            - arm
+  - id: ca-macos_amd64
+    main: main.go
+    binary: sbin/circonus-agentd
+    env:
+      - CGO_ENABLED=0
+    flags: 
+      - -trimpath
+    goos:
+      - darwin
+    goarch:
+      - amd64
+    ldflags: 
+      - -s
+      - -w
+      - -extldflags "-static"
+      - -X github.com/circonus-labs/circonus-agent/internal/release.VERSION={{.Version}} 
+      - -X github.com/circonus-labs/circonus-agent/internal/release.COMMIT={{.ShortCommit}} 
+      - -X github.com/circonus-labs/circonus-agent/internal/release.DATE={{.Date}} 
+      - -X github.com/circonus-labs/circonus-agent/internal/release.TAG={{.Tag}}
+    hooks:
+      post: ./macos_sign.sh {{ .Path }}
 
-        ignore:
-            -
-              goarch: 386
-            - goos: freebsd
-              goarch: arm
-            - goos: openbsd
-              goarch: arm64
-            - goos: openbsd
-              goarch: arm
-            - goos: windows
-              goarch: arm
-            - goos: windows
-              goarch: arm64
-
-
-        ldflags: 
-            - -X github.com/circonus-labs/circonus-agent/internal/release.VERSION={{.Version}} 
-            - -X github.com/circonus-labs/circonus-agent/internal/release.COMMIT={{.ShortCommit}} 
-            - -X github.com/circonus-labs/circonus-agent/internal/release.DATE={{.Date}} 
-            - -X github.com/circonus-labs/circonus-agent/internal/release.TAG={{.Tag}}
+  - id: ca-macos_arm64
+    main: main.go
+    binary: sbin/circonus-agentd
+    env:
+      - CGO_ENABLED=0
+    flags: 
+      - -trimpath
+    goos:
+      - darwin
+    goarch:
+      - arm64
+    ldflags: 
+      - -s
+      - -w
+      - -extldflags "-static"
+      - -X github.com/circonus-labs/circonus-agent/internal/release.VERSION={{.Version}} 
+      - -X github.com/circonus-labs/circonus-agent/internal/release.COMMIT={{.ShortCommit}} 
+      - -X github.com/circonus-labs/circonus-agent/internal/release.DATE={{.Date}} 
+      - -X github.com/circonus-labs/circonus-agent/internal/release.TAG={{.Tag}}
+    hooks:
+      post: ./macos_sign.sh {{ .Path }}
 
 dockers:
-    -
-        goos: linux
-        goarch: amd64
-        goarm: ''
-        ids: ['circonus-agent']
-        image_templates:
-            - "circonus/{{.ProjectName}}:{{.Tag}}-amd64"
-            - "circonus/{{.ProjectName}}:latest-amd64"
-        skip_push: false
-        dockerfile: clusters/docker/x86_64/Dockerfile
-        build_flag_templates:
-            - "--label=org.label-schema.schema-version=1.0"
-            - "--label=org.label-schema.version={{.Version}}"
-            - "--label=org.label-schema.name={{.ProjectName}}"
-    -
-        goos: linux
-        goarch: arm64
-        goarm: ''
-        ids: ['circonus-agent']
-        image_templates:
-            - "circonus/{{.ProjectName}}:{{.Tag}}-arm64"
-            - "circonus/{{.ProjectName}}:latest-arm64"
-        skip_push: false
-        dockerfile: clusters/docker/arm64/Dockerfile
-        build_flag_templates:
-            - "--label=org.label-schema.schema-version=1.0"
-            - "--label=org.label-schema.version={{.Version}}"
-            - "--label=org.label-schema.name={{.ProjectName}}"
+  - id: ca-amd64
+    goos: linux
+    goarch: amd64
+    goarm: ''
+    ids: ['circonus-agent']
+    image_templates:
+      - "circonus/{{.ProjectName}}:{{.Tag}}-amd64"
+      - "circonus/{{.ProjectName}}:latest-amd64"
+    skip_push: false
+    dockerfile: clusters/docker/x86_64/Dockerfile
+    build_flag_templates:
+      - "--label=org.label-schema.schema-version=1.0"
+      - "--label=org.label-schema.version={{.Version}}"
+      - "--label=org.label-schema.name={{.ProjectName}}"
+
+  - id: ca-arm64
+    goos: linux
+    goarch: arm64
+    goarm: ''
+    ids: ['circonus-agent']
+    image_templates:
+      - "circonus/{{.ProjectName}}:{{.Tag}}-arm64"
+      - "circonus/{{.ProjectName}}:latest-arm64"
+    skip_push: false
+    dockerfile: clusters/docker/arm64/Dockerfile
+    build_flag_templates:
+      - "--label=org.label-schema.schema-version=1.0"
+      - "--label=org.label-schema.version={{.Version}}"
+      - "--label=org.label-schema.name={{.ProjectName}}"
 
 docker_manifests:
-    - name_template: "circonus/{{.ProjectName}}:latest"
-      image_templates:
-        - "circonus/{{.ProjectName}}:latest-amd64"
-        - "circonus/{{.ProjectName}}:latest-arm64"
-    - name_template: "circonus/{{.ProjectName}}:{{.Tag}}"
-      image_templates:
-        - "circonus/{{.ProjectName}}:{{.Tag}}-amd64"
-        - "circonus/{{.ProjectName}}:{{.Tag}}-arm64"
+  - name_template: "circonus/{{.ProjectName}}:latest"
+    image_templates:
+      - "circonus/{{.ProjectName}}:latest-amd64"
+      - "circonus/{{.ProjectName}}:latest-arm64"
+  - name_template: "circonus/{{.ProjectName}}:{{.Tag}}"
+    image_templates:
+      - "circonus/{{.ProjectName}}:{{.Tag}}-amd64"
+      - "circonus/{{.ProjectName}}:{{.Tag}}-arm64"
 
 archives:
-    - 
-      id: default
-      name_template: "{{.ProjectName}}_{{.Version}}_{{.Os}}_{{.Arch}}"
-
-      format: tar.gz
-
-      replacements:
-        amd64: x86_64
-
-      format_overrides:
-        -
-          goos: windows
-          format: zip
-
-      files:
-        - LICENSE
-        - README.md
-        - CHANGELOG.md
-        - etc/README.md
-        - service/*
-        - cache/README.md
-        - plugins/**/*
+  - id: default
+    name_template: "{{.ProjectName}}_{{.Version}}_{{.Os}}_{{.Arch}}"
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - LICENSE
+      - README.md
+      - CHANGELOG.md
+      - etc/README.md
+      - service/*
+      - cache/README.md
+      - plugins/**/*
 
 release:
-    github:
-        owner: circonus-labs
-        name: circonus-agent
+  github:
+    owner: circonus-labs
+    name: circonus-agent
+  draft: false
+  prerelease: false
 
-    prerelease: false
+changelog:
+  use: git
+  sort: desc
+  abbrev: 0
+  groups:
+    - title: Features
+      regexp: "^.*feat[(\\w)]*:+.*$"
+      order: 0
+    - title: 'Bug fixes'
+      regexp: "^.*fix[(\\w)]*:+.*$"
+      order: 1
+    - title: 'Dependencies'
+      regexp: "^.*build(deps):+.*$"
+      order: 2
+    - title: Others
+      order: 999
+  filters:
+    exclude:
+      - '^docs:'
+      - typo
 
 checksum:
-    name_template: "{{.ProjectName}}_checksums.txt"
+  name_template: "{{.ProjectName}}_checksums.txt"

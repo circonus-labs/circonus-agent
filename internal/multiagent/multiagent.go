@@ -45,17 +45,17 @@ type TrapResult struct {
 }
 
 type Submitter struct {
+	logger          zerolog.Logger
 	brokerTLSConfig *tls.Config
 	client          *http.Client
 	svr             *server.Server
 	submissionURL   string
 	checkUUID       string
 	traceSubmits    string
-	logger          zerolog.Logger
+	interval        time.Duration
 	useCompression  bool
 	enabled         bool
 	accumulate      bool
-	interval        time.Duration
 }
 
 // submitLogshim is used to satisfy submission use of retryable-http Logger interface (avoiding ptr receiver issue).
@@ -362,7 +362,7 @@ func (s *Submitter) getMetrics() Metrics {
 
 func (l submitLogshim) Printf(fmt string, v ...interface{}) {
 	if strings.HasPrefix(fmt, "[DEBUG]") {
-		if e := l.logh.Debug(); !e.Enabled() {
+		if e := l.logh.Debug(); !e.Enabled() { //nolint:zerologlint
 			return
 		}
 	}

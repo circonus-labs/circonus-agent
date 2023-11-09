@@ -44,11 +44,11 @@ func init() {
 		panic(err)
 	}
 
-	if data, err := os.ReadFile("testdata/ca.crt"); err != nil {
+	data, err := os.ReadFile("testdata/ca.crt")
+	if err != nil {
 		panic(err)
-	} else {
-		cacert.Contents = string(data)
 	}
+	cacert.Contents = string(data)
 }
 
 func genMockClient(mc *minimock.Controller) *APIMock {

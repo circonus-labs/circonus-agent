@@ -1,10 +1,28 @@
+# v2.7.0
+
+* chore(lint): struct member alignment
+* chore: remove timed refresh for reverse. use only primary broker check.
+* build(deps): upgrade cgm to v3.4.7
+* build(deps): bump github.com/google/uuid from 1.3.1 to 1.4.0
+* build(deps): bump github.com/prometheus/common from 0.44.0 to 0.45.0
+* build(deps): bump github.com/spf13/viper from 1.16.0 to 1.17.0
+* build(deps): bump github.com/spf13/cobra from 1.7.0 to 1.8.0
+* build(deps): bump golang.org/x/sync from 0.3.0 to 0.5.0
+* build(deps): bump golang.org/x/sys from 0.12.0 to 0.14.0
+* build(deps): bump github.com/prometheus/client_model from 0.4.0 to 0.5.0
+* build(deps): bump github.com/shirou/gopsutil/v3 from 3.23.8 to 3.23.9
+* build(deps): bump github.com/rs/zerolog from 1.30.0 to 1.31.0
+* build(deps): bump github.com/hashicorp/go-retryablehttp from 0.7.2 to 0.7.4
+* build(deps): bump github.com/circonus-labs/go-apiclient from 0.7.18 to 0.7.23
+* build(deps): bump github.com/shirou/gopsutil/v3 from 3.23.9 to 3.23.10
+
 # v2.6.0
 
 * fix(receiver): add SerializeB64 handling for histograms to the `/write` endpoint
 * feat: `/options` endpoint to dynamically control log_level (e.g. turn debug on/off while running)
 * feat(statsd): explicit metric parsing debug option
 * fix: don't swallow sigpipe
-* fix(lint): unsed args (generic, linux, & windows)
+* fix(lint): unused args (generic, linux, & windows)
 * chore: golangci-lint v1.52
 * fix(lint): exports annotated with json tag
 * fix(lint): redundant if-return
@@ -49,14 +67,14 @@
 
 # v2.4.2
 
-* fix!: error handling on read timemout (reverse)
+* fix!: error handling on read timeout (reverse)
 * upd!: dependencies (apiclient, cgm) -- for performance optimized openhistogram
 * doc: note for automation with --check-delete
 * add: last conn/retry/err stats
 * add: last run req stat
-* upd: disable fieldalignment (automated lint)
+* upd: disable field alignment (automated lint)
 * wip: nfpm
-* upd: explict paths for fb
+* upd: explicit paths for fb
 * upd: remove transitory downloads
 * upd: ownership for etc dir fb tgz
 * add: dependabot.yml
@@ -113,7 +131,7 @@
 
 # v2.3.0
 
-* upd: adjust statsd rate hadnling to match broker
+* upd: adjust statsd rate handling to match broker
 * fix: error handling in reverse
 
 # v2.2.1
@@ -146,7 +164,7 @@
 
 # v2.0.2
 
-* upd: change [dockerhub organization](https://hub.docker.com/repository/docker/circonus/circonus-agent) circonuslabs->circonus
+* upd: change [docker hub organization](https://hub.docker.com/repository/docker/circonus/circonus-agent) circonuslabs->circonus
 
 # v2.0.1
 
@@ -171,18 +189,18 @@ Note: For automatic host dashboards a new check type is being used. This makes t
 * fix: use api ca file if specified for check api client
 * add: generic hostTags method for check tags (applies to create and update)
 * add: host tags to check (like cosi did)
-* fix: only lower case category if not already encoded (affected receiver w/streamtagged metric names)
+* fix: only lower case category if not already encoded (affected receiver w/stream tagged metric names)
 * upd: go1.15 manual tls VerifyConnection
-* upd: depedencies
+* upd: dependencies
 * fix: config file path sep to be os sensitive
 
 # v1.1.0
 
 * doc: add multi-agent details
-* fix: linit align structs
+* fix: lint align struct fields
 * fix: lint for rand
 * add: support tag merging for receiver
-* upd: remove deprecated state mgmt
+* upd: remove deprecated state management
 * add: force enterprise for multi-agent mode
 * add: verify httptrap is enabled on broker for multi-agent mode
 * add: SubmissionURL method for multi-agent
@@ -222,7 +240,7 @@ Note: For automatic host dashboards a new check type is being used. This makes t
 
 # v1.0.11
 
-* upd: if multiple checks found matching criteria (active,json:nad,target) and none match the agent, return result such that a check will be created (if create check is enabled) - note, this does present the possiblity of multiple checks being created if the notes are altered in such a way that the agent is not able to determine it created the check
+* upd: if multiple checks found matching criteria (active,json:nad,target) and none match the agent, return result such that a check will be created (if create check is enabled) - note, this does present the possibility of multiple checks being created if the notes are altered in such a way that the agent is not able to determine it created the check
 
 # v1.0.10
 
@@ -343,16 +361,16 @@ Note: For automatic host dashboards a new check type is being used. This makes t
 * add: example metric filter using tags
 * fix: lint, duplicate toml (one should be yaml)
 * fix: lint, use `fmt.Println` vs `fmt.Printf` in test
-* fix: lint, remove old `id`, replaced with streamtag `collector:promrecv`
+* fix: lint, remove old `id`, replaced with stream tag `collector:promrecv`
 * fix: generic builtins, skip NaN floats (causes json error)
 * upd: dependencies
 * add: smf manifest
 
 # v1.0.0-beta.1
 
-* fix: output all parsed plugin metrics with streamtags, include any tags from `_tags` attribute of emitted json
+* fix: output all parsed plugin metrics with stream tags, include any tags from `_tags` attribute of emitted json
 * fix: output tags `io_latency` in `_tags` attribute rather than in metric name (so they can be combined with agent tags to create stream tagged metric name)
-* add: statsd tcp listner (optional, off by default)
+* add: statsd tcp listener (optional, off by default)
 
 # v1.0.0-alpha.5
 
