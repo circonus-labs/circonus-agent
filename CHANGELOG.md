@@ -6,13 +6,15 @@
 * build(deps): bump github.com/google/uuid from 1.3.1 to 1.4.0
 * build(deps): bump github.com/prometheus/common from 0.44.0 to 0.45.0
 * build(deps): bump github.com/spf13/viper from 1.16.0 to 1.17.0
-* build(deps): bump golang.org/x/sync from 0.3.0 to 0.4.0
-* build(deps): bump golang.org/x/sys from 0.12.0 to 0.13.0
+* build(deps): bump github.com/spf13/cobra from 1.7.0 to 1.8.0
+* build(deps): bump golang.org/x/sync from 0.3.0 to 0.5.0
+* build(deps): bump golang.org/x/sys from 0.12.0 to 0.14.0
 * build(deps): bump github.com/prometheus/client_model from 0.4.0 to 0.5.0
 * build(deps): bump github.com/shirou/gopsutil/v3 from 3.23.8 to 3.23.9
 * build(deps): bump github.com/rs/zerolog from 1.30.0 to 1.31.0
 * build(deps): bump github.com/hashicorp/go-retryablehttp from 0.7.2 to 0.7.4
 * build(deps): bump github.com/circonus-labs/go-apiclient from 0.7.18 to 0.7.23
+* build(deps): bump github.com/shirou/gopsutil/v3 from 3.23.9 to 3.23.10
 
 # v2.6.0
 
