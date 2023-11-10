@@ -8,7 +8,7 @@ require (
 	github.com/circonus-labs/go-apiclient v0.7.23
 	github.com/gojuno/minimock/v3 v3.1.3
 	github.com/google/uuid v1.4.0
-	github.com/hashicorp/go-retryablehttp v0.7.4
+	github.com/hashicorp/go-retryablehttp v0.7.5
 	github.com/maier/go-appstats v0.2.0
 	github.com/openhistogram/circonusllhist v0.3.0
 	github.com/pelletier/go-toml v1.9.5
