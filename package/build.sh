@@ -122,7 +122,7 @@ case $os_type in
         elif [[ -f /etc/lsb-release ]]; then
             install_target="install-ubuntu"
             source /etc/lsb-release
-            [[ $DISTRIB_RELEASE =~ ^(14|16|18|20)\.04$ ]] || { echo "unsupported Ubuntu release ($DISTRIB_RELEASE)"; exit 1; }
+            [[ $DISTRIB_RELEASE =~ ^(14|16|18|20|22)\.04$ ]] || { echo "unsupported Ubuntu release ($DISTRIB_RELEASE)"; exit 1; }
             os_name="ubuntu.${DISTRIB_RELEASE}"
             [[ -z "$(type -P $FPM)" ]] && { echo "unable to find '${FPM}' command in [$PATH]"; exit 1; }
         else
@@ -206,7 +206,7 @@ fetch_agent_repo() {
 fetch_agent_package() {
     if [[ "$agent_version" != "snapshot" ]]; then
         local stripped_ver=${agent_version#v}
-        agent_tgz="${agent_name}_${stripped_ver}_${os_type}_x86_64.tar.gz"
+        agent_tgz="${agent_name}_${stripped_ver}_${os_type}_amd64.tar.gz"
         agent_tgz_url="${url_agent_repo}/releases/download/${agent_version}/$agent_tgz"
         [[ -f $agent_tgz ]] || {
             echo "-fetching agent package (${agent_tgz}) - ${agent_tgz_url}"
@@ -416,7 +416,7 @@ install_service() {
             $MKDIR -p $dir_install/etc/init.d
             $SED -e "${sed_script}" ../service/circonus-agent.init-rhel > $dir_install/etc/init.d/circonus-agent
             ;;
-        ubuntu\.20*)
+        ubuntu\.2[02]*)
             $MKDIR -p $dir_install/lib/systemd/system
             $SED -e "${sed_script}" ../service/circonus-agent.service > $dir_install/lib/systemd/system/circonus-agent.service
             ;;

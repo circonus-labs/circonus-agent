@@ -2,7 +2,7 @@
 
 set -e
 
-distros="el8 el7 el6 u20 u18 u16 fb12 fb11"
+distros="el8 el7 u22 u20"
 [[ -n "$1" ]] && distros="${@:1}"
 
 src_dir="~/godev/src/github.com/circonus-labs/circonus-agent/package"
