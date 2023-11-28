@@ -191,3 +191,8 @@ sboms:
     env:
       - SYFT_GOLANG_SEARCH_LOCAL_MOD_CACHE_LICENSES=true
       - SYFT_GOLANG_SEARCH_REMOTE_LICENSES=true
+
+after:
+  hooks:
+    - cmd: bash -c 'for b in *.sbom; do grype -q --add-cpes-if-none $b; done'
+      dir: ./dist
