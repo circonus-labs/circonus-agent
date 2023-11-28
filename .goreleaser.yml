@@ -3,7 +3,13 @@ project_name: circonus-agent
 before:
   hooks:
     - go mod tidy
-    - ./build_lint.sh
+    - cmd: golangci-lint run
+      env:
+        - GOOS=linux
+    - cmd: golangci-lint run
+      env:
+        - GOOS=windows
+    - govulncheck ./...
     - ./build_plugins.sh
 
 builds:
