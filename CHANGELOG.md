@@ -1,5 +1,11 @@
 # **unreleased**
 
+## v2.7.1
+
+* build: add after hook for `grype` on generated sboms
+* build: add .sbom for archive artifacts
+* build: update before hooks for `go mod tidy`, `govulncheck` and `golangci-lint`
+* build(deps): bump golang.org/x/sys from 0.14.0 to 0.15.0
 * build(deps): bump github.com/hashicorp/go-retryablehttp from 0.7.4 to 0.7.5
 * feat: update build scripts for agent+plugins to depredate fb11, fb12, el6, u18, and add u22
 
