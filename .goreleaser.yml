@@ -3,7 +3,13 @@ project_name: circonus-agent
 before:
   hooks:
     - go mod tidy
-    - ./build_lint.sh
+    - cmd: golangci-lint run
+      env:
+        - GOOS=linux
+    - cmd: golangci-lint run
+      env:
+        - GOOS=windows
+    - govulncheck ./...
     - ./build_plugins.sh
 
 builds:
@@ -178,3 +184,15 @@ changelog:
 
 checksum:
   name_template: "{{.ProjectName}}_checksums.txt"
+
+sboms:
+  - artifacts: archive
+    args: ["$artifact", "--output", "cyclonedx-json@1.5=$document"]
+    env:
+      - SYFT_GOLANG_SEARCH_LOCAL_MOD_CACHE_LICENSES=true
+      - SYFT_GOLANG_SEARCH_REMOTE_LICENSES=true
+
+after:
+  hooks:
+    - cmd: bash -c 'for b in *.sbom; do grype -q --add-cpes-if-none $b; done'
+      dir: ./dist
