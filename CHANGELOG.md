@@ -2,6 +2,7 @@
 
 ## v2.7.1
 
+* build: update to latest lint
 * build: add after hook for `grype` on generated sboms
 * build: add .sbom for archive artifacts
 * build: update before hooks for `go mod tidy`, `govulncheck` and `golangci-lint`
