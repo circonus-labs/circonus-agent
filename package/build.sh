@@ -362,7 +362,7 @@ fetch_logwatch_repo() {
 }
 fetch_logwatch_package() {
     local stripped_ver=${logwatch_version#v}
-    logwatch_tgz="${logwatch_name}_${stripped_ver}_${os_type}_x86_64.tar.gz"
+    logwatch_tgz="${logwatch_name}_${stripped_ver}_${os_type}_amd64.tar.gz"
     logwatch_tgz_url="${url_logwatch_repo}/releases/download/${logwatch_version}/$logwatch_tgz"
     [[ -f $logwatch_tgz ]] || {
         echo "-fetching logwatch package (${logwatch_tgz}) - ${logwatch_tgz_url}"
