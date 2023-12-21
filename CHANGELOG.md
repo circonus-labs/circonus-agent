@@ -1,5 +1,17 @@
 # **unreleased**
 
+## v2.7.2
+
+* build(deps): bump github.com/spf13/viper from 1.18.1 to 1.18.2
+* build(deps): bump github.com/openhistogram/circonusllhist from 0.3.0 to 0.4.0
+* build(deps): bump github.com/google/uuid from 1.4.0 to 1.5.0
+* build(deps): bump github/codeql-action from 2 to 3
+* build(deps): bump github.com/spf13/viper from 1.18.0 to 1.18.1
+* build(deps): bump github.com/spf13/viper from 1.17.0 to 1.18.0
+* build(deps): bump github.com/circonus-labs/go-apiclient from 0.7.23 to 0.7.24
+* build(deps): bump github.com/shirou/gopsutil/v3 from 3.23.10 to 3.23.11
+* build(pkg): logwatch x86_64->amd64 pkg download
+
 ## v2.7.1
 
 * build: update to latest lint
