@@ -7,7 +7,7 @@ require (
 	github.com/circonus-labs/circonus-gometrics/v3 v3.4.7
 	github.com/circonus-labs/go-apiclient v0.7.24
 	github.com/gojuno/minimock/v3 v3.3.6
-	github.com/google/uuid v1.5.0
+	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-retryablehttp v0.7.5
 	github.com/maier/go-appstats v0.2.0
 	github.com/openhistogram/circonusllhist v0.4.0
