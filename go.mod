@@ -13,7 +13,7 @@ require (
 	github.com/openhistogram/circonusllhist v0.4.0
 	github.com/pelletier/go-toml v1.9.5
 	github.com/prometheus/client_model v0.5.0
-	github.com/prometheus/common v0.46.0
+	github.com/prometheus/common v0.47.0
 	github.com/rs/zerolog v1.31.0
 	github.com/shirou/gopsutil/v3 v3.23.12
 	github.com/spf13/cobra v1.8.0
